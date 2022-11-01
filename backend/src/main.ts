@@ -11,9 +11,9 @@ class MyStrategy extends PassportStrategy(OAuth2Strategy, 'oauth2') {
 		    tokenURL: 'https://api.intra.42.fr/oauth/token',
 		    clientID: '',
 		    clientSecret: '',
-		    callbackURL: 'http://localhost:3000/oauth/hello',
+		    callbackURL: 'http://0.0.0.0:3000/oauth/hello',
 		    passReqToCallback: true,
-		    scope: 'AUTH_SCOPE',
+		    scope: 'public',
 		});
 	}
 
