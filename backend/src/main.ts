@@ -1,17 +1,31 @@
 import { NestFactory } from '@nestjs/core';
-import { Controller, Get, Module, UseGuards, Res, Req, Injectable, Logger } from '@nestjs/common';
+import { Controller, Get, Module, UseGuards, Res, Req, Injectable, Logger, Post } from '@nestjs/common';
 import { AuthGuard, PassportStrategy, PassportModule } from '@nestjs/passport';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
+import { Strategy as BearerStrategy } from 'passport-http-bearer';
+import { Response } from 'express';
 
 @Injectable()
-class MyStrategy extends PassportStrategy(OAuth2Strategy, 'oauth2') {
+class BearerGuard extends PassportStrategy(BearerStrategy, 'bearer') {
+	constructor() {
+		super();
+	}
+
+	async validate(token, done: (err, user) => void) {
+		console.log('bearer');
+		done(null, false);
+	}
+}
+
+@Injectable()
+class AuthStrategy extends PassportStrategy(OAuth2Strategy, 'oauth2') {
 	constructor() {
 		super({
 		    authorizationURL: 'https://api.intra.42.fr/oauth/authorize',
 		    tokenURL: 'https://api.intra.42.fr/oauth/token',
 		    clientID: '',
 		    clientSecret: '',
-		    callbackURL: 'http://0.0.0.0:3000/oauth/hello',
+		    callbackURL: 'http://0.0.0.0:3000/oauth/get_token',
 		    passReqToCallback: true,
 		    scope: 'public',
 		});
@@ -33,7 +47,7 @@ class MyStrategy extends PassportStrategy(OAuth2Strategy, 'oauth2') {
 class AppController {
 
   @Get('hello')
-  @UseGuards(AuthGuard('oauth2'))
+  @UseGuards(AuthGuard('bearer'))
   getMessage(): string {
 	  return "Hello There";
   }
@@ -48,14 +62,20 @@ class AppController {
   @Get('get_token')
   @UseGuards(AuthGuard('oauth2'))
   async getToken(@Req() req, @Res() res: Response) {
-
+	  try {
+		  res.cookie('oAuth2', req.user.accessToken, {sameSite: true});
+		  res.redirect('http://localhost:3000/oauth/hello');
+		  return res.send();
+	  } catch (e) {
+		  return res.send(e);
+	  }
   }
 }
 
 @Module({
-  imports: [PassportModule.register({defaultStrategy: 'oauth2', session: true})],
+  imports: [PassportModule.register({defaultStrategy: 'bearer', session: false})],
   controllers: [AppController],
-  providers: [MyStrategy],
+  providers: [AuthStrategy, BearerGuard],
 })
 class AppModule {}
 
