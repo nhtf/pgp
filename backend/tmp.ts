@@ -1,30 +1,29 @@
 import { Controller, Get, Injectable, Logger, Module, Req, Res, UseGuards } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AuthGuard, PassportModule, PassportStrategy } from '@nestjs/passport';
-import { MessageBody, SubscribeMessage, WebSocketGateway, WsResponse, WebSocketServer, GatewayMetadata, ConnectedSocket, WsException } from '@nestjs/websockets';
+import { MessageBody, SubscribeMessage, WebSocketGateway, WsResponse, WebSocketServer, GatewayMetadata, ConnectedSocket } from '@nestjs/websockets';
 import { Response } from 'express';
+import { Strategy as BearerStrategy } from 'passport-http-bearer';
 import { Strategy as OAuth2Strategy } from 'passport-oauth2';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { Server, Socket } from 'socket.io';
 import { HttpService } from '@nestjs/axios';
+import * as session from 'express-session';
 
-@WebSocketGateway({ cors: { origin: 'http://0.0.0.0:8080', credentials: true } })
+@WebSocketGateway({ cors: true })
 class EventHandler {
 	@WebSocketServer()
 	server: Server;
 
 	async handleConnection(client: Socket, ...args: any[]) {
-		console.log('cookies: ' + client.handshake.headers.cookie);
+		console.log(client.request.headers);
 		setInterval(() => client.emit('kaas', 'jouw kaas'), 1000);
 	}
 
 	@SubscribeMessage('kaas')
 	async getKaas(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
 		console.log(data);
-		if (!client.handshake.headers.cookie) {
-			throw new WsException('forbidden');
-		}
 		return 'mijn kaas';
 	}
 
@@ -37,13 +36,25 @@ class EventHandler {
 }
 
 @Injectable()
+class BearerGuard extends PassportStrategy(BearerStrategy, 'bearer') {
+	constructor() {
+		super();
+	}
+
+	async validate(token, done: (err, user) => void) {
+		console.log('bearer');
+		done(null, false);
+	}
+}
+
+@Injectable()
 class AuthStrategy extends PassportStrategy(OAuth2Strategy, 'oauth2') {
 	constructor() {
 		super({
 			authorizationURL: 'https://api.intra.42.fr/oauth/authorize',
 			tokenURL: 'https://api.intra.42.fr/oauth/token',
-			clientID: process.env.CLIENT_ID,
-			clientSecret: process.env.CLIENT_SECRET,
+			clientID: 'u-s4t2ud-444c4de01d42cdf77c0c6706d17847aabfe9315c224892c2493ac668b0abfa34',
+			clientSecret: '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',
 			callbackURL: 'http://0.0.0.0:3000/oauth/get_token',
 			passReqToCallback: true,
 			scope: 'public',
@@ -69,6 +80,7 @@ class AppController {
 	//@UseGuards(AuthGuard('bearer'))
 	getMessage(@Req() req): string {
 		console.log(req.session);
+		req.session.logged_in = true;
 		return "Hello There";
 	}
 
@@ -82,9 +94,11 @@ class AppController {
 	@Get('get_token')
 	@UseGuards(AuthGuard('oauth2'))
 	async getToken(@Req() req, @Res() res: Response) {
+		console.log(req.session);
+		req.session.logged_in = true;
 		try {
-			res.cookie('oauth2', req.user.accessToken, { sameSite: 'none' });
-			res.redirect('http://0.0.0.0:8080');
+			res.cookie('oauth2', req.user.accessToken, { sameSite: 'none', domain: 'localhost:8080' });
+			res.redirect('http://localhost:8080');
 			return res.send();
 		} catch (e) {
 			return res.send(e);
@@ -93,14 +107,24 @@ class AppController {
 }
 
 @Module({
-	imports: [PassportModule.register({ defaultStrategy: 'oauth2', session: false })],
+	imports: [PassportModule.register({ defaultStrategy: 'bearer', session: false })],
 	controllers: [AppController],
-	providers: [AuthStrategy, EventHandler],
+	providers: [AuthStrategy, BearerGuard, EventHandler],
 })
 class AppModule { }
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
+	app.use(
+		session({
+			cookie: {
+				maxAge: 3600 * 24 * 1000,
+			},
+			secret: 'kaas',
+			resave: false,
+			saveUninitialized: false,
+		}),
+	);
 	app.enableCors();
 	await app.listen(3000);
 }
