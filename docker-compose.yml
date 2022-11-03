@@ -4,4 +4,7 @@ services:
     image: postgres
     restart: always
     environment:
-      - POSTGRES_PASSWORD=user
+      - POSTGRES_USERNAME=postgres
+      - POSTGRES_PASSWORD=postgres
+    expose:
+      - "5432"
