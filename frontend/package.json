@@ -26,6 +26,7 @@
   },
   "dependencies": {
     "sirv-cli": "^2.0.0",
+    "socket.io-client": "^4.5.3",
     "svelte-canvas": "^0.7.1"
   }
 }
