@@ -1,6 +1,6 @@
 import { io } from 'socket.io-client';
 
-const URL = "ws://0.0.0.0:3000";
+const URL = "ws://0.0.0.0:3000/chat";
 
 const socket = io(URL, {autoConnect: false, withCredentials: true});
 

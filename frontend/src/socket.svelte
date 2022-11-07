@@ -11,7 +11,7 @@
         let username = e.detail;
         socket.auth = { username };
         socket.connect();
-        socket.emit('kaas', username, "hadasdas", (response) => {console.log(response);});
+        socket.emit('kaas', username, (response) => {console.log(response);});
         // fetch("/get-cookie/").then(response => {
         //     return response.text();
         // }).then(text => console.log(text));
@@ -29,8 +29,8 @@
     {/if}
 
 
-    <button onclick="window.location.href='http://0.0.0.0:3000/oauth/login';">Login with Codam
-    </button>
+    <!-- <button onclick="window.location.href='http://0.0.0.0:3000/oauth/login';">Login with Codam
+    </button> -->
 </main>
 
 <style>

@@ -15,8 +15,8 @@ export class AppController {
 	@UseGuards(AuthGuard('oauth2'))
 	async getToken(@Req() req, @Res() res: Response) {
 		try {
-			res.cookie('oauth2', req.user.accessToken, { sameSite: 'none' });
-			res.redirect('http://0.0.0.0:8080');
+			res.cookie('oauth2', req.user.accessToken, { sameSite: 'none', secure: true });
+			res.redirect('http://localhost:5173/');
 			return res.send();
 		} catch (e) {
 			return res.send(e);

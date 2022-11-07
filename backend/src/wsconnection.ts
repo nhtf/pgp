@@ -3,23 +3,46 @@ import { Server, Socket } from 'socket.io';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-@WebSocketGateway({ cors: { origin: 'http://0.0.0.0:8080', credentials: true } })
+@WebSocketGateway({ cors: { origin: 'http://localhost:5173', credentials: true }, namespace: 'chat' })
 export class WSConnection {
+	clients: Socket[] = [];
 	@WebSocketServer()
 	server: Server;
 
 	async handleConnection(client: Socket, ...args: any[]) {
+		this.clients.push(client);
 		console.log('cookies: ' + client.handshake.headers.cookie);
-		setInterval(() => client.emit('kaas', 'jouw kaas'), 1000);
+		let username = `User ${Math.round(Math.random() * 999999)}`;
+        client.emit('name', username);
+		// setInterval(() => client.emit('chat', 'jouw kaas'), 1000);
 	}
 
-	@SubscribeMessage('kaas')
-	async getKaas(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
+	@SubscribeMessage('chatevent')
+	async getKaas(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
 		console.log(data);
+		console.log("chatevent backend");
 		if (!client.handshake.headers.cookie) {
+			console.log("forbidden");
 			throw new WsException('forbidden');
 		}
-		return 'mijn kaas';
+		console.log("returning");
+		this.clients.forEach((client) => {
+			client.emit("chatevent", {
+				from: data[1],
+				message: data[0],
+				time: new Date().toLocaleString()
+			});
+		})	
+	}
+
+	@SubscribeMessage('name')
+	async getName(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
+		console.log(data);
+		if (!client.handshake.headers.cookie) {
+			console.log("forbidden");
+			throw new WsException('forbidden');
+		}
+		return 'name';
 	}
 
 	/*

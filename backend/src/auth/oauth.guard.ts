@@ -10,7 +10,7 @@ export class AuthStrategy extends PassportStrategy(OAuth2Strategy, 'oauth2') {
 			tokenURL: 'https://api.intra.42.fr/oauth/token',
 			clientID: process.env.CLIENT_ID,
 			clientSecret: process.env.CLIENT_SECRET,
-			callbackURL: 'http://0.0.0.0:3000/oauth/get_token',
+			callbackURL: 'http://localhost:3000/oauth/get_token',
 			passReqToCallback: true,
 			scope: 'public',
 		});
