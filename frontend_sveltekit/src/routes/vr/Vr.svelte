@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { Scene, PerspectiveCamera, WebGLRenderer, Color } from "three";
-	import { HemisphereLight, DirectionalLight } from "three";
-	import { SphereGeometry, CylinderGeometry, MeshBasicMaterial, Mesh } from "three";
-	import { XRControllerModelFactory } from "three/addons/webxr/XRControllerModelFactory.js";
-	import { XRHandModelFactory } from "three/addons/webxr/XRHandModelFactory.js";
-	import { VRButton } from "three/addons/webxr/VRButton.js";
+	import { Scene, PerspectiveCamera, WebGLRenderer, Color } from 'three';
+	import { HemisphereLight, DirectionalLight } from 'three';
+	import { SphereGeometry, CylinderGeometry, MeshBasicMaterial, Mesh } from 'three';
+	import { XRControllerModelFactory } from "three/examples/jsm/webxr/XRControllerModelFactory.js";
+	import { XRHandModelFactory } from "three/examples/jsm/webxr/XRHandModelFactory.js";
+	import { VRButton } from "three/examples/jsm/webxr/VRButton.js";
 	import { Ammo as AmmoLib } from "./ammo.js";
 
 	(async function() {
