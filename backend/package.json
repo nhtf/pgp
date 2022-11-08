@@ -21,6 +21,7 @@
     "test:e2e": "jest --config ./test/jest-e2e.json"
   },
   "dependencies": {
+    "@nestjs/axios": "^1.0.0",
     "@nestjs/common": "^9.0.0",
     "@nestjs/core": "^9.0.0",
     "@nestjs/passport": "^9.0.0",
@@ -32,14 +33,12 @@
     "express": "^4.18.2",
     "express-session": "^1.17.3",
     "otplib": "^12.0.1",
-    "passport": "^0.6.0",
-    "passport-oauth2": "^1.6.1",
-    "passport-totp": "^0.0.2",
     "pg": "^8.8.0",
     "qrcode": "^1.5.1",
     "reflect-metadata": "^0.1.13",
     "rimraf": "^3.0.2",
     "rxjs": "^7.5.7",
+    "simple-oauth2": "^5.0.0",
     "thirty-two": "^1.0.2",
     "typeorm": "^0.3.10"
   },
@@ -51,6 +50,7 @@
     "@types/express-session": "^1.17.5",
     "@types/jest": "28.1.8",
     "@types/node": "^16.0.0",
+    "@types/simple-oauth2": "^4.1.1",
     "@types/supertest": "^2.0.11",
     "@typescript-eslint/eslint-plugin": "^5.0.0",
     "@typescript-eslint/parser": "^5.0.0",
