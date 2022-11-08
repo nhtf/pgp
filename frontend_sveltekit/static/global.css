@@ -1,0 +1,30 @@
+html, body {
+	/* position: relative; */
+	width: 100%;
+	height: 100%;
+	background-color: rgb(22, 21, 21);
+	/* pointer-events: none; */
+}
+
+body {
+	/* pointer-events: none; */
+	/* position: relative; */
+	margin: 0;
+	font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", sans-serif;
+}
+
+/* #scene-container {
+	/* tell our scene container to take up the full page */
+	/* position: absolute;
+	width: 100%;
+	height: 100%; */
+	/* pointer-events: none; */
+  
+	/*
+	  Set the container's background color to the same as the scene's
+	  background to prevent flashing on load
+	*/
+	/* background-color: red; 	}
+
+*/
+   
