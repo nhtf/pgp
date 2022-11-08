@@ -25,8 +25,6 @@ export class OAuth2Guard implements CanActivate {
 	}
 
 	async get_token(request: Request, response: Response) {
-		// TODO not stringify qcode
-		// const code: any = request.query.code;
 		if (!(typeof request.query.code === 'string')) {
 			response.status(400).json('Bad request');
 			return false;
