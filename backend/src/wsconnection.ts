@@ -35,6 +35,24 @@ export class WSConnection {
 		})	
 	}
 
+	@SubscribeMessage('moveEvent')
+	async getMovement(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+		console.log(data);
+		console.log("moveEvent backend");
+		// if (!client.handshake.headers.cookie) {
+		// 	console.log("forbidden");
+		// 	throw new WsException('forbidden');
+		// }
+		// console.log("returning");
+		// this.clients.forEach((client) => {
+		// 	client.emit("chatevent", {
+		// 		from: data[1],
+		// 		message: data[0],
+		// 		time: new Date().toLocaleString()
+		// 	});
+		// })	
+	}
+
 	@SubscribeMessage('name')
 	async getName(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
 		console.log(data);

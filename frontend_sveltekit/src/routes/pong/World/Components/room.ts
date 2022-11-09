@@ -17,7 +17,7 @@ function setMaterial(texture: Texture) {
     texture.anisotropy = 16;
     texture.wrapT = RepeatWrapping;
     texture.wrapS = RepeatWrapping;
-    texture.repeat = new Vector2(16, 2);
+    texture.repeat = new Vector2(10, 10);
 }
 
 function createMaterial() {

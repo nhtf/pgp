@@ -55,18 +55,18 @@ class World {
 
         const { light, ambient } = createLights();
 
-        this._scene.add(light, ambient);
+        this._scene.add(light);
 
         light.shadow.mapSize.width = 1024;
         light.shadow.mapSize.height = 1024;
         light.shadow.camera.near = 0.5;
         light.shadow.camera.far = 25;
 
-        const cube2 = createCube();
-        cube2.scale.set(0.1, 0.1, 0.1);
-        cube2.position.y = 3;
-        cube2.castShadow = true;
-        this._scene.add(cube2);
+        // const cube2 = createCube();
+        // cube2.scale.set(0.1, 0.1, 0.1);
+        // cube2.position.y = 3;
+        // cube2.castShadow = true;
+        // this._scene.add(cube2);
 
         const room = createRoom();
         this._scene.add(room);
@@ -134,6 +134,10 @@ class World {
             this._move.mouseMovementX += moveX;
             this._move.mouseMovementY += moveY;
         }
+    }
+
+    get() {
+        return this._camera;
     }
 }
 

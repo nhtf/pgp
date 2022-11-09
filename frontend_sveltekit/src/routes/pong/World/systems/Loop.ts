@@ -61,9 +61,9 @@ class Loop {
         //Calling getDelta to be able decouple animation speed from framerate
         // by using the deltattime
         const delta = clock.getDelta();
-        console.log(
-          `The last frame rendered in ${delta * 1000} milliseconds`,
-        );
+        // console.log(
+        //   `The last frame rendered in ${delta * 1000} milliseconds`,
+        // );
 
         for (const object of this.updatables) {
             object.tick(delta);
