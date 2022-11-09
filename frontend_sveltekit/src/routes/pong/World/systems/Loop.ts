@@ -28,9 +28,10 @@ class Loop {
     private phi: number;
     private theta: number;
     private target: Vector3;
+    private socket: any;
     updatables: any;
 
-    constructor(camera: Camera, scene: Scene, renderer: WebGLRenderer, mov: movement) {
+    constructor(camera: Camera, scene: Scene, renderer: WebGLRenderer, mov: movement, socket: any) {
         this.camera = camera;
         this.scene = scene;
         this.renderer = renderer;
@@ -41,6 +42,7 @@ class Loop {
         this.phi = 0;
         this.theta = 0;
         this.target = new Vector3;
+        this.socket = socket;
     }
 
     start() {
@@ -67,6 +69,15 @@ class Loop {
 
         for (const object of this.updatables) {
             object.tick(delta);
+        }
+
+        if (this.renderer.xr.isPresenting) {
+            console.log("sending vr camera to backend");
+            this.socket.emit('moveEvent', this.renderer.xr.getCamera().position, this.renderer.xr.getCamera().rotation);
+        }
+        else {
+            console.log("sending normal camera to backend");
+            this.socket.emit('moveEvent', this.camera.position, this.camera.rotation);
         }
 
         if(this.mov.moveForward) this.camera.translateZ(-(this.mov.moveSpeed));

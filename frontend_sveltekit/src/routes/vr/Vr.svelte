@@ -24,9 +24,9 @@
 		camera.position.z = 1;
 
 		renderer.setSize(window.innerWidth, window.innerHeight);
-		renderer.xr.enabled = true;
 		document.body.appendChild(renderer.domElement);
 		document.body.appendChild(VRButton.createButton(renderer));
+		renderer.xr.enabled = true;
 
 		const controllerModelFactory = new XRControllerModelFactory();
 		const handModelFactory = new XRHandModelFactory();

@@ -4,13 +4,11 @@ function createRenderer() {
     const renderer = new WebGLRenderer({ antialias: true });
 
     renderer.physicallyCorrectLights = true;
-
     renderer.shadowMap.enabled = true;
-    renderer.shadowMap.type = PCFSoftShadowMap; 
+    renderer.shadowMap.type = PCFSoftShadowMap;
 
-    // renderer.setAnimationLoop(() => {
-    //     renderer.render(scene, camera);
-    // });
+    renderer.xr.enabled = true;
+
     return renderer;
 }
 

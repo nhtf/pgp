@@ -1,5 +1,5 @@
 <script lang="ts">
-	// import Vr from "./Vr.svelte.notworking";
+	// import Vr from "./Vr.svelte";
 </script>
 
 <!-- <Vr/> -->

@@ -7,6 +7,9 @@ import { createRoom } from './Components/room';
 import { createRenderer } from './systems/renderer';
 import { Resizer } from './systems/Resizer';
 import { Loop } from './systems/Loop';
+// import { VRButton } from 'three/examples/jsm/webxr/VRButton';
+let VRButton: any;
+
 
 import type {
     Camera,
@@ -33,8 +36,9 @@ class World {
     private _container: any;
     private _loop: Loop;
     private _move: movement;
+    private _socket: any;
 
-    constructor(container: Element | null) { //synchronous constructor
+    constructor(container: Element | null, socket: any) { //synchronous constructor
         this._camera = createCamera();
         this._scene = createScene();
         this._renderer = createRenderer();
@@ -47,9 +51,10 @@ class World {
             moveRight: false,
             moveSpeed: 0.5,
         };
+        this._socket = socket;
 
 
-        this._loop = new Loop(this._camera, this._scene, this._renderer, this._move);
+        this._loop = new Loop(this._camera, this._scene, this._renderer, this._move, this._socket);
         this._container = container;
         this._container.append(this._renderer.domElement);
 
@@ -62,20 +67,15 @@ class World {
         light.shadow.camera.near = 0.5;
         light.shadow.camera.far = 25;
 
-        // const cube2 = createCube();
-        // cube2.scale.set(0.1, 0.1, 0.1);
-        // cube2.position.y = 3;
-        // cube2.castShadow = true;
-        // this._scene.add(cube2);
-
         const room = createRoom();
         this._scene.add(room);
 
         this._resizer = new Resizer(this._container, this._camera, this._renderer);
     }
 
-    async init() { //asynchronous constructor
-
+    public async init() { //asynchronous constructor
+        VRButton = (await import('three/examples/jsm/webxr/VRButton.js')).VRButton;
+        this._container.append(VRButton.createButton(this._renderer));
     }
 
     render() {
@@ -95,6 +95,8 @@ class World {
     }
 
     movement(e: any) {
+        if (this._renderer.xr.isPresenting)
+            return ;
         if (e.type === "keydown") {
             switch (e.key) {
                 
@@ -134,10 +136,6 @@ class World {
             this._move.mouseMovementX += moveX;
             this._move.mouseMovementY += moveY;
         }
-    }
-
-    get() {
-        return this._camera;
     }
 }
 
