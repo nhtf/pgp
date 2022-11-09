@@ -1,20 +1,24 @@
 <script lang="ts">
     import { World } from './World';
     import { onMount } from 'svelte';
+    // import type { mousemove } from 'svelte';
 
     let world: World;
 
     onMount(() => {
         const container = document.querySelector('#scene-container');
-        console.log(container);
         world = new World(container);
         world.start();
     })
 
   function handleResize() {
     console.log("resizing");
-    // console.log(window);
     world.resize();
+  }
+
+  function handleMovement(e: Event) {
+    // console.log(e);
+    world.movement(e);
   }
 </script>
 
@@ -22,10 +26,12 @@
 
 <style>
     #scene-container {
-	width: 100%;
-	height: 100%;
+	  width: 100%;
+	  height: 100%;
     position: absolute;
   }
 </style>
 
-<svelte:window on:resize={handleResize} />
+<!-- <svelte:window on:resize={handleResize} /> -->
+<svelte:window on:resize={handleResize} on:mousemove={handleMovement} on:keydown={handleMovement} on:keyup={handleMovement}
+/>

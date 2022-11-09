@@ -2,13 +2,13 @@ import { PerspectiveCamera } from 'three';
 
 function createCamera() {
     const camera = new PerspectiveCamera(
-        35, //fov
+        90, //fov
         1, //aspect ratio (dummy value)
         0.1, //near clipping plane
         1000, //far clipping plane
     );
 
-    camera.position.set(5, 5, 5);
+    camera.position.set(0, -8.2, 0);
 
     // camera.tick = (delta) => {
     //     // camera.position.z += delta;

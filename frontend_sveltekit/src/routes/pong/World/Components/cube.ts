@@ -1,27 +1,15 @@
 import { 
-    TorusGeometry,
     BoxGeometry,
     Mesh, 
-    MeshToonMaterial,
-    SphereGeometry,
     MeshStandardMaterial,
     MathUtils,
     TextureLoader,
-    UVMapping,
-    CubeReflectionMapping,
-    CubeRefractionMapping,
-    EquirectangularReflectionMapping,
-    EquirectangularRefractionMapping,
-    CubeUVReflectionMapping,
     RepeatWrapping,
-    ClampToEdgeWrapping,
-    MirroredRepeatWrapping,
     Vector2,
-    BackSide,
-    DoubleSide,
+    Texture,
 } from 'three';
 
-function setMaterial(texture) {
+function setMaterial(texture: Texture) {
     texture.anisotropy = 16;
     texture.wrapT = RepeatWrapping;
     texture.wrapS = RepeatWrapping;
@@ -64,16 +52,15 @@ function createMaterial() {
     setMaterial(texture_metalnessMap);
     setMaterial(texture_normalMap);
 
-    const material = new MeshToonMaterial( {
+    const material = new MeshStandardMaterial( {
         map: texture_map, 
-        side: DoubleSide,
-        // aoMap: texture_aoMap,
-        // roughnessMap: texture_roughnessMap,
-        // metalnessMap: texture_metalnessMap,
-        // normalMap: texture_normalMap,
-        // normalScale: new Vector2(1, 1),
-        // displacementMap: texture_displacementMap,
-        // displacementScale: 0.04,
+        aoMap: texture_aoMap,
+        roughnessMap: texture_roughnessMap,
+        metalnessMap: texture_metalnessMap,
+        normalMap: texture_normalMap,
+        normalScale: new Vector2(1, 1),
+        displacementMap: texture_displacementMap,
+        displacementScale: 0.04,
     } );
 
     return material;
@@ -81,28 +68,26 @@ function createMaterial() {
 
 function createCube() {
 
-    // const geometry = new TorusGeometry(1.5, 0.2, 8, 64);
-    const geometry = new BoxGeometry(200, 30, 20, 128, 128, 128);
-    // const geometry = new SphereGeometry(5, 64, 64);
+    const geometry = new BoxGeometry(200, 30, 20, 16, 16, 16);
     const material = createMaterial();
     const cube = new Mesh(geometry, material);
 
-    const radiansPerSecond = MathUtils.degToRad(30);
+    const radiansPerSecond = MathUtils.degToRad(45);
     let switchDir: boolean = false;
 
     //This will be called once per frame
-    cube.tick = (delta) => {
-        // cube.rotation.z += radiansPerSecond * delta;
-        // cube.rotation.x += radiansPerSecond * delta;
-        // cube.rotation.y += radiansPerSecond * delta;
+    // cube.tick = (delta: number) => {
+    //     // cube.rotation.z += radiansPerSecond * delta;
+    //     // cube.rotation.x += radiansPerSecond * delta;
+    //     cube.rotation.y += radiansPerSecond * delta;
 
-        // if (!switchDir)
-        //     cube.position.x -= delta % 3;
-        // else
-        //     cube.position.x += delta % 10;
-        // if (cube.position.x > 5 || cube.position.x < -5)
-        //     switchDir = !switchDir;
-    }
+    //     // if (!switchDir)
+    //     //     cube.position.x -= delta % 3;
+    //     // else
+    //     //     cube.position.x += delta % 10;
+    //     // if (cube.position.x > 5 || cube.position.x < -5)
+    //     //     switchDir = !switchDir;
+    // }
 
     return cube;
 }
