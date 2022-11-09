@@ -4,15 +4,17 @@ import * as session from 'express-session'
 
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
-	/*
 	app.use(
 		session({
 			secret: 'changethis',
-			resave: 'fasle'
+			resave: true,
 			saveUninitialized: false,
+			cookie: {
+				maxAge: 72000, //TODO set the right maxAge
+				sameSite: 'strict'
+			}
 		}),
 	);
-       	*/
 	app.enableCors();
 	await app.listen(3000);
 }

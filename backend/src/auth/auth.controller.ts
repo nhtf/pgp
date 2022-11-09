@@ -15,5 +15,6 @@ export class AuthController {
 	@Get('callback')
 	@UseGuards(OAuth2Guard)
 	async get_token(@Req() request: Request, @Res() response: Response) {
+		return response.redirect('http://localhost:3000');
 	}
 }

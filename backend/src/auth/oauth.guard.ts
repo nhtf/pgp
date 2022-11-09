@@ -1,6 +1,13 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { AuthorizationCode } from 'simple-oauth2';
+import * as session from 'express-session';
+
+declare module 'express-session' {
+	export interface SessionData {
+		access_token: object;
+	}
+}
 
 @Injectable()
 export class OAuth2Guard implements CanActivate {
@@ -30,18 +37,27 @@ export class OAuth2Guard implements CanActivate {
 			return false;
 		}
 		const code = request.query.code;
-		console.log(code);
 
 		try {
-			const access_token = await this.client.getToken({ code: code, redirect_uri: 'http://localhost:3000/oauth/callback', scope: 'public'});
+			const access_token = await this.client.getToken({
+				code: code,
+				redirect_uri: 'http://localhost:3000/oauth/callback',
+				scope: 'public'
+			});
 
-			console.log('access token: ' + access_token.token);
-			response.status(200).json(access_token.token);
+			request.session.regenerate((err) => {
+				if (err) {
+					response.status(503).json('Failed to create a session');
+					return false;
+				}
+			});
+			//console.log(typeof access_token);
+			request.session.access_token = access_token;
 		} catch (error) {
 			console.error(error.message);
-			//return response.status(400).json('Authentication failed');
+			response.status(400).json('Authentication failed');
 		}
-		return false;
+		return true;
 	}
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
