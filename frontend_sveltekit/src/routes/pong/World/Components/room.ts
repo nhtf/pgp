@@ -1,4 +1,4 @@
-import { 
+import {
     PlaneGeometry,
     BoxGeometry,
     MeshToonMaterial,
@@ -55,8 +55,8 @@ function createMaterial() {
     setMaterial(texture_metalnessMap);
     setMaterial(texture_normalMap);
 
-    const material = new MeshStandardMaterial( {
-        map: texture_map, 
+    const material = new MeshStandardMaterial({
+        map: texture_map,
         side: DoubleSide,
         aoMap: texture_aoMap,
         roughnessMap: texture_roughnessMap,
@@ -65,7 +65,7 @@ function createMaterial() {
         normalScale: new Vector2(1, 1),
         displacementMap: texture_displacementMap,
         displacementScale: 0.04,
-    } );
+    });
 
     return material;
 }
@@ -110,7 +110,7 @@ function createRoom(): Group {
 
     const room = new Group();
     room.add(ground, ceiling, wallEast, wallWest, wallNorth, wallSouth)
-    return room ;
+    return room;
 }
 
-export {createRoom}
+export { createRoom }

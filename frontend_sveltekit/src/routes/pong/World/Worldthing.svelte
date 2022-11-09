@@ -1,7 +1,7 @@
 <script lang="ts">
   import { World } from "./World";
   import { onMount } from "svelte";
-  import socket  from '../../chat/websocket';
+  import socket from "../../chat/websocket";
 
   let world: World;
 
@@ -10,7 +10,7 @@
     world = new World(container, socket);
     world.init();
     world.start();
-    socket.on('moveEvent', message => {
+    socket.on("moveEvent", (message) => {
       //here maybe stuff for what get back from backend
       console.log(message);
     });

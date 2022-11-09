@@ -10,15 +10,6 @@ function createCamera() {
 
     camera.position.set(0, -8.2, 0);
 
-    // camera.tick = (delta) => {
-    //     // camera.position.z += delta;
-    //     camera.rotation.y += delta * 1;
-    //     camera.rotation.x += delta * 1;
-    //     camera.rotation.z += delta * 1;
-
-    //     // cube.position.x += delta;
-    // }
-
     return camera;
 }
 

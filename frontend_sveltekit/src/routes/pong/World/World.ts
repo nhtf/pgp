@@ -7,15 +7,15 @@ import { createRoom } from './Components/room';
 import { createRenderer } from './systems/renderer';
 import { Resizer } from './systems/Resizer';
 import { Loop } from './systems/Loop';
-// import { VRButton } from 'three/examples/jsm/webxr/VRButton';
+
 let VRButton: any;
 
 
 import type {
-    Camera,
+    PerspectiveCamera as Camera,
     Scene,
     WebGLRenderer,
-    } from 'three';
+} from 'three';
 
 type movement = {
     mouseMovementX: number;
@@ -96,10 +96,10 @@ class World {
 
     movement(e: any) {
         if (this._renderer.xr.isPresenting)
-            return ;
+            return;
         if (e.type === "keydown") {
             switch (e.key) {
-                
+
                 case 's':
                     this._move.moveBackward = true;
                     break;
@@ -109,7 +109,7 @@ class World {
                 case 'a':
                     this._move.moveLeft = true;
                     break;
-                case 'd': 
+                case 'd':
                     this._move.moveRight = true;
                     break;
             }
@@ -125,14 +125,14 @@ class World {
                 case 'a':
                     this._move.moveLeft = false;
                     break;
-                case 'd': 
+                case 'd':
                     this._move.moveRight = false;
                     break;
             }
         }
         else if (e.type === "mousemove") {
-            var moveX: number = e.movementX  || 0;
-            var moveY: number = e.movementY  || 0;
+            var moveX: number = e.movementX || 0;
+            var moveY: number = e.movementY || 0;
             this._move.mouseMovementX += moveX;
             this._move.mouseMovementY += moveY;
         }

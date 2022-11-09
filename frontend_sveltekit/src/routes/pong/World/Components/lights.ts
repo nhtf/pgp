@@ -1,4 +1,4 @@
-import { 
+import {
     DirectionalLight,
     AmbientLight,
     HemisphereLight,
@@ -13,8 +13,8 @@ function createLights() {
 
     light.position.y = 9;
     light.castShadow = true;
-    
+
     return { light, ambient };
 }
-    
+
 export { createLights };

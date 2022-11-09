@@ -80,11 +80,11 @@ class Loop {
             this.socket.emit('moveEvent', this.camera.position, this.camera.rotation);
         }
 
-        if(this.mov.moveForward) this.camera.translateZ(-(this.mov.moveSpeed));
-        if(this.mov.moveBackward) this.camera.translateZ(this.mov.moveSpeed);
+        if (this.mov.moveForward) this.camera.translateZ(-(this.mov.moveSpeed));
+        if (this.mov.moveBackward) this.camera.translateZ(this.mov.moveSpeed);
 
-        if(this.mov.moveLeft) this.camera.translateX(-this.mov.moveSpeed);
-        if(this.mov.moveRight) this.camera.translateX(this.mov.moveSpeed);
+        if (this.mov.moveLeft) this.camera.translateX(-this.mov.moveSpeed);
+        if (this.mov.moveRight) this.camera.translateX(this.mov.moveSpeed);
 
         this.lon += this.mov.mouseMovementX;
         this.lat -= this.mov.mouseMovementY;

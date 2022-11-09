@@ -1,6 +1,6 @@
-import { 
+import {
     BoxGeometry,
-    Mesh, 
+    Mesh,
     MeshStandardMaterial,
     MathUtils,
     TextureLoader,
@@ -52,8 +52,8 @@ function createMaterial() {
     setMaterial(texture_metalnessMap);
     setMaterial(texture_normalMap);
 
-    const material = new MeshStandardMaterial( {
-        map: texture_map, 
+    const material = new MeshStandardMaterial({
+        map: texture_map,
         aoMap: texture_aoMap,
         roughnessMap: texture_roughnessMap,
         metalnessMap: texture_metalnessMap,
@@ -61,7 +61,7 @@ function createMaterial() {
         normalScale: new Vector2(1, 1),
         displacementMap: texture_displacementMap,
         displacementScale: 0.04,
-    } );
+    });
 
     return material;
 }
@@ -71,23 +71,6 @@ function createCube() {
     const geometry = new BoxGeometry(200, 30, 20, 16, 16, 16);
     const material = createMaterial();
     const cube = new Mesh(geometry, material);
-
-    const radiansPerSecond = MathUtils.degToRad(45);
-    let switchDir: boolean = false;
-
-    //This will be called once per frame
-    // cube.tick = (delta: number) => {
-    //     // cube.rotation.z += radiansPerSecond * delta;
-    //     // cube.rotation.x += radiansPerSecond * delta;
-    //     cube.rotation.y += radiansPerSecond * delta;
-
-    //     // if (!switchDir)
-    //     //     cube.position.x -= delta % 3;
-    //     // else
-    //     //     cube.position.x += delta % 10;
-    //     // if (cube.position.x > 5 || cube.position.x < -5)
-    //     //     switchDir = !switchDir;
-    // }
 
     return cube;
 }
