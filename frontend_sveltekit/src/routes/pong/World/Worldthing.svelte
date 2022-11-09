@@ -28,7 +28,6 @@
 
 <div id="scene-container" />
 
-<!-- <svelte:window on:resize={handleResize} /> -->
 <svelte:window
   on:resize={handleResize}
   on:mousemove={handleMovement}
