@@ -13,7 +13,7 @@ declare module 'express-session' {
 @Controller('oauth')
 export class AuthController {
 
-	private client = new AuthorizationCode({
+	private readonly client = new AuthorizationCode({
 		client: {
 			id: process.env.CLIENT_ID,
 			secret: process.env.CLIENT_SECRET,
@@ -36,9 +36,8 @@ export class AuthController {
 
 	@Get('callback')
 	async get_token(@Req() request: Request, @Res() response: Response) {
-		if (!request.query || !request.query.code) {
+		if (!request.query || !request.query.code)
 			return response.redirect('http://localhost:3000/oauth/login');
-		}
 
 		const code = request.query.code;
 		if (!(typeof code === 'string'))
@@ -55,10 +54,8 @@ export class AuthController {
 			});
 
 			request.session.regenerate((err) => {
-				if (err) {
-					response.status(503).json('failed to create a session');
-					return response.send();
-				}
+				if (err)
+					return response.status(503).json('failed to create a session').send();
 			});
 
 			request.session.access_token = access_token;
