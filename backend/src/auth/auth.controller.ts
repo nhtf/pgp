@@ -7,6 +7,7 @@ import isAlphanumeric from 'validator/lib/isAlphanumeric';
 declare module 'express-session' {
 	export interface SessionData {
 		access_token: object;
+		secret: string | undefined;
 	}
 }
 
@@ -23,6 +24,16 @@ export class AuthController {
 			authorizeHost: 'https://api.intra.42.fr',
 		}
 	});
+
+
+	@Get('amiloggedin')
+	async amiloggedin(@Req() request: Request, @Res() response: Response) {
+		console.log(request.session);
+		if (request.session.access_token)
+			return response.status(200).json('yes');
+		else
+			return response.status(401).json('no');
+	}
 
 	@Get('login')
 	async login(@Res() response: Response) {

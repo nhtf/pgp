@@ -10,7 +10,7 @@ async function bootstrap() {
 			resave: true,
 			saveUninitialized: false,
 			cookie: {
-				maxAge: 72000, //TODO set the right maxAge
+				maxAge: 720000, //TODO set the right maxAge
 				sameSite: 'strict'
 			}
 		}),
