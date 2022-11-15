@@ -21,51 +21,6 @@ interface result_dto {
 	login: string;
 }
 
-/*
-		try {
-			const access_token = await this.client.getToken({
-				code: code,
-				redirect_uri: 'http://localhost:3000/oauth/callback',
-				scope: 'public'
-			});
-
-			request.session.regenerate((err) => {
-				console.log('done');
-				if (err)
-					return response.status(503).json('failed to create a session').send();
-			});
-			//TODO this gets executed before the session is actually regenerated, bad!!
-
-			let rest_client = new rm.RestClient('pgp', 'https://api.intra.42.fr',
-												[new BearerCredentialHandler(access_token.token.access_token, false)]);
-			const res = await rest_client.get<result_dto>('/v2/me');
-			if (res.statusCode != 200)
-				return response.status(500).json('could not retrieve data from intra api').send();
-
-			const result = res.result;
-			if (!result.id || !result.login)
-				return response.status(500).json('got a malformed response from intra api').send();
-
-			const user = await data_source.getRepository(User).findOneById(result.id);
-			console.log('');
-			if (user == null) {
-				console.log('creating new user entry');
-				await data_source.getRepository(User).save({
-					user_id: result.id,
-					auth_req: AuthLevel.OAuth,
-					secret: undefined
-				});
-			}
-			console.log(user);
-
-			request.session.user_id = result.id;
-			request.session.access_token = access_token;
-			response.redirect('http://localhost:5173/');
-		} catch (_) {
-			response.status(403).json('forbidden');
-		}
-	   */
-
 @Controller('oauth')
 export class AuthController {
 
@@ -79,7 +34,7 @@ export class AuthController {
 			authorizeHost: 'https://api.intra.42.fr',
 		}
 	});
-	
+
 	@Get('whoami')
 	async amiloggedin(@Req() request: Request, @Res() response: Response) {
 		if (request.session.access_token) {
@@ -126,6 +81,7 @@ export class AuthController {
 			});
 			return access_token;
 		} catch (error) {
+			console.error('could not retrieve access token: ' + error);
 			return undefined;
 		}
 	}
@@ -134,7 +90,7 @@ export class AuthController {
 		const promise = new Promise((resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
 			session.regenerate((error) => {
 				if (error) {
-					console.error(error);
+					console.error('could not regenerate session: '+ error);
 					reject(false);
 				} else {
 					resolve(true);
@@ -144,17 +100,20 @@ export class AuthController {
 		return await promise;
 	}
 
-	//TODO add verbose logging to entire api
 	async get_user_id(access_token: AccessToken): Promise<number | undefined> {
 			let rest_client = new rm.RestClient('pgp', 'https://api.intra.42.fr',
 												[new BearerCredentialHandler(access_token.token.access_token, false)]);
 			const res = await rest_client.get<result_dto>('/v2/me');
-			if (res.statusCode != 200)
+			if (res.statusCode != 200) {
+				console.error('received ' + res.statusCode + ' from intra when retrieving user id');
 				return undefined;
+			}
 
 			const result = res.result;
-			if (!result.id || !result.login)
+			if (!result.id || !result.login) {
+				console.error('did not properly receive user_id and/or login from intra');
 				return undefined;
+			}
 			return result.id;
 	}
 
@@ -170,7 +129,8 @@ export class AuthController {
 				secret: undefined
 			});
 			return true;
-		} catch (_) {
+		} catch (error) {
+			console.error('could not save user to database: ' + error);
 			return false;
 		}
 	}	
@@ -188,14 +148,15 @@ export class AuthController {
 		if (access_token == undefined)
 			return response.status(502).json('bad gateway').send();
 
-		if (!(await this.regenerate_session(request.session)))
+		if (!await this.regenerate_session(request.session))
 			return response.status(503).json('failed to create a session').send();
 
 		const user_id = await this.get_user_id(access_token);
 		if (user_id == undefined)
 			return response.status(502).json('bad gateway');
 
-		if (!(await this.user_exists(user_id))) {
+		if (!await this.user_exists(user_id)) {
+			console.info('new user');
 			if (!(await this.user_create(user_id)))
 				return response.status(500).json('failed to create database entry');
 		}
