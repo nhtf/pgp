@@ -11,6 +11,8 @@ declare module 'express-session' {
 	}
 }
 
+export type SessionObject = session.Session & Partial<session.SessionData>;
+
 @Injectable()
 export class SessionUtils {
 
@@ -26,5 +28,22 @@ export class SessionUtils {
 			});
 		});
 		return await promise;
+	}
+
+	async save_session(session: session.Session): Promise<boolean> {
+		const promise = new Promise((resolve: (value: boolean) => void, reject) => {
+			session.save((error) => {
+				if (error)
+					reject(error);
+				else
+					resolve(true);
+			});
+		});
+		try {
+			return await promise;
+		} catch (error) {
+			console.error('unable to save session: ' + error);
+			return false;
+		}
 	}
 }

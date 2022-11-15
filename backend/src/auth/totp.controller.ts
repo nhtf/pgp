@@ -2,7 +2,7 @@ import { Controller, Post, Req, UseGuards, Injectable, CanActivate, ExecutionCon
 import { Request } from 'express';
 import { authenticator } from 'otplib';
 import * as session from 'express-session';
-import { SessionUtils } from '../SessionUtils';
+import { SessionUtils, SessionObject } from '../SessionUtils';
 import { UserService } from '../UserService';
 import { AuthLevel } from '../User';
 import { Length, IsNumberString } from 'class-validator';
@@ -12,6 +12,7 @@ class OAuthGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
 		let response = context.switchToHttp().getResponse();
+		console.log(request.session);
 		if (request.session.access_token === undefined) {
 			response.status(401).json('unauthorized');
 			return false;
@@ -31,43 +32,27 @@ export class TotpController {
 	constructor(private readonly session_utils: SessionUtils,
 			   private readonly user_service: UserService) { }
 
-	async save_session(session: session.Session): Promise<boolean> {
-		const promise = new Promise((resolve: (value: boolean) => void, reject) => {
-			session.save((error) => {
-				if (error)
-					reject(error);
-				else
-					resolve(true);
-			});
-		});
-		try {
-			return await promise;
-		} catch (error) {
-			console.error('unable to save session: ' + error);
-			return false;
-		}
-	}
-
 	@Post('setup')
 	@HttpCode(HttpStatus.ACCEPTED)
 	@UseGuards(OAuthGuard)
 	async setup(@Req() request: Request) {
-		if (request.session.secret)
+		let session = request.session;
+		if (session.secret)
 			throw new HttpException('already requested otp setup', HttpStatus.TOO_MANY_REQUESTS);
-		const user = await this.user_service.get_user(request.session.user_id);
+		const user = await this.user_service.get_user(session.user_id);
 		if (user.auth_req === AuthLevel.TWOFA)
 			throw new HttpException('already setup 2fa', HttpStatus.FORBIDDEN);
 		
 		//https://www.rfc-editor.org/rfc/rfc4226 section 4
 		const secret = authenticator.generateSecret(20);
 
-		request.session.secret = secret;
-		if (!this.save_session(request.session))
+		session.secret = secret;
+		if (!this.session_utils.save_session(session))
 			throw new HttpException('unable to save session', HttpStatus.SERVICE_UNAVAILABLE);
 		return { secret: secret };
 	}
 
-	async authenticate(otp: string, secret: string, session: session.Session & Partial<session.SessionData>): Promise<void> {
+	async authenticate(otp: string, secret: string, session: SessionObject): Promise<void> {
 		if (!authenticator.check(otp, secret))
 			throw new HttpException('invalid otp', HttpStatus.CONFLICT);
 
@@ -90,12 +75,11 @@ export class TotpController {
 		if (!request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
-		let session = request.session;
-		const secret = session.secret;
+		const secret = request.session.secret;
 
-		await this.authenticate(otp_dto.otp, secret, session);
+		await this.authenticate(otp_dto.otp, secret, request.session);
 
-		let user = await this.user_service.get_user(session.user_id);
+		let user = await this.user_service.get_user(request.session.user_id);
 		user.auth_req = AuthLevel.TWOFA;
 		user.secret = secret;
 		await this.user_service.save([user]);
@@ -107,13 +91,12 @@ export class TotpController {
 	async verify(@Body() otp_dto: OtpDto, @Req() request: Request) {
 		if (request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
-		let session = request.session;
 
-		const user = await this.user_service.get_user(session.user_id);
+		const user = await this.user_service.get_user(request.session.user_id);
 		if (user.auth_req !== AuthLevel.TWOFA)
 			throw new HttpException('2fa not setup', HttpStatus.FORBIDDEN);
 		const secret = user.secret;
 
-		await this.authenticate(otp_dto.otp, secret, session);
+		await this.authenticate(otp_dto.otp, secret, request.session);
 	}
 }

@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Req, Res, Put, Post } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Res, Put, Post, Query, HttpException, HttpStatus, Redirect, Session } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthorizationCode, AccessToken } from 'simple-oauth2';
 import * as session from 'express-session';
@@ -6,21 +6,23 @@ import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
 import isAlphanumeric from 'validator/lib/isAlphanumeric';
 import { User, AuthLevel } from '../User';
-import { SessionUtils } from '../SessionUtils';
+import { SessionUtils, SessionObject } from '../SessionUtils';
 import { UserService } from '../UserService';
 import { AuthGuard } from './auth.guard';
+import { IsAlphanumeric } from 'class-validator';
 
-declare module 'express-session' {
-	export interface SessionData {
-		access_token: object;
-		secret: string | undefined;
-		user_id: number;
-	}
+function delay(ms: number) {
+    return new Promise( resolve => setTimeout(resolve, ms) );
 }
 
 interface result_dto {
 	id: number;
 	login: string;
+}
+
+class token_dto {
+	@IsAlphanumeric()
+	code: string;
 }
 
 @Controller('oauth')
@@ -69,20 +71,6 @@ export class AuthController {
 		return response.send();
 	}
 
-	is_valid_code(code: any): code is string {
-		if (typeof code !== 'string')
-			return false;
-		if (!isAlphanumeric(code))
-			return false;
-		return true;
-	}
-
-	has_query(request: Request) : boolean {
-		if (!request.query || !request.query.code)
-			return false;
-		return true;
-	}
-
 	async get_access_token(code: string): Promise<AccessToken | undefined> {
 		try {
 			const access_token = await this.client.getToken({
@@ -92,8 +80,7 @@ export class AuthController {
 			});
 			return access_token;
 		} catch (error) {
-			console.error('could not retrieve access token: ' + error);
-			return undefined;
+			throw new HttpException(error.output.payload.error, error.output.statusCode);
 		}
 	}
 
@@ -124,34 +111,26 @@ export class AuthController {
 	}	
 
 	@Get('callback')
-	async get_token(@Req() request: Request, @Res() response: Response) {
-		if (!this.has_query(request))
-			return response.redirect('http://localhost:3000/oauth/login');
+	@Redirect('http://localhost:5173')
+	async get_token(@Query() token: token_dto, @Req() request: Request) {
+		const access_token = await this.get_access_token(token.code);
 
-		const code = request.query.code;
-		if (!this.is_valid_code(code))
-			return response.status(400).json('malformed code');
-
-		const access_token = await this.get_access_token(code);
-		if (access_token == undefined)
-			return response.status(502).json('bad gateway').send();
-
+		request.session.auth_level = AuthLevel.TWOFA;
+		await delay(1000);
 		if (!await this.session_utils.regenerate_session(request.session))
-			return response.status(503).json('failed to create a session').send();
+			throw new HttpException('failed to create session', HttpStatus.SERVICE_UNAVAILABLE);
 
 		const user_id = await this.get_user_id(access_token);
 		if (user_id == undefined)
-			return response.status(502).json('bad gateway');
+			throw new HttpException('bad gateway', HttpStatus.BAD_GATEWAY);
 
 		if (!await this.user_service.exists(user_id)) {
 			console.info('new user');
 			if (!(await this.user_create(user_id)))
-				return response.status(500).json('failed to create database entry');
+				throw new HttpException('failed to create database entry', HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
 		request.session.access_token = access_token;
 		request.session.user_id = user_id;
-		response.redirect('http://localhost:5173/');
-		return response.send();
 	}
 }
