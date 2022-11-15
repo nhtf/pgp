@@ -1,5 +1,5 @@
-import { Controller, Post, Res, Req, UseGuards, Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus, Body, HttpCode } from '@nestjs/common';
-import { Response, Request } from 'express';
+import { Controller, Post, Req, UseGuards, Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus, Body, HttpCode } from '@nestjs/common';
+import { Request } from 'express';
 import { authenticator } from 'otplib';
 import * as session from 'express-session';
 import { SessionUtils } from '../SessionUtils';
@@ -74,6 +74,7 @@ export class TotpController {
 		const access_token = session.access_token;
 		const user_id = session.user_id;
 
+		// it might be needed to save the session with the save_session() function
 		if (!await this.session_utils.regenerate_session(session))
 			throw new HttpException('unable to create session', HttpStatus.INTERNAL_SERVER_ERROR);
 
