@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
+import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { User } from './User';
@@ -31,6 +32,7 @@ async function bootstrap() {
 		}),
 	);
 	app.enableCors();
+	app.useGlobalPipes(new ValidationPipe());
 	await data_source.initialize().then(() => {
 		app.listen(3000);
 	}).catch((error) => console.error(error));

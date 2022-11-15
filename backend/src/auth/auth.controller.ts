@@ -6,7 +6,9 @@ import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
 import isAlphanumeric from 'validator/lib/isAlphanumeric';
 import { User, AuthLevel } from '../User';
-import { data_source } from '../main';
+import { SessionUtils } from '../SessionUtils';
+import { UserService } from '../UserService';
+import { AuthGuard } from './auth.guard';
 
 declare module 'express-session' {
 	export interface SessionData {
@@ -34,6 +36,15 @@ export class AuthController {
 			authorizeHost: 'https://api.intra.42.fr',
 		}
 	});
+
+	constructor(private readonly session_utils: SessionUtils,
+			   private readonly user_service: UserService) {}
+
+	@Get('prot')
+	@UseGuards(AuthGuard)
+	async prot() {
+	   return "hello there";
+	}
 
 	@Get('whoami')
 	async amiloggedin(@Req() request: Request, @Res() response: Response) {
@@ -86,20 +97,6 @@ export class AuthController {
 		}
 	}
 
-	async regenerate_session(session: session.Session): Promise<boolean> {
-		const promise = new Promise((resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
-			session.regenerate((error) => {
-				if (error) {
-					console.error('could not regenerate session: '+ error);
-					reject(false);
-				} else {
-					resolve(true);
-				}
-			});
-		});
-		return await promise;
-	}
-
 	async get_user_id(access_token: AccessToken): Promise<number | undefined> {
 			let rest_client = new rm.RestClient('pgp', 'https://api.intra.42.fr',
 												[new BearerCredentialHandler(access_token.token.access_token, false)]);
@@ -117,22 +114,13 @@ export class AuthController {
 			return result.id;
 	}
 
-	async user_exists(user_id: number): Promise<boolean> {
-		return await data_source.getRepository(User).findOneById(user_id) !== null;
-	}
-
 	async user_create(user_id: number): Promise<boolean> {
-		try {
-			await data_source.getRepository(User).save({
-				user_id: user_id,
-				auth_req: AuthLevel.OAuth,
-				secret: undefined
-			});
-			return true;
-		} catch (error) {
-			console.error('could not save user to database: ' + error);
-			return false;
-		}
+		await this.user_service.save([{
+			user_id: user_id,
+			auth_req: AuthLevel.OAuth,
+			secret: undefined
+		}]);
+		return true;
 	}	
 
 	@Get('callback')
@@ -148,14 +136,14 @@ export class AuthController {
 		if (access_token == undefined)
 			return response.status(502).json('bad gateway').send();
 
-		if (!await this.regenerate_session(request.session))
+		if (!await this.session_utils.regenerate_session(request.session))
 			return response.status(503).json('failed to create a session').send();
 
 		const user_id = await this.get_user_id(access_token);
 		if (user_id == undefined)
 			return response.status(502).json('bad gateway');
 
-		if (!await this.user_exists(user_id)) {
+		if (!await this.user_service.exists(user_id)) {
 			console.info('new user');
 			if (!(await this.user_create(user_id)))
 				return response.status(500).json('failed to create database entry');

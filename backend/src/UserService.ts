@@ -1,7 +1,21 @@
+import { Injectable } from '@nestjs/common';
 import { User } from './User';
+import { Repository } from 'typeorm';
+import { data_source } from './main';
 
-export interface UserService {
-	find(id: string): User | undefined;
-	del(id: string): boolean;
+@Injectable()
+export class UserService {
+	private readonly repo: Repository<User> = data_source.getRepository(User);
+
+	async get_user(user_id: number): Promise<User | undefined> {
+		return await this.repo.findOneById(user_id);
+	}
+
+	async save(users: User[]) {
+		return await this.repo.save(users);
+	}
+
+	async exists(user_id: number): Promise<boolean> {
+		return await this.get_user(user_id) !== undefined;
+	}
 }
-
