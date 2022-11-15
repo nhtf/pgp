@@ -11,11 +11,11 @@ export interface EntityObject {
 }
 
 export class Entity {
-	renderObject: THREE.Mesh;
+	renderObject: THREE.Object3D;
 	physicsObject: Ammo.btRigidBody;
 
-	constructor(geometry: THREE.BufferGeometry, material: THREE.Material, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
-		this.renderObject = new THREE.Mesh(geometry, material);
+	constructor(mesh: THREE.Object3D, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
+		this.renderObject = mesh;
 		const transform = new Ammo.btTransform();
 		transform.setIdentity();
 		transform.setOrigin(position.intoAmmo());
@@ -25,52 +25,76 @@ export class Entity {
 		shape.calculateLocalInertia(mass, localInertia);
 		const info = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
 		this.physicsObject = new Ammo.btRigidBody(info);
+		// TODO: transform not used
+		Ammo.destroy(transform);
 	}
 
-	private get ammoTransform(): Ammo.btTransform {
-		const transform = new Ammo.btTransform();
-		this.physicsObject.getMotionState().getWorldTransform(transform);
-		return transform;
-	}
-
-	private set ammoTransform(transform: Ammo.btTransform) {
-		this.physicsObject.getMotionState().setWorldTransform(transform);
+	static create(geometry: THREE.BufferGeometry, material: THREE.Material, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
+		return new Entity(new THREE.Mesh(geometry, material), shape, mass, position, rotation);
 	}
 
 	get position(): Vector {
-		return Vector.fromAmmo(this.ammoTransform.getOrigin());
+		const transform = this.physicsObject.getWorldTransform();
+		const ammoVector = transform.getOrigin();
+		const vector = Vector.fromAmmo(ammoVector);
+		Ammo.destroy(transform);
+		Ammo.destroy(ammoVector);
+		return vector;
 	}
 
 	get rotation(): Quaternion {
-		return Quaternion.fromAmmo(this.ammoTransform.getRotation());
+		const transform = this.physicsObject.getWorldTransform();
+		const ammoQuaternion = transform.getRotation();
+		const quaternion = Quaternion.fromAmmo(ammoQuaternion);
+		Ammo.destroy(transform);
+		Ammo.destroy(ammoQuaternion);
+		return quaternion;
 	}
 
 	get linearVelocity(): Vector {
-		return Vector.fromAmmo(this.physicsObject.getLinearVelocity());
+		const ammoVector = this.physicsObject.getLinearVelocity();
+		const vector = Vector.fromAmmo(ammoVector);
+		Ammo.destroy(ammoVector);
+		return vector;
 	}
 
 	get angularVelocity(): Vector {
-		return Vector.fromAmmo(this.physicsObject.getAngularVelocity());
+		const ammoVector = this.physicsObject.getAngularVelocity();
+		const vector = Vector.fromAmmo(ammoVector);
+		Ammo.destroy(ammoVector);
+		return vector;
 	}
 
 	set position(vector: Vector) {
-		const transform = this.ammoTransform;
-		transform.setOrigin(vector.intoAmmo());
-		this.ammoTransform = transform;
+		const transform = this.physicsObject.getWorldTransform();
+		const ammoVector = vector.intoAmmo();
+		transform.setOrigin(ammoVector);
+		this.physicsObject.setWorldTransform(transform);
+		Ammo.destroy(transform);
+		Ammo.destroy(ammoVector);
 	}
 
 	set rotation(quaternion: Quaternion) {
-		const transform = this.ammoTransform;
-		transform.setRotation(quaternion.intoAmmo());
-		this.ammoTransform = transform;
+		const transform = this.physicsObject.getWorldTransform();
+		const ammoQuaternion = quaternion.intoAmmo();
+		transform.setRotation(ammoQuaternion);
+		this.physicsObject.setWorldTransform(transform);
+		Ammo.destroy(transform);
+		Ammo.destroy(ammoQuaternion);
 	}
 
 	set linearVelocity(vector: Vector) {
-		this.physicsObject.setLinearVelocity(vector.intoAmmo());
+		const ammoVector = vector.intoAmmo();
+		this.physicsObject.setLinearVelocity(ammoVector);
+		this.physicsObject.activate();
+		Ammo.destroy(ammoVector);
 	}
 
 	set angularVelocity(vector: Vector) {
-		this.physicsObject.setAngularVelocity(vector.intoAmmo());
+		const ammoVector = vector.intoAmmo();
+		this.physicsObject.setAngularVelocity(ammoVector);
+		this.physicsObject.activate();
+		Ammo.destroy(ammoVector);
 	}
 
 	tick() {}

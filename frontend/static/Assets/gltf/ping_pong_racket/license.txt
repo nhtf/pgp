@@ -1,0 +1,11 @@
+Model Information:
+* title:	Ping-pong - Day 13
+* source:	https://sketchfab.com/3d-models/ping-pong-day-13-a792c3ed836048fbab8f59eace9434be
+* author:	patrakeevasveta (https://sketchfab.com/patrakeevasveta)
+
+Model License:
+* license type:	CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)
+* requirements:	Author must be credited. Commercial use is allowed.
+
+If you use this 3D model in your project be sure to copy paste this credit wherever you share it:
+This work is based on "Ping-pong - Day 13" (https://sketchfab.com/3d-models/ping-pong-day-13-a792c3ed836048fbab8f59eace9434be) by patrakeevasveta (https://sketchfab.com/patrakeevasveta) licensed under CC-BY-4.0 (http://creativecommons.org/licenses/by/4.0/)

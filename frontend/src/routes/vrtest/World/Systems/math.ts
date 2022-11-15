@@ -115,4 +115,8 @@ export class Quaternion {
 			this.w * other.w - this.x * other.x - this.y * other.y - this.z * other.z
 		);
 	}
+
+	inverse(): Quaternion {
+		return new Quaternion(-this.x, -this.y, -this.z, this.w);
+	}
 }

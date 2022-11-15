@@ -56,14 +56,14 @@ export class World {
 		this.world.addRigidBody(entity.physicsObject);
 	}
 
-	start(steps: number = 1000) {
+	start(steps: number = 300) {
 		let previousTime: number;
 
 		this.renderer.setAnimationLoop((currentTime) => {
 			for (let entity of this.entities) {
 				entity.tick();
 			}
-			
+
 			if (previousTime !== undefined) {
 				const deltaTime = currentTime - previousTime;
 				this.world.stepSimulation(deltaTime / 1000, steps, 1 / steps);
