@@ -1,7 +1,6 @@
 import { Controller, Post, Res, Req } from '@nestjs/common';
 import { Response, Request } from 'express';
 import { authenticator } from 'otplib';
-import * as qrcode from 'qrcode';
 import isNumeric from 'validator/lib/isNumeric';
 import isLength from 'validator/lib/isLength';
 import * as session from 'express-session';
@@ -19,25 +18,9 @@ export class TotpController {
 		
 		//https://www.rfc-editor.org/rfc/rfc4226 section 4
 		const secret = authenticator.generateSecret(20);
-		const otpauth = authenticator.keyuri('username', 'pgp', secret);
-		const promise = new Promise((resolve, reject) => {
-			qrcode.toDataURL(otpauth, (error, image_url) => {
-				if (error) {
-					console.log(error);
-					reject(error);
-				} else {
-					resolve(image_url);
-				}
-			});
-		});
 
-		try {
-			const qr = await promise;
-			response.status(202).json({secret: secret, qrcode: qr });
-		} catch (_) {
-			response.status(202).json({secret: secret});
-		}
-		console.log('before: ' + request.session.secret);
+		response.status(202).json({ secret: secret});
+
 		request.session.secret = secret;
 		request.session.save((error) => {
 			if (error) {
@@ -45,7 +28,6 @@ export class TotpController {
 				return response.status(503).header('Retry-After', 'a day').json('unable to save session').send();
 			}
 		});
-		console.log('after: ' + request.session.secret);
 		return response.send();
 	}
 
