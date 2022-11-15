@@ -40,6 +40,7 @@
     "rxjs": "^7.5.7",
     "simple-oauth2": "^5.0.0",
     "thirty-two": "^1.0.2",
+    "typed-rest-client": "^1.8.9",
     "typeorm": "^0.3.10",
     "validator": "^13.7.0"
   },

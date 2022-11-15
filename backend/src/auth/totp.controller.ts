@@ -5,6 +5,7 @@ import * as qrcode from 'qrcode';
 import isNumeric from 'validator/lib/isNumeric';
 import isLength from 'validator/lib/isLength';
 import * as session from 'express-session';
+import { data_source } from '../main'
 
 @Controller('otp')
 export class TotpController {
@@ -41,7 +42,7 @@ export class TotpController {
 		request.session.save((error) => {
 			if (error) {
 				console.error(error);
-				return response.status(503).header('Retry-After', 'a day').send();
+				return response.status(503).header('Retry-After', 'a day').json('unable to save session').send();
 			}
 		});
 		console.log('after: ' + request.session.secret);
@@ -64,7 +65,7 @@ export class TotpController {
 			return response.status(409).json('invalid otp').send();
 		//TODO commit secret to user database
 		const access_token = request.session.access_token;
-		//TODO check if the old session is removed from the database when regenerate happens
+		//TODO check if the old session is removed from the session database when regenerate happens
 		request.session.regenerate((error) => {
 			if (error) {
 				console.error(error);
