@@ -132,5 +132,6 @@ export class AuthController {
 
 		request.session.access_token = access_token;
 		request.session.user_id = user_id;
+		request.session.auth_level = AuthLevel.OAuth;
 	}
 }

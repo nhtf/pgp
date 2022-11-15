@@ -12,8 +12,7 @@ class OAuthGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
 		let response = context.switchToHttp().getResponse();
-		console.log(request.session);
-		if (request.session.access_token === undefined) {
+		if (request.session.access_token === undefined || request.session.auth_level !== AuthLevel.OAuth) {
 			response.status(401).json('unauthorized');
 			return false;
 		}
