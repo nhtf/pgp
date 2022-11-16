@@ -51,20 +51,22 @@ export class TotpController {
 		return { secret: secret };
 	}
 
-	async authenticate(otp: string, secret: string, session: SessionObject): Promise<void> {
+	async authenticate(otp: string, secret: string, request: Request): Promise<void> {
 		if (!authenticator.check(otp, secret))
 			throw new HttpException('invalid otp', HttpStatus.CONFLICT);
 
-		const access_token = session.access_token;
-		const user_id = session.user_id;
+		const access_token = request.session.access_token;
+		const user_id = request.session.user_id;
 
-		// it might be needed to save the session with the save_session() function
-		if (!await this.session_utils.regenerate_session(session))
-			throw new HttpException('unable to create session', HttpStatus.INTERNAL_SERVER_ERROR);
+		// it might be needed to save the request.session with the save_session() function
+		if (!await this.session_utils.regenerate_session(request.session))
+			throw new HttpException('unable to create request.session', HttpStatus.INTERNAL_SERVER_ERROR);
 
-		session.access_token = access_token;
-		session.user_id = user_id;
-		session.auth_level = AuthLevel.TWOFA;
+		request.session.access_token = access_token;
+		request.session.user_id = user_id;
+		request.session.auth_level = AuthLevel.TWOFA;
+		if (!this.session_utils.save_session(request.session))
+			throw new HttpException('unable to save request.session', HttpStatus.SERVICE_UNAVAILABLE);
 	}
 
 	@Post('setup_verify')
@@ -76,7 +78,7 @@ export class TotpController {
 
 		const secret = request.session.secret;
 
-		await this.authenticate(otp_dto.otp, secret, request.session);
+		await this.authenticate(otp_dto.otp, secret, request);
 
 		let user = await this.user_service.get_user(request.session.user_id);
 		user.auth_req = AuthLevel.TWOFA;
@@ -96,6 +98,6 @@ export class TotpController {
 			throw new HttpException('2fa not setup', HttpStatus.FORBIDDEN);
 		const secret = user.secret;
 
-		await this.authenticate(otp_dto.otp, secret, request.session);
+		await this.authenticate(otp_dto.otp, secret, request);
 	}
 }
