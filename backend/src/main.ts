@@ -31,7 +31,10 @@ async function bootstrap() {
 			}
 		}),
 	);
-	app.enableCors();
+	app.enableCors({
+		      'origin': 'http://localhost:5173',
+		      'credentials': true
+	});
 	app.useGlobalPipes(new ValidationPipe());
 	await data_source.initialize().then(() => {
 		app.listen(3000);
