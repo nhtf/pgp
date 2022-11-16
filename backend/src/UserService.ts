@@ -16,6 +16,6 @@ export class UserService {
 	}
 
 	async exists(user_id: number): Promise<boolean> {
-		return await this.get_user(user_id) !== undefined;
+		return (await this.get_user(user_id)) !== null;
 	}
 }
