@@ -1,4 +1,4 @@
-import { Controller, Get, UseGuards, Req, Res, Put, Post, Query, HttpException, HttpStatus, Redirect, Session } from '@nestjs/common';
+import { Controller, Get, UseGuards, Req, Res, Put, Post, Query, HttpException, HttpStatus, Session } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthorizationCode, AccessToken } from 'simple-oauth2';
 import * as session from 'express-session';
@@ -10,10 +10,6 @@ import { SessionUtils, SessionObject } from '../SessionUtils';
 import { UserService } from '../UserService';
 import { AuthGuard } from './auth.guard';
 import { IsAlphanumeric } from 'class-validator';
-
-function delay(ms: number) {
-    return new Promise( resolve => setTimeout(resolve, ms) );
-}
 
 interface result_dto {
 	id: number;
@@ -62,7 +58,7 @@ export class AuthController {
 	}
 
 	@Get('login')
-	async login(@Res() response: Response) {
+	async login(@Req() request: Request, @Res() response: Response) {
 		const auth_uri = this.client.authorizeURL({
 			redirect_uri: 'http://localhost:3000/oauth/callback',
 			scope: 'public'
@@ -111,12 +107,10 @@ export class AuthController {
 	}	
 
 	@Get('callback')
-	@Redirect('http://localhost:5173')
-	async get_token(@Query() token: token_dto, @Req() request: Request) {
+	async get_token(@Query() token: token_dto, @Req() request: Request, @Res() response: Response) {
 		const access_token = await this.get_access_token(token.code);
 
 		request.session.auth_level = AuthLevel.TWOFA;
-		await delay(1000);
 		if (!await this.session_utils.regenerate_session(request.session))
 			throw new HttpException('failed to create session', HttpStatus.SERVICE_UNAVAILABLE);
 
@@ -124,14 +118,22 @@ export class AuthController {
 		if (user_id == undefined)
 			throw new HttpException('bad gateway', HttpStatus.BAD_GATEWAY);
 
-		if (!await this.user_service.exists(user_id)) {
-			console.info('new user');
-			if (!(await this.user_create(user_id)))
-				throw new HttpException('failed to create database entry', HttpStatus.INTERNAL_SERVER_ERROR);
+		let user = await this.user_service.get_user(user_id);
+		if (user === null) {
+			user = {
+				user_id: user_id,
+				auth_req: AuthLevel.OAuth,
+				secret: undefined
+			}
+			await this.user_service.save([user]);
 		}
 
-		request.session.access_token = access_token;
+		request.session.access_token = access_token.token.access_token;
 		request.session.user_id = user_id;
 		request.session.auth_level = AuthLevel.OAuth;
+		if (request.session.auth_level != user.auth_req)
+			response.redirect('http://localhost:8080/otp_verify');
+		else
+			response.redirect('http://localhost:8080/profile');
 	}
 }

@@ -50,7 +50,7 @@
 </script>
 
 {#key image}
-<img src={image}>
+<img src={image} alt='could not load qrcode'>
 {/key}
 <input type='text' bind:value={code} inputmode='numeric' pattern='\d*' required minlength='6' maxlength='6'>
 <button on:click={verify_code}>verify</button>

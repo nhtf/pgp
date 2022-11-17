@@ -4,10 +4,11 @@ import * as session from 'express-session';
 
 declare module 'express-session' {
 	export interface SessionData {
-		access_token: object;
+		access_token: string;
 		secret: string | undefined;
 		user_id: number;
 		auth_level: AuthLevel;
+		callback_redirect: string | undefined;
 	}
 }
 
