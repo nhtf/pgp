@@ -14,13 +14,14 @@ export class World {
 
 	constructor(container: Element) {
 		this.scene = new THREE.Scene();
-		this.scene.background = new THREE.Color("black");
+		this.scene.background = new THREE.Color("skyblue");
 
 		const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
 		const collisionDispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
 		const broadphase = new Ammo.btDbvtBroadphase();
 		const constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
 		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, broadphase, constraintSolver, collisionConfiguration);
+		// this.world.debugDrawWorld();
 		this.world.setGravity(new Ammo.btVector3(0, -9.81, 0));
 	
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -58,15 +59,21 @@ export class World {
 
 	start(steps: number = 300) {
 		let previousTime: number;
+		let stepIndex: number = 0;
 
 		this.renderer.setAnimationLoop((currentTime) => {
-			for (let entity of this.entities) {
-				entity.tick();
-			}
-
 			if (previousTime !== undefined) {
-				const deltaTime = currentTime - previousTime;
-				this.world.stepSimulation(deltaTime / 1000, steps, 1 / steps);
+				while (previousTime < currentTime) {
+					if (stepIndex % 2 == 0) {
+						for (let entity of this.entities) {
+							entity.tick();
+						}
+					}
+
+					this.world.stepSimulation(1 / steps, 1, 1 / steps);
+					previousTime += 1000 / steps;
+					stepIndex += 1;
+				}
 			}
 
 			for (let entity of this.entities) {
@@ -80,6 +87,7 @@ export class World {
 	}
 
 	stop() {
+		console.log("stopping animation loop");
 		this.renderer.setAnimationLoop(null);
 	}
 }

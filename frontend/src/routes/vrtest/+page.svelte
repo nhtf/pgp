@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onDestroy, onMount } from "svelte";
 	import { ammoInit } from './World/Systems/ammo';
-	import { Room } from './World/Components/room';
+	import { addRoomToWorld } from './World/Components/room';
 	import { createLights} from './World/Components/lights';
 	import { createControllers } from './World/Components/controller';
 	import { Ball } from './World/Components/ball';
@@ -26,20 +26,21 @@
 		const {light, ambient, hemisphere} = createLights();
 		world.scene.add(light, hemisphere, ambient);
 
-		const room = new Room();
-		world.add(room);
+		addRoomToWorld(world);
 
 		const ball = new Ball();
-		const racketModel = await loadModel("./Assets/gltf/table_tennis_racket/scene.gltf", 0.03);
+		world.add(ball);
+		console.log("balllll");
+		const racketModel = await loadModel("./Assets/gltf/pingpong.gltf", 1);
 		if (racketModel === undefined)
 			console.log("error loading model")
 		else {
+			// console.log(controller.right);
 			const racket = new Racket(controller.right, racketModel);
-			world.add(ball);
 			world.add(racket);
 			controller.right.addEventListener("selectstart", function() {
+				console.log("controller pos: ", controller.right.position);
 				ball.position = racket.position.add(new Vector(0, 0.5, 0));
-				console.log(ball.position);
 				ball.linearVelocity = new Vector(0, 0, 0);
 				ball.angularVelocity = new Vector(0, 0, 0);
 			});

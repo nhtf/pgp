@@ -10,7 +10,8 @@ export class Racket extends Entity {
 
 	constructor(controller: XRTargetRaySpace, mesh: Object3D) {
 		const cylinderShape = createShape(mesh.children[0]);
-		super(mesh, cylinderShape, 0.1, new Vector(0, 0, 0), new Quaternion(0, 0, 0, 1));
+		console.log(cylinderShape.getMargin());
+		super(mesh, cylinderShape, 0.25, new Vector(0, 0, 0), new Quaternion(0, 0, 0, 1), true);
 		this.physicsObject.setRestitution(0.7);
 		this.controller = controller;
 	}

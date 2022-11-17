@@ -15,7 +15,8 @@ export class Ball extends Entity {
 		const sphereMaterial = new MeshStandardMaterial({ color: 'white', side:  DoubleSide});
 		const sphereShape = new Ammo.btSphereShape(sphereRadius);
 		const sphereMesh = new Mesh(sphereGeometry, sphereMaterial);
-		super(sphereMesh, sphereShape, 0.0027, new Vector(0, 0.5, 0), new Quaternion(0, 0, 0, 1));
+		super(sphereMesh, sphereShape, 0.0027, new Vector(0, 0.5, 0), new Quaternion(0, 0, 0, 1), true);
 		this.physicsObject.setRestitution(0.9);
+		this.physicsObject.setDamping(0, 0.99); //so the ball doesn't roll as far
 	}
 }

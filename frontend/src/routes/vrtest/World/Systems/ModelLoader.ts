@@ -1,7 +1,7 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import type { Object3D } from 'three';
-import { Mesh, BufferGeometry, Vector3 } from 'three';
+import { Mesh, BufferGeometry, Vector3, Matrix4 } from 'three';
 import { Ammo } from './ammo';
 import { Vector } from './math';
 
@@ -14,38 +14,41 @@ export async function loadModel(path: string, scale: number): Promise<Object3D |
 	const gltf = await glLoader.loadAsync(path, function(xhr) {
 		console.log((xhr.loaded / xhr.total * 100) + '% loaded');
 	});
-	const scaleVector = gltf.scene.children[0].scale;
-	gltf.scene.children[0].scale.set(scaleVector.x * scale, scaleVector.y * scale, scaleVector.z * scale);
-    gltf.scene.children[0].rotation.set(-Math.PI / 3, 0, 0);
-	const translation = 0.02;
-	gltf.scene.children[0].position.set(0, 0.5 * translation, -0.866 * translation);
+	gltf.scene.children[0].applyMatrix4(new Matrix4().makeScale(scale, scale, scale));
+	gltf.scene.children[0].applyMatrix4(new Matrix4().makeRotationX(Math.PI / 6));
+	gltf.scene.children[0].applyMatrix4(new Matrix4().makeTranslation(0, 0.02, -0.04));
 	return gltf.scene;
 }
 
-function addTriangles(mesh: Ammo.btTriangleMesh, obj: Object3D) {
+function addTriangles(mesh: Ammo.btTriangleMesh, obj: Object3D, transform: Matrix4) {
+	transform = new Matrix4().multiplyMatrices(transform, obj.matrix);
+
 	if (obj instanceof Mesh && obj.geometry instanceof BufferGeometry) {
-		const vertices = obj.geometry.getAttribute("position").array;
+		const geometry = obj.geometry.toNonIndexed();
+		const vertices = geometry.getAttribute("position").array;
 
 		for (let i = 0; i < vertices.length; i += 9) {
-			const a = Vector.fromThree(obj.localToWorld(new Vector3(vertices[0], vertices[1], vertices[2])));
-			const b = Vector.fromThree(obj.localToWorld(new Vector3(vertices[3], vertices[4], vertices[5])));
-			const c = Vector.fromThree(obj.localToWorld(new Vector3(vertices[6], vertices[7], vertices[8])));
-			console.log(a, b, c);
+			const a = Vector.fromThree(new Vector3(vertices[i + 0], vertices[i + 1], vertices[i + 2]).applyMatrix4(transform));
+			const b = Vector.fromThree(new Vector3(vertices[i + 3], vertices[i + 4], vertices[i + 5]).applyMatrix4(transform));
+			const c = Vector.fromThree(new Vector3(vertices[i + 6], vertices[i + 7], vertices[i + 8]).applyMatrix4(transform));
 			const ammoA = a.intoAmmo(), ammoB = b.intoAmmo(), ammoC = c.intoAmmo();
 			mesh.addTriangle(ammoA, ammoB, ammoC, true);
 			Ammo.destroy(ammoA);
 			Ammo.destroy(ammoB);
 			Ammo.destroy(ammoC);
 		}
+
+		geometry.dispose();
 	}
 
 	for (let child of obj.children) {
-		addTriangles(mesh, child);
+		addTriangles(mesh, child, transform);
 	}
 }
 
 export function createShape(obj: Object3D): Ammo.btBvhTriangleMeshShape {
 	const mesh = new Ammo.btTriangleMesh();
-	// addTriangles(mesh, obj);
+	addTriangles(mesh, obj, new Matrix4().identity());
+	console.debug("converted threejs mesh to ammojs");
 	return new Ammo.btBvhTriangleMeshShape(mesh, true);
 }

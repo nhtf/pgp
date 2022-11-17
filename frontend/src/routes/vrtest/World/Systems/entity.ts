@@ -13,9 +13,11 @@ export interface EntityObject {
 export class Entity {
 	renderObject: THREE.Object3D;
 	physicsObject: Ammo.btRigidBody;
+	updatePosition: boolean;
 
-	constructor(mesh: THREE.Object3D, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
+	constructor(mesh: THREE.Object3D, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion, update: boolean) {
 		this.renderObject = mesh;
+		this.updatePosition = update;
 		const transform = new Ammo.btTransform();
 		transform.setIdentity();
 		transform.setOrigin(position.intoAmmo());
@@ -25,12 +27,12 @@ export class Entity {
 		shape.calculateLocalInertia(mass, localInertia);
 		const info = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
 		this.physicsObject = new Ammo.btRigidBody(info);
-		// TODO: transform not used
+		this.physicsObject.setWorldTransform(transform);
 		Ammo.destroy(transform);
 	}
 
 	static create(geometry: THREE.BufferGeometry, material: THREE.Material, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
-		return new Entity(new THREE.Mesh(geometry, material), shape, mass, position, rotation);
+		return new Entity(new THREE.Mesh(geometry, material), shape, mass, position, rotation, true);
 	}
 
 	get position(): Vector {
@@ -100,8 +102,10 @@ export class Entity {
 	tick() {}
 
 	update() {
-		this.renderObject.position.copy(this.position.intoThree());
-		this.renderObject.quaternion.copy(this.rotation.intoThree());
+		if (this.updatePosition) {
+			this.renderObject.position.copy(this.position.intoThree());
+			this.renderObject.quaternion.copy(this.rotation.intoThree());
+		}
 	}
 
 	serialize(): EntityObject {

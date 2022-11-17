@@ -12,11 +12,11 @@ function createController(index: number, renderer: WebGLRenderer, scene: Scene) 
     const hand = renderer.xr.getHand(index);
     const handModel = handModelFactory.createHandModel(hand);
     
-    scene.add(controller);
+    // scene.add(controller);
     controllerGrip.add(controllerModel);
     scene.add(controllerGrip);
     hand.add(handModel);
-    scene.add(hand);
+    // scene.add(hand);
     return controller;
 }
 
