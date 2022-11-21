@@ -24,7 +24,7 @@ function createControllers(renderer: WebGLRenderer, scene: Scene) {
     const right = createController(0, renderer, scene);
     const left = createController(1, renderer, scene);
 
-    return {right, left };
+    return { right, left };
 }
 
 export { createControllers };

@@ -1,6 +1,6 @@
 import type { CylinderGeometry, MeshStandardMaterial, Object3D, Mesh } from 'three';
 import { Ammo } from '../Systems/ammo';
-import type {XRTargetRaySpace} from 'three';
+import type { XRTargetRaySpace } from 'three';
 import { Vector, Quaternion } from '../Systems/math';
 import { Entity } from '../Systems/entity';
 import { createShape } from '../Systems/ModelLoader';
