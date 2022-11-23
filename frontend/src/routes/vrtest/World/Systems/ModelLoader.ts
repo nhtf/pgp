@@ -15,7 +15,7 @@ export async function loadModel(path: string, scale: number): Promise<Object3D |
 		console.log((xhr.loaded / xhr.total * 100) + '% loaded');
 	});
 	gltf.scene.children[0].applyMatrix4(new Matrix4().makeScale(scale, scale, scale));
-	gltf.scene.children[0].applyMatrix4(new Matrix4().makeRotationX(Math.PI / 6));
+	gltf.scene.children[0].applyMatrix4(new Matrix4().makeRotationX(Math.PI / 6 + Math.PI / 2));
 	gltf.scene.children[0].applyMatrix4(new Matrix4().makeTranslation(0, 0.02, -0.04));
 	return gltf.scene;
 }

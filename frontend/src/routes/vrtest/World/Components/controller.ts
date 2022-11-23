@@ -14,7 +14,7 @@ function createController(index: number, renderer: WebGLRenderer, scene: Scene) 
     
     // scene.add(controller);
     controllerGrip.add(controllerModel);
-    scene.add(controllerGrip);
+    // scene.add(controllerGrip);
     hand.add(handModel);
     // scene.add(hand);
     return controller;

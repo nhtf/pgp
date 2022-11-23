@@ -1,16 +1,17 @@
-import { PassportModule } from '@nestjs/passport';
 import { AppController } from './app.controller';
 import { Module } from '@nestjs/common';
-import { AuthStrategy } from './auth/oauth.guard';
 import { WSConnection } from './wsconnection';
-// import { TypeOrmModule } from '@nestjs/typeorm';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AuthController } from './auth/auth.controller';
+import { TotpController } from './auth/totp.controller';
+import { SessionUtils } from './SessionUtils';
+import { UserService } from './UserService';
 
 @Module({
 	imports: [
-		PassportModule.register({ defaultStrategy: 'oauth2', session: false }),
-		// TypeOrmModule.forRoot({ type: 'postgres', username: 'postgres', password: 'postgres', host: '172.19.0.2' })
+		/*TypeOrmModule.forRoot({ type: 'postgres', username: 'postgres', password: 'postgres', host: '172.19.0.2' }),*/
 	],
-	controllers: [AppController],
-	providers: [AuthStrategy, WSConnection],
+	controllers: [AppController, AuthController, TotpController],
+	providers: [WSConnection, SessionUtils, UserService],
 })
 export class AppModule { }

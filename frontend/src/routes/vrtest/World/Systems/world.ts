@@ -1,6 +1,22 @@
 import { Ammo } from "./ammo";
 import * as THREE from "three";
-import type { Entity } from "./entity";
+import type { Entity, EntityObject } from "./entity";
+import { Vector, Quaternion } from "./math";
+import type { VectorObject, QuaternionObject } from "./math";
+
+export interface WorldObject {
+	entities: EntityObject[];
+	stepCount: number;
+}
+
+export interface WorldEvent {
+	target: string;
+	stepCount: number;
+	position: VectorObject;
+	rotation: QuaternionObject;
+	linearVelocity: VectorObject;
+	angularVelocity: VectorObject;
+}
 
 export class World {
 	scene: THREE.Scene;
@@ -11,6 +27,11 @@ export class World {
 	clientWidth: number = 0;
 	clientHeight: number = 0;
 	entities: Entity[] = [];
+	stepCount: number = 0;
+	stepsPerSecond: number = 300;
+	snapshots: WorldObject[];
+	events: WorldEvent[];
+	allEvents: WorldEvent[];
 
 	constructor(container: Element) {
 		this.scene = new THREE.Scene();
@@ -38,6 +59,9 @@ export class World {
 		this.camera.position.set(0, 1.8, 0);
 
 		this.container = container;
+		this.snapshots = [];
+		this.events = [];
+		this.allEvents = [];
 	}
 
 	private resize() {
@@ -57,23 +81,31 @@ export class World {
 		this.world.addRigidBody(entity.physicsObject);
 	}
 
-	start(steps: number = 300) {
+	step(stepTarget: number) {
+		while (this.stepCount < stepTarget) {
+			if (this.stepCount % 2 == 0) {
+				for (let entity of this.entities) {
+					entity.tick();
+				}
+			}
+
+			this.world.stepSimulation(1 / this.stepsPerSecond, 1, 1 / this.stepsPerSecond);
+			this.stepCount += 1;
+		}
+	}
+
+	start() {
 		let previousTime: number;
 		let stepIndex: number = 0;
 
 		this.renderer.setAnimationLoop((currentTime) => {
 			if (previousTime !== undefined) {
-				while (previousTime < currentTime) {
-					if (stepIndex % 2 == 0) {
-						for (let entity of this.entities) {
-							entity.tick();
-						}
-					}
-
-					this.world.stepSimulation(1 / steps, 1, 1 / steps);
-					previousTime += 1000 / steps;
-					stepIndex += 1;
-				}
+				const timeDelta = (currentTime - previousTime) / 1000;
+				const stepDelta = Math.floor(timeDelta * this.stepsPerSecond);
+				this.step(this.stepCount + stepDelta);
+				previousTime += stepDelta / this.stepsPerSecond * 1000;
+			} else {
+				previousTime = currentTime;
 			}
 
 			for (let entity of this.entities) {
@@ -82,12 +114,48 @@ export class World {
 
 			this.resize();
 			this.renderer.render(this.scene, this.camera);
-			previousTime = currentTime;
 		});
 	}
 
 	stop() {
 		console.log("stopping animation loop");
 		this.renderer.setAnimationLoop(null);
+	}
+
+	getEntity(name: string): Entity | null {
+		for (let entity of this.entities) {
+			if (entity.name === name) {
+				return entity;
+			}
+		}
+
+		return null;
+	}
+
+	playEvent(event: WorldEvent) {
+		if (event.stepCount != this.stepCount) {
+			console.error("bad step count in playEvent");
+			return;
+		}
+
+		const entity = this.getEntity(event.target);
+
+		if (entity === null) {
+			console.error("bad target in playEvent");
+			return;
+		}
+
+		entity.position = Vector.fromObject(event.position);
+		entity.rotation = Quaternion.fromObject(event.rotation);
+		entity.linearVelocity = Vector.fromObject(event.linearVelocity);
+		entity.angularVelocity = Vector.fromObject(event.angularVelocity);
+	}
+
+	playEvents() {
+		for (let event of this.allEvents) {
+			if (event.stepCount == this.stepCount) {
+				this.playEvent(event);
+			}
+		}
 	}
 }

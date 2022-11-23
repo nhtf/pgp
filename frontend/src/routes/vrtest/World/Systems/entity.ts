@@ -14,6 +14,7 @@ export class Entity {
 	renderObject: THREE.Object3D;
 	physicsObject: Ammo.btRigidBody;
 	updatePosition: boolean;
+	name: string | null = null;
 
 	constructor(mesh: THREE.Object3D, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion, update: boolean) {
 		this.renderObject = mesh;
