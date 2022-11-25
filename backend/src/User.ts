@@ -15,7 +15,12 @@ export class User {
 	auth_req: AuthLevel;
 
 	@Column({
-		   nullable: true
+		nullable: true
 	})
 	secret: string | undefined;
+
+	@Column({
+		nullable: true
+	})
+	username: string | undefined;
 }

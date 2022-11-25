@@ -1,9 +1,11 @@
 import { Ammo } from "./ammo";
 import { Vector, Quaternion } from "./math";
 import type { VectorObject, QuaternionObject } from "./math";
+import type { World } from "./world";
 import * as THREE from "three";
 
 export interface EntityObject {
+	name: string;
 	position: VectorObject;
 	rotation: QuaternionObject;
 	linearVelocity: VectorObject;
@@ -15,8 +17,10 @@ export class Entity {
 	physicsObject: Ammo.btRigidBody;
 	updatePosition: boolean;
 	name: string | null = null;
+	world: World;
 
-	constructor(mesh: THREE.Object3D, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion, update: boolean) {
+	constructor(world: World, mesh: THREE.Object3D, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion, update: boolean) {
+		this.world = world;
 		this.renderObject = mesh;
 		this.updatePosition = update;
 		const transform = new Ammo.btTransform();
@@ -27,13 +31,14 @@ export class Entity {
 		const localInertia = new Ammo.btVector3(0, 0, 0);
 		shape.calculateLocalInertia(mass, localInertia);
 		const info = new Ammo.btRigidBodyConstructionInfo(mass, motionState, shape, localInertia);
+		// info.set_m_linearSleepingThreshold(100);
 		this.physicsObject = new Ammo.btRigidBody(info);
 		this.physicsObject.setWorldTransform(transform);
 		Ammo.destroy(transform);
 	}
 
-	static create(geometry: THREE.BufferGeometry, material: THREE.Material, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
-		return new Entity(new THREE.Mesh(geometry, material), shape, mass, position, rotation, true);
+	static create(world: World, geometry: THREE.BufferGeometry, material: THREE.Material, shape: Ammo.btCollisionShape, mass: number, position: Vector, rotation: Quaternion) {
+		return new Entity(world, new THREE.Mesh(geometry, material), shape, mass, position, rotation, true);
 	}
 
 	get position(): Vector {
@@ -89,14 +94,12 @@ export class Entity {
 	set linearVelocity(vector: Vector) {
 		const ammoVector = vector.intoAmmo();
 		this.physicsObject.setLinearVelocity(ammoVector);
-		this.physicsObject.activate();
 		Ammo.destroy(ammoVector);
 	}
 
 	set angularVelocity(vector: Vector) {
 		const ammoVector = vector.intoAmmo();
 		this.physicsObject.setAngularVelocity(ammoVector);
-		this.physicsObject.activate();
 		Ammo.destroy(ammoVector);
 	}
 
@@ -111,6 +114,7 @@ export class Entity {
 
 	serialize(): EntityObject {
 		return {
+			name: this.name ?? "",
 			position: this.position.intoObject(),
 			rotation: this.rotation.intoObject(),
 			linearVelocity: this.linearVelocity.intoObject(),

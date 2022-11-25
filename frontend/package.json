@@ -30,6 +30,7 @@
 		"ammojs": "^0.0.2",
 		"ammojs-typed": "^1.0.6",
 		"socket.io-client": "^4.5.3",
+		"sweetalert2": "^11.6.13",
 		"three": "^0.146.0"
 	}
 }

@@ -3,7 +3,7 @@
 	import { ammoInit } from "./World/Systems/ammo";
 	import { Game } from "./World/Components/game";
 
-	let world: World;
+	let world: Game;
 	let container: Element;
 	let condition = true;
 
@@ -15,10 +15,6 @@
 		container.append(VRButton.createButton(world.renderer));
 		await world.load();
 		world.start();
-	});
-
-	onDestroy(() => {
-		console.log("destroying");
 	});
 </script>
 

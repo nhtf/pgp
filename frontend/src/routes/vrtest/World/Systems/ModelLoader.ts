@@ -1,23 +1,33 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
-import type { Object3D } from 'three';
+import type { Object3D, Euler } from 'three';
 import { Mesh, BufferGeometry, Vector3, Matrix4 } from 'three';
 import { Ammo } from './ammo';
-import { Vector } from './math';
+import { Quaternion, Vector } from './math';
 
 const glLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/examples/jsm/libs/draco');
 glLoader.setDRACOLoader(dracoLoader);
 
-export async function loadModel(path: string, scale: number): Promise<Object3D | undefined> {
+export async function loadModel(path: string, scale: number, translation: Vector, rotation: Euler): Promise<Object3D | undefined | Mesh> {
 	const gltf = await glLoader.loadAsync(path, function(xhr) {
 		console.log((xhr.loaded / xhr.total * 100) + '% loaded');
 	});
-	gltf.scene.children[0].applyMatrix4(new Matrix4().makeScale(scale, scale, scale));
-	gltf.scene.children[0].applyMatrix4(new Matrix4().makeRotationX(Math.PI / 6 + Math.PI / 2));
-	gltf.scene.children[0].applyMatrix4(new Matrix4().makeTranslation(0, 0.02, -0.04));
-	return gltf.scene;
+	const root = gltf.scene;
+	const matrix = new Matrix4();
+	matrix.makeScale(scale, scale, scale);
+	root.children[0].applyMatrix4(matrix);
+	matrix.makeRotationFromEuler(rotation);
+	root.children[0].applyMatrix4(matrix);
+	matrix.makeTranslation(translation.x, translation.y, translation.z);
+	root.children[0].applyMatrix4(matrix);
+	root.traverse((obj: Object3D | Mesh) => {
+		if (obj.castShadow !== undefined) {
+		  	obj.castShadow = true;
+		}
+	});
+	return root;
 }
 
 function addTriangles(mesh: Ammo.btTriangleMesh, obj: Object3D, transform: Matrix4) {

@@ -102,7 +102,8 @@ export class AuthController {
 		await this.user_service.save([{
 			user_id: user_id,
 			auth_req: AuthLevel.OAuth,
-			secret: undefined
+			secret: undefined,
+			username: undefined
 		}]);
 		return true;
 	}	
@@ -124,7 +125,8 @@ export class AuthController {
 			user = {
 				user_id: user_id,
 				auth_req: AuthLevel.OAuth,
-				secret: undefined
+				secret: undefined,
+				username: undefined
 			}
 			await this.user_service.save([user]);
 		}

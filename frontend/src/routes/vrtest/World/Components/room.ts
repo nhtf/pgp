@@ -86,8 +86,10 @@ const depth: number = 20;
 const thickness: number = 0.01;
 const material = createMaterial();
 
+const floorId = 3;
+
 class Floor extends Entity {
-    constructor() {
+    constructor(world: World) {
         const floor_geometry = new PlaneGeometry(depth, width);
 
         const floorBox = new Ammo.btVector3(width, thickness, depth);
@@ -98,12 +100,13 @@ class Floor extends Entity {
         ground_mesh.rotation.set(- Math.PI / 2, 0, 0);
         ground_mesh.receiveShadow = true;
 
-        super(ground_mesh, floorShape, 0, new Vector(0, 0, 0), new Quaternion(0, 0, 0, 1), false); //floor
+        super(world, ground_mesh, floorShape, 0, new Vector(0, 0, 0), new Quaternion(0, 0, 0, 1), false); //floor
+        this.physicsObject.setUserIndex(floorId);
     }
 }
 
 class Ceiling extends Entity {
-    constructor() {
+    constructor(world: World) {
         const ceiling_geometry = new PlaneGeometry(depth, width);
 
         const ceilingBox = new Ammo.btVector3(width, thickness, depth);
@@ -114,12 +117,12 @@ class Ceiling extends Entity {
         ceiling_mesh.rotation.set(- Math.PI / 2, 0, 0);
         ceiling_mesh.receiveShadow = true;
 
-        super(ceiling_mesh, ceilingShape, 0, new Vector(0, height, 0), new Quaternion(0, 0, 0, 1), false); //ceiling
+        super(world, ceiling_mesh, ceilingShape, 0, new Vector(0, height, 0), new Quaternion(0, 0, 0, 1), false); //ceiling
     }
 }
 
 class WallEast extends Entity {
-    constructor() {
+    constructor(world: World) {
         const wallEastGeometry = new PlaneGeometry(depth, height);
 
         const wallEastBox = new Ammo.btVector3(width, height, thickness);
@@ -131,12 +134,12 @@ class WallEast extends Entity {
         wallEastMesh.rotation.set(0, 0, 0);
         wallEastMesh.receiveShadow = true;
 
-        super(wallEastMesh, wallEastShape, 0, new Vector(0, 0, -width /2), new Quaternion(0, 0, 0, 1), false); //wallEast
+        super(world, wallEastMesh, wallEastShape, 0, new Vector(0, 0, -width /2), new Quaternion(0, 0, 0, 1), false); //wallEast
     }
 }
 
 class WallWest extends Entity {
-    constructor() {
+    constructor(world: World) {
         const wallWestGeometry = new PlaneGeometry(depth, height);
 
         const wallWestBox = new Ammo.btVector3(width, height, thickness);
@@ -148,12 +151,12 @@ class WallWest extends Entity {
         wallWestMesh.rotation.set(0, 0, 0);
         wallWestMesh.receiveShadow = true;
 
-        super(wallWestMesh, wallWestShape, 0, new Vector(0, 0, width / 2), new Quaternion(0, 0, 0, 1), false); //wallWest
+        super(world, wallWestMesh, wallWestShape, 0, new Vector(0, 0, width / 2), new Quaternion(0, 0, 0, 1), false); //wallWest
     }
 }
 
 class WallNorth extends Entity {
-    constructor() {
+    constructor(world: World) {
         const wallNorthGeometry = new PlaneGeometry(width, height);
 
         const wallNorthBox = new Ammo.btVector3(thickness, height, depth);
@@ -165,12 +168,12 @@ class WallNorth extends Entity {
         wallNorthMesh.rotation.set(0, -Math.PI / 2, 0);
         wallNorthMesh.receiveShadow = true;
 
-        super(wallNorthMesh, wallNorthShape, 0, new Vector(-depth / 2, 0, 0), new Quaternion(0, 0, 0, 1), false); //wallNorth
+        super(world, wallNorthMesh, wallNorthShape, 0, new Vector(-depth / 2, 0, 0), new Quaternion(0, 0, 0, 1), false); //wallNorth
     }
 }
 
 class WallSouth extends Entity {
-    constructor() {
+    constructor(world: World) {
         const wallSouthGeometry = new PlaneGeometry(width, height);
 
         const wallSouthhBox = new Ammo.btVector3(thickness, height, depth);
@@ -182,18 +185,18 @@ class WallSouth extends Entity {
         wallSouthhMesh.rotation.set(0, -Math.PI / 2, 0);
         wallSouthhMesh.receiveShadow = true;
 
-        super(wallSouthhMesh, wallSouthhShape, 0, new Vector(depth / 2, 0, 0), new Quaternion(0, 0, 0, 1), false); //wallSouth
+        super(world, wallSouthhMesh, wallSouthhShape, 0, new Vector(depth / 2, 0, 0), new Quaternion(0, 0, 0, 1), false); //wallSouth
     }
 }
 
 function addRoomToWorld(world: World) {
     
-        const floor = new Floor();
-        const ceiling = new Ceiling();        
-        const wallEast = new WallEast();
-        const wallWest = new WallWest();
-        const wallNorth = new WallNorth();
-        const wallSouth = new WallSouth();
+        const floor = new Floor(world);
+        const ceiling = new Ceiling(world);        
+        const wallEast = new WallEast(world);
+        const wallWest = new WallWest(world);
+        const wallNorth = new WallNorth(world);
+        const wallSouth = new WallSouth(world);
 
         world.add(floor);
         world.add(ceiling);

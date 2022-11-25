@@ -3,7 +3,7 @@ import { Server, Socket } from 'socket.io';
 import { from, Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
-@WebSocketGateway({ cors: { origin: 'http://0.0.0.0:8080', credentials: true } })
+@WebSocketGateway({ cors: { origin: 'http://localhost:5173', credentials: true } })
 export class WSConnection {
 	@WebSocketServer()
 	server: Server;
@@ -20,6 +20,11 @@ export class WSConnection {
 			throw new WsException('forbidden');
 		}
 		return 'mijn kaas';
+	}
+
+	@SubscribeMessage("broadcast")
+	async broadcast(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+		client.broadcast.emit("broadcast", data);
 	}
 
 	/*

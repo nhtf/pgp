@@ -1,21 +1,25 @@
 import {
-    // DirectionalLight,
     AmbientLight,
     HemisphereLight,
     SpotLight,
-    // PointLight,
+    PointLight,
 } from 'three';
 
 function createLights() {
-    // const light = new PointLight('white', 350, 0, 1.9);
-    const light = new SpotLight('white', 350, 0, Math.PI * 0.45, 0.0, 2);
+    const light = new SpotLight('white', 450, 0, Math.PI * 0.45, 0.0, 2);
+    const pointLight = new PointLight('white', 50, 0, 2);
     const ambient = new AmbientLight('white', 0.5);
     const hemisphere = new HemisphereLight(0xffffff, 'grey', 1.0);
 
     light.position.y = 19;
-    light.castShadow = true;
+    pointLight.position.y = 4;
+    pointLight.castShadow = true;
+    pointLight.shadow.mapSize.width = 2048;
+    pointLight.shadow.mapSize.height = 2048;//Check the size of these for performance
+    pointLight.shadow.camera.near = 0.1;
+    pointLight.shadow.camera.far = 20;
 
-    return { light, ambient, hemisphere };
+    return { light, ambient, hemisphere, pointLight };
 }
 
 export { createLights };

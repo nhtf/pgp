@@ -7,15 +7,15 @@ import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { User } from './User';
 import * as session from 'express-session';
-import { HOST, FRONTEND_ADDRESS, BACKEND_PORT, DB_PORT, DB_USER, DB_PASS } from './vars';
+import { HOST, FRONTEND_ADDRESS, BACKEND_PORT, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET } from './vars';
 
 export const data_source = new DataSource({
 	type: 'postgres',
 	host: HOST,
 	port: DB_PORT,
 	//TODO use env variables here
-	username: 'postgres',
-	password: 'postgres',
+	username: DB_USER,
+	password: DB_PASS,
 	database: 'dev',
 	entities: [User],
 	synchronize: true,
@@ -31,11 +31,11 @@ async function bootstrap() {
 					conString: 'postgres://postgres:postgres@localhost:5432/dev',
 					createTableIfMissing: true
 				}),
-				secret: 'changethis', //TODO change this to an actual secret
+				secret: SESSION_SECRET,
 				resave: true,
 				saveUninitialized: false,
 				cookie: {
-					maxAge: 720000, //TODO set the right maxAge
+					maxAge: 72000000, //TODO set the right maxAge
 					sameSite: 'strict'
 				}
 			}),
@@ -44,7 +44,11 @@ async function bootstrap() {
 		      'origin': FRONTEND_ADDRESS,
 		      'credentials': true
 	});
-	app.useGlobalPipes(new ValidationPipe());
+	app.useGlobalPipes(
+		new ValidationPipe({
+			transform: true,
+		})
+	);
 	//TODO use nestjs way of setting up the data sourcd
 	await data_source.initialize().then(() => {
 		app.listen(BACKEND_PORT);

@@ -2,7 +2,7 @@
 </script>
 
 <a href="/chat">Go to chat</a>
-<a href="/pong">Go to threejstesting</a>
+<a href="/vrtest">Go to vr Testing</a>
 
 <a href="http://localhost:3000/oauth/login">Login with Codam</a>
 

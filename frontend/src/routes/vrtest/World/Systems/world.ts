@@ -3,6 +3,8 @@ import * as THREE from "three";
 import type { Entity, EntityObject } from "./entity";
 import { Vector, Quaternion } from "./math";
 import type { VectorObject, QuaternionObject } from "./math";
+import { Group } from "three";
+import { createLights} from "../Components/lights";
 
 export interface WorldObject {
 	entities: EntityObject[];
@@ -23,6 +25,7 @@ export class World {
 	world: Ammo.btDiscreteDynamicsWorld;
 	renderer: THREE.WebGLRenderer;
 	camera: THREE.PerspectiveCamera;
+	cameraGroup: Group;
 	container: Element;
 	clientWidth: number = 0;
 	clientHeight: number = 0;
@@ -32,6 +35,10 @@ export class World {
 	snapshots: WorldObject[];
 	events: WorldEvent[];
 	allEvents: WorldEvent[];
+	tickInterval: number = 5;
+	snapshotInterval: number = 30;
+	eventLifetime: number = 300;
+	snapshotLifetime: number = 300;
 
 	constructor(container: Element) {
 		this.scene = new THREE.Scene();
@@ -42,7 +49,6 @@ export class World {
 		const broadphase = new Ammo.btDbvtBroadphase();
 		const constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
 		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, broadphase, constraintSolver, collisionConfiguration);
-		// this.world.debugDrawWorld();
 		this.world.setGravity(new Ammo.btVector3(0, -9.81, 0));
 	
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -50,6 +56,12 @@ export class World {
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		this.renderer.xr.enabled = true;
+
+		const lights = createLights();
+		this.scene.add(lights.light);
+		this.scene.add(lights.hemisphere);
+		this.scene.add(lights.pointLight);
+		this.scene.add(lights.ambient);
 		
 		const cameraFov = 90;
 		const cameraAspect = 1;
@@ -57,6 +69,12 @@ export class World {
 		const cameraFar = 1000;
 		this.camera = new THREE.PerspectiveCamera(cameraFov, cameraAspect, cameraNear, cameraFar);
 		this.camera.position.set(0, 1.8, 0);
+
+		this.cameraGroup = new Group();
+		this.cameraGroup.position.set(-2.5, 0, 0);
+		this.cameraGroup.rotateY(-Math.PI / 2);
+		this.scene.add(this.cameraGroup);
+		this.cameraGroup.add(this.camera);
 
 		this.container = container;
 		this.snapshots = [];
@@ -81,12 +99,25 @@ export class World {
 		this.world.addRigidBody(entity.physicsObject);
 	}
 
-	step(stepTarget: number) {
+	onSnapshot(snapshot: WorldObject) {
+
+	}
+
+	step(stepTarget: number, fast: boolean = true) {
 		while (this.stepCount < stepTarget) {
-			if (this.stepCount % 2 == 0) {
+			if (this.stepCount % this.tickInterval == 0 && !fast) {
 				for (let entity of this.entities) {
 					entity.tick();
 				}
+			}
+
+			this.playEvents();
+
+			if (this.stepCount % this.snapshotInterval == 0 && !fast) {
+				const snapshot = this.createSnapshot();
+				this.snapshots.push(snapshot);
+				this.snapshots = this.snapshots.filter(snapshot => snapshot.stepCount > this.stepCount - this.snapshotLifetime);
+				this.onSnapshot(snapshot);
 			}
 
 			this.world.stepSimulation(1 / this.stepsPerSecond, 1, 1 / this.stepsPerSecond);
@@ -96,13 +127,12 @@ export class World {
 
 	start() {
 		let previousTime: number;
-		let stepIndex: number = 0;
 
 		this.renderer.setAnimationLoop((currentTime) => {
 			if (previousTime !== undefined) {
 				const timeDelta = (currentTime - previousTime) / 1000;
 				const stepDelta = Math.floor(timeDelta * this.stepsPerSecond);
-				this.step(this.stepCount + stepDelta);
+				this.step(this.stepCount + stepDelta, false);
 				previousTime += stepDelta / this.stepsPerSecond * 1000;
 			} else {
 				previousTime = currentTime;
@@ -156,6 +186,46 @@ export class World {
 			if (event.stepCount == this.stepCount) {
 				this.playEvent(event);
 			}
+		}
+
+		this.allEvents = this.allEvents.filter(event => event.stepCount > this.stepCount - this.eventLifetime);
+		this.events = this.events.filter(event => event.stepCount > this.stepCount - this.eventLifetime);
+	}
+
+	createEvent(partialEvent: Partial<WorldEvent>) {
+		partialEvent.stepCount = this.stepCount;
+		const event = partialEvent as WorldEvent;
+		this.events.push(event);
+		this.allEvents.push(event);
+	}
+
+	createSnapshot(): WorldObject {
+		const result: WorldObject = {
+			entities: [],
+			stepCount: this.stepCount,
+		};
+
+		for (let entity of this.entities) {
+			if (entity.name !== null) {
+				result.entities.push(entity.serialize());
+			}
+		}
+
+		return result;
+	}
+
+	loadSnapshot(world: WorldObject) {
+		this.stepCount = world.stepCount;
+
+		for (let entityObject of world.entities) {
+			const entity = this.getEntity(entityObject.name);
+
+			if (entity === null) {
+				console.error("bad entity in loadSnapshot");
+				continue;
+			}
+
+			entity.deserialize(entityObject);
 		}
 	}
 }
