@@ -10,7 +10,7 @@ import { SessionUtils, SessionObject } from '../SessionUtils';
 import { UserService } from '../UserService';
 import { AuthGuard } from './auth.guard';
 import { IsAlphanumeric } from 'class-validator';
-import { BACKEND_ADDRESS, FRONTEND_ADDRESS } from '../vars';
+import { BACKEND_ADDRESS, FRONTEND_ADDRESS, DEFAULT_AVATAR } from '../vars';
 
 interface result_dto {
 	id: number;
@@ -98,16 +98,6 @@ export class AuthController {
 			return result.id;
 	}
 
-	async user_create(user_id: number): Promise<boolean> {
-		await this.user_service.save([{
-			user_id: user_id,
-			auth_req: AuthLevel.OAuth,
-			secret: undefined,
-			username: undefined
-		}]);
-		return true;
-	}	
-
 	@Get('callback')
 	async get_token(@Query() token: token_dto, @Req() request: Request, @Res() response: Response) {
 		const access_token = await this.get_access_token(token.code);
@@ -126,7 +116,8 @@ export class AuthController {
 				user_id: user_id,
 				auth_req: AuthLevel.OAuth,
 				secret: undefined,
-				username: undefined
+				username: undefined,
+				avatar: DEFAULT_AVATAR
 			}
 			await this.user_service.save([user]);
 		}
@@ -134,6 +125,8 @@ export class AuthController {
 		request.session.access_token = access_token.token.access_token;
 		request.session.user_id = user_id;
 		request.session.auth_level = AuthLevel.OAuth;
+
+		this.session_utils.save_session(request.session);
 		if (request.session.auth_level != user.auth_req)
 			response.redirect(FRONTEND_ADDRESS + '/otp_verify');
 		else

@@ -34,6 +34,12 @@ export class Vector {
 		return new Vector(vector.x(), vector.y(), vector.z());
 	}
 
+	static moveFromAmmo(vector: Ammo.btVector3): Vector {
+		const result = Vector.fromAmmo(vector);
+		Ammo.destroy(vector);
+		return result;
+	}
+
 	static fromThree(vector: THREE.Vector3): Vector {
 		return new Vector(vector.x, vector.y, vector.z);
 	}
@@ -89,6 +95,12 @@ export class Quaternion {
 
 	static fromAmmo(quaternion: Ammo.btQuaternion): Quaternion {
 		return new Quaternion(quaternion.x(), quaternion.y(), quaternion.z(), quaternion.w());
+	}
+
+	static moveFromAmmo(quaternion: Ammo.btQuaternion): Quaternion {
+		const result = Quaternion.fromAmmo(quaternion);
+		Ammo.destroy(quaternion);
+		return result;
 	}
 
 	static fromThree(quaternion: THREE.Quaternion): Quaternion {

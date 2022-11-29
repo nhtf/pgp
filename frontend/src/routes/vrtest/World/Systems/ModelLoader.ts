@@ -1,6 +1,6 @@
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader';
 import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
-import type { Object3D, Euler } from 'three';
+import type { Object3D, Euler, Material, MeshStandardMaterial } from 'three';
 import { Mesh, BufferGeometry, Vector3, Matrix4 } from 'three';
 import { Ammo } from './ammo';
 import { Quaternion, Vector } from './math';
@@ -9,6 +9,14 @@ const glLoader = new GLTFLoader();
 const dracoLoader = new DRACOLoader();
 dracoLoader.setDecoderPath('/examples/jsm/libs/draco');
 glLoader.setDRACOLoader(dracoLoader);
+
+function isMesh(obj: Object3D | Mesh): obj is Mesh {
+	return (<Mesh>obj).isMesh !== undefined;
+}
+
+function isMaterial(material: MeshStandardMaterial | Material | Material[]): material is MeshStandardMaterial {
+	return (<MeshStandardMaterial>material).isMeshStandardMaterial !== undefined;
+}
 
 export async function loadModel(path: string, scale: number, translation: Vector, rotation: Euler): Promise<Object3D | undefined | Mesh> {
 	const gltf = await glLoader.loadAsync(path, function(xhr) {
@@ -25,6 +33,9 @@ export async function loadModel(path: string, scale: number, translation: Vector
 	root.traverse((obj: Object3D | Mesh) => {
 		if (obj.castShadow !== undefined) {
 		  	obj.castShadow = true;
+		}
+		if (isMesh(obj) && obj.isMesh === true && isMaterial(obj.material) && obj.material.map !== null) {
+			obj.material.map.anisotropy = 8;
 		}
 	});
 	return root;

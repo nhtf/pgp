@@ -1,11 +1,9 @@
-import type { Object3D } from "three";
-import { ShadowMaterial, PlaneGeometry, Mesh } from "three";
+import { ShadowMaterial, PlaneGeometry, Mesh, type Object3D } from "three";
 import { Entity } from "../Systems/entity";
 import { Quaternion, Vector } from "../Systems/math";
 import { createShape } from "../Systems/ModelLoader";
 import type { World } from "../Systems/world";
-
-const tableId = 2;
+import { tableHeight, tableLength, tableWidth, tableId } from "./vars";
 
 export class Table extends Entity {
 
@@ -19,10 +17,6 @@ export class Table extends Entity {
         
     }
 }
-
-const tableWidth = 1.525;
-const tableLength = 2.74;
-const tableHeight = 0.795;
 
 export function createTableTop() {
     const material = new ShadowMaterial();

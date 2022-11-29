@@ -8,23 +8,42 @@ export class WSConnection {
 	@WebSocketServer()
 	server: Server;
 
-	async handleConnection(client: Socket, ...args: any[]) {
-		console.log('cookies: ' + client.handshake.headers.cookie);
-		setInterval(() => client.emit('kaas', 'jouw kaas'), 1000);
-	}
+	// async handleConnection(client: Socket, ...args: any[]) {
+	// 	console.log('cookies: ' + client.handshake.headers.cookie);
+	// 	setInterval(() => client.emit('kaas', 'jouw kaas'), 1000);
+	// }
 
-	@SubscribeMessage('kaas')
-	async getKaas(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
-		console.log(data);
-		if (!client.handshake.headers.cookie) {
-			throw new WsException('forbidden');
-		}
-		return 'mijn kaas';
+	// @SubscribeMessage('kaas')
+	// async getKaas(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
+	// 	console.log(data);
+	// 	if (!client.handshake.headers.cookie) {
+	// 		throw new WsException('forbidden');
+	// 	}
+	// 	return 'mijn kaas';
+	// }
+	users: string[];
+
+	constructor() {
+		this.users = [];
 	}
 
 	@SubscribeMessage("broadcast")
 	async broadcast(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
 		client.broadcast.emit("broadcast", data);
+	}
+
+	@SubscribeMessage("joinGame")
+	joinGame(@MessageBody() data: string): boolean {
+		if (this.users.find(id => id === data) === undefined) {
+			this.users.push(data);
+			return true;
+		}
+		return true;
+	}
+
+	@SubscribeMessage("getPlayerInfo")
+	async getPlayerInfo(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+		return 
 	}
 
 	/*

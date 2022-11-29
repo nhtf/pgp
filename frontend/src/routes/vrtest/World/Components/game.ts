@@ -5,10 +5,9 @@ import { createControllers } from "./controller";
 import { Ball } from "./ball";
 import { Racket } from "./racket";
 import { Euler } from "three";
-import type { XRTargetRaySpace } from "three";
+import type { XRTargetRaySpace, Object3D } from "three";
 import { loadModel } from "../Systems/ModelLoader";
-import { Vector } from "../Systems/math";
-import type { Object3D } from "three";
+import { Vector, Quaternion } from "../Systems/math";
 import { Table, createTableTop } from "./table";
 import { Socket, io } from "socket.io-client";
 import Ammo from "ammojs-typed";
@@ -120,11 +119,17 @@ export class Game extends World {
 
 		const self = this;
 		this.rightController.addEventListener("selectstart", function() {
-			if (self.ball !== undefined && self.racket !== undefined) {
-				self.ball.position = self.racket.position.add(new Vector(+0.05, 1.5, 0));
-				self.ball.linearVelocity = new Vector(0, 0, 0);
-				self.ball.angularVelocity = new Vector(0, 0, 0);
-				self.ball.physicsObject.activate();
+			if (self.racket !== undefined) {
+				self.createEvent({
+					type: "move",
+					target: "BALL",
+					data: {
+						position: self.racket.position.add(new Vector(0.05, 0.5, 0)).intoObject(),
+						rotation: new Quaternion(0, 0, 0, 1).intoObject(),
+						linearVelocity: new Vector(0, 0, 0).intoObject(),
+						angularVelocity: new Vector(0, 0, 0).intoObject(),
+					}
+				});
 			}
 		});
 

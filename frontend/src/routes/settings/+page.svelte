@@ -26,7 +26,7 @@
 			</a>
 			{#if show}
 				<div class='dropdown'>
-					<a class='dropdown-item' href='/settings'>settings</a>
+					<a class='dropdown-item' href=''>settings</a>
 					<a class='dropdown-item' href=''>logout</a>
 				</div>
 			{/if}
@@ -35,31 +35,9 @@
 
 </header>
 
-<div class='info'>
-
-	<!--
-	<img id='avatar' src={profile_image} alt='avatar'>
-	<div class='item detail'>
-		<div class='spacing'/>
-		<h1>{name}</h1>
-
-	</div>
-	<div class='item history'>
-
-	</div>
-	-->
-	<div class='block vertical-block'>
-		<img id='avatar' src={profile_image} alt='avatar'/>
-		<div class='block vertical-block item' id='details'>
-			<div class='avatar-spacing'/>
-				<h1 class='fill'>#1</h1>
-				<h1 class='fill shift-right'>{data.username}#{data.user_id}</h1>
-		</div>
-	</div>
-	<div class='spacing'/>
-	<div class='block item' id='history'/>
+<div class='item' id='settings'>
+	<h1>Settings</h1>
 </div>
-
 
 <style>
 :global(body) {
@@ -96,25 +74,6 @@
 	background-color: #35cc88;
 }
 
-.block {
-	float: left;
-}
-
-.vertical-block {
-	min-width: 400px;
-	max-width: 500px;
-}
-
-.horizontal-block {
-	height: 400px;
-}
-
-.item {
-	border-radius: 5%;
-	margin: 1em;
-	background-color: white;
-}
-
 .navbar {
 	overflow: hidden;
 	background-color: white;
@@ -138,30 +97,6 @@
 	margin: 0px;
 }
 
-.spacing {
-	display: block;
-	float: left;
-	min-width: 0px;
-	width: 50%;
-	height: 100px;
-}
-
-.avatar-spacing {
-	display: block;
-	float: left;
-	min-width: 0px;
-	width: 60%;
-	height: 100px;
-}
-
-.fill {
-	width: 100%;
-}
-
-.shift-right {
-	margin-left: 10px;
-}
-
 #small-avatar {
 	display: block;
 	max-width: 35px;
@@ -170,36 +105,16 @@
 	margin: 5px;
 }
 
-#avatar {
-	position: relative;
-	max-width: 200px;
-	max-height: 200px;
-	border-radius: 50%;
-	margin-left: 50px;
-	z-index: 1;
+.item {
+	margin: 1em;
+	background-color: white;
 }
 
-#details {
-	display: block;
-	position: relative;
-	top: -100px;
-	z-index: 0;
-	height: 600px;
-	border-radius: 7%;
-}
-
-.info {
-	display: flex;
-	flex-direction: row;
-	flex-wrap: wrap;
-	align-items: stretch;
-	padding: 0px;
-}
-
-#history {
-	min-width: 600px;
-	max-width: 1200px;
-	min-height: 600px;
-	max-height: 600px;
+#settings {
+	min-width: 30em;
+	max-width: 100%;
+	min-height: 50em;
+	max-height: 100%;
+	margin: 1em;
 }
 </style>

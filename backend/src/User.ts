@@ -1,4 +1,5 @@
 import { Entity, PrimaryColumn, Column } from 'typeorm';
+import { DEFAULT_AVATAR } from './vars';
 
 export enum AuthLevel {
 	None,
@@ -23,4 +24,11 @@ export class User {
 		nullable: true
 	})
 	username: string | undefined;
+
+	//TODO make boolean
+	@Column({
+		   nullable: true
+	})
+	avatar: string;
+
 }

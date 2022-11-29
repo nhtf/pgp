@@ -3,8 +3,11 @@ import * as THREE from "three";
 import type { Entity, EntityObject } from "./entity";
 import { Vector, Quaternion } from "./math";
 import type { VectorObject, QuaternionObject } from "./math";
-import { Group } from "three";
 import { createLights} from "../Components/lights";
+import { collisionHandler } from "./CollisionHandler";
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
+import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass';
 
 export interface WorldObject {
 	entities: EntityObject[];
@@ -12,12 +15,10 @@ export interface WorldObject {
 }
 
 export interface WorldEvent {
+	type: string;
 	target: string;
 	stepCount: number;
-	position: VectorObject;
-	rotation: QuaternionObject;
-	linearVelocity: VectorObject;
-	angularVelocity: VectorObject;
+	data: any;
 }
 
 export class World {
@@ -25,7 +26,7 @@ export class World {
 	world: Ammo.btDiscreteDynamicsWorld;
 	renderer: THREE.WebGLRenderer;
 	camera: THREE.PerspectiveCamera;
-	cameraGroup: Group;
+	cameraGroup: THREE.Group;
 	container: Element;
 	clientWidth: number = 0;
 	clientHeight: number = 0;
@@ -36,9 +37,11 @@ export class World {
 	events: WorldEvent[];
 	allEvents: WorldEvent[];
 	tickInterval: number = 5;
-	snapshotInterval: number = 30;
+	snapshotInterval: number = 15;
 	eventLifetime: number = 300;
 	snapshotLifetime: number = 300;
+	composer: EffectComposer;
+	broadphase: Ammo.btDbvtBroadphase;
 
 	constructor(container: Element) {
 		this.scene = new THREE.Scene();
@@ -46,16 +49,19 @@ export class World {
 
 		const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
 		const collisionDispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-		const broadphase = new Ammo.btDbvtBroadphase();
+		this.broadphase = new Ammo.btDbvtBroadphase();
 		const constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
-		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, broadphase, constraintSolver, collisionConfiguration);
-		this.world.setGravity(new Ammo.btVector3(0, -9.81, 0));
+		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, this.broadphase, constraintSolver, collisionConfiguration);
+		this.world.setGravity(new Ammo.btVector3(0, 0, 0));
 	
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
+		this.renderer.setPixelRatio( window.devicePixelRatio );
 		this.renderer.physicallyCorrectLights = true;
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		this.renderer.xr.enabled = true;
+		
+		this.composer = new EffectComposer(this.renderer);
 
 		const lights = createLights();
 		this.scene.add(lights.light);
@@ -70,7 +76,7 @@ export class World {
 		this.camera = new THREE.PerspectiveCamera(cameraFov, cameraAspect, cameraNear, cameraFar);
 		this.camera.position.set(0, 1.8, 0);
 
-		this.cameraGroup = new Group();
+		this.cameraGroup = new THREE.Group();
 		this.cameraGroup.position.set(-2.5, 0, 0);
 		this.cameraGroup.rotateY(-Math.PI / 2);
 		this.scene.add(this.cameraGroup);
@@ -107,11 +113,17 @@ export class World {
 		while (this.stepCount < stepTarget) {
 			if (this.stepCount % this.tickInterval == 0 && !fast) {
 				for (let entity of this.entities) {
-					entity.tick();
+					entity.tick(this.tickInterval / this.stepsPerSecond);
 				}
 			}
 
 			this.playEvents();
+			
+			if (this.stepCount % this.tickInterval == 0) {
+				for (let entity of this.entities) {
+					entity.postTick(this.tickInterval / this.stepsPerSecond);
+				}
+			}
 
 			if (this.stepCount % this.snapshotInterval == 0 && !fast) {
 				const snapshot = this.createSnapshot();
@@ -120,8 +132,10 @@ export class World {
 				this.onSnapshot(snapshot);
 			}
 
+			this.broadphase.resetPool(null);
 			this.world.stepSimulation(1 / this.stepsPerSecond, 1, 1 / this.stepsPerSecond);
 			this.stepCount += 1;
+			collisionHandler(this);
 		}
 	}
 
@@ -143,6 +157,7 @@ export class World {
 			}
 
 			this.resize();
+			// this.composer.render();
 			this.renderer.render(this.scene, this.camera);
 		});
 	}
@@ -175,10 +190,17 @@ export class World {
 			return;
 		}
 
-		entity.position = Vector.fromObject(event.position);
-		entity.rotation = Quaternion.fromObject(event.rotation);
-		entity.linearVelocity = Vector.fromObject(event.linearVelocity);
-		entity.angularVelocity = Vector.fromObject(event.angularVelocity);
+		if (event.type === "move") {
+			entity.position = Vector.fromObject(event.data.position);
+			entity.rotation = Quaternion.fromObject(event.data.rotation);
+			entity.linearVelocity = Vector.fromObject(event.data.linearVelocity);
+			entity.angularVelocity = Vector.fromObject(event.data.angularVelocity);
+		} else if (event.type === "target") {
+			entity.target = event.data;
+		} else {
+			console.error("bad event type in playEvent");
+			return;
+		}
 	}
 
 	playEvents() {

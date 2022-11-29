@@ -70,6 +70,7 @@ export class TotpController {
 	@HttpCode(HttpStatus.CREATED)
 	@UseGuards(OAuthGuard)
 	async setup_verify(@Body() otp_dto: OtpDto, @Req() request: Request) {
+		console.log(request.session);
 		if (!request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 

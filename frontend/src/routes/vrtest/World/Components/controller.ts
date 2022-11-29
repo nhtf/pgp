@@ -1,9 +1,9 @@
-import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
+// import { XRHandModelFactory } from 'three/examples/jsm/webxr/XRHandModelFactory.js';
 import { XRControllerModelFactory } from 'three/examples/jsm/webxr/XRControllerModelFactory.js';
 import type { WebGLRenderer, Scene } from 'three';
 
 const controllerModelFactory = new XRControllerModelFactory();
-const handModelFactory = new XRHandModelFactory();
+// const handModelFactory = new XRHandModelFactory();
 
 function createController(index: number, renderer: WebGLRenderer, scene: Scene) {
     const controller = renderer.xr.getController(index);

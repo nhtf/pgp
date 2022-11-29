@@ -3,18 +3,26 @@ import { Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
 	Req, Res } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
-import { Length, IsString } from 'class-validator';
+import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
 import { UserService } from './UserService';
 import { SessionObject } from './SessionUtils';
 import { Request, Response, Express } from 'express';
 import * as sharp from 'sharp';
-import { open } from 'node:fs/promises';
+import { open, rm } from 'node:fs/promises';
 import { finished } from 'node:stream';
+import { join } from 'path';
+import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from './vars';
+import { User } from './User';
 
 class UsernameDto {
 	@IsString()
 	@Length(1, 20)
-	username: string;
+	@IsOptional()
+	username?: string;
+
+	@IsNumberString()
+	@IsOptional()
+	user_id?: string;
 }
 
 @Injectable()
@@ -48,7 +56,7 @@ export class AccountController {
 	@HttpCode(HttpStatus.CREATED)
 	async setup(@Body() username_dto: UsernameDto, @Session() session: SessionObject) {
 		const user = await this.user_service.get_user(session.user_id);
-		if (user.username != null)
+		if (!user.username)
 			throw new HttpException('already setup user', HttpStatus.FORBIDDEN);
 
 		const other_user = await this.user_service.get_user_by_name(username_dto.username);
@@ -64,29 +72,47 @@ export class AccountController {
 	async reset(@Session() session: SessionObject) {
 		const user = await this.user_service.get_user(session.user_id);
 		user.username = null;
+		user.avatar = null;
 		await this.user_service.save([user]);
+	}
+
+	get_avatar_filename(user_id: number) {
+		return user_id.toString() + '.jpg';
+	}
+
+	get_avatar_path(avatar: string): string {
+		return BACKEND_ADDRESS + '/' + AVATAR_DIR + '/' + avatar;
+	}
+
+	async who(by: string | number) {
+		const user = await this.user_service.get_user(by);
+		if (!user)
+			throw new HttpException('not found', HttpStatus.NOT_FOUND);
+		const avatar = user.avatar ? this.get_avatar_filename(user.user_id) : DEFAULT_AVATAR;
+		return { id: user.user_id, username: user.username, avatar: this.get_avatar_path(avatar) };
 	}
 
 	@Get('whoami')
 	@UseGuards(SetupGuard)
 	async whoami(@Session() session: SessionObject) {
-		const user = await this.user_service.get_user(session.user_id);
-		return { username: user.username };
+		return await this.who(session.user_id);
 	}
 
 	@Get('whois')
-	async whois(@Query() username_dto: UsernameDto) {
-		const user = await this.user_service.get_user_by_name(username_dto.username);
-		if (!user)
-			throw new HttpException('no user with such name', HttpStatus.NOT_FOUND);
-		return { id: user.user_id, username: user.username };
+	async whois(@Query() dto: UsernameDto) {
+		if (!dto.username && !dto.user_id)
+			throw new HttpException('bad request', HttpStatus.BAD_REQUEST);
+		return await this.who(dto.username ?? Number(dto.user_id));
 	}
 
 	@Post('set_image')
 	@UseGuards(SetupGuard)
-	async set_image(@Req() request: Request, @Res() response: Response) {
+	async set_image(@Session() session: SessionObject, @Req() request: Request, @Res() response: Response) {
+		const user = await this.user_service.get_user(session.user_id);
+		const avatar_path = join(AVATAR_DIR, this.get_avatar_filename(session.user_id));
+
 		const transform = sharp().resize(200, 200).jpeg();
-		const file = await open('avatar/image.jpg', 'w');
+		const file = await open(avatar_path, 'w');
 		const stream = file.createWriteStream();
 		request.pipe(transform).pipe(stream);
 
@@ -95,6 +121,8 @@ export class AccountController {
 				response.status(HttpStatus.BAD_REQUEST).json("bad image");
 			} else {
 				response.status(HttpStatus.ACCEPTED);
+				user.avatar = 'yes';
+				this.user_service.save([user]);
 			}
 			stream.close();
 			file.close();

@@ -4,18 +4,25 @@ import type { VectorObject, QuaternionObject } from "./math";
 import type { World } from "./world";
 import * as THREE from "three";
 
+export interface EntityTransform {
+	position: VectorObject;
+	rotation: QuaternionObject;
+}
+
 export interface EntityObject {
 	name: string;
 	position: VectorObject;
 	rotation: QuaternionObject;
 	linearVelocity: VectorObject;
 	angularVelocity: VectorObject;
+	target: EntityTransform | null;
 }
 
 export class Entity {
 	renderObject: THREE.Object3D;
 	physicsObject: Ammo.btRigidBody;
 	updatePosition: boolean;
+	target: EntityTransform | null = null;
 	name: string | null = null;
 	world: World;
 
@@ -44,33 +51,25 @@ export class Entity {
 	get position(): Vector {
 		const transform = this.physicsObject.getWorldTransform();
 		const ammoVector = transform.getOrigin();
-		const vector = Vector.fromAmmo(ammoVector);
+		const vector = Vector.moveFromAmmo(ammoVector);
 		Ammo.destroy(transform);
-		Ammo.destroy(ammoVector);
 		return vector;
 	}
 
 	get rotation(): Quaternion {
 		const transform = this.physicsObject.getWorldTransform();
 		const ammoQuaternion = transform.getRotation();
-		const quaternion = Quaternion.fromAmmo(ammoQuaternion);
+		const quaternion = Quaternion.moveFromAmmo(ammoQuaternion);
 		Ammo.destroy(transform);
-		Ammo.destroy(ammoQuaternion);
 		return quaternion;
 	}
 
 	get linearVelocity(): Vector {
-		const ammoVector = this.physicsObject.getLinearVelocity();
-		const vector = Vector.fromAmmo(ammoVector);
-		Ammo.destroy(ammoVector);
-		return vector;
+		return Vector.moveFromAmmo(this.physicsObject.getLinearVelocity());
 	}
 
 	get angularVelocity(): Vector {
-		const ammoVector = this.physicsObject.getAngularVelocity();
-		const vector = Vector.fromAmmo(ammoVector);
-		Ammo.destroy(ammoVector);
-		return vector;
+		return Vector.moveFromAmmo(this.physicsObject.getAngularVelocity());
 	}
 
 	set position(vector: Vector) {
@@ -103,7 +102,17 @@ export class Entity {
 		Ammo.destroy(ammoVector);
 	}
 
-	tick() {}
+	tick(deltaTime: number) {}
+
+	postTick(deltaTime: number) {
+		if (this.target !== null) {
+			let position = Vector.fromObject(this.target.position);
+			this.linearVelocity = position.sub(this.position).scale(50);
+			let rotation = Quaternion.fromObject(this.target.rotation);
+			this.angularVelocity = rotation.mul(this.rotation.inverse()).euler().scale(50);
+		}
+		this.physicsObject.activate();
+	}
 
 	update() {
 		if (this.updatePosition) {
@@ -119,6 +128,7 @@ export class Entity {
 			rotation: this.rotation.intoObject(),
 			linearVelocity: this.linearVelocity.intoObject(),
 			angularVelocity: this.angularVelocity.intoObject(),
+			target: this.target,
 		};
 	}
 
@@ -127,5 +137,6 @@ export class Entity {
 		this.rotation = Quaternion.fromObject(entity.rotation);
 		this.linearVelocity = Vector.fromObject(entity.linearVelocity);
 		this.angularVelocity = Vector.fromObject(entity.angularVelocity);
+		this.target = entity.target;
 	}
 }

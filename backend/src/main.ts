@@ -52,7 +52,6 @@ async function bootstrap() {
 		})
 	);
 
-	console.log(join(__dirname, '..', 'avatar'));
 	app.useStaticAssets(join(__dirname, '..', 'avatar'), { prefix: '/avatar/' });
 	//app.useStaticAssets(join(__dirname, '..', '..', 'avatar'));
 	//TODO use nestjs way of setting up the data sourcd
