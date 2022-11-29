@@ -7,7 +7,9 @@ import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
 import { User } from './User';
 import * as session from 'express-session';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { HOST, FRONTEND_ADDRESS, BACKEND_PORT, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET } from './vars';
+import { join } from 'path';
 
 export const data_source = new DataSource({
 	type: 'postgres',
@@ -23,7 +25,7 @@ export const data_source = new DataSource({
 });
 
 async function bootstrap() {
-	const app = await NestFactory.create(AppModule);
+	const app = await NestFactory.create<NestExpressApplication>(AppModule);
 		app.use(
 			session({
 				store: new (require('connect-pg-simple')(session))({
@@ -49,6 +51,10 @@ async function bootstrap() {
 			transform: true,
 		})
 	);
+
+	console.log(join(__dirname, '..', 'avatar'));
+	app.useStaticAssets(join(__dirname, '..', 'avatar'), { prefix: '/avatar/' });
+	//app.useStaticAssets(join(__dirname, '..', '..', 'avatar'));
 	//TODO use nestjs way of setting up the data sourcd
 	await data_source.initialize().then(() => {
 		app.listen(BACKEND_PORT);

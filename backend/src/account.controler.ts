@@ -1,10 +1,15 @@
 import { Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
-		Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query } from '@nestjs/common';
+	Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query,
+	Req, Res } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
 import { Length, IsString } from 'class-validator';
 import { UserService } from './UserService';
 import { SessionObject } from './SessionUtils';
-import { Request, Response } from 'express';
+import { Request, Response, Express } from 'express';
+import * as sharp from 'sharp';
+import { open } from 'node:fs/promises';
+import { finished } from 'node:stream';
 
 class UsernameDto {
 	@IsString()
@@ -75,5 +80,25 @@ export class AccountController {
 		if (!user)
 			throw new HttpException('no user with such name', HttpStatus.NOT_FOUND);
 		return { id: user.user_id, username: user.username };
+	}
+
+	@Post('set_image')
+	@UseGuards(SetupGuard)
+	async set_image(@Req() request: Request, @Res() response: Response) {
+		const transform = sharp().resize(200, 200).jpeg();
+		const file = await open('avatar/image.jpg', 'w');
+		const stream = file.createWriteStream();
+		request.pipe(transform).pipe(stream);
+
+		finished(transform, (error: Error) => {
+			if (error) {
+				response.status(HttpStatus.BAD_REQUEST).json("bad image");
+			} else {
+				response.status(HttpStatus.ACCEPTED);
+			}
+			stream.close();
+			file.close();
+			return response.send();
+		});
 	}
 }
