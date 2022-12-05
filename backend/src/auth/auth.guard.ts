@@ -12,6 +12,8 @@ export class AuthGuard implements CanActivate {
 		if (request.session.access_token == undefined)
 			return false;
 		const user = await this.user_service.get_user(request.session.user_id);
+		if (!user)
+			return false;
 		return user.auth_req === request.session.auth_level;
 	}
 }

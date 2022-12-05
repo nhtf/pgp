@@ -1,4 +1,4 @@
-import { Get, Controller, UseGuards, Session, Req } from '@nestjs/common';
+import { Get, Controller, UseGuards, Session, Req, Redirect, HttpStatus } from '@nestjs/common';
 import { Request } from 'express';
 import * as session from 'express-session';
 import { AuthGuard } from './auth/auth.guard';
@@ -7,6 +7,7 @@ import { AccessToken } from 'simple-oauth2';
 import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
 import { SessionUtils, SessionObject } from './SessionUtils';
+import { BACKEND_ADDRESS } from './vars';
 
 interface IntraDto {
 	id: number;
@@ -39,10 +40,8 @@ export class AppController {
 	constructor(private readonly user_service: UserService) {}
 
 	@Get('whoami')
+	@Redirect(BACKEND_ADDRESS + '/account/whoami', HttpStatus.PERMANENT_REDIRECT)
 	@UseGuards(AuthGuard)
-	async whoami(@Req() request: Request) {
-		const user = await this.user_service.get_user(request.session.user_id);
-		const me = await get_me(request.session.access_token);
-		return { id: user.user_id, image: me.image.versions.medium };
-	}	
+	async whoami() {
+	}
 }

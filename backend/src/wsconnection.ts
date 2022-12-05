@@ -8,21 +8,7 @@ export class WSConnection {
 	@WebSocketServer()
 	server: Server;
 
-	// async handleConnection(client: Socket, ...args: any[]) {
-	// 	console.log('cookies: ' + client.handshake.headers.cookie);
-	// 	setInterval(() => client.emit('kaas', 'jouw kaas'), 1000);
-	// }
-
-	// @SubscribeMessage('kaas')
-	// async getKaas(@ConnectedSocket() client: Socket, @MessageBody() data: any): Promise<any> {
-	// 	console.log(data);
-	// 	if (!client.handshake.headers.cookie) {
-	// 		throw new WsException('forbidden');
-	// 	}
-	// 	return 'mijn kaas';
-	// }
 	users: string[];
-
 	constructor() {
 		this.users = [];
 	}
@@ -45,12 +31,5 @@ export class WSConnection {
 	async getPlayerInfo(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
 		return 
 	}
-
-	/*
-	@SubscribeMessage('kaas')
-	getHello(@MessageBody() data: any): Observable<WsResponse<string>> {
-		return from('Hello World!').pipe(map(thing => ({ event: 'events', data: thing })));
-	}
-   */
 }
 

@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { AuthLevel } from './User';
+import { AuthLevel } from './UserService';
 import * as session from 'express-session';
 
 declare module 'express-session' {

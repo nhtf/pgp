@@ -5,7 +5,7 @@
 
 <header>
 	<div class='navbar'>
-		<a href='/home' >Home</a>
+		<a href='/' >Home</a>
 		<a href='/leaderboard'>Leaderboard</a>
 		<a href='/chat'>Chat</a>
 	</div>

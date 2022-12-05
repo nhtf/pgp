@@ -9,11 +9,11 @@ let playerIdHit: number = 0;
 
 const stepDelay = 5;
 
-function getPlayerSide(playerId: number): boolean {
-    //function to check if the id of the player is for player 1 or player 2 using backend.
-
-    if (playerId === 91397 || playerId === 42)
+function getPlayerSide(playerId: number, world: World): boolean {
+    let pos = world.getEntity("RACKET-" + playerId)?.position;
+    if (pos !== undefined && pos.x < 0) {
         return false;
+    }
     return true;
 }
 
@@ -24,30 +24,29 @@ function getSideTable(vector: Vector): boolean {
 }
 
 //function which checks if where the ball lands is valid (i.e. a player hits the ball and then ball lands on floor would be invalid)
-function checkBallCorrectLanding(currentHit: number, previousHit: number, playerIdHit: number, vector: Vector): number {
-    // console.log(currentHit, previousHit, playerIdHit);
+function checkBallCorrectLanding(currentHit: number, previousHit: number, playerIdHit: number, vector: Vector, world: World): number {
     if (playerIdHit === 0)
         return 0;
     else if (previousHit === 0 && currentHit > floorId) {
-        console.log("first here");
+        // console.log("first here");
         return 1;
     }
     else if (previousHit > floorId && currentHit === tableId) {
         if (vector.y > tableHeight)
             return 2;
-        console.log("second here");
-        if ((!getPlayerSide(previousHit) && !getSideTable(vector)) || (getPlayerSide(previousHit) && getSideTable(vector)))
+        // console.log("second here");
+        if ((!getPlayerSide(previousHit,world) && !getSideTable(vector)) || (getPlayerSide(previousHit,world) && getSideTable(vector)))
             return 2;
     }
     else if (previousHit === tableId && currentHit === tableId) {
         if (vector.y > tableHeight)
             return 2;
-        console.log("third here");
-        if ((getPlayerSide(playerIdHit) && !getSideTable(vector)) || (!getPlayerSide(playerIdHit) && getSideTable(vector)))
+        // console.log("third here");
+        if ((getPlayerSide(playerIdHit,world) && !getSideTable(vector)) || (!getPlayerSide(playerIdHit,world) && getSideTable(vector)))
             return 3;
     }
     else if (previousHit === tableId && currentHit > floorId) {//check if correct player here.
-        console.log("fourth here");
+        // console.log("fourth here");
         return 4;
     }
     return 0;
@@ -76,11 +75,11 @@ export function collisionHandler(world: World) {
                 let contactPoint = conctactManifold.getContactPoint(j);
 
                 let tableHitLoc = Vector.moveFromAmmo(contactPoint.getPositionWorldOnA());
-                let ballHit = checkBallCorrectLanding(currentHit, previousHit, playerIdHit, tableHitLoc);
+                let ballHit = checkBallCorrectLanding(currentHit, previousHit, playerIdHit, tableHitLoc,world);
                 if (ballHit > 0) {
                     if (ballHit === 3)
                         playerIdHit = 0;
-                    console.log("ball hit validly");
+                    // console.log("ball hit validly");
                     previousHit = currentHit;
                     previousStep += stepDelta;
                     return;

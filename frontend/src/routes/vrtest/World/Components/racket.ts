@@ -12,10 +12,10 @@ export class Racket extends Entity {
 		mesh.castShadow = true;
 		super(world, mesh, cylinderShape, 0.25, new Vector(0, 1, 0), new Quaternion(0, 0, 0, 1), true);
 		this.physicsObject.setRestitution(0.7);
-		this.physicsObject.setUserIndex(id);
+		this.physicsObject.setUserIndex(id + 42);
 		if (id === undefined)
 			this.physicsObject.setUserIndex(42);
-		console.log("id racket: ", id);
+		console.log("id racket: ", id + 42);
 		this.controller = controller;
 	}
 

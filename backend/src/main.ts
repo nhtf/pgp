@@ -5,7 +5,7 @@ import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { DataSource } from 'typeorm';
-import { User } from './User';
+import { User, FriendRequest } from './UserService';
 import * as session from 'express-session';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import { HOST, FRONTEND_ADDRESS, BACKEND_PORT, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET } from './vars';
@@ -19,9 +19,9 @@ export const data_source = new DataSource({
 	username: DB_USER,
 	password: DB_PASS,
 	database: 'dev',
-	entities: [User],
+	entities: [User, FriendRequest],
 	synchronize: true,
-	logging: true,
+	logging: false,
 });
 
 async function bootstrap() {

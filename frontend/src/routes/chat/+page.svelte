@@ -25,7 +25,7 @@
     function sendMessage() {
         const message = textfield.trim();
         if (!message) {
-            console.log("empyt");
+            console.log("empty");
             return;
         }
         console.log(message);
@@ -33,6 +33,14 @@
         socket.emit("chatevent", message, username); // Send the message
     }
 </script>
+
+<div class="banner" ></div>
+<div class="topnav">
+  <a href="/">Home</a>
+  <a class="active" href="/chat">Chat</a>
+  <a href="/vrtest">VR Testing</a>
+  <a href="http://localhost:3000/oauth/login">Login with Codam</a>
+</div>
 
 <div class="h-screen w-screen bg-zinc-800">
     <div class="h-full w-full max-w-md mx-auto bg-zinc-500 flex flex-col">
@@ -75,24 +83,3 @@
         </form>
     </div>
 </div>
-
-<a href="http://localhost:3000/oauth/login">Login with Codam</a>
-
-<style>
-    a:link,
-    a:visited {
-        background-color: white;
-        color: black;
-        border: 2px solid green;
-        padding: 10px 20px;
-        text-align: center;
-        text-decoration: none;
-        display: inline-block;
-    }
-
-    a:hover,
-    a:active {
-        background-color: green;
-        color: white;
-    }
-</style>

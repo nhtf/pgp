@@ -10,7 +10,6 @@ import { loadModel } from "../Systems/ModelLoader";
 import { Vector, Quaternion } from "../Systems/math";
 import { Table, createTableTop } from "./table";
 import { Socket, io } from "socket.io-client";
-import Ammo from "ammojs-typed";
 
 export class Game extends World {
 	leftController: XRTargetRaySpace | undefined;
@@ -93,8 +92,6 @@ export class Game extends World {
 		this.rightController.name = "rightcontroller";
 		this.cameraGroup.add(this.leftController, this.rightController);
 
-		
-
 		addRoomToWorld(this);
 
 		this.ball = new Ball(this);
@@ -120,6 +117,7 @@ export class Game extends World {
 		const self = this;
 		this.rightController.addEventListener("selectstart", function() {
 			if (self.racket !== undefined) {
+				console.log("creating ball event");
 				self.createEvent({
 					type: "move",
 					target: "BALL",

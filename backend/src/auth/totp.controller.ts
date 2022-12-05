@@ -3,9 +3,9 @@ import { Request } from 'express';
 import { authenticator } from 'otplib';
 import * as session from 'express-session';
 import { SessionUtils, SessionObject } from '../SessionUtils';
-import { UserService } from '../UserService';
-import { AuthLevel } from '../User';
+import { UserService, AuthLevel } from '../UserService';
 import { Length, IsNumberString } from 'class-validator';
+import { AuthGuard } from './auth.guard';
 
 @Injectable()
 class OAuthGuard implements CanActivate {
@@ -38,7 +38,7 @@ export class TotpController {
 		let session = request.session;
 		if (session.secret)
 			throw new HttpException('already requested otp setup', HttpStatus.TOO_MANY_REQUESTS);
-		const user = await this.user_service.get_user(session.user_id);
+		const user = await this.user_service.get_user({ user_id: session.user_id });
 		if (user.auth_req === AuthLevel.TWOFA)
 			throw new HttpException('already setup 2fa', HttpStatus.FORBIDDEN);
 		
@@ -49,6 +49,27 @@ export class TotpController {
 		if (!this.session_utils.save_session(session))
 			throw new HttpException('unable to save session', HttpStatus.SERVICE_UNAVAILABLE);
 		return { secret: secret };
+	}
+
+	@Post('disable')
+	@UseGuards(AuthGuard)
+	async disable(@Req() request: Request) {
+		if (request.session.auth_level != AuthLevel.TWOFA)
+			throw new HttpException('no totp has been set up', HttpStatus.FORBIDDEN);
+
+		const user = await this.user_service.get_user({ user_id: request.session.user_id });
+		user.secret = undefined;
+		user.auth_req = AuthLevel.OAuth;
+
+		const access_token = request.session.access_token;
+		const user_id = request.session.user_id;
+
+		await this.user_service.save([user]);
+		if (!await this.session_utils.regenerate_session(request.session))
+			throw new HttpException('unable to create request.session', HttpStatus.INTERNAL_SERVER_ERROR);
+		request.session.auth_level = AuthLevel.OAuth;
+		request.session.access_token = access_token;
+		request.session.user_id = user_id;
 	}
 
 	async authenticate(otp: string, secret: string, request: Request): Promise<void> {
@@ -78,7 +99,7 @@ export class TotpController {
 
 		await this.authenticate(otp_dto.otp, secret, request);
 
-		let user = await this.user_service.get_user(request.session.user_id);
+		let user = await this.user_service.get_user({ user_id: request.session.user_id });
 		user.auth_req = AuthLevel.TWOFA;
 		user.secret = secret;
 		await this.user_service.save([user]);
@@ -91,7 +112,7 @@ export class TotpController {
 		if (request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
-		const user = await this.user_service.get_user(request.session.user_id);
+		const user = await this.user_service.get_user({ user_id: request.session.user_id });
 		if (user.auth_req !== AuthLevel.TWOFA)
 			throw new HttpException('2fa not setup', HttpStatus.FORBIDDEN);
 		const secret = user.secret;

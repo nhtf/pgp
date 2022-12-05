@@ -5,9 +5,8 @@ import * as session from 'express-session';
 import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
 import isAlphanumeric from 'validator/lib/isAlphanumeric';
-import { User, AuthLevel } from '../User';
 import { SessionUtils, SessionObject } from '../SessionUtils';
-import { UserService } from '../UserService';
+import { User, UserService, AuthLevel } from '../UserService';
 import { AuthGuard } from './auth.guard';
 import { IsAlphanumeric } from 'class-validator';
 import { BACKEND_ADDRESS, FRONTEND_ADDRESS, DEFAULT_AVATAR } from '../vars';
@@ -106,24 +105,24 @@ export class AuthController {
 		if (!await this.session_utils.regenerate_session(request.session))
 			throw new HttpException('failed to create session', HttpStatus.SERVICE_UNAVAILABLE);
 
-		const user_id = await this.get_user_id(access_token);
-		if (user_id == undefined)
+
+		const oauth_id = await this.get_user_id(access_token);
+		if (oauth_id == undefined)
 			throw new HttpException('bad gateway', HttpStatus.BAD_GATEWAY);
 
-		let user = await this.user_service.get_user(user_id);
-		if (user === null) {
-			user = {
-				user_id: user_id,
-				auth_req: AuthLevel.OAuth,
-				secret: undefined,
-				username: undefined,
-				avatar: DEFAULT_AVATAR
-			}
+		let user = await this.user_service.get_user({ oauth_id: oauth_id });
+		if (!user) {
+			user = new User();
+			user.oauth_id = oauth_id;
+			user.auth_req = AuthLevel.OAuth;
+			user.secret = undefined;
+			user.username = undefined;
+			user.has_avatar = false;
 			await this.user_service.save([user]);
 		}
 
 		request.session.access_token = access_token.token.access_token;
-		request.session.user_id = user_id;
+		request.session.user_id = user.user_id;
 		request.session.auth_level = AuthLevel.OAuth;
 
 		this.session_utils.save_session(request.session);

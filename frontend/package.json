@@ -28,7 +28,7 @@
 	"type": "module",
 	"dependencies": {
 		"ammojs": "^0.0.2",
-		"ammojs-typed": "git://github.com/nhtf/ammojs-typed",
+		"ammojs-typed": "github:nhtf/ammojs-typed",
 		"socket.io-client": "^4.5.3",
 		"sweetalert2": "^11.6.13",
 		"three": "^0.146.0"

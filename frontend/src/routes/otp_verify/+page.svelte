@@ -58,6 +58,7 @@
 :global(body) {
   font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica, Arial, sans-serif;
 }
+
 .flex-container {
 	display: flex;
 	align-items: center;

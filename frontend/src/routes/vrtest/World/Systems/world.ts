@@ -2,12 +2,8 @@ import { Ammo } from "./ammo";
 import * as THREE from "three";
 import type { Entity, EntityObject } from "./entity";
 import { Vector, Quaternion } from "./math";
-import type { VectorObject, QuaternionObject } from "./math";
 import { createLights} from "../Components/lights";
 import { collisionHandler } from "./CollisionHandler";
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { GlitchPass } from 'three/examples/jsm/postprocessing/GlitchPass';
 
 export interface WorldObject {
 	entities: EntityObject[];
@@ -40,8 +36,8 @@ export class World {
 	snapshotInterval: number = 15;
 	eventLifetime: number = 300;
 	snapshotLifetime: number = 300;
-	composer: EffectComposer;
 	broadphase: Ammo.btDbvtBroadphase;
+	constrainSolver: Ammo.btSequentialImpulseConstraintSolver;
 
 	constructor(container: Element) {
 		this.scene = new THREE.Scene();
@@ -50,8 +46,8 @@ export class World {
 		const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
 		const collisionDispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
 		this.broadphase = new Ammo.btDbvtBroadphase();
-		const constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
-		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, this.broadphase, constraintSolver, collisionConfiguration);
+		this.constrainSolver = new Ammo.btSequentialImpulseConstraintSolver();
+		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, this.broadphase, this.constrainSolver, collisionConfiguration);
 		this.world.setGravity(new Ammo.btVector3(0, 0, 0));
 	
 		this.renderer = new THREE.WebGLRenderer({ antialias: true });
@@ -60,8 +56,6 @@ export class World {
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		this.renderer.xr.enabled = true;
-		
-		this.composer = new EffectComposer(this.renderer);
 
 		const lights = createLights();
 		this.scene.add(lights.light);
@@ -132,7 +126,9 @@ export class World {
 				this.onSnapshot(snapshot);
 			}
 
-			this.broadphase.resetPool(null);
+			this.broadphase.resetPool(null as unknown as Ammo.btDispatcher);
+			this.constrainSolver.reset();
+			this.constrainSolver.setRandSeed(0);
 			this.world.stepSimulation(1 / this.stepsPerSecond, 1, 1 / this.stepsPerSecond);
 			this.stepCount += 1;
 			collisionHandler(this);
@@ -157,7 +153,6 @@ export class World {
 			}
 
 			this.resize();
-			// this.composer.render();
 			this.renderer.render(this.scene, this.camera);
 		});
 	}
@@ -184,6 +179,11 @@ export class World {
 		}
 
 		const entity = this.getEntity(event.target);
+
+		if (event.target == "BALL") {
+			console.log("BALL event");
+		}
+		// console.log(event.target," Event");
 
 		if (entity === null) {
 			console.error("bad target in playEvent");
