@@ -1,10 +1,10 @@
 import { Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
 	Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query,
-	Req, Res } from '@nestjs/common';
+	Req, Res, Inject } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
-import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
-import { UserService, User, FriendRequest } from './UserService';
+import { Length, IsString, IsOptional, IsNumberString, IsInt } from 'class-validator';
+import { UserService, User, FriendRequest, GameRequest } from './UserService';
 import { SessionObject } from './SessionUtils';
 import { Request, Response, Express } from 'express';
 import * as sharp from 'sharp';
@@ -12,7 +12,8 @@ import { open, rm } from 'node:fs/promises';
 import { finished } from 'node:stream';
 import { join } from 'path';
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from './vars';
-import { data_source } from './main';
+import { Repository } from 'typeorm';
+import { GetUser, GetUserQuery } from './util';
 
 class UsernameDto {
 	@IsString()
@@ -22,7 +23,7 @@ class UsernameDto {
 
 	@IsNumberString()
 	@IsOptional()
-	user_id?: string;
+	user_id?: number;
 }
 
 class SimpleUser {
@@ -55,7 +56,7 @@ export class SetupGuard implements CanActivate {
 @UseGuards(AuthGuard)
 export class AccountController {
 
-	constructor(private readonly user_service: UserService) {}
+	constructor(private readonly user_service: UserService, @Inject('FRIEND_REQ_REPO') private requestRepo: Repository<FriendRequest>) {}
 
 	@Post('setup')
 	@HttpCode(HttpStatus.CREATED)
@@ -68,7 +69,8 @@ export class AccountController {
 		if (other_user)
 			throw new HttpException('username already taken', HttpStatus.BAD_REQUEST);
 		user.username = username_dto.username;
-		user.friends = [];
+		user.friends = Promise.resolve([]);
+		user.online = true;
 		//user.friend_requests = Promise.resolve([]);
 		//user.friend_requests = [];
 		await this.user_service.save([user]);
@@ -99,19 +101,15 @@ export class AccountController {
 
 	@Get('whoami')
 	@UseGuards(SetupGuard)
-	async whoami(@Session() session: SessionObject) {
-		const user = await this.user_service.get_user({ user_id: session.user_id });
+	async whoami(@GetUser() user: User) {
+		console.log(user);
+		if (!user)
+			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		return await this.who(user);
 	}
 
 	@Get('whois')
-	async whois(@Query() dto: UsernameDto) {
-		if (!dto.username && !dto.user_id)
-			throw new HttpException('bad request', HttpStatus.BAD_REQUEST);
-		const user = dto.user_id ? await this.user_service.get_user({ user_id: Number(dto.user_id) })
-								: await this.user_service.get_user({ username: dto.username });
-		if (!user)
-			throw new HttpException('not found', HttpStatus.NOT_FOUND);
+	async whois(@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User) {
 		return await this.who(user);
 	}
 
@@ -125,9 +123,8 @@ export class AccountController {
 
 	@Post('set_image')
 	@UseGuards(SetupGuard)
-	async set_image(@Session() session: SessionObject, @Req() request: Request, @Res() response: Response) {
-		const user = await this.user_service.get_user({ user_id: session.user_id });
-		const avatar_path = join(AVATAR_DIR, this.get_avatar_filename(session.user_id));
+	async set_image(@GetUser() user: User, @Req() request: Request, @Res() response: Response) {
+		const avatar_path = join(AVATAR_DIR, this.get_avatar_filename(user.user_id));
 
 		const transform = sharp().resize(200, 200).jpeg();
 		const file = await open(avatar_path, 'w');
@@ -150,25 +147,103 @@ export class AccountController {
 
 	@Post('befriend')
 	@UseGuards(SetupGuard)
-	async befriend(@Session() session: SessionObject, @Body() dto: UsernameDto) {
+	async befriend(@GetUser() me: User,
+				   @GetUserQuery({ username: 'username', user_id: 'user_id' }) target: User) {
+		if (target.user_id === me.user_id)
+			throw new HttpException('you cannot befriend yourself :/', HttpStatus.BAD_REQUEST);
+
+		const tmp = await this.requestRepo.findOne({
+			where: {
+				from: {
+					user_id: me.user_id
+				},
+				to: {
+					user_id: target.user_id
+				}
+			}
+		});
+		if (tmp)
+			throw new HttpException('already sent a friend request to this user', HttpStatus.TOO_MANY_REQUESTS);
+
+		const incoming_request = await this.requestRepo.findOne({
+			where: {
+				from: {
+					user_id: target.user_id
+				},
+				to: {
+					user_id: me.user_id
+				}
+			}
+		});
+
+		if (incoming_request) {
+			if (!(await me.friends))
+				me.friends = Promise.resolve([]);
+			if (!(await target.friends))
+				target.friends = Promise.resolve([]);
+			(await me.friends).push(target);
+			(await target.friends).push(me);
+			await this.requestRepo.remove(incoming_request);
+			await this.user_service.save([me, target]);
+		} else {
+			const request = new FriendRequest();
+			request.from = Promise.resolve(me);
+			request.to = Promise.resolve(target);
+			request.date = new Date();
+			await this.requestRepo.save(request);
+		}
+	}
+
+	@Post('inviteToGame')
+	@UseGuards(SetupGuard)
+	async inviteToGame(@Session() session: SessionObject, @Body() dto: UsernameDto) {
 		const target: User = await this.get_user(dto);
 		if (!target)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		const me: User = await this.user_service.get_user({user_id: session.user_id});
 		if (target.user_id === me.user_id)
-			throw new HttpException('you cannot befriend yourself :/', HttpStatus.BAD_REQUEST);
+			throw new HttpException('you cannot invite yourself to a game:/', HttpStatus.BAD_REQUEST);
 
-		const request = new FriendRequest();
-		request.from = Promise.resolve(me);
-		request.to = Promise.resolve(target);
-		request.date = new Date();
-		await data_source.getRepository(FriendRequest).save(request);
+		const tmp = await this.requestRepo.findOne({
+			where: {
+				from: {
+					user_id: me.user_id
+				},
+				to: {
+					user_id: target.user_id
+				}
+			}
+		});
+		if (tmp)
+			throw new HttpException('already sent a game invite to this user', HttpStatus.TOO_MANY_REQUESTS);
+
+		const incoming_request = await this.requestRepo.findOne({
+			where: {
+				from: {
+					user_id: target.user_id
+				},
+				to: {
+					user_id: me.user_id
+				}
+			}
+		});
+
+		// if (incoming_request) {
+		// 	me.friends.push(target);
+		// 	target.friends.push(me);
+		// 	await this.requestRepo.remove(incoming_request);
+		// } else {
+		// 	const request = new GameRequest();
+		// 	request.from = Promise.resolve(me);
+		// 	request.to = Promise.resolve(target);
+		// 	await this.requestRepo.save(request);
+		// }
 	}
 
 	@Get('friends')
 	@UseGuards(SetupGuard)
-	async friends(@Session() session: SessionObject) {
-		const me: User = await this.user_service.get_user({ user_id: session.user_id });
+	async friends(@GetUser() me: User) {
+		console.log(await me.sent_friend_requests);
 		return { friends: me.friends };
 	}
 

@@ -15,7 +15,7 @@
 				body: `username=${username}`
 			});
 		if (response.ok) {
-			window.location.href = 'http://localhost:5173/profile';
+			window.location.href = 'http://localhost:5173/profile/' + username;
 		} else {
 			const info = await response.json();
 			const Toast = Swal.mixin({

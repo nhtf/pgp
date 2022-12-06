@@ -11,6 +11,7 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { HOST, FRONTEND_ADDRESS, BACKEND_PORT, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET } from './vars';
 import { join } from 'path';
 
+/*
 export const data_source = new DataSource({
 	type: 'postgres',
 	host: HOST,
@@ -23,6 +24,7 @@ export const data_source = new DataSource({
 	synchronize: true,
 	logging: false,
 });
+*/
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -55,8 +57,11 @@ async function bootstrap() {
 	app.useStaticAssets(join(__dirname, '..', 'avatar'), { prefix: '/avatar/' });
 	//app.useStaticAssets(join(__dirname, '..', '..', 'avatar'));
 	//TODO use nestjs way of setting up the data sourcd
+	app.listen(BACKEND_PORT);
+	/*
 	await data_source.initialize().then(() => {
 		app.listen(BACKEND_PORT);
 	}).catch((error) => console.error(error));
+   */
 }
 bootstrap();

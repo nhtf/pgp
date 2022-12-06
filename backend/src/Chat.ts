@@ -1,28 +1,36 @@
-import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
+import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, Repository } from 'typeorm';
 import { User } from './UserService';
 
-class Message {
-	user: User;
+@Entity()
+export class Message {
+
+	@PrimaryGeneratedColumn()
+	id: number;
+
+	@CreateDateColumn()
 	time: Date;
+
+	@ManyToOne(() => User)
+	user: Promise<User>;
+
+	@ManyToOne(() => ChatRoom)
+	room: Promise<ChatRoom>;
+
+	@Column()
 	content: string;
 }
 
 @Entity()
-export class Chat {
+export class ChatRoom {
 	@PrimaryGeneratedColumn()
-	owner: User;
+	id: number;
 
-	@Column()
-	participants: User[];
+	@ManyToOne(() => User)
+	owner: Promise<User>;
 
-	@Column()
-	messages: Message[];  
-}
+	@ManyToMany(() => User)
+	members:  Promise<User[]>;
 
-function sendChat(user: User, content: string) {
-	const msg = new Message;
-
-	msg.content = content;
-	msg.time = new Date();
-	msg.user = user;
+	@OneToMany(() => Message, (message) => message.room)
+	messages: Promise<Message[]>;  
 }
