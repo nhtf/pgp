@@ -105,6 +105,13 @@ export class World {
 
 	step(stepTarget: number, fast: boolean = true) {
 		while (this.stepCount < stepTarget) {
+			if (this.stepCount % this.snapshotInterval == 0 && !fast) {
+				const snapshot = this.createSnapshot();
+				this.snapshots.push(snapshot);
+				this.snapshots = this.snapshots.filter(snapshot => snapshot.stepCount > this.stepCount - this.snapshotLifetime);
+				this.onSnapshot(snapshot);
+			}
+
 			if (this.stepCount % this.tickInterval == 0 && !fast) {
 				for (let entity of this.entities) {
 					entity.tick(this.tickInterval / this.stepsPerSecond);
@@ -117,13 +124,6 @@ export class World {
 				for (let entity of this.entities) {
 					entity.postTick(this.tickInterval / this.stepsPerSecond);
 				}
-			}
-
-			if (this.stepCount % this.snapshotInterval == 0 && !fast) {
-				const snapshot = this.createSnapshot();
-				this.snapshots.push(snapshot);
-				this.snapshots = this.snapshots.filter(snapshot => snapshot.stepCount > this.stepCount - this.snapshotLifetime);
-				this.onSnapshot(snapshot);
 			}
 
 			this.broadphase.resetPool(null as unknown as Ammo.btDispatcher);

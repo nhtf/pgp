@@ -1,5 +1,5 @@
 import { AppController } from './app.controller';
-import { Module } from '@nestjs/common';
+import { Module, Inject, Injectable } from '@nestjs/common';
 import { WSConnection } from './wsconnection';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth/auth.controller';
@@ -7,13 +7,22 @@ import { TotpController } from './auth/totp.controller';
 import { DebugController } from './debug.controller';
 import { ChatRoomController } from './chat.controller';
 import { SessionUtils } from './SessionUtils';
-import { User, FriendRequest, GameRequest, UserService } from './UserService';
-import { AccountController } from './account.controler';
-import { DataSource } from 'typeorm';
+import { AccountController } from './account.controller';
+import { DataSource, Repository } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
 import { GameController } from './game.controller';
 import { ChatRoom, Message } from './Chat';
 import { AuthGuard } from './auth/auth.guard';
+import { UserService } from './UserService';
+import { User } from './entities/User';
+
+const entityFiles = [
+	'./entities/User',
+	'./entities/FriendRequest',
+	'./entities/ChatRoom',
+	'./entities/Message',
+	'./entities/GameRequest'
+];
 
 // TODO: move all entities to directory
 export const dataSource = new DataSource({
@@ -24,7 +33,11 @@ export const dataSource = new DataSource({
 	username: DB_USER,
 	password: DB_PASS,
 	database: 'dev',
-	entities: [User, FriendRequest, GameRequest, ChatRoom, Message],
+	entities: entityFiles.map<Function>((value: string, index: number, array: string[]) => {
+		const entity = require(value);
+		const clazz = Object.values(entity)[0] as Function;
+		return clazz;
+	}),
 	synchronize: true,
 	logging: false,
 });
@@ -38,23 +51,17 @@ const databaseProviders = [
 	}
 ];
 
-const entityProviders = [
-	{
-		provide: 'USER_REPO',
-		useFactory: (dataSource: DataSource) => dataSource.getRepository(User), 
+const entityProviders = entityFiles.map<{ provide: any, useFactory: any, inject: any }>((value: string, index: number, array: string[]) => {
+	const entity = require(value);
+	const clazz = Object.values(entity)[0] as Function;
+	const name = Object.keys(entity)[0].toUpperCase() + '_REPO';
+	const repo = dataSource.getRepository(clazz);
+	return {
+		provide: name,
+		useFactory: (dataSource: DataSource) => dataSource.getRepository(clazz),
 		inject: ['DATA_SOURCE'],
-	},
-	{
-		provide: 'FRIEND_REQ_REPO',
-		useFactory: (dataSource: DataSource) => dataSource.getRepository(FriendRequest),
-		inject: ['DATA_SOURCE'],
-	},
-	{
-		provide: 'CHAT_ROOM_REPO',
-		useFactory: (dataSource: DataSource) => dataSource.getRepository(ChatRoom),
-		inject: ['DATA_SOURCE'],
-	}
-];
+	};
+});
 
 @Module({
 	imports: [

@@ -1,12 +1,11 @@
 import { createParamDecorator, ExecutionContext, HttpException, HttpStatus,
 	applyDecorators, UseGuards } from '@nestjs/common';
-import { User } from './UserService';
+import { User } from './entities/User';
 import { dataSource } from './app.module';
-import { FindOptionsWhere } from 'typeorm';
+import { FindOptionsWhere, EntityTarget, ObjectLiteral } from 'typeorm';
 import { validate } from 'class-validator';
 import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth/auth.guard';
-import { SetupGuard } from './account.controler';
 
 class UserDTO {
 	@IsString()
@@ -17,12 +16,6 @@ class UserDTO {
 	@IsNumberString()
 	@IsOptional()
 	user_id?: number;
-}
-
-export function AppGuard() {
-	return applyDecorators(
-		UseGuards(AuthGuard, SetupGuard)
-	);
 }
 
 async function GetUserByDTO(dto: UserDTO) {
@@ -37,6 +30,12 @@ async function GetUserByDTO(dto: UserDTO) {
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 		return user;
 }
+
+export const Repo = createParamDecorator(
+	async (where: EntityTarget<ObjectLiteral>, ctx: ExecutionContext) => {
+		return dataSource.getRepository(where);
+	}
+);
 
 export const GetUserQuery = createParamDecorator(
 	async (where: { username?: string, user_id?: string }, ctx: ExecutionContext) => {

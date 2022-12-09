@@ -25,9 +25,20 @@
 <svelte:window />
 
 <style>
+	.page {
+
+	}
 	#sceeee {
+		display: flex;
+		height: 100vh;
+		/* width: 100%; */
+		/* position: relative; */
+		z-index: 0;
+	}
+	/* #lol {
+		display: inline-block;
+		flex-wrap: wrap;
 		width: 100%;
 		height: 100%;
-		position: absolute;
-	}
+	} */
 </style>

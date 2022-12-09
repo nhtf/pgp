@@ -4,7 +4,7 @@ import { Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
 import { Length, IsString, IsOptional, IsNumberString, IsInt } from 'class-validator';
-import { UserService, User, FriendRequest, GameRequest } from './UserService';
+import { UserService } from './UserService';
 import { SessionObject } from './SessionUtils';
 import { Request, Response, Express } from 'express';
 import * as sharp from 'sharp';
@@ -14,6 +14,8 @@ import { join } from 'path';
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from './vars';
 import { Repository } from 'typeorm';
 import { GetUser, GetUserQuery } from './util';
+import { User } from './entities/User';
+import { FriendRequest } from './entities/FriendRequest';
 
 class UsernameDto {
 	@IsString()
@@ -56,7 +58,7 @@ export class SetupGuard implements CanActivate {
 @UseGuards(AuthGuard)
 export class AccountController {
 
-	constructor(private readonly user_service: UserService, @Inject('FRIEND_REQ_REPO') private requestRepo: Repository<FriendRequest>) {}
+	constructor(private readonly user_service: UserService, @Inject('FRIENDREQUEST_REPO') private requestRepo: Repository<FriendRequest>) {}
 
 	@Post('setup')
 	@HttpCode(HttpStatus.CREATED)

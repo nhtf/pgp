@@ -42,7 +42,7 @@ export class Game extends World {
 
 	onBroadcast(message: any) {
 		if (message.type === "snapshot") {
-			const snapshot = message.snapshot as WorldObject;
+			const remoteSnapshot = message.snapshot as WorldObject;
 			const events = message.events as WorldEvent[];
 			const rackets = message.rackets as number[];
 			const stepTarget = this.stepCount;
@@ -59,8 +59,8 @@ export class Game extends World {
 			}
 
 			for (let event of events) {
+				this.allEvents.push(event);
 				if (event.stepCount < firstEvent) {
-					this.allEvents.push(event);
 					firstEvent = event.stepCount;
 				}
 			}
@@ -73,11 +73,46 @@ export class Game extends World {
 				}
 			}
 
-			if (snapshot.stepCount >= stepTarget) {
-				this.loadSnapshot(snapshot);
-			} else if (oldSnapshot !== null) {
-				this.loadSnapshot(oldSnapshot);
-				this.step(stepTarget);
+			if (remoteSnapshot.stepCount >= stepTarget) {
+				if (remoteSnapshot.stepCount >= stepTarget + this.snapshotLifetime / 2) {
+					this.loadSnapshot(remoteSnapshot);
+				} else if (oldSnapshot !== null) {
+					this.loadSnapshot(oldSnapshot);
+					this.step(remoteSnapshot.stepCount);
+				} else {
+					this.step(remoteSnapshot.stepCount);
+				}
+			} else {
+				if (false) {
+					let olderSnapshot = null;
+					firstEvent = Infinity;
+
+					for (let snapshot of this.snapshots) {
+						if (snapshot.stepCount < firstEvent) {
+							if (olderSnapshot === null || remoteSnapshot.stepCount > olderSnapshot.stepCount) {
+								olderSnapshot = snapshot;
+							}
+						}
+					}
+
+					if (olderSnapshot !== null) {
+						let currentSnapshot = this.createSnapshot();
+						this.loadSnapshot(olderSnapshot);
+						this.step(remoteSnapshot.stepCount);
+						let afterSnapshot = this.createSnapshot();
+
+						if (JSON.stringify(afterSnapshot) != JSON.stringify(remoteSnapshot)) {
+							console.log("sanity check failed", afterSnapshot, remoteSnapshot);
+						}
+
+						this.loadSnapshot(currentSnapshot);
+					}
+				}
+
+				if (oldSnapshot !== null) {
+					this.loadSnapshot(oldSnapshot);
+					this.step(stepTarget);
+				}
 			}
 
 			this.snapshots = this.snapshots.filter(snapshot => snapshot.stepCount > this.stepCount - this.snapshotLifetime);

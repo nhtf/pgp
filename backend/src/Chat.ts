@@ -1,5 +1,5 @@
 import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, Repository } from 'typeorm';
-import { User } from './UserService';
+import { User } from './entities/User';
 
 @Entity()
 export class Message {

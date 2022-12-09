@@ -1,3 +1,4 @@
+//TODO this needs to be a +page.server.ts file!!!
 import { error } from '@sveltejs/kit';
 
 export const ssr = false;

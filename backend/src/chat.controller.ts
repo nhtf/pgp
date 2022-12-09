@@ -1,10 +1,10 @@
 import { Controller, UseGuards, Get, Inject, Session, Post, Delete, Query, HttpException, HttpStatus, HttpCode } from '@nestjs/common';
 import { Repository } from 'typeorm';
 import { AuthGuard } from './auth/auth.guard';
-import { User } from './UserService';
+import { User } from './entities/User';
 import { ChatRoom } from './Chat';
 import { SessionObject } from './SessionUtils';
-import { SetupGuard } from './account.controler';
+import { SetupGuard } from './account.controller';
 import { GetUser } from './util';
 import { IsNumber, isNumberString } from 'class-validator';
 import { query } from 'express';
@@ -19,7 +19,7 @@ class RoomDto {
 @UseGuards(AuthGuard, SetupGuard)
 export class ChatRoomController {
 	constructor(
-		@Inject('CHAT_ROOM_REPO') private readonly chatRepo: Repository<ChatRoom>,
+		@Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>,
 		@Inject('USER_REPO') private readonly userRepo: Repository<User>) {}
 
 	@Get()

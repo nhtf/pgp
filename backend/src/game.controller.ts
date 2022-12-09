@@ -1,8 +1,8 @@
-import { Controller, UseGuards, Inject, Get, HttpCode, HttpStatus } from "@nestjs/common";
+import { Controller, UseGuards, Inject, Get, HttpCode, HttpStatus, Post, Query } from "@nestjs/common";
 import { FindManyOptions, Repository } from "typeorm";
 import { AuthGuard } from './auth/auth.guard';
-import { SetupGuard } from "./account.controler";
-import { User } from "./UserService";
+import { SetupGuard } from "./account.controller";
+import { User } from './entities/User';
 import { GetUser } from "./util";
 import { DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_DIR } from "./vars";
 
@@ -51,4 +51,33 @@ export class GameController {
         });
 		return simpleUser;
 	}
+
+    @Post('inviteUser')
+    @UseGuards(SetupGuard)
+    @HttpCode(HttpStatus.OK)
+    async inviteUser(@GetUser() user: User, @Query() username: string): Promise<boolean> {
+        console.log("in inviteUser, ", user, " is trying to invite: ", username);
+        const result = await this.repo.findOne({
+            where: {
+                username: username,
+            }
+		});
+        let acceptInvite = Promise.resolve(this.acceptInvite());
+
+        return acceptInvite;
+    }
+
+    // @Get('inviteUser')
+    // @UseGuards(SetupGuard)
+    // @HttpCode(HttpStatus.OK)
+    async acceptInvite(): Promise<boolean> {
+        // const result = await this.repo.findOne({
+        //     where: {
+        //         username: username,
+        //     }
+		// });
+        // let acceptInvite:boolean = Promise.resolve();
+
+        return true;
+    }
 }

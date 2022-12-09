@@ -102,6 +102,7 @@ class Floor extends Entity {
 
         super(world, ground_mesh, floorShape, 0, new Vector(0, 0, 0), new Quaternion(0, 0, 0, 1), false); //floor
         this.physicsObject.setUserIndex(floorId);
+        this.physicsObject.setRestitution(0.7);
     }
 }
 

@@ -1,7 +1,8 @@
 import { Controller, Post, Inject, HttpException, HttpStatus, Req, HttpCode,
 	Delete, Get, Query } from '@nestjs/common';
 import { Length, IsString, IsBoolean, IsOptional, IsInt, IsEnum } from 'class-validator';
-import { User, AuthLevel } from './UserService';
+import { User } from './entities/User';
+import { AuthLevel } from './auth/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { SessionUtils } from './SessionUtils';
@@ -75,8 +76,6 @@ export class DebugController {
 		return "deleted user";
 	}
 
-	/*
-	 * TODO make nestjs accept this totally normal function.....
 	@Get('su')
 	async su(@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User, @Req() request: Request) {
 		this.sessionUtils.regenerate_session(request.session);
@@ -84,7 +83,6 @@ export class DebugController {
 		request.session.auth_level = user.auth_req;
 		return user;
 	}
-   */
 
 	@Get('id')
 	async id(@Query() dto: UserDto) {

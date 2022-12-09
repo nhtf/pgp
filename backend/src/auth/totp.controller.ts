@@ -3,7 +3,8 @@ import { Request } from 'express';
 import { authenticator } from 'otplib';
 import * as session from 'express-session';
 import { SessionUtils, SessionObject } from '../SessionUtils';
-import { UserService, AuthLevel } from '../UserService';
+import { UserService } from '../UserService';
+import { AuthLevel } from './AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
 
