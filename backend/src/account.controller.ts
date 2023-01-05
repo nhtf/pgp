@@ -154,6 +154,11 @@ export class AccountController {
 		if (target.user_id === me.user_id)
 			throw new HttpException('you cannot befriend yourself :/', HttpStatus.BAD_REQUEST);
 
+		const friends = await me.friends;
+
+		if (friends.find(user => user.user_id == target.user_id))
+			throw new HttpException('already friends with this user', HttpStatus.TOO_MANY_REQUESTS);
+
 		const tmp = await this.requestRepo.findOne({
 			where: {
 				from: {
@@ -195,6 +200,13 @@ export class AccountController {
 			await this.requestRepo.save(request);
 		}
 	}
+
+	@Get('friend_list')
+	@UseGuards(SetupGuard)
+	async friend_list(@GetUser() me: User) {
+		return await me.friends;
+	}
+
 
 	@Post('inviteToGame')
 	@UseGuards(SetupGuard)
