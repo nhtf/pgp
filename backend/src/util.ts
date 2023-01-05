@@ -55,7 +55,6 @@ export const GetUserQuery = createParamDecorator(
 export const GetUser = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
 		const request = ctx.switchToHttp().getRequest();
-		console.log(request.session.user_id);
 		const user = await dataSource.getRepository(User).findOneBy({ user_id: request.session.user_id });
 		if (!user)
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
