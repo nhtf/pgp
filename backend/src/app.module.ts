@@ -11,7 +11,6 @@ import { AccountController } from './account.controller';
 import { DataSource, Repository } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
 import { GameController } from './game.controller';
-import { ChatRoom, Message } from './Chat';
 import { AuthGuard } from './auth/auth.guard';
 import { UserService } from './UserService';
 import { User } from './entities/User';
@@ -54,10 +53,8 @@ const databaseProviders = [
 const entityProviders = entityFiles.map<{ provide: any, useFactory: any, inject: any }>((value: string, index: number, array: string[]) => {
 	const entity = require(value);
 	const clazz = Object.values(entity)[0] as Function;
-	console.log(typeof clazz);
 	const name = Object.keys(entity)[0].toUpperCase() + '_REPO';
 	const repo = dataSource.getRepository(clazz);
-	console.log(clazz);
 	return {
 		//provide: Repository<clazz.type>,
 		provide: name,

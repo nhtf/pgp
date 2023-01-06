@@ -38,12 +38,12 @@ export class AuthController {
 	});
 
 	constructor(private readonly session_utils: SessionUtils,
-			   private readonly user_service: UserService) {}
+		private readonly user_service: UserService) { }
 
 	@Get('prot')
 	@UseGuards(AuthGuard)
 	async prot() {
-	   return "hello there";
+		return "hello there";
 	}
 
 	@Get('whoami')
@@ -83,30 +83,28 @@ export class AuthController {
 	}
 
 	async get_user_id(access_token: AccessToken): Promise<number | undefined> {
-			let rest_client = new rm.RestClient('pgp', 'https://api.intra.42.fr',
-												[new BearerCredentialHandler(access_token.token.access_token, false)]);
-			const res = await rest_client.get<result_dto>('/v2/me');
-			if (res.statusCode != 200) {
-				console.error('received ' + res.statusCode + ' from intra when retrieving user id');
-				return undefined;
-			}
+		let rest_client = new rm.RestClient('pgp', 'https://api.intra.42.fr',
+			[new BearerCredentialHandler(access_token.token.access_token, false)]);
+		const res = await rest_client.get<result_dto>('/v2/me');
+		if (res.statusCode != 200) {
+			console.error('received ' + res.statusCode + ' from intra when retrieving user id');
+			return undefined;
+		}
 
-			const result = res.result;
-			if (!result.id || !result.login) {
-				console.error('did not properly receive user_id and/or login from intra');
-				return undefined;
-			}
-			return result.id;
+		const result = res.result;
+		if (!result.id || !result.login) {
+			console.error('did not properly receive user_id and/or login from intra');
+			return undefined;
+		}
+		return result.id;
 	}
 
 	@Get('callback')
 	async get_token(@Query() token: token_dto, @Req() request: Request, @Res() response: Response) {
 		const access_token = await this.get_access_token(token.code);
 
-		request.session.auth_level = AuthLevel.TWOFA;
 		if (!await this.session_utils.regenerate_session(request.session))
 			throw new HttpException('failed to create session', HttpStatus.SERVICE_UNAVAILABLE);
-
 
 		const oauth_id = await this.get_user_id(access_token);
 		if (oauth_id == undefined)

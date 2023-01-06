@@ -65,4 +65,12 @@ export class User {
 			this.user_id.toString() : DEFAULT_AVATAR;
 		return BACKEND_ADDRESS + '/' + AVATAR_DIR + '/' + avatar + '.jpg';
 	}
+
+	async add_friend(target: User) {
+		const user_friends = await this.friends;
+		if (user_friends)
+			user_friends.push(target);
+		else
+			this.friends = Promise.resolve([target]);
+	}
 }

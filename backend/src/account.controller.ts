@@ -1,6 +1,8 @@
-import { Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
+import {
+	Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
 	Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query,
-	Req, Res, Inject, UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
+	Req, Res, Inject, UseInterceptors, ClassSerializerInterceptor
+} from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
 import { Length, IsString, IsOptional, IsNumberString, IsInt } from 'class-validator';
@@ -59,7 +61,7 @@ export class SetupGuard implements CanActivate {
 @UseInterceptors(ClassSerializerInterceptor)
 export class AccountController {
 
-	constructor(private readonly user_service: UserService, @Inject('FRIENDREQUEST_REPO') private requestRepo: Repository<FriendRequest>) {}
+	constructor(private readonly user_service: UserService, @Inject('FRIENDREQUEST_REPO') private requestRepo: Repository<FriendRequest>) { }
 
 	@Post('setup')
 	@HttpCode(HttpStatus.CREATED)
@@ -79,14 +81,25 @@ export class AccountController {
 		await this.user_service.save([user]);
 	}
 
+	@Post('rename')
+	@HttpCode(HttpStatus.CREATED)
+	async rename(@GetUser() user: User, @Body() dto: UsernameDto) {
+		if (await this.user_service.get_user_by_name(dto.username))
+			throw new HttpException('username already taken', HttpStatus.BAD_REQUEST);
+		user.username = dto.username;
+		await this.user_service.save([user]);
+	}
+
 	@Post('reset')
 	@UseGuards(SetupGuard)
-	@HttpCode(HttpStatus.NO_CONTENT)
-	async reset(@Session() session: SessionObject) {
+	@HttpCode(HttpStatus.GONE)
+	async reset() {
+		/*
 		const user = await this.user_service.get_user({ user_id: session.user_id });
 		user.username = null;
 		user.has_avatar = false;
 		await this.user_service.save([user]);
+		*/
 	}
 
 	get_avatar_filename(user_id: number) {
@@ -105,9 +118,6 @@ export class AccountController {
 	@Get('whoami')
 	@UseGuards(SetupGuard)
 	async whoami(@GetUser() user: User) {
-		console.log(user);
-		if (!user)
-			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		return user;
 	}
 
@@ -116,11 +126,13 @@ export class AccountController {
 		return user;
 	}
 
+	//@deprecated use @GetUser and @GetUserQuery instead
 	async get_user(dto: UsernameDto): Promise<User> {
+		throw new HttpException('use of obsolete method', HttpStatus.GONE);
 		if (!dto.username && !dto.user_id)
 			throw new HttpException('bad request', HttpStatus.BAD_REQUEST);
 		const user = dto.user_id ? await this.user_service.get_user({ user_id: Number(dto.user_id) })
-								: await this.user_service.get_user({ username: dto.username });
+			: await this.user_service.get_user({ username: dto.username });
 		return user;
 	}
 
@@ -151,16 +163,16 @@ export class AccountController {
 	@Post('befriend')
 	@UseGuards(SetupGuard)
 	async befriend(@GetUser() me: User,
-				   @GetUserQuery({ username: 'username', user_id: 'user_id' }) target: User) {
+		@GetUserQuery({ username: 'username', user_id: 'user_id' }) target: User) {
 		if (target.user_id === me.user_id)
 			throw new HttpException('you cannot befriend yourself :/', HttpStatus.BAD_REQUEST);
 
-		const friends = await me.friends;
+		const my_friends = await me.friends;
 
-		if (friends.find(user => user.user_id == target.user_id))
+		if (my_friends.find(user => user.user_id == target.user_id))
 			throw new HttpException('already friends with this user', HttpStatus.TOO_MANY_REQUESTS);
 
-		const tmp = await this.requestRepo.findOne({
+		const outstanding_request = await this.requestRepo.findOne({
 			where: {
 				from: {
 					user_id: me.user_id
@@ -170,7 +182,7 @@ export class AccountController {
 				}
 			}
 		});
-		if (tmp)
+		if (outstanding_request)
 			throw new HttpException('already sent a friend request to this user', HttpStatus.TOO_MANY_REQUESTS);
 
 		const incoming_request = await this.requestRepo.findOne({
@@ -185,12 +197,9 @@ export class AccountController {
 		});
 
 		if (incoming_request) {
-			if (!(await me.friends))
-				me.friends = Promise.resolve([]);
-			if (!(await target.friends))
-				target.friends = Promise.resolve([]);
-			(await me.friends).push(target);
-			(await target.friends).push(me);
+			me.add_friend(target);
+			target.add_friend(me);
+
 			await this.requestRepo.remove(incoming_request);
 			await this.user_service.save([me, target]);
 		} else {
@@ -202,12 +211,33 @@ export class AccountController {
 		}
 	}
 
-	@Get('friend_list')
+	@Get('friends')
 	@UseGuards(SetupGuard)
 	async friend_list(@GetUser() me: User) {
 		return await me.friends;
 	}
 
+	@Post('unfriend')
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@UseGuards(SetupGuard)
+	async unfriend(@GetUser() me: User,
+		@GetUserQuery({ username: 'username', user_id: 'user_id' }) target: User) {
+		if (target.user_id === me.user_id)
+			throw new HttpException('you cannot unfriend yourself :/', HttpStatus.BAD_REQUEST);
+
+		const my_friends = await me.friends;
+		const target_idx = my_friends ? my_friends.findIndex((user: User) => user.user_id == target.user_id) : -1;
+
+		if (target_idx < 0)
+			throw new HttpException('you are already not friends with this user', HttpStatus.BAD_REQUEST);
+
+		const target_friends = await target.friends;
+		const me_idx = target_friends.indexOf(me);
+
+		my_friends.splice(target_idx, 1);
+		target_friends.splice(me_idx, 1);
+		this.user_service.save([me, target]);
+	}
 
 	@Post('inviteToGame')
 	@UseGuards(SetupGuard)
@@ -215,7 +245,7 @@ export class AccountController {
 		const target: User = await this.get_user(dto);
 		if (!target)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
-		const me: User = await this.user_service.get_user({user_id: session.user_id});
+		const me: User = await this.user_service.get_user({ user_id: session.user_id });
 		if (target.user_id === me.user_id)
 			throw new HttpException('you cannot invite yourself to a game:/', HttpStatus.BAD_REQUEST);
 

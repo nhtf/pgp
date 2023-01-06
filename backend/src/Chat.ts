@@ -1,4 +1,5 @@
-import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn, Repository } from 'typeorm';
+/*
+import { Column, CreateDateColumn, Entity, ManyToMany, ManyToOne, OneToMany, PrimaryGeneratedColumn } from 'typeorm';
 import { User } from './entities/User';
 
 @Entity()
@@ -34,3 +35,4 @@ export class ChatRoom {
 	@OneToMany(() => Message, (message) => message.room)
 	messages: Promise<Message[]>;  
 }
+*/

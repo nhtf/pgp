@@ -1,7 +1,6 @@
 import { Injectable, Inject } from '@nestjs/common';
 import { Repository, FindOptionsWhere } from 'typeorm';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, ManyToOne, OneToMany} from 'typeorm';
-import { ChatRoom } from './Chat';
 import { DEFAULT_AVATAR } from './vars';
 import { User } from './entities/User';
 

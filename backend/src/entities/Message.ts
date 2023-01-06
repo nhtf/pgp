@@ -14,7 +14,7 @@ export class Message {
 	@ManyToOne(() => User)
 	user: Promise<User>;
 
-	@ManyToOne(() => ChatRoom)
+	@ManyToOne(() => ChatRoom, (room) => room.messages)
 	room: Promise<ChatRoom>;
 
 	@Column()

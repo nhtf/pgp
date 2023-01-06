@@ -21,7 +21,7 @@ class OAuthGuard implements CanActivate {
 	}
 }
 
-class OtpDto { 
+class OtpDto {
 	@Length(6, 6)
 	@IsNumberString()
 	otp: string
@@ -30,7 +30,7 @@ class OtpDto {
 @Controller('otp')
 export class TotpController {
 	constructor(private readonly session_utils: SessionUtils,
-			   private readonly user_service: UserService) { }
+		private readonly user_service: UserService) { }
 
 	@Post('setup')
 	@HttpCode(HttpStatus.ACCEPTED)
@@ -42,7 +42,7 @@ export class TotpController {
 		const user = await this.user_service.get_user({ user_id: session.user_id });
 		if (user.auth_req === AuthLevel.TWOFA)
 			throw new HttpException('already setup 2fa', HttpStatus.FORBIDDEN);
-		
+
 		//https://www.rfc-editor.org/rfc/rfc4226 section 4
 		const secret = authenticator.generateSecret(20);
 
