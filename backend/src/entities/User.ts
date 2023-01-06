@@ -3,6 +3,8 @@ import { ChatRoom } from './ChatRoom';
 import { GameRequest } from './GameRequest';
 import { AuthLevel } from '../auth/AuthLevel';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, ManyToOne, OneToMany} from 'typeorm';
+import { Exclude, Expose } from 'class-transformer';
+import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from '../vars';
 
 @Entity()
 export class User {
@@ -12,9 +14,11 @@ export class User {
 	@Column()
 	oauth_id: number;
 
+	@Exclude()
 	@Column()
 	auth_req: AuthLevel;
 
+	@Exclude()
 	@Column({
 		nullable: true
 	})
@@ -54,4 +58,11 @@ export class User {
 
 	@OneToMany(() => ChatRoom, (chatroom) => chatroom.members)
 	all_chat_rooms: Promise<ChatRoom[]>;
+
+	@Expose()
+	get avatar(): string {
+		const avatar = this.has_avatar ?
+			this.user_id.toString() : DEFAULT_AVATAR;
+		return BACKEND_ADDRESS + '/' + AVATAR_DIR + '/' + avatar + '.jpg';
+	}
 }

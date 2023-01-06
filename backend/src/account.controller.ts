@@ -1,6 +1,6 @@
 import { Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
 	Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query,
-	Req, Res, Inject } from '@nestjs/common';
+	Req, Res, Inject, UseInterceptors, ClassSerializerInterceptor } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
 import { Length, IsString, IsOptional, IsNumberString, IsInt } from 'class-validator';
@@ -56,6 +56,7 @@ export class SetupGuard implements CanActivate {
 
 @Controller('account')
 @UseGuards(AuthGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class AccountController {
 
 	constructor(private readonly user_service: UserService, @Inject('FRIENDREQUEST_REPO') private requestRepo: Repository<FriendRequest>) {}
@@ -107,12 +108,12 @@ export class AccountController {
 		console.log(user);
 		if (!user)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
-		return await this.who(user);
+		return user;
 	}
 
 	@Get('whois')
 	async whois(@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User) {
-		return await this.who(user);
+		return user;
 	}
 
 	async get_user(dto: UsernameDto): Promise<User> {
