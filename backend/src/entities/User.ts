@@ -22,12 +22,12 @@ export class User {
 	@Column({
 		nullable: true
 	})
-	secret: string | undefined;
+	secret: string | null;
 
 	@Column({
 		nullable: true
 	})
-	username: string | undefined;
+	username: string | null;
 
 	@Column()
 	has_avatar: boolean;
