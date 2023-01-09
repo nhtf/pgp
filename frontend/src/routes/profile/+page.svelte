@@ -1,15 +1,8 @@
 <script lang="ts">
-    import { onMount } from "svelte";
-
 	/** @type {import('./$types').PageLoad} */
-
-	interface ResultDTO {
-	id: number;
-	username: string;
-	}
-	export let data:ResultDTO;
-
-	onMount(async () => {
-		window.location.href = '/profile/' + data.username;
-	});
+	export let data: {userlog: string};
+	if (data.userlog)
+		window.location.href = '/profile/' + data.userlog;
+	else
+		window.location.href = '/account_setup/';
 </script>

@@ -1,7 +1,7 @@
-<script src="sweetalert2.min.js">
+<script lang="ts" src="sweetalert2.min.js">
 	import { onMount } from 'svelte';
 	import Swal from 'sweetalert2';
-	let code;
+	let code: string = "";
 
 	async function verify_code() {
 		const response = await fetch('http://localhost:3000/otp/verify',
@@ -15,7 +15,7 @@
 				body: `otp=${code}`
 			});
 		if (response.ok) {
-			window.location = 'http://localhost:5173/profile';
+			window.location.href = 'http://localhost:5173/profile';
 		} else {
 			const Toast = Swal.mixin({
 				toast: true,
@@ -33,7 +33,7 @@
 	}
 
 	onMount(async() => {
-		const response = await fetch('http://localhost:3000/whoami',
+		const response = await fetch('http://localhost:3000/account/whoami',
 			{
 				method: 'GET',
 				credentials: 'include',
@@ -43,7 +43,7 @@
 				},
 			});
 		if (response.ok) {
-			window.location = 'http://localhost:5173/profile';
+			window.location.href = 'http://localhost:5173/profile';
 		}
 	});
 </script>

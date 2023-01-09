@@ -19,7 +19,7 @@ async function request(fetch_proc, path: string, method: string, body?: string):
 		});
 }
 
-export async function load({ fetch, params }) {
+export async function load({ fetch }) {
 	const response = await request(fetch, `/account/whoami`, 'GET');
 	if (!response.ok)
 		throw error(response.status, (await response.json()).message);

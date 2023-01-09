@@ -1,18 +1,20 @@
-/** @type {import('./$types').LayoutLoad} */
+import type { LayoutLoad } from "./$types";
 
-export const default_profile_image = "https://www.w3schools.com/howto/img_avatar.png";
+export const _default_profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
-let userlog: string;
-// export async function load(): Promise<string> {
-//     const who = await fetch("http://localhost:3000/whoami", {
-// 			method: "GET",
-// 			credentials: "include",
-// 			mode: "cors",
-// 			headers: {
-// 				"Content-Type": "application/x-www-form-urlencoded",
-// 			},
-// 		});
-// 		const whoj = await who.json();
-//         userlog = whoj.username;
-//     return userlog;
-//   }
+export const load = (async ({ fetch }: any) => {
+    const res = await fetch("http://localhost:3000/account/whoami", {
+			method: "GET",
+			credentials: "include",
+			mode: "cors",
+			headers: {
+				"Content-Type": "application/x-www-form-urlencoded",
+			},
+		});
+	const item = await res.json();
+
+    return {
+		username: item.username,
+		avatar: item.avatar 
+	};
+}) satisfies LayoutLoad;

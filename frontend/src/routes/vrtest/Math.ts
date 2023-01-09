@@ -1,4 +1,4 @@
-import { Ammo } from "./ammo";
+import { Ammo } from "./Ammo";
 import * as THREE from "three";
 
 export interface VectorObject {
