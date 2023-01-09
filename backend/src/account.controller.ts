@@ -1,7 +1,7 @@
 import {
 	Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
 	Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query,
-	Req, Res, Inject, UseInterceptors, ClassSerializerInterceptor
+	Req, Res, Inject, UseInterceptors, ClassSerializerInterceptor, Put
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from './auth/auth.guard';
@@ -88,18 +88,6 @@ export class AccountController {
 			throw new HttpException('username already taken', HttpStatus.BAD_REQUEST);
 		user.username = dto.username;
 		await this.user_service.save([user]);
-	}
-
-	@Post('reset')
-	@UseGuards(SetupGuard)
-	@HttpCode(HttpStatus.GONE)
-	async reset() {
-		/*
-		const user = await this.user_service.get_user({ user_id: session.user_id });
-		user.username = null;
-		user.has_avatar = false;
-		await this.user_service.save([user]);
-		*/
 	}
 
 	get_avatar_filename(user_id: number) {

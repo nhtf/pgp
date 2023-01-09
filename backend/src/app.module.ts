@@ -18,9 +18,10 @@ import { User } from './entities/User';
 const entityFiles = [
 	'./entities/User',
 	'./entities/FriendRequest',
-	'./entities/ChatRoom',
 	'./entities/Message',
-	'./entities/GameRequest'
+	'./entities/ChatRoom',
+	'./entities/GameRequest',
+	'./entities/RoomInvite'
 ];
 
 // TODO: move all entities to directory

@@ -1,7 +1,10 @@
 import { User } from './User';
+import { RoomInvite } from './RoomInvite';
 import { Message } from './Message';
 import { Column, Entity, PrimaryGeneratedColumn, ManyToOne, ManyToMany, OneToMany, JoinTable } from 'typeorm';
 import { Exclude, Expose, Transform } from 'class-transformer';
+import { classToPlain } from 'class-transformer';
+import { Access } from '../Access';
 
 @Entity()
 export class ChatRoom {
@@ -9,14 +12,15 @@ export class ChatRoom {
 	id: number;
 
 	@Column({
-		   default: 'null'
+		default: 'null'
 	})
 	name: string;
 
+	@Exclude()
 	@Column({
-		default: false 
+		nullable: true
 	})
-	private: boolean;
+	access: Access;
 
 	@Exclude()
 	@Column({
@@ -27,15 +31,32 @@ export class ChatRoom {
 	@ManyToOne(() => User, (user) => user.owned_chat_rooms)
 	owner: Promise<User>;
 
+	@ManyToMany(() => User, (user) => user.admin_chat_rooms)
+	@JoinTable()
+	admins: Promise<User[]>;
+
 	@ManyToMany(() => User, (user) => user.all_chat_rooms)
 	@JoinTable()
 	members:  Promise<User[]>;
 
+	@OneToMany(() => RoomInvite, (invite) => invite.room)
+	invites: Promise<RoomInvite[]>;
+
+	/*
 	@OneToMany(() => Message, (message) => message.room)
 	messages: Promise<Message[]>;
+   */
 
 	@Expose()
 	get has_password(): boolean {
 		return this.password !== null;
+	}
+
+	async has_member(user: User): Promise<boolean> {
+		return !!((await this.members).find((current: User) => current.user_id === user.user_id));
+	}
+
+	async serialize() {
+		return { ...classToPlain(this), owner: await this.owner, admins: await this.admins, members: await this.members };
 	}
 }

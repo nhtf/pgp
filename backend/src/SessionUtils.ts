@@ -47,4 +47,18 @@ export class SessionUtils {
 			return false;
 		}
 	}
+
+	async destroy_session(session: session.Session): Promise<boolean> {
+		const promise = new Promise((resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
+			session.destroy((error) => {
+				if (error) {
+					console.error('could not destroy session');
+					reject(false);
+				} else {
+					resolve(true);
+				}
+			});
+		});
+		return await promise;
+	}
 }

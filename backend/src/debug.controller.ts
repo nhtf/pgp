@@ -2,6 +2,7 @@ import { Controller, Post, Inject, HttpException, HttpStatus, Req, HttpCode,
 	Delete, Get, Query } from '@nestjs/common';
 import { Length, IsString, IsBoolean, IsOptional, IsInt, IsEnum } from 'class-validator';
 import { User } from './entities/User';
+import { ChatRoom } from './entities/ChatRoom';
 import { AuthLevel } from './auth/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
@@ -35,7 +36,8 @@ class UserDto {
 export class DebugController {
 
 	constructor(@Inject('USER_REPO') private readonly userRepo: Repository<User>,
-			   private readonly sessionUtils: SessionUtils) {}
+			   private readonly sessionUtils: SessionUtils,
+			   @Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>) {}
 
 	@Get('useradd')
 	async useradd(@Query() dto: UserDto) {

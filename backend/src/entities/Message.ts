@@ -1,5 +1,4 @@
 import { User } from './User';
-import { ChatRoom } from './ChatRoom';
 import { Entity, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, Column } from 'typeorm';
 
 @Entity()
@@ -13,9 +12,10 @@ export class Message {
 
 	@ManyToOne(() => User)
 	user: Promise<User>;
-
+/*
 	@ManyToOne(() => ChatRoom, (room) => room.messages)
 	room: Promise<ChatRoom>;
+   */
 
 	@Column()
 	content: string;

@@ -1,4 +1,5 @@
 import { FriendRequest } from './FriendRequest';
+import { RoomInvite } from './RoomInvite';
 import { ChatRoom } from './ChatRoom';
 import { GameRequest } from './GameRequest';
 import { AuthLevel } from '../auth/AuthLevel';
@@ -11,6 +12,7 @@ export class User {
 	@PrimaryGeneratedColumn()
 	user_id: number;
 
+	@Exclude()
 	@Column()
 	oauth_id: number;
 
@@ -44,6 +46,12 @@ export class User {
 	@OneToMany(() => GameRequest, (request) => request.to)
 	incoming_game_invite: Promise<GameRequest[]>;
 
+	@OneToMany(() => RoomInvite, (invite) => invite.from)
+	sent_room_invites: Promise<RoomInvite[]>;
+
+	@OneToMany(() => RoomInvite, (invite) => invite.to)
+	incoming_room_invites: Promise<RoomInvite[]>;
+
 	@ManyToMany(() => User)
 	@JoinTable()
 	friends: Promise<User[]>;
@@ -56,7 +64,10 @@ export class User {
 	@OneToMany(() => ChatRoom, (chatRoom: ChatRoom) => chatRoom.owner)
 	owned_chat_rooms: Promise<ChatRoom[]>;
 
-	@OneToMany(() => ChatRoom, (chatroom) => chatroom.members)
+	@ManyToMany(() => ChatRoom, (chatRoom: ChatRoom) => chatRoom.admins)
+	admin_chat_rooms: Promise<ChatRoom[]>;
+
+	@ManyToMany(() => ChatRoom, (chatroom: ChatRoom) => chatroom.members)
 	all_chat_rooms: Promise<ChatRoom[]>;
 
 	@Expose()

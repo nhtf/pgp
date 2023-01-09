@@ -40,12 +40,6 @@ export class AuthController {
 	constructor(private readonly session_utils: SessionUtils,
 		private readonly user_service: UserService) { }
 
-	@Get('prot')
-	@UseGuards(AuthGuard)
-	async prot() {
-		return "hello there";
-	}
-
 	@Get('whoami')
 	async amiloggedin(@Req() request: Request, @Res() response: Response) {
 		if (request.session.access_token) {
@@ -67,6 +61,13 @@ export class AuthController {
 		});
 		response.redirect(auth_uri);
 		return response.send();
+	}
+
+	@Post('logout')
+	async logout(@Session() session: SessionObject) {
+		session.auth_level = AuthLevel.None;
+		if (!this.session_utils.destroy_session(session))
+			throw new HttpException('could not logout', HttpStatus.INTERNAL_SERVER_ERROR);
 	}
 
 	async get_access_token(code: string): Promise<AccessToken | undefined> {

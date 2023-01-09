@@ -6,6 +6,7 @@ import { FindOptionsWhere, EntityTarget, ObjectLiteral } from 'typeorm';
 import { validate } from 'class-validator';
 import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth/auth.guard';
+import * as bodyParser from 'body-parser';
 
 class UserDTO {
 	@IsString()
@@ -42,12 +43,23 @@ export const GetUserQuery = createParamDecorator(
 		const request = ctx.switchToHttp().getRequest();
 		const dto = new UserDTO();
 
-		if (where.username) {
+		if (where.username)
 			dto.username = request.query[where.username];
-		} 
-		if (where.user_id) {
+		if (where.user_id)
 			dto.user_id = request.query[where.user_id];
-		}
+		return GetUserByDTO(dto);
+	}
+);
+
+export const GetUserBody = createParamDecorator(
+	async (where: { username?: string, user_id?: string }, ctx: ExecutionContext) => {
+		const request = ctx.switchToHttp().getRequest();
+		const dto = new UserDTO();
+
+		if (where.username)
+			dto.username = request.body[where.username];
+		if (where.user_id)
+			dto.user_id = request.body[where.user_id];
 		return GetUserByDTO(dto);
 	}
 );
