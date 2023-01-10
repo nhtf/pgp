@@ -17,9 +17,8 @@ loader.setDRACOLoader(dracoLoader);
 
 function patch(scene: THREE.Group) {
 	scene.traverse(obj => {
-		if (obj.castShadow !== undefined) {
-			obj.castShadow = true;
-		}
+		obj.castShadow = true;
+		obj.receiveShadow = true;
 
 		if (obj instanceof THREE.Mesh && obj.material instanceof THREE.MeshStandardMaterial && obj.material.map !== null) {
 			obj.material.map.anisotropy = 8;

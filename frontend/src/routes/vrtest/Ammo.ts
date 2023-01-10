@@ -1,7 +1,12 @@
 import Ammo from "ammojs-typed";
 
+let didLoad = false;
+
 export async function ammoInit() {
-	await Ammo.call(Ammo, Ammo);
+	if (!didLoad) {
+		await Ammo.call(Ammo, Ammo);
+		didLoad = true;
+	}
 }
 
 export { Ammo };

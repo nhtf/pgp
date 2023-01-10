@@ -15,21 +15,27 @@ export interface EntityObject {
 	targetRotation: QuaternionObject | null;
 }
 
-export class Entity {
+export abstract class Entity {
 	public uuid: string;
-	public name: string;
+	public abstract name: string;
+	public abstract dynamic: boolean;
 	public renderObject: THREE.Object3D;
 	public physicsObject: Ammo.btRigidBody;
 	public targetPosition: Vector | null;
 	public targetRotation: Quaternion | null;
+	public lastUpdate: number;
+	public world: World;
+	public removed: boolean;
 
-	public constructor(uuid: string, name: string, renderObject: THREE.Object3D, physicsObject: Ammo.btRigidBody) {
+	public constructor(world: World, uuid: string, renderObject: THREE.Object3D, physicsObject: Ammo.btRigidBody) {
+		this.world = world;
 		this.uuid = uuid;
-		this.name = name;
 		this.renderObject = renderObject;
 		this.physicsObject = physicsObject;
 		this.targetPosition = null;
 		this.targetRotation = null;
+		this.lastUpdate = 0;
+		this.removed = false;
 	}
 
 	public get position(): Vector {
@@ -130,6 +136,9 @@ export class Entity {
 		Ammo.destroy(this.physicsObject.getCollisionShape());
 		Ammo.destroy(this.physicsObject.getMotionState());
 		Ammo.destroy(this.physicsObject);
+	}
+
+	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {
 	}
 }
 

@@ -9,6 +9,10 @@ import type { VectorObject, QuaternionObject } from "./Math";
 export const TICKS_PER_SECOND = 60;
 export const STEPS_PER_TICK = 5;
 
+export interface ThreeObject {
+	dispose(): void;
+}
+
 export interface Snapshot extends NetSnapshot {
 	entities: EntityObject[];
 }
@@ -26,39 +30,51 @@ export interface Options extends NetOptions {
 }
 
 export class World extends State {
+	private ammoObjects: any[];
+	private threeObjects: ThreeObject[];
+	private physicsObjectId: number;
 	public scene: THREE.Scene;
 	public renderer: THREE.WebGLRenderer;
 	public camera: THREE.PerspectiveCamera;
+	public cameraGroup: THREE.Group;
 	public world: Ammo.btDiscreteDynamicsWorld;
-	private entities: Entity[];
+	public entities: Entity[];
 	private blueprints: Map<string, { (entity: EntityObject): Entity; }>;
+	private collisionConfiguration: Ammo.btDefaultCollisionConfiguration;
+	private collisionDispatcher: Ammo.btCollisionDispatcher;
 	private broadphaseInterface: Ammo.btDbvtBroadphase;
 	private constraintSolver: Ammo.btSequentialImpulseConstraintSolver;
 
 	public constructor() {
 		super();
 
-		const collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-		const collisionDispatcher = new Ammo.btCollisionDispatcher(collisionConfiguration);
-		this.broadphaseInterface = new Ammo.btDbvtBroadphase();
-		this.constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
+		this.ammoObjects = [];
+		this.threeObjects = [];
+		this.physicsObjectId = 0;
+
+		this.collisionConfiguration = this.addAmmoObject(new Ammo.btDefaultCollisionConfiguration());
+		this.collisionDispatcher = this.addAmmoObject(new Ammo.btCollisionDispatcher(this.collisionConfiguration));
+		this.broadphaseInterface = this.addAmmoObject(new Ammo.btDbvtBroadphase());
+		this.constraintSolver = this.addAmmoObject(new Ammo.btSequentialImpulseConstraintSolver());
 		
 		this.scene = new THREE.Scene();
-		this.renderer = new THREE.WebGLRenderer({ antialias: true });
+		this.renderer = this.addThreeObject(new THREE.WebGLRenderer({ antialias: true }));
 		this.camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
-		this.world = new Ammo.btDiscreteDynamicsWorld(collisionDispatcher, this.broadphaseInterface, this.constraintSolver, collisionConfiguration);
-		this.world.setGravity(new Ammo.btVector3(0, -9.81, 0));
+		this.cameraGroup = new THREE.Group();
+		this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));
+		this.world.setGravity(this.addAmmoObject(new Ammo.btVector3(0, -9.81, 0)));
 		this.entities = [];
 		this.blueprints = new Map();
 		
-		this.renderer.setPixelRatio( window.devicePixelRatio );
+		this.renderer.setPixelRatio(window.devicePixelRatio);
 		this.renderer.physicallyCorrectLights = true;
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		this.renderer.xr.enabled = true;
 
+		this.cameraGroup.add(this.camera);
 		this.scene.background = new THREE.Color("skyblue");
-		this.scene.add(this.camera);
+		this.scene.add(this.cameraGroup);
 
 		this.on("update", netEvent => {
 			const event = netEvent as UpdateEvent;
@@ -71,7 +87,7 @@ export class World extends State {
 		});
 	}
 
-	private update(object: EntityObject) {
+	public update(object: EntityObject) {
 		let entity = this.get(object.uuid);
 
 		if (entity === null) {
@@ -79,26 +95,36 @@ export class World extends State {
 
 			if (blueprint !== undefined) {
 				entity = blueprint(object);
-				this.scene.add(entity.renderObject);
-				this.world.addRigidBody(entity.physicsObject);
-				this.entities.push(entity);
+				this.add(entity);
 			}
 		}
 
 		if (entity !== null) {
 			entity.load(object);
+			entity.lastUpdate = this.time;
 		}
 	}
 
-	private delete(uuid: string) {
+	public delete(uuid: string) {
 		const entity = this.get(uuid);
 
 		if (entity !== null) {
-			this.scene.remove(entity.renderObject);
-			this.world.removeRigidBody(entity.physicsObject);
+			this.remove(entity);
 			entity.destroy();
-			this.entities.splice(this.entities.indexOf(entity), 1);
 		}
+	}
+
+	public add(entity: Entity) {
+		this.scene.add(entity.renderObject);
+		this.world.addRigidBody(entity.physicsObject);
+		this.entities.push(entity);
+		entity.physicsObject.setUserIndex(this.physicsObjectId++);
+	}
+
+	public remove(entity: Entity) {
+		this.scene.remove(entity.renderObject);
+		this.world.removeRigidBody(entity.physicsObject);
+		this.entities.splice(this.entities.indexOf(entity), 1);
 	}
 
 	public sendUpdate(name: string, uuid: string, object: Partial<EntityObject>) {
@@ -137,8 +163,13 @@ export class World extends State {
 	}
 
 	public earlyTick() {
-		for (let entity of this.entities) {
+		for (let entity of [...this.entities]) {
 			entity.earlyTick();
+
+			if (entity.removed) {
+				this.remove(entity);
+				entity.destroy();
+			}
 		}
 
 		super.earlyTick();
@@ -154,6 +185,27 @@ export class World extends State {
 			}
 
 			this.world.stepSimulation(1 / TICKS_PER_SECOND / STEPS_PER_TICK, 1, 1 / TICKS_PER_SECOND / STEPS_PER_TICK);
+
+			/*
+			const numManifolds = this.collisionDispatcher.getNumManifolds();
+
+			for (let i = 0; i < numManifolds; i++) {
+				const manifold = this.collisionDispatcher.getManifoldByIndexInternal(i);
+				const body0 = manifold.getBody0().getUserIndex();
+				const body1 = manifold.getBody1().getUserIndex();
+				const entity0 = this.entities.find(e => e.physicsObject.getUserIndex() == body0);
+				const entity1 = this.entities.find(e => e.physicsObject.getUserIndex() == body1);
+
+				if (manifold.getNumContacts() > 0) {
+					const contact = manifold.getContactPoint(0);
+					const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
+					const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
+					entity0?.onCollision(entity1 ?? null, contact0, contact1);
+					entity1?.onCollision(entity0 ?? null, contact1, contact0);
+				}
+			}
+
+		   */
 		}
 
 		for (let entity of this.entities) {
@@ -167,7 +219,9 @@ export class World extends State {
 		const entities = [];
 
 		for (let entity of this.entities) {
-			entities.push(entity.save());
+			if (entity.dynamic) {
+				entities.push(entity.save());
+			}
 		}
 
 		return {
@@ -185,7 +239,7 @@ export class World extends State {
 		}
 
 		for (let entity of this.entities) {
-			if (!uuids.has(entity.uuid)) {
+			if (!uuids.has(entity.uuid) && entity.dynamic) {
 				this.delete(entity.uuid);
 			}
 		}
@@ -193,7 +247,10 @@ export class World extends State {
 		super.load(snapshot);
 	}
 
+	public render(deltaTime: number) {}
+
 	public start(options: Options) {
+		let previousRenderTime: number;
 		let previousTime: number;
 		let clientWidth: number;
 		let clientHeight: number;
@@ -211,6 +268,14 @@ export class World extends State {
 			} else {
 				previousTime = currentTime;
 			}
+
+			if (previousRenderTime !== undefined) {
+				this.render(currentTime - previousRenderTime);
+				previousRenderTime = currentTime;
+			} else {
+				this.render(0);
+				previousRenderTime = currentTime;
+			}
 		
 			if (clientWidth !== options.container.clientWidth || clientHeight != options.container.clientHeight) {
 				clientWidth = options.container.clientWidth;
@@ -225,5 +290,24 @@ export class World extends State {
 		});
 		
 		super.start(options);
+	}
+
+	public stop() {
+		this.renderer.setAnimationLoop(null);
+
+		this.ammoObjects.forEach(obj => Ammo.destroy(obj));
+		this.threeObjects.forEach(obj => obj.dispose());
+
+		super.stop();
+	}
+
+	public addAmmoObject<T>(obj: T): T {
+		this.ammoObjects.push(obj);
+		return obj;
+	}
+
+	public addThreeObject<T extends ThreeObject>(obj: T): T {
+		this.threeObjects.push(obj);
+		return obj;
 	}
 }

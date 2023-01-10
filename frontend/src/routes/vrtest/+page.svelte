@@ -1,11 +1,10 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
 	import { Ammo, ammoInit } from "./Ammo";
 	import { Pong } from "./Pong";
 
-	let world: Pong;
+	let world: Pong | undefined;
 	let container: Element;
-	let condition = true;
 
 	onMount(async() => {
 		await ammoInit();
@@ -16,29 +15,16 @@
 		await world.init();
 		world.start({ container });
 	});
+
+	onDestroy(() => {
+		world?.stop();
+	});
 </script>
 
-{#if condition}
-<div bind:this="{container}" id=sceeee></div>
-{/if}
-
-<svelte:window />
+<div bind:this="{container}" id="container"></div>
 
 <style>
-	.page {
-
+	#container {
+		height: calc(100vh - 71px);
 	}
-	#sceeee {
-		display: flex;
-		height: 100vh;
-		/* width: 100%; */
-		/* position: relative; */
-		z-index: 0;
-	}
-	/* #lol {
-		display: inline-block;
-		flex-wrap: wrap;
-		width: 100%;
-		height: 100%;
-	} */
 </style>

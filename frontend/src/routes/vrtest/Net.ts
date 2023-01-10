@@ -2,6 +2,7 @@ import { Socket, io } from "socket.io-client";
 
 export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
+export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
 
@@ -22,7 +23,7 @@ export interface Options {
 export class State {
 	public time: number;
 	public maxTime: number;
-	public targetTime: number;
+	public minTime: number | null;
 	private snapshots: Snapshot[];
 	private allEvents: Event[];
 	private newEvents: Event[];
@@ -32,7 +33,7 @@ export class State {
 	protected constructor() {
 		this.time = 0;
 		this.maxTime = 0;
-		this.targetTime = 0;
+		this.minTime = null;
 		this.snapshots = [];
 		this.allEvents = [];
 		this.newEvents = [];
@@ -88,6 +89,11 @@ export class State {
 		}
 
 		if (this.time > this.maxTime) {
+			this.maxTime = this.time;
+
+			if (this.time % MERGE_INTERVAL == 0) {
+				this.applyMerge();
+			}
 
 			if (this.time % UPDATE_INTERVAL == 0 && this.socket !== null) {
 				this.socket.emit("broadcast", {
@@ -104,8 +110,6 @@ export class State {
 					events: this.allEvents
 				});
 			}
-
-			this.maxTime = this.time;
 		}
 	}
 
@@ -129,8 +133,6 @@ export class State {
 	}
 
 	private merge(events: Event[]) {
-		let oldest = null;
-		let newEvents = 0;
 		const eventUUIDs = new Set();
 
 		for (let event of this.allEvents) {
@@ -140,20 +142,20 @@ export class State {
 		for (let event of events) {
 			if (!eventUUIDs.has(event.uuid) && event.time >= this.time - HISTORY_LIFETIME) {
 				this.allEvents.push(event);
-				newEvents += 1;
 
-				if (oldest === null || oldest > event.time) {
-					oldest = event.time;
+				if (this.minTime === null || this.minTime > event.time) {
+					this.minTime = event.time;
 				}
 			}
 		}
+	}
 
-
-		if (oldest !== null) {
+	private applyMerge() {
+		if (this.minTime !== null) {
 			let latest = null;
 
 			for (let snapshot of this.snapshots) {
-				if (snapshot.time < oldest) {
+				if (snapshot.time < this.minTime) {
 					if (latest === null || snapshot.time > latest.time) {
 						latest = snapshot;
 					}
@@ -165,13 +167,12 @@ export class State {
 			}
 
 			if (latest !== null) {
-				console.log(latest.time, "->", oldest, "->", this.time, "~", this.time - latest.time, "+", newEvents);
-
-				const oldTime = this.time;
 				this.load(latest);
-				this.forward(oldTime);
+				this.forward(this.maxTime);
 			}
 		}
+
+		this.minTime = null;
 	}
 
 	public start(options: Options) {
@@ -187,13 +188,14 @@ export class State {
 					this.clean();
 				}
 
-				if (message.time > this.time) {
-					this.targetTime = message.time;
-				}
-
+				this.maxTime = Math.max(this.maxTime, message.time);
 				this.merge(message.events);
-				this.forward(message.time);
+				this.applyMerge();
 			}
 		});
+	}
+
+	public stop() {
+		this.socket?.close();
 	}
 }
