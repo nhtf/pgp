@@ -5,6 +5,8 @@ export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
+export const DESYNC_CHECK_INTERVAL = 15;
+export const DESYNC_CHECK_DELTA = 15;
 
 export interface Snapshot {
 	time: number;
@@ -110,6 +112,17 @@ export class State {
 					events: this.allEvents
 				});
 			}
+
+			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.socket !== null) {
+				const latest = this.getLatest(this.time - DESYNC_CHECK_DELTA);
+
+				if (latest !== null) {
+					this.socket.emit("broadcast", {
+						name: "desync-check",
+						snapshot: this.getLatest(this.time - DESYNC_CHECK_DELTA),
+					});
+				}
+			}
 		}
 	}
 
@@ -150,17 +163,23 @@ export class State {
 		}
 	}
 
-	private applyMerge() {
-		if (this.minTime !== null) {
-			let latest = null;
+	private getLatest(before: number): Snapshot | null {
+		let latest = null;
 
-			for (let snapshot of this.snapshots) {
-				if (snapshot.time < this.minTime) {
-					if (latest === null || snapshot.time > latest.time) {
-						latest = snapshot;
-					}
+		for (let snapshot of this.snapshots) {
+			if (snapshot.time < before) {
+				if (latest === null || snapshot.time > latest.time) {
+					latest = snapshot;
 				}
 			}
+		}
+
+		return latest;
+	}
+
+	private applyMerge() {
+		if (this.minTime !== null) {
+			let latest = this.getLatest(this.minTime);
 
 			if (latest === null && this.snapshots.length > 0) {
 				latest = this.snapshots[0];
@@ -191,6 +210,21 @@ export class State {
 				this.maxTime = Math.max(this.maxTime, message.time);
 				this.merge(message.events);
 				this.applyMerge();
+			} else if (message.name === "desync-check") {
+				let latest = this.getLatest(message.snapshot.time);
+
+				if (latest !== null) {
+					console.log("running desync check");
+
+					this.load(latest);
+					this.forward(message.snapshot.time);
+					const testState = this.save();
+					this.forward(this.maxTime);
+
+					if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
+						debugger;
+					}
+				}
 			}
 		});
 	}

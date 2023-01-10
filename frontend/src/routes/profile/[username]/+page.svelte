@@ -1,8 +1,9 @@
 <script lang="ts">
 	import { _default_profile_image as profile_image } from "../../+layout";
 	import { page } from "$app/stores";
-	import type { PageData } from './$types';
+	import type { PageData, ActionData } from './$types';
 	export let data: PageData;
+	export let form: ActionData;
 
 	const add_friend = "/Assets/icons/add-friend.png";
 	const remove_friend = "/Assets/icons/remove-friend.png";
@@ -62,8 +63,6 @@
 	}
 
 	let files: any;
-    let dataFile: any = null;
-	let value: any;
 
 	async function upload() {
 		console.log("upload");
@@ -76,25 +75,14 @@
 			mode: "cors",
             body: files[0]
         });
-		data.user.avatar = 'avatar/' + data.user.userid + 'jpg';
+		data.user.avatar = 'http://localhost:3000/avatar/' + data.user.user_id + '.jpg';
 	}
 </script>
 
 <svelte:window on:click={clickfunction}/>
 
-<input id="fileUpload" type="file" bind:files>
-
-{#if dataFile && files[0]}
-    <p>
-        {files[0].name}
-    </p>
-{/if}
-
-<!-- {#if value} -->
-    <button on:click={upload}>Submit</button>
-<!-- {:else} -->
-    <!-- <button on:click={upload} disabled>Submit</button> -->
-<!-- {/if} -->
+<input class="hidden" id="file-to-upload" type="file" accept=".png,.jpg" bind:files/>
+<button on:click={upload}>Submit</button>
 
 <div class="block_container">
 	<div class="block_vert" id="info">

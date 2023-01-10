@@ -4,6 +4,7 @@ import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, ManyToOn
 import { DEFAULT_AVATAR } from './vars';
 import { User } from './entities/User';
 
+//TODO remove this service in favor of directly accessing the dataSource.getRepository(User)
 @Injectable()
 export class UserService {
 	constructor(@Inject('USER_REPO') private readonly repo: Repository<User>) {}

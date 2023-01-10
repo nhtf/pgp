@@ -113,7 +113,6 @@ export class TotpController {
 	@HttpCode(HttpStatus.CREATED)
 	@UseGuards(OAuthGuard)
 	async setup_verify(@Body() otp_dto: OtpDto, @Req() request: Request) {
-		console.log(request.session);
 		if (!request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
@@ -121,7 +120,7 @@ export class TotpController {
 
 		await this.authenticate(otp_dto.otp, secret, request);
 
-		let user = await this.user_service.get_user({ user_id: request.session.user_id });
+		const user = await this.user_service.get_user({ user_id: request.session.user_id });
 		user.auth_req = AuthLevel.TWOFA;
 		user.secret = secret;
 		await this.user_service.save([user]);

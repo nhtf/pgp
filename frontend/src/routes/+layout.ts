@@ -15,6 +15,7 @@ export const load = (async ({ fetch }: any) => {
 
     return {
 		username: item.username,
-		avatar: item.avatar 
+		avatar: item.avatar,
+		user_id: item.user_id
 	};
 }) satisfies LayoutLoad;

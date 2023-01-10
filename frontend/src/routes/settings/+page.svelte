@@ -5,6 +5,8 @@
 	/** @type {import('./$types').PageData} */
 	export let data;
 
+	$: enabled_2fa = (data.auth_req === 1);
+
 	async function enable_2fa() {
 		const response = await fetch('http://localhost:3000/otp/setup', {
 			method: 'POST',
@@ -54,10 +56,51 @@
 						title: 'Successfully setup 2FA',
 						showConfirmButton: false,
 						timer: 1300
-				});
+					});
+					data.auth_req = 2;
 				}
 			});
 		}
+		data = data;
+
+		enabled_2fa = true;
+	}
+
+	async function disable_2fa() {
+		Swal.fire({
+			title: 'Are you sure?',
+			icon: 'warning',
+			showCancelButton: true,
+			confirmButtonText: 'Yes, disable 2FA',
+			cancelButtonColor: '#d33',
+			confirmButtonColor: '#198754',
+			allowOutsideClick: () => !Swal.isLoading(),
+			preConfirm: () => {
+				return fetch('http://localhost:3000/otp/disable', {
+					method: 'POST',
+					credentials: 'include'
+				}).then(response => {
+					if (!response.ok)
+						throw new Error(response.statusText);
+					return response.json();
+				}).catch(error => {
+					console.log('welp');
+				});
+			}
+		}).then((result) => {
+			if (result.isConfirmed) {
+					Swal.fire({
+						position: 'top-end',
+						icon: 'success',
+						title: 'Successfully disabled 2FA',
+						showConfirmButton: false,
+						timer: 1300
+					});
+					data.auth_req = 1;
+			}
+		});
+		data = data;
+		enabled_2fa = false;
 	}
 </script>
 
@@ -70,7 +113,11 @@
 			<div class="block_cell">
 				<h1>2FA</h1>
 			</div>
+			{#if enabled_2fa}
 			<button on:click={enable_2fa}>enable 2fa</button>
+			{:else}
+			<button on:click={disable_2fa}>disable 2fa</button>
+			{/if}
 			<div class="block_cell">
 				<h2>Some text</h2>
 			</div>

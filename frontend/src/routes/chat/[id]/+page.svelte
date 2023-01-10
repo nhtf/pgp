@@ -1,6 +1,5 @@
 <script lang="ts">
     import { onMount } from "svelte";
-    import { empty } from "svelte/internal";
     import socket from "../websocket";
 
 	export let data: { room: any };

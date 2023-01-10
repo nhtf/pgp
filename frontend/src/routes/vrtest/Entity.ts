@@ -130,6 +130,8 @@ export abstract class Entity {
 		this.angularVelocity = Vector.fromObject(entity.angularVelocity);
 		this.targetPosition = entity.targetPosition ? Vector.fromObject(entity.targetPosition) : null;
 		this.targetRotation = entity.targetRotation ? Quaternion.fromObject(entity.targetRotation) : null;
+
+		// TODO: use a new MotionState
 	}
 
 	public destroy() {

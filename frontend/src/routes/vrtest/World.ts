@@ -176,10 +176,10 @@ export class World extends State {
 	}
 	
 	public lateTick() {
-		this.broadphaseInterface.resetPool(null as unknown as Ammo.btDispatcher);
-		this.constraintSolver.reset();
-
 		for (let i = 0; i < STEPS_PER_TICK; i++) {
+			this.broadphaseInterface.resetPool(this.collisionDispatcher);
+			this.constraintSolver.reset();
+
 			for (let entity of this.entities) {
 				entity.physicsTick();
 			}
@@ -218,7 +218,10 @@ export class World extends State {
 	public save(): Snapshot {
 		const entities = [];
 
-		for (let entity of this.entities) {
+		const sortedEntities = this.entities;
+		sortedEntities.sort((a, b) => a.uuid.localeCompare(b.uuid));
+
+		for (let entity of sortedEntities) {
 			if (entity.dynamic) {
 				entities.push(entity.save());
 			}
