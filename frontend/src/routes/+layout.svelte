@@ -1,8 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { _default_profile_image } from "./+layout";
-    /** @type {import('./$types').LayoutData} */
-    export let data: {username: string, avatar: string};
+    import type { LayoutData } from './$types';
+    export let data: LayoutData;
     let show = false;
 
     let currentTheme: string;

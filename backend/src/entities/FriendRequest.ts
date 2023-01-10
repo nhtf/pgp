@@ -1,5 +1,6 @@
 import { User } from './User';
 import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { classToPlain } from 'class-transformer';
 
 @Entity()
 export class FriendRequest {
@@ -14,4 +15,12 @@ export class FriendRequest {
 
 	@ManyToOne(() => User, (user) => user.incoming_friend_requests)
 	to: Promise<User>;
+
+	async serialize() {
+		return {
+			...classToPlain(this),
+			from: await this.from,
+			to: await this.to
+		}
+	}
 }

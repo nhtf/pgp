@@ -28,24 +28,26 @@ export class ChatRoom {
 	})
 	password: string | null;
 
+	@Exclude()
 	@ManyToOne(() => User, (user) => user.owned_chat_rooms)
 	owner: Promise<User>;
 
+	@Exclude()
 	@ManyToMany(() => User, (user) => user.admin_chat_rooms)
 	@JoinTable()
 	admins: Promise<User[]>;
 
+	@Exclude()
 	@ManyToMany(() => User, (user) => user.all_chat_rooms)
 	@JoinTable()
 	members:  Promise<User[]>;
 
+	@Exclude()
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
 	invites: Promise<RoomInvite[]>;
 
-	/*
 	@OneToMany(() => Message, (message) => message.room)
 	messages: Promise<Message[]>;
-   */
 
 	@Expose()
 	get has_password(): boolean {
@@ -54,6 +56,22 @@ export class ChatRoom {
 
 	async has_member(user: User): Promise<boolean> {
 		return !!((await this.members).find((current: User) => current.user_id === user.user_id));
+	}
+
+	async add_member(user: User) {
+		const room_members = await this.members;
+		if (room_members)
+			room_members.push(user);
+		else
+			this.members = Promise.resolve([user]);
+	}
+
+	async add_admin(user: User) {
+		const room_admins = await this.admins;
+		if (room_admins)
+			room_admins.push(user);
+		else
+			this.admins = Promise.resolve([user]);
 	}
 
 	async serialize() {

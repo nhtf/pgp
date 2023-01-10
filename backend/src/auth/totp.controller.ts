@@ -7,6 +7,7 @@ import { UserService } from '../UserService';
 import { AuthLevel } from './AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
+import * as qrcode from 'qrcode';
 
 @Injectable()
 class OAuthGuard implements CanActivate {
@@ -37,8 +38,10 @@ export class TotpController {
 	@UseGuards(OAuthGuard)
 	async setup(@Req() request: Request) {
 		let session = request.session;
+		/*
 		if (session.secret)
 			throw new HttpException('already requested otp setup', HttpStatus.TOO_MANY_REQUESTS);
+		*/
 		const user = await this.user_service.get_user({ user_id: session.user_id });
 		if (user.auth_req === AuthLevel.TWOFA)
 			throw new HttpException('already setup 2fa', HttpStatus.FORBIDDEN);
@@ -49,7 +52,24 @@ export class TotpController {
 		session.secret = secret;
 		if (!this.session_utils.save_session(session))
 			throw new HttpException('unable to save session', HttpStatus.SERVICE_UNAVAILABLE);
-		return { secret: secret };
+
+		const otpauth = authenticator.keyuri('username', 'pgp', secret);
+		const promise = new Promise((resolve: (value: string) => void, reject) => {
+			qrcode.toDataURL(otpauth, (error, image_url) => {
+				if (error) 
+					reject(error);
+				else
+					resolve(image_url);
+			});
+		});
+
+		let qr = '';
+		try {
+			qr = await promise;
+		} catch (error) {
+			console.log(error);
+		}
+		return { secret: secret, qr: qr };
 	}
 
 	@Post('disable')
@@ -86,6 +106,7 @@ export class TotpController {
 		request.session.access_token = access_token;
 		request.session.user_id = user_id;
 		request.session.auth_level = AuthLevel.TWOFA;
+		await this.session_utils.save_session(request.session);
 	}
 
 	@Post('setup_verify')

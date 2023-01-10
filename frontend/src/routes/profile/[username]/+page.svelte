@@ -1,23 +1,27 @@
 <script lang="ts">
 	import { _default_profile_image as profile_image } from "../../+layout";
 	import { page } from "$app/stores";
-	/** @type {import('./$types').PageData} */
-	export let data: { user: any; online_users: user[]; friends: user[] };
+	import type { PageData } from './$types';
+	export let data: PageData;
 
-	import { invitePlayer, type user } from "./getUsers";
+	const add_friend = "/Assets/icons/add-friend.png";
+	const remove_friend = "/Assets/icons/remove-friend.png";
+	const pong_icon = "/Assets/icons/pong-icon.png";
+	const edit_icon = "/Assets/icons/pen.png";
 
-	const add_friend = "/add-friend.png";
-	const remove_friend = "/remove-friend.png";
-	const pong_icon = "/pong-icon.png";
+	let friends = data.friends;
 
-	function toggleDropOut(username: string) {
+	function toggleDropOut(event: Event | undefined,username: string) {
 		if (document.getElementById(username)) {
 			const elem = document.getElementById(username);
 			if (elem) {
 				const temp = elem.style.display;
 				resetToggles();
 				if (temp === "none" || temp === "") {
-					elem.style.display = "flex";
+					elem.style.display = "block";
+					const mouse = event as MouseEvent;
+					elem.style.top =  mouse.clientY + 25 + 'px';
+					console.log("top: ",elem.style.top);
 				} else {
 					elem.style.display = "none";
 				}
@@ -43,33 +47,79 @@
 			resetToggles();
 		}
 	}
+
+	async function unfriend(username: string, index: number) {
+		const response = await fetch(`http://localhost:3000/account/unfriend?username=${username}`, {
+			method: "POST",
+			credentials: "include",
+			mode: "cors",
+		});
+		if (response.ok) {
+			console.log("unfriend succesful.\n");
+			friends.splice(index, 1);
+			friends = friends;
+		}
+	}
+
+	let files: any;
+    let dataFile: any = null;
+	let value: any;
+
+	async function upload() {
+		console.log("upload");
+		// const formData = new Uint8Array();
+		// // formData.append('damName', value);
+        // formData.('dataFile', files[0]);
+        const upload = fetch('http://localhost:3000/account/set_image', {
+            method: 'POST',
+			credentials: "include",
+			mode: "cors",
+            body: files[0]
+        });
+		data.user.avatar = 'avatar/' + data.user.userid + 'jpg';
+	}
 </script>
 
 <svelte:window on:click={clickfunction}/>
 
+<input id="fileUpload" type="file" bind:files>
+
+{#if dataFile && files[0]}
+    <p>
+        {files[0].name}
+    </p>
+{/if}
+
+<!-- {#if value} -->
+    <button on:click={upload}>Submit</button>
+<!-- {:else} -->
+    <!-- <button on:click={upload} disabled>Submit</button> -->
+<!-- {/if} -->
+
 <div class="block_container">
 	<div class="block_vert" id="info">
-		<div class="block_hor">
-			<div class="block_cell">
-				<h1>{$page.params.username}</h1>
-			</div>
-			<div class="block_cell">
+		<div class="block_hor" id="stretch">
+			<div class="block_cell"><h1>{$page.params.username}</h1></div>
+			<div class="block_cell" >
 				{#if data.user.avatar}
 					<img id="avatar" src={data.user.avatar} alt="avatar" />
 				{:else}
 					<img id="avatar" src={profile_image} alt="avatar" />
 				{/if}
+				{#if data.user.username === data.username}
+					<img src={edit_icon} alt="edit icon" id="edit-icon"/>
+				{/if}
 			</div>
 		</div>
 	</div>
 	<div class="block_vert">
-		<h1>Friends</h1>
-		{#if data.friends}
-			{#each data.friends as { username, avatar, online, in_game }}
+		<h1 >Friends</h1>
+		{#if friends}
+			{#each friends as { username, avatar, online, in_game }, index}
 				<div class="block_hor">
 					<div class="block_cell"
-						on:click={() => toggleDropOut(username)}
-						on:keypress={() => toggleDropOut(username)}
+						on:click={() => toggleDropOut(event, username)}
+						on:keypress={() => toggleDropOut(event, username)}
 					>
 						<div class="block_hor" id="dropbtn">{username}</div>
 						{#if online && !in_game}
@@ -87,7 +137,7 @@
 							{#if online}
 								<div class="block_hor" id="drop-cell">invite game</div>
 							{/if}
-							<div class="block_hor" id="drop-cell">other link</div>
+							<div class="block_hor" id="drop-cell" on:click={() => unfriend(username, index)}>unfriend</div>
 						</div>
 					</div>
 					<a href="/profile/{username}">
@@ -95,40 +145,10 @@
 							<img id="small-avatars" src={avatar} alt="avatar" />
 						</div>
 					</a>
-					<!-- <div class="block_cell">
-						<img id="invite" on:click={() => invitePlayer(username)} src={pong_icon} alt="invite player"/>
-					</div> -->
 				</div>
 			{/each}
 		{/if}
 	</div>
-	<!-- <div class="block_vert">
-		<h1>Online (temp)</h1>
-		{#if data.online_users}
-			{#each data.online_users as { username, avatar, friend }}
-				<div class="block_hor">
-					<a id="profile_link"href="/profile/{username}">
-						<div class="block_cell">{username}</div>
-					</a>
-					<a href="/profile/{username}">
-						<div class="block_cell">
-							<img id="small-avatars" src={avatar} alt="avatar" />
-						</div>
-					</a>
-					<div class="block_cell">
-						<img id="invite" on:click={() => invitePlayer(username)} src={pong_icon} alt="invite player"/>
-					</div>
-					<div class="block_cell">
-						{#if !friend}
-						<img id="invite" on:click={() => invitePlayer(username)} src={add_friend} alt="add friend"/>
-						{:else}
-						<img id="invite" on:click={() => invitePlayer(username)} src={remove_friend} alt="remove friend"/>
-						{/if}
-					</div>
-				</div>
-			{/each}
-		{/if}
-	</div> -->
 </div>
 
 <style>
@@ -174,13 +194,18 @@
 		text-decoration: none;
 	}
 
+	#stretch {
+		align-self: stretch;
+	}
+
 	/* horizontal blocks */
 	.block_hor {
 		display: flex;
 		flex-direction: row;
 		padding: 3px;
-		justify-content: space-evenly;
+		justify-content: space-between;
 		align-items: center;
+		/* position: relative; */
 		/* align-self: stretch; */
 	}
 
@@ -193,12 +218,15 @@
 		padding: 5px;
 		justify-content: space-evenly;
 		flex-grow: 0;
-		width: 80px;
-		max-height: 40px;
+		min-width: 100px;
+		/* max-height: 40px; */
 		align-items: center;
 		color: var(--text-color);
 		text-decoration: none;
 		text-align: center;
+		display: flex;
+		flex-direction: column;
+		position: relative;
 	}
 
 	.block_cell:first-child {
@@ -260,14 +288,15 @@
 	.dropdown-content {
 		display: none;
 		flex-direction: column;
-		position: relative;
-		width: 120px;
+		position: fixed;
+		min-width: 100px;
 		background-color: var(--box-color);
 		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		box-shadow: 1px 8px 16px 1px rgba(0, 0, 0, 0.4);
+		border-radius: 8px;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
 		z-index: 20;
-		/* align-items:stretch; */
+		/* top: 50px; */
+		top: 0;
 	}
 
 	#drop-cell {
@@ -288,6 +317,23 @@
 
 	#dropbtn:hover {
 		text-decoration: underline;
+	}
+
+	#edit-icon {
+		max-width: 25px;
+		max-height: 25px;
+		z-index: 20;
+		position: relative;
+		top: -10px;
+		right: -35px;
+		cursor: pointer;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
+		border-radius: 6px;
+	}
+
+	#edit-icon:hover {
+		box-shadow: 1px 1px 1px 1px rgba(var(--shadow-color));
 	}
 
 	::-webkit-scrollbar {

@@ -56,6 +56,18 @@ export class ChatRoomController {
 		@Inject('ROOMINVITE_REPO') private readonly inviteRepo: Repository<RoomInvite>
 	) {}
 
+	@Get("messages")
+	async messages(@GetUser() user: User, @Query() dto: RoomDTO) {
+		const room = await this.get_room(user, dto.id);
+
+		return await room.messages;
+	}
+
+	@Get("room")
+	async room(@Query() dto: RoomDTO) {
+		return await this.chatRepo.findOneById(dto.id);
+	}
+
 	@Get("rooms")
 	async rooms(@GetUser() user: User) {
 		const list = await this.chatRepo.find();
@@ -97,7 +109,7 @@ export class ChatRoomController {
 	}
 
 	@Post("leave")
-	async leave(@GetUser() user: User, @Query() dto: RoomDTO) {
+	async leave(@GetUser() user: User, @Body() dto: RoomDTO) {
 		const room = await this.get_room(user, dto.id);
 
 		const owner = await room.owner;
@@ -185,6 +197,13 @@ export class ChatRoomController {
 		if (user.user_id === target.user_id)
 			throw new HttpException('cannot transfer ownership to yourself', HttpStatus.UNPROCESSABLE_ENTITY);
 
+		if (!await room.has_member(target))
+			throw new HttpException('user not member of the room', HttpStatus.NOT_FOUND);
+
+		const admins = await room.admins;
+		if (!admins.find(current => current.user_id === target.user_id))
+			await room.add_admin(target);
+
 		room.owner = Promise.resolve(target);
 		await this.chatRepo.save(room);
 	}
@@ -195,13 +214,19 @@ export class ChatRoomController {
 		const room = await this.chatRepo.findOneById(dto.id);
 		if (!room)
 			throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
+
 		const members = await room.members;
 
 		const idx = members.findIndex((current: User) => current.user_id === user.user_id);
 		if (idx >= 0)
 			throw new HttpException('already a member of this room', HttpStatus.FORBIDDEN);
 
-		if (room.has_password) {
+		if (room.access === Access.PRIVATE) {
+			const room_invites = await Promise.all((await room.invites).filter(async invite => (await invite.to).user_id ===  user.user_id));
+			if (room_invites.length === 0)
+				throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
+			await this.inviteRepo.remove(room_invites);
+		} else if (room.access === Access.PROTECTED ) {
 			if (!dto.password)
 				throw new HttpException('password required', HttpStatus.FORBIDDEN);
 			let authorized = false;
@@ -217,12 +242,7 @@ export class ChatRoomController {
 			if (!authorized)
 				throw new HttpException('invalid password', HttpStatus.FORBIDDEN);
 		}
-		//TODO check if room is private room and the user has an invite
-		
-		if (members)
-			members.push(user);
-		else
-			room.members = Promise.resolve([user]);
+		await room.add_member(user);
 		await this.chatRepo.save(room);
 	}
 
@@ -269,12 +289,22 @@ export class ChatRoomController {
 		room_invite.from = Promise.resolve(user);
 		room_invite.to = Promise.resolve(target);
 		room_invite.room = Promise.resolve(room);
-		this.inviteRepo.save(room_invite);
+		await this.inviteRepo.save(room_invite);
 	}
 
 	@Get('invites')
 	async invites(@GetUser() user: User) {
-		return await this.inviteRepo.findBy({ to: { user_id: user.user_id } });
+		const invites = await this.inviteRepo.findBy({ to: { user_id: user.user_id } });
+
+		return await Promise.all(invites.map(async invite => {
+			
+			return {
+				...classToPlain(invite),
+				from: await invite.from,
+				to: await invite.to,
+				room: await (await invite.room).serialize()
+			};
+		}));
 	}
 
 	async get_room(user: User, id: string | number): Promise<ChatRoom> {

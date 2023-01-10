@@ -1,5 +1,6 @@
 <script lang="ts">
-    export let data: { rooms: any[] };
+    import { error } from "@sveltejs/kit";
+    import { onMount } from "svelte";
 
     const options = [
         "public",
@@ -10,7 +11,23 @@
     let room_name = "";
     let password = "";
     let access = options[0];
-    let rooms: any[] = data.rooms;
+    let rooms: any[] = [];
+    $: rooms;
+
+    onMount(fetchRooms);
+
+    async function fetchRooms() {
+        const endpoint = "http://localhost:3000/chat/rooms";
+        const response = await fetch(endpoint, {
+            credentials: "include"
+	    });
+
+        if (!response.ok) {
+            throw error(response.status, "Failed to load user rooms");
+        }
+
+        rooms = await response.json();
+    }
 
     async function createRoom() {
         const endpoint = "http://localhost:3000/chat/create";
@@ -34,118 +51,118 @@
         });
 
         if (!response.ok) {
-            alert((await response.json()).message)
+            return alert((await response.json()).message)
         }
+
+        fetchRooms();
     }
 
     async function deleteRoom(id: number) {
         const endpoint = "http://localhost:3000/chat/delete";
         
-        let room_dto = "id=" + JSON.stringify(id);
-    
-        console.log(room_dto);
-
-        let response = await fetch(endpoint, {
+        let response = await fetch(endpoint + "?id=" + id, {
             method: "DELETE",
             credentials: "include",
             headers: {
                 "Content-Type": "application/x-www-form-urlencoded"
             },
-            body: room_dto,
         });
 
         if (!response.ok) {
-            alert((await response.json()).message)
+            return alert((await response.json()).message)
         }
+        
+        fetchRooms();
     }
 
 </script>
 
-<form on:submit|preventDefault={createRoom}>
-    <div>
-        <input
-            bind:value={room_name}
-            type="text"
-            placeholder="Room name..."
-        />
-    </div>
-    {#each options as opt}
-        <div>
-            <label>
-                <input
-                    bind:group={access}
-                    name="access"
-                    type="radio"
-                    value={opt}
-                />
-                {opt}
-            </label>
-        </div>
-        {#if access == "protected" && opt == "protected"}
-            <div>
-                <input
-                    bind:value={password}
-                    type="text"
-                    placeholder="password..."
-                />
-            </div>
-        {/if}
-    {/each}
-
-    <button type="submit">Create</button>
-</form>
-
-<form on:submit|preventDefault={deleteRoom}>
-    <div>
-        <input
-            bind:value={room_name}
-            type="text"
-            placeholder="Room name..."
-        />
-    </div>
-    <button type="submit">Delete</button>
-</form>
-
-<ul class="room_preview">
-    <h1>Rooms:</h1>
-    {#each rooms as room}
-        <li>
-            <ul class="room_preview_strings">
-                <li>NAME: {room.name}</li>
-                <li>OWNER: {room.owner.username}</li>
-                <li>MEMBERS: {room.members.length}</li>
-            </ul>
-            <button class="room_preview" on:click={() => deleteRoom(room.id)}>Delete</button>
-        </li>
-    {/each}
+<ul class="room_list">
+    <li>
+        <form class="room" on:submit|preventDefault={createRoom}>
+            <input
+                bind:value={room_name}
+                type="text"
+                placeholder="Room name..."
+            />
+            {#each options as opt}
+                <label>
+                    <input
+                        bind:group={access}
+                        name="access"
+                        type="radio"
+                        value={opt}
+                    />
+                    {opt}
+                </label>
+                {#if access == "protected" && opt == "protected"}
+                    <input
+                        bind:value={password}
+                        type="text"
+                        placeholder="password..."
+                    />
+                {/if}
+            {/each}
+            <input type="submit" value="Create"/>
+        </form>
+    </li>
+{#each rooms as room}
+    <li>
+        <ul class="room">
+            <li><img id="small-avatar" src={room.owner.avatar} alt="avatar"/></li>
+            <li>{room.name}</li>
+            <li>{room.owner.username}</li>
+            <li>{room.members.length}</li>
+            <li>
+                <form action={"/chat/" + room.id}>
+                    <input type="submit" value="Go">
+                </form>
+            </li>
+            <li>
+                <form on:submit|preventDefault={() => deleteRoom(room.id)}>
+                    <input type="submit" value="Delete">
+                </form>
+            </li>
+        </ul>
+    </li>
+{/each}
 </ul>
 
 <style>
 
-.room_preview {
-    /* background-color: cornflowerblue; */
-    padding: 1em;
-}
-
-.room_preview li {
-    display: flex;
-    justify-content: center;
-    background-color: cadetblue;
-    padding: 1em;
+.room_list {
     border-radius: 1em;
+    display: flex;
+    flex-direction: column;
+    gap: 1em;
     list-style: none;
 }
 
-.room_preview button {
-    color: brown;
+
+.room {
+    background-color:steelblue;
+    border-radius: 1em;
+    display: flex;
+    flex-direction: row;
+    font-size: 2em;
+    padding: 1em;
+    gap: 1em;
 }
 
-.room_preview_strings {
-    display: flex;
-    flex-direction: column;
+.room input {
+    border-radius: 1em;
+}
 
-    justify-content: flex-start;
-    padding: 1em;
+.room li {
+    display: flex;
+    list-style: none;
+    flex-direction: row;
+}
+
+#small-avatar {
+    border-radius: 1em;
+    max-width: 1em;
+    max-height: 1em;
 }
 
 </style>

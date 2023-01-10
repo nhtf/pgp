@@ -28,7 +28,7 @@ class UserDto {
 
 	@IsEnum(AuthLevel)
 	@IsOptional()
-	auth_req?: AuthLevel;
+	auth_req?: string;
 }
 
 // TODO THIS MUST BE DISABLED BEFORE TURNING IN!
@@ -50,7 +50,7 @@ export class DebugController {
 		user.oauth_id = dto.oauth_id ?? -1;
 		user.secret = dto.secret;
 		user.has_avatar = dto.has_avatar ?? false;
-		user.auth_req = dto.auth_req ?? (dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth);
+		user.auth_req = dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth;
 		user.online = true;
 		await this.userRepo.save(user);
 		return user;
@@ -64,7 +64,7 @@ export class DebugController {
 		user.oauth_id = dto.oauth_id ?? user.oauth_id;
 		user.secret = dto.secret ?? user.secret;
 		user.has_avatar = dto.has_avatar ?? user.has_avatar;
-		user.auth_req = dto.auth_req ?? user.auth_req;
+		user.auth_req = dto.auth_req ? AuthLevel[dto.auth_req] : user.auth_req;
 		await this.userRepo.save(user);
 		return user;
 	}

@@ -1,31 +1,14 @@
-import { error } from '@sveltejs/kit';
+import { error } from "@sveltejs/kit";
+import type { PageLoad } from "./$types";
 
-export const ssr = false;
+export const load: PageLoad = (async ({ fetch}: any) => {
+	const response = await fetch('http://localhost:3000/account/auth_req', {
+		credentials: 'include'
+	});
 
-interface ResultDTO {
-	id: number;
-	username: string;
-}
-
-async function request(fetch_proc, path: string, method: string, body?: string): Promise<Response> {
-	return await fetch_proc('http://localhost:3000' + path,
-		{
-			method: method,
-			credentials: 'include',
-			mode: 'cors',
-			headers: {
-				'Content-Type': 'application/x-www-form-urlencoded'
-			},
-		});
-}
-
-export async function load({ fetch }) {
-	const response = await request(fetch, `/account/whoami`, 'GET');
 	if (!response.ok)
-		throw error(response.status, (await response.json()).message);
-	const result: ResultDTO = await response.json();
-	return {
-		user_id: result.id,
-		username: result.username
-	};
-}
+		throw error(response.status, response.message);
+
+	let auth_req = await response.json();
+	return { auth_req: auth_req };
+}) satisfies PageLoad;

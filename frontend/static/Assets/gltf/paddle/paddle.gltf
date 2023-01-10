@@ -15,44 +15,44 @@
     "nodes" : [
         {
             "mesh" : 0,
-            "name" : "Cube.008",
-            "scale" : [
-                0.05000000074505806,
-                0.3799999952316284,
-                0.029999999329447746
+            "name" : "Paddle",
+            "rotation" : [
+                0.70710688829422,
+                0,
+                0,
+                0.7071066498756409
             ],
             "translation" : [
-                1.2400000095367432,
-                0.37999990582466125,
-                -0.625
+                0.0037420515436679125,
+                -0.6847953200340271,
+                0
             ]
         }
     ],
     "materials" : [
         {
-            "alphaCutoff" : 0.6322067379951477,
-            "alphaMode" : "MASK",
-            "name" : "Texture",
+            "name" : "Material.001",
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
                     "index" : 0
                 },
                 "metallicFactor" : 0,
-                "roughnessFactor" : 0.4000000059604645
+                "roughnessFactor" : 0.5
             }
         }
     ],
     "meshes" : [
         {
-            "name" : "Cube.009",
+            "name" : "Circle.001",
             "primitives" : [
                 {
                     "attributes" : {
                         "POSITION" : 0,
                         "TEXCOORD_0" : 1,
-                        "NORMAL" : 2
+                        "TEXCOORD_1" : 2,
+                        "NORMAL" : 3
                     },
-                    "indices" : 3,
+                    "indices" : 4,
                     "material" : 0
                 }
             ]
@@ -67,69 +67,81 @@
     "images" : [
         {
             "mimeType" : "image/png",
-            "name" : "pingpongTableTexture",
-            "uri" : "textures/pingpongTableTexture.png"
+            "name" : "PaddleUVTexture",
+            "uri" : "textures/PaddleUVTexture.png"
         }
     ],
     "accessors" : [
         {
             "bufferView" : 0,
             "componentType" : 5126,
-            "count" : 432,
+            "count" : 536,
             "max" : [
-                2.5999984741210938,
-                1.4638159275054932,
-                51.333335876464844
+                1.5199813842773438,
+                0.24000002443790436,
+                1.825624942779541
             ],
             "min" : [
-                -52.19999694824219,
-                -1,
-                -9.666666030883789
+                -1.5199813842773438,
+                -0.24000002443790436,
+                -3.1817476749420166
             ],
             "type" : "VEC3"
         },
         {
             "bufferView" : 1,
             "componentType" : 5126,
-            "count" : 432,
+            "count" : 536,
             "type" : "VEC2"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
-            "count" : 432,
-            "type" : "VEC3"
+            "count" : 536,
+            "type" : "VEC2"
         },
         {
             "bufferView" : 3,
+            "componentType" : 5126,
+            "count" : 536,
+            "type" : "VEC3"
+        },
+        {
+            "bufferView" : 4,
             "componentType" : 5123,
-            "count" : 648,
+            "count" : 918,
             "type" : "SCALAR"
         }
     ],
     "bufferViews" : [
         {
             "buffer" : 0,
-            "byteLength" : 5184,
+            "byteLength" : 6432,
             "byteOffset" : 0,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 3456,
-            "byteOffset" : 5184,
+            "byteLength" : 4288,
+            "byteOffset" : 6432,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 5184,
-            "byteOffset" : 8640,
+            "byteLength" : 4288,
+            "byteOffset" : 10720,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 1296,
-            "byteOffset" : 13824,
+            "byteLength" : 6432,
+            "byteOffset" : 15008,
+            "target" : 34962
+        },
+        {
+            "buffer" : 0,
+            "byteLength" : 1836,
+            "byteOffset" : 21440,
             "target" : 34963
         }
     ],
@@ -141,8 +153,8 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 15120,
-            "uri" : "pingPongTable.bin"
+            "byteLength" : 23276,
+            "uri" : "paddle.bin"
         }
     ]
 }

@@ -10,9 +10,9 @@ html, body {
 body {
 	position: relative;
 	margin: 0;
-	--text-color: rgb(5, 5, 5);
+	--text-color: rgb(0, 0, 0);
 	--bkg-color: #dee4e7;
-	--box-color:#ffffff;
+	--box-color:#f9f9f9;
 	--shadow-color:82, 90, 114, 0.5;
 	--invert: invert(0%);
 	--hover-color: rgb(156, 155, 155);
@@ -25,13 +25,13 @@ body {
 @media (prefers-color-scheme: dark) {
 	/* defaults to dark theme */
 	body:not(.light) {
-		--text-color: rgb(194, 194, 194);
+		--text-color: rgb(255, 255, 255);
 		--bkg-color:rgb(63, 63, 63);
 		--box-color:rgb(41, 45, 57);
 		--shadow-color:82, 90, 114, 0.5;
 		--invert: invert(100%);
 		--hover-color: rgb(156, 155, 155);
-		--border-color:rgb(36, 40, 52);
+		--border-color:rgb(50, 55, 65);
 		--border-style: solid;
 		--scrollbar-thumb: #7b7b7b;
 		--scrollbar-bkg: #383838;
@@ -40,7 +40,7 @@ body {
 
   /* Need for if the os theme not dark mode is */
   body.dark {
-	--text-color: rgb(194, 194, 194);
+	--text-color: rgb(255, 255, 255);
 	--bkg-color:rgb(63, 63, 63);
 	--box-color:rgb(41, 45, 57);
 	--shadow-color:82, 90, 114, 0.5;

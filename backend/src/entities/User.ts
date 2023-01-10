@@ -31,6 +31,7 @@ export class User {
 	})
 	username: string | null;
 
+	@Exclude()
 	@Column()
 	has_avatar: boolean;
 

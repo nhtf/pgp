@@ -5,42 +5,27 @@ import { error } from '@sveltejs/kit';
 
 export const ssr = false;
 
-type user = { username: string; friend: boolean; avatar: string; online: boolean; in_game: boolean };
+type user = { username: string; avatar: string; online: boolean; in_game: boolean };
 
 let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
-let online_users: user[] = [
-	{ username: "dummy1", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy2", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy3", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy4", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy5", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy6", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy7", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy8", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy9", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy10", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy11", friend: false, avatar: profile_image, online: true, in_game: false },
-	{ username: "dummy12", friend: false, avatar: profile_image, online: true, in_game: false }
-];
 
 let friends: user[] = [
-	{ username: "dummy1", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy2", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy3", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy4", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy5", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy6", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy7", friend: true, avatar: profile_image, online: true,in_game:true },
-	{ username: "dummy8", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy9", friend: true, avatar: profile_image, online: true,in_game:false },
-	{ username: "dummy10", friend: true, avatar: profile_image, online: false, in_game: false },
-	{ username: "dummy11", friend: true, avatar: profile_image, online: false, in_game: false },
-	{ username: "dummy12", friend: true, avatar: profile_image, online: false, in_game: true }
+	{ username: "dummy1", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy2", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy3", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy4", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy5", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy6", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy7", avatar: profile_image, online: true,in_game:true },
+	{ username: "dummy8", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy9", avatar: profile_image, online: true,in_game:false },
+	{ username: "dummy10", avatar: profile_image, online: false, in_game: false },
+	{ username: "dummy11", avatar: profile_image, online: false, in_game: false },
+	{ username: "dummy12", avatar: profile_image, online: false, in_game: true }
 ];
 
-
 /** @type {import('./$types').PageLoad} */
-export async function load({fetch, params}) {
+export async function load({fetch, params}: any) {
 
 	//getting userstuff
     const res = await fetch(`http://localhost:3000/account/whois?username=${params.username}`, {
@@ -53,28 +38,8 @@ export async function load({fetch, params}) {
 		throw error(404, "username not found");
 	}
 
-	//getting online users
-	const onlineUsersRequest = await fetch("http://localhost:3000/game/onlineUsers", {
-        method: "GET",
-        credentials: "include",
-        mode: "cors",
-        headers: {
-            "Content-Type": "application/x-www-form-urlencoded",
-        },
-    });
-    const onlineUsers = await onlineUsersRequest.json();
-    if (onlineUsers !== undefined) {
-        onlineUsers.forEach((value: any) => {
-            let newUser: user = { username: value.username, friend: value.friend, avatar: value.avatar, online: value.online, in_game: false };
-            online_users.push(newUser);
-        });
-    }
-    online_users.sort((a, b) => {
-        return (a.friend === b.friend) ? 0 : a ? 1 : -1;
-    });
-
 	//getting friends
-	const friendUserRequest = await fetch("http://localhost:3000/game/onlineUsers", {
+	const friend_list = await fetch("http://localhost:3000/account/friends", {
         method: "GET",
         credentials: "include",
         mode: "cors",
@@ -82,17 +47,14 @@ export async function load({fetch, params}) {
             "Content-Type": "application/x-www-form-urlencoded",
         },
     });
-    const friendusers = await friendUserRequest.json();
-    if (friendusers !== undefined) {
-        friendusers.forEach((value: any) => {
-            let newUser: user = { username: value.username, friend: value.friend, avatar: value.avatar, online: value.online, in_game: false };
+    const friend_list_json = await friend_list.json();
+    if (friend_list_json !== undefined) {
+        friend_list_json.forEach((value: any) => {
+            let newUser: user = { username: value.username, avatar: value.avatar, online: value.online, in_game: false };
             friends.push(newUser);
         });
     }
-    friends.sort((a, b) => {
-        return (a.friend === b.friend) ? 0 : a ? 1 : -1;
-    });
 
-    return {user, online_users, friends};
+    return {user, friends};
   }
 

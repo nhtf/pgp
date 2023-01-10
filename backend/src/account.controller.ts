@@ -1,23 +1,18 @@
-import {
-	Controller, UseGuards, Post, Body, Session, HttpException, HttpStatus,
-	Injectable, CanActivate, ExecutionContext, HttpCode, Get, Query,
-	Req, Res, Inject, UseInterceptors, ClassSerializerInterceptor, Put
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { AuthGuard } from './auth/auth.guard';
-import { Length, IsString, IsOptional, IsNumberString, IsInt } from 'class-validator';
-import { UserService } from './UserService';
-import { SessionObject } from './SessionUtils';
-import { Request, Response, Express } from 'express';
-import * as sharp from 'sharp';
-import { open, rm } from 'node:fs/promises';
+import { Body, CanActivate, ClassSerializerInterceptor, Controller, ExecutionContext, Get, HttpCode, HttpException, HttpStatus, Inject, Injectable, Post, Req, Res, Session, UseGuards, UseInterceptors } from '@nestjs/common';
+import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
+import { Request, Response } from 'express';
+import { open } from 'node:fs/promises';
 import { finished } from 'node:stream';
 import { join } from 'path';
-import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from './vars';
+import * as sharp from 'sharp';
 import { Repository } from 'typeorm';
-import { GetUser, GetUserQuery } from './util';
-import { User } from './entities/User';
+import { AuthGuard } from './auth/auth.guard';
 import { FriendRequest } from './entities/FriendRequest';
+import { User } from './entities/User';
+import { SessionObject } from './SessionUtils';
+import { UserService } from './UserService';
+import { GetUser, GetUserQuery } from './util';
+import { AVATAR_DIR, BACKEND_ADDRESS } from './vars';
 
 class UsernameDto {
 	@IsString()
@@ -28,11 +23,6 @@ class UsernameDto {
 	@IsNumberString()
 	@IsOptional()
 	user_id?: number;
-}
-
-class SimpleUser {
-	user_id: number;
-	username: string;
 }
 
 @Injectable()
@@ -98,9 +88,10 @@ export class AccountController {
 		return BACKEND_ADDRESS + '/' + AVATAR_DIR + '/' + avatar;
 	}
 
-	async who(user: User) {
-		const avatar = user.has_avatar ? this.get_avatar_filename(user.user_id) : DEFAULT_AVATAR;
-		return { id: user.user_id, username: user.username, avatar: this.get_avatar_path(avatar) };
+	@Get('auth_req')
+	@UseGuards(SetupGuard)
+	async auth_req(@GetUser() user: User) {
+		return user.auth_req;
 	}
 
 	@Get('whoami')
@@ -205,6 +196,15 @@ export class AccountController {
 		return await me.friends;
 	}
 
+	@Get('requests')
+	@UseGuards(SetupGuard)
+	async friend_requests(@GetUser() me: User) {
+		const requests = await this.requestRepo.findBy({ to: { user_id: me.user_id } });
+		return await Promise.all(requests.map(request => {
+			return request.serialize();
+		}));
+	}
+
 	@Post('unfriend')
 	@HttpCode(HttpStatus.NO_CONTENT)
 	@UseGuards(SetupGuard)
@@ -272,12 +272,4 @@ export class AccountController {
 		// 	await this.requestRepo.save(request);
 		// }
 	}
-
-	@Get('friends')
-	@UseGuards(SetupGuard)
-	async friends(@GetUser() me: User) {
-		console.log(await me.sent_friend_requests);
-		return { friends: me.friends };
-	}
-
 }
