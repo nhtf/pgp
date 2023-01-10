@@ -1,6 +1,6 @@
 import { Socket, io } from "socket.io-client";
 
-export const SNAPSHOT_INTERVAL = 15;
+export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
@@ -22,6 +22,7 @@ export interface Options {
 export class State {
 	public time: number;
 	public maxTime: number;
+	public targetTime: number;
 	private snapshots: Snapshot[];
 	private allEvents: Event[];
 	private newEvents: Event[];
@@ -31,6 +32,7 @@ export class State {
 	protected constructor() {
 		this.time = 0;
 		this.maxTime = 0;
+		this.targetTime = 0;
 		this.snapshots = [];
 		this.allEvents = [];
 		this.newEvents = [];
@@ -183,6 +185,10 @@ export class State {
 					this.load(message.snapshot);
 					this.snapshots.push(message.snapshot);
 					this.clean();
+				}
+
+				if (message.time > this.time) {
+					this.targetTime = message.time;
 				}
 
 				this.merge(message.events);

@@ -102,7 +102,7 @@ export class Pong extends World {
 	}
 
 	public earlyTick() {
-		if (this.time >= this.maxTime) {
+		if (this.time >= this.targetTime && this.time >= this.maxTime) {
 			this.sendUpdate("paddle", this.paddleUUID, {
 				targetPosition: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)),
 				targetRotation: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)),
