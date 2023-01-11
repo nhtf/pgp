@@ -16,28 +16,27 @@ export type SessionObject = session.Session & Partial<session.SessionData>;
 
 @Injectable()
 export class SessionUtils {
-
 	async regenerate_session(session: session.Session): Promise<boolean> {
-		const promise = new Promise((resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
-			session.regenerate((error) => {
-				if (error) {
-					console.error('could not regenerate session: '+ error);
-					reject(false);
-				} else {
-					resolve(true);
-				}
-			});
-		});
+		const promise = new Promise(
+			(resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
+				session.regenerate((error) => {
+					if (error) {
+						console.error('could not regenerate session: ' + error);
+						reject(false);
+					} else {
+						resolve(true);
+					}
+				});
+			},
+		);
 		return await promise;
 	}
 
 	async save_session(session: session.Session): Promise<boolean> {
 		const promise = new Promise((resolve: (value: boolean) => void, reject) => {
 			session.save((error) => {
-				if (error)
-					reject(error);
-				else
-					resolve(true);
+				if (error) reject(error);
+				else resolve(true);
 			});
 		});
 		try {
@@ -49,16 +48,18 @@ export class SessionUtils {
 	}
 
 	async destroy_session(session: session.Session): Promise<boolean> {
-		const promise = new Promise((resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
-			session.destroy((error) => {
-				if (error) {
-					console.error('could not destroy session');
-					reject(false);
-				} else {
-					resolve(true);
-				}
-			});
-		});
+		const promise = new Promise(
+			(resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
+				session.destroy((error) => {
+					if (error) {
+						console.error('could not destroy session');
+						reject(false);
+					} else {
+						resolve(true);
+					}
+				});
+			},
+		);
 		return await promise;
 	}
 }

@@ -2,6 +2,10 @@
     import { error } from "@sveltejs/kit";
     import { onMount } from "svelte";
 
+    export let data: {
+        fetch: any
+    };
+
     const options = [
         "public",
         "protected",
@@ -18,8 +22,9 @@
 
     async function fetchRooms() {
         const endpoint = "http://localhost:3000/chat/rooms";
-        const response = await fetch(endpoint, {
-            credentials: "include"
+        const response = await data.fetch(endpoint, {
+            credentials: "include",
+            mode: "cors",
 	    });
 
         if (!response.ok) {
@@ -41,7 +46,7 @@
             room_dto.password = password;
         }
 
-        let response = await fetch(endpoint, {
+        let response = await data.fetch(endpoint, {
             method: "POST",
             credentials: "include",
             headers: {

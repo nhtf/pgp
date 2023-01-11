@@ -1,6 +1,12 @@
 import { User } from './User';
-import { ChatRoom } from './ChatRoom'
-import { Entity, PrimaryGeneratedColumn, Column, CreateDateColumn, ManyToOne } from 'typeorm';
+import { ChatRoom } from './ChatRoom';
+import {
+	Entity,
+	PrimaryGeneratedColumn,
+	Column,
+	CreateDateColumn,
+	ManyToOne,
+} from 'typeorm';
 
 @Entity()
 export class RoomInvite {

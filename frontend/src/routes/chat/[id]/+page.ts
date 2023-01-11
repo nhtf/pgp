@@ -2,7 +2,23 @@ import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types"
 
 export const load = (async ({ fetch, params }: any) => {
-    const response = await fetch("http://localhost:3000/chat/room?id=" + params.id, {
+	const whoami = "http://localhost:3000/account/whoami";
+	const endpoint = "http://localhost:3000/chat/room";
+
+    let response = await fetch(whoami, {
+		credentials: "include",
+	});
+
+	if (!response.ok) {
+		return {
+			status: 302,
+			redirect: "/login" // TODO
+		}
+	}
+
+	const user = await response.json();
+
+    response = await fetch(endpoint + "?id=" + params.id, {
 			credentials: "include",
 		});
 	
@@ -10,6 +26,8 @@ export const load = (async ({ fetch, params }: any) => {
 		throw error(response.status, (await response.json()).message);
 	}
 
-    return { room: (await response.json()) };
+	const room = await response.json();
+
+    return { fetch: fetch, user: user, room: room };
 }) satisfies PageLoad
 

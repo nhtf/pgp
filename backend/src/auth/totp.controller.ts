@@ -1,20 +1,39 @@
-import { Controller, Post, Req, UseGuards, Injectable, CanActivate, ExecutionContext, HttpException, HttpStatus, Body, HttpCode } from '@nestjs/common';
+import {
+	Controller,
+	Post,
+	Req,
+	UseGuards,
+	Injectable,
+	CanActivate,
+	ExecutionContext,
+	HttpException,
+	HttpStatus,
+	Body,
+	Inject,
+	HttpCode,
+} from '@nestjs/common';
 import { Request } from 'express';
 import { authenticator } from 'otplib';
 import * as session from 'express-session';
 import { SessionUtils, SessionObject } from '../SessionUtils';
-import { UserService } from '../UserService';
 import { AuthLevel } from './AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
+import { SetupGuard } from '../account.controller';
 import * as qrcode from 'qrcode';
+import { GetUser } from '../util';
+import { User } from '../entities/User';
+import { Repository } from 'typeorm';
 
 @Injectable()
 class OAuthGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
 		let response = context.switchToHttp().getResponse();
-		if (request.session.access_token === undefined || request.session.auth_level !== AuthLevel.OAuth) {
+		if (
+			request.session.access_token === undefined ||
+			request.session.auth_level !== AuthLevel.OAuth
+		) {
 			response.status(401).json('unauthorized');
 			return false;
 		}
@@ -25,24 +44,26 @@ class OAuthGuard implements CanActivate {
 class OtpDto {
 	@Length(6, 6)
 	@IsNumberString()
-	otp: string
+	otp: string;
 }
 
 @Controller('otp')
 export class TotpController {
-	constructor(private readonly session_utils: SessionUtils,
-		private readonly user_service: UserService) { }
+	constructor(
+		private readonly session_utils: SessionUtils,
+		@Inject('USER_REPO')
+		private readonly userRepo: Repository<User>
+	) {}
 
 	@Post('setup')
 	@HttpCode(HttpStatus.ACCEPTED)
-	@UseGuards(OAuthGuard)
-	async setup(@Req() request: Request) {
+        @UseGuards(AuthGuard, SetupGuard)
+	async setup(@GetUser() user: User, @Req() request: Request) {
 		let session = request.session;
 		/*
 		if (session.secret)
 			throw new HttpException('already requested otp setup', HttpStatus.TOO_MANY_REQUESTS);
 		*/
-		const user = await this.user_service.get_user({ user_id: session.user_id });
 		if (user.auth_req === AuthLevel.TWOFA)
 			throw new HttpException('already setup 2fa', HttpStatus.FORBIDDEN);
 
@@ -51,15 +72,16 @@ export class TotpController {
 
 		session.secret = secret;
 		if (!this.session_utils.save_session(session))
-			throw new HttpException('unable to save session', HttpStatus.SERVICE_UNAVAILABLE);
+			throw new HttpException(
+				'unable to save session',
+				HttpStatus.SERVICE_UNAVAILABLE,
+			);
 
-		const otpauth = authenticator.keyuri('username', 'pgp', secret);
+		const otpauth = authenticator.keyuri(user.username, 'pgp', secret);
 		const promise = new Promise((resolve: (value: string) => void, reject) => {
 			qrcode.toDataURL(otpauth, (error, image_url) => {
-				if (error) 
-					reject(error);
-				else
-					resolve(image_url);
+				if (error) reject(error);
+				else resolve(image_url);
 			});
 		});
 
@@ -73,35 +95,44 @@ export class TotpController {
 	}
 
 	@Post('disable')
-	@UseGuards(AuthGuard)
-	async disable(@Req() request: Request) {
+        @UseGuards(AuthGuard, SetupGuard)
+	async disable(@GetUser() user: User, @Req() request: Request) {
 		if (request.session.auth_level != AuthLevel.TWOFA)
 			throw new HttpException('no totp has been set up', HttpStatus.FORBIDDEN);
 
-		const user = await this.user_service.get_user({ user_id: request.session.user_id });
 		user.secret = undefined;
 		user.auth_req = AuthLevel.OAuth;
 
 		const access_token = request.session.access_token;
 		const user_id = request.session.user_id;
 
-		await this.user_service.save([user]);
-		if (!await this.session_utils.regenerate_session(request.session))
-			throw new HttpException('unable to create request.session', HttpStatus.INTERNAL_SERVER_ERROR);
+		await this.userRepo.save(user);
+		if (!(await this.session_utils.regenerate_session(request.session)))
+			throw new HttpException(
+				'unable to create session',
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			);
 		request.session.auth_level = AuthLevel.OAuth;
 		request.session.access_token = access_token;
 		request.session.user_id = user_id;
 	}
 
-	async authenticate(otp: string, secret: string, request: Request): Promise<void> {
+	async authenticate(
+		otp: string,
+		secret: string,
+		request: Request,
+	): Promise<void> {
 		if (!authenticator.check(otp, secret))
 			throw new HttpException('invalid otp', HttpStatus.CONFLICT);
 
 		const access_token = request.session.access_token;
 		const user_id = request.session.user_id;
 
-		if (!await this.session_utils.regenerate_session(request.session))
-			throw new HttpException('unable to create request.session', HttpStatus.INTERNAL_SERVER_ERROR);
+		if (!(await this.session_utils.regenerate_session(request.session)))
+			throw new HttpException(
+				'unable to create request.session',
+				HttpStatus.INTERNAL_SERVER_ERROR,
+			);
 
 		request.session.access_token = access_token;
 		request.session.user_id = user_id;
@@ -111,8 +142,8 @@ export class TotpController {
 
 	@Post('setup_verify')
 	@HttpCode(HttpStatus.CREATED)
-	@UseGuards(OAuthGuard)
-	async setup_verify(@Body() otp_dto: OtpDto, @Req() request: Request) {
+        @UseGuards(AuthGuard, SetupGuard)
+	async setup_verify(@GetUser() user: User, @Body() otp_dto: OtpDto, @Req() request: Request) {
 		if (!request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
@@ -120,20 +151,18 @@ export class TotpController {
 
 		await this.authenticate(otp_dto.otp, secret, request);
 
-		const user = await this.user_service.get_user({ user_id: request.session.user_id });
 		user.auth_req = AuthLevel.TWOFA;
 		user.secret = secret;
-		await this.user_service.save([user]);
+		await this.userRepo.save(user);
 	}
 
 	@Post('verify')
 	@HttpCode(HttpStatus.OK)
-	@UseGuards(OAuthGuard)
-	async verify(@Body() otp_dto: OtpDto, @Req() request: Request) {
+        @UseGuards(OAuthGuard, SetupGuard)
+	async verify(@GetUser() user: User, @Body() otp_dto: OtpDto, @Req() request: Request) {
 		if (request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
-		const user = await this.user_service.get_user({ user_id: request.session.user_id });
 		if (user.auth_req !== AuthLevel.TWOFA)
 			throw new HttpException('2fa not setup', HttpStatus.FORBIDDEN);
 		const secret = user.secret;

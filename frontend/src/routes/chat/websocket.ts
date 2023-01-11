@@ -1,12 +1,8 @@
 import { io } from 'socket.io-client';
 
-const WS = 'ws://localhost:3000/chat'; //now for the chat namespace
-
+const WS = 'ws://localhost:3000';
 const socket = io(WS, { withCredentials: true });
 
-socket.on('exception', (e) => {
-    console.log(e);
-    console.log("error listener");
-});
+socket.on('exception', console.error);
 
 export default socket;

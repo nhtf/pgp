@@ -1,6 +1,23 @@
-import { Controller, Post, Inject, HttpException, HttpStatus, Req, HttpCode,
-	Delete, Get, Query } from '@nestjs/common';
-import { Length, IsString, IsBoolean, IsOptional, IsInt, IsEnum } from 'class-validator';
+import {
+	Controller,
+	Post,
+	Inject,
+	HttpException,
+	HttpStatus,
+	Req,
+	HttpCode,
+	Delete,
+	Get,
+	Query,
+} from '@nestjs/common';
+import {
+	Length,
+	IsString,
+	IsBoolean,
+	IsOptional,
+	IsInt,
+	IsEnum,
+} from 'class-validator';
 import { User } from './entities/User';
 import { ChatRoom } from './entities/ChatRoom';
 import { AuthLevel } from './auth/AuthLevel';
@@ -12,6 +29,7 @@ import { GetUserQuery } from './util';
 class UserDto {
 	@IsString()
 	@Length(1, 20)
+	@IsOptional()
 	username: string;
 
 	@IsInt()
@@ -34,16 +52,21 @@ class UserDto {
 // TODO THIS MUST BE DISABLED BEFORE TURNING IN!
 @Controller('debug')
 export class DebugController {
-
-	constructor(@Inject('USER_REPO') private readonly userRepo: Repository<User>,
-			   private readonly sessionUtils: SessionUtils,
-			   @Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>) {}
+	constructor(
+		@Inject('USER_REPO') private readonly userRepo: Repository<User>,
+		private readonly sessionUtils: SessionUtils,
+		@Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>,
+	) {}
 
 	@Get('useradd')
 	async useradd(@Query() dto: UserDto) {
-		const exists = (await this.userRepo.findOneBy({ username: dto.username })) !== null;
+		const exists = dto.username ?
+			(await this.userRepo.findOneBy({ username: dto.username })) !== null : false;
 		if (exists)
-			throw new HttpException('an user with that username already exists', HttpStatus.BAD_REQUEST);
+			throw new HttpException(
+				'an user with that username already exists',
+				HttpStatus.BAD_REQUEST,
+			);
 
 		const user = new User();
 		user.username = dto.username;
@@ -75,11 +98,14 @@ export class DebugController {
 		if (!user)
 			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
 		await this.userRepo.remove(user);
-		return "deleted user";
+		return 'deleted user';
 	}
 
 	@Get('su')
-	async su(@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User, @Req() request: Request) {
+	async su(
+		@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User,
+		@Req() request: Request,
+	) {
 		this.sessionUtils.regenerate_session(request.session);
 		request.session.user_id = user.user_id;
 		request.session.auth_level = user.auth_req;

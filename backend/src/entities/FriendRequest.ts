@@ -20,7 +20,7 @@ export class FriendRequest {
 		return {
 			...classToPlain(this),
 			from: await this.from,
-			to: await this.to
-		}
+			to: await this.to,
+		};
 	}
 }

@@ -3,7 +3,15 @@ import { RoomInvite } from './RoomInvite';
 import { ChatRoom } from './ChatRoom';
 import { GameRequest } from './GameRequest';
 import { AuthLevel } from '../auth/AuthLevel';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToMany, JoinTable, ManyToOne, OneToMany} from 'typeorm';
+import {
+	Entity,
+	PrimaryGeneratedColumn,
+	Column,
+	ManyToMany,
+	JoinTable,
+	ManyToOne,
+	OneToMany,
+} from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from '../vars';
 
@@ -22,12 +30,12 @@ export class User {
 
 	@Exclude()
 	@Column({
-		nullable: true
+		nullable: true,
 	})
 	secret: string | null;
 
 	@Column({
-		nullable: true
+		nullable: true,
 	})
 	username: string | null;
 
@@ -58,7 +66,7 @@ export class User {
 	friends: Promise<User[]>;
 
 	@Column({
-		nullable: true
+		nullable: true,
 	})
 	online: boolean;
 
@@ -73,16 +81,13 @@ export class User {
 
 	@Expose()
 	get avatar(): string {
-		const avatar = this.has_avatar ?
-			this.user_id.toString() : DEFAULT_AVATAR;
+		const avatar = this.has_avatar ? this.user_id.toString() : DEFAULT_AVATAR;
 		return BACKEND_ADDRESS + '/' + AVATAR_DIR + '/' + avatar + '.jpg';
 	}
 
 	async add_friend(target: User) {
 		const user_friends = await this.friends;
-		if (user_friends)
-			user_friends.push(target);
-		else
-			this.friends = Promise.resolve([target]);
+		if (user_friends) user_friends.push(target);
+		else this.friends = Promise.resolve([target]);
 	}
 }

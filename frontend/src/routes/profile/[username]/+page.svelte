@@ -1,9 +1,8 @@
 <script lang="ts">
 	import { _default_profile_image as profile_image } from "../../+layout";
 	import { page } from "$app/stores";
-	import type { PageData, ActionData } from './$types';
+	import type { PageData } from './$types';
 	export let data: PageData;
-	export let form: ActionData;
 
 	const add_friend = "/Assets/icons/add-friend.png";
 	const remove_friend = "/Assets/icons/remove-friend.png";
@@ -11,6 +10,7 @@
 	const edit_icon = "/Assets/icons/pen.png";
 
 	let friends = data.friends;
+	let show_edit = false;
 
 	function toggleDropOut(event: Event | undefined,username: string) {
 		if (document.getElementById(username)) {
@@ -22,7 +22,6 @@
 					elem.style.display = "block";
 					const mouse = event as MouseEvent;
 					elem.style.top =  mouse.clientY + 25 + 'px';
-					console.log("top: ",elem.style.top);
 				} else {
 					elem.style.display = "none";
 				}
@@ -42,7 +41,7 @@
 		if (!event || !event.target) {
 			return;
 		}
-		console.log(event.target);
+		// console.log(event.target);
 		const element = event.target as Element;
 		if (!element.matches("#dropbtn")) {
 			resetToggles();
@@ -50,7 +49,7 @@
 	}
 
 	async function unfriend(username: string, index: number) {
-		const response = await fetch(`http://localhost:3000/account/unfriend?username=${username}`, {
+		const response = await data.fetch(`http://localhost:3000/account/unfriend?username=${username}`, {
 			method: "POST",
 			credentials: "include",
 			mode: "cors",
@@ -61,28 +60,36 @@
 			friends = friends;
 		}
 	}
+	// console.log("form: ", form);
+	let filevar: FileList;
 
-	let files: any;
+	function resetImage() {
+		data.user.avatar = "http://localhost:3000/avatar/" + data.user_id + ".jpg";
+	};
 
-	async function upload() {
-		console.log("upload");
-		// const formData = new Uint8Array();
-		// // formData.append('damName', value);
-        // formData.('dataFile', files[0]);
-        const upload = fetch('http://localhost:3000/account/set_image', {
+
+    async function upload() {
+		const formData = new FormData();
+        formData.append('file', filevar[0]);
+        const upload = await data.fetch('http://localhost:3000/account/set_image', {
             method: 'POST',
 			credentials: "include",
-			mode: "cors",
-            body: files[0]
+            mode: "cors",
+            body: formData
         });
-		data.user.avatar = 'http://localhost:3000/avatar/' + data.user.user_id + '.jpg';
+		if (!upload.ok) {
+			const result = await upload.json();
+			console.log(result);
+		}
+		
+    }
+
+	function toggleEdit() {
+		show_edit = !show_edit;
 	}
 </script>
 
 <svelte:window on:click={clickfunction}/>
-
-<input class="hidden" id="file-to-upload" type="file" accept=".png,.jpg" bind:files/>
-<button on:click={upload}>Submit</button>
 
 <div class="block_container">
 	<div class="block_vert" id="info">
@@ -95,7 +102,13 @@
 					<img id="avatar" src={profile_image} alt="avatar" />
 				{/if}
 				{#if data.user.username === data.username}
-					<img src={edit_icon} alt="edit icon" id="edit-icon"/>
+					<img on:click={toggleEdit} src={edit_icon} alt="edit icon" id="edit-icon"/>
+					{#if show_edit}
+					<div class="edit-avatar">
+					<input name="file"  id="file-to-upload" type="file" accept="image/*" bind:files={filevar}>
+					<button on:click={upload} >Submit</button>
+					</div>
+					{/if}
 				{/if}
 			</div>
 		</div>
@@ -144,6 +157,21 @@
 		font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
 			Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
 			Arial, sans-serif;
+	}
+
+	.edit-avatar {
+		display: flex;
+		position: fixed;
+		z-index: 25;
+		top: 50%;
+		left: 50%;
+		background: var(--box-color);
+		border-radius: 6px;
+		border-width: 2px;
+		border-color: var(--border-color);
+		border-style: solid;
+		width: 250px;
+		height: 150px;
 	}
 
 	.block_container {
@@ -200,6 +228,10 @@
 	#profile_link:hover {
 		box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
 		border-radius: 6px;
+	}
+	
+	.hidden {
+		display: none;
 	}
 
 	.block_cell {
