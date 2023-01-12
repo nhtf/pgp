@@ -34,7 +34,6 @@ export class WSConnection {
 		private readonly messageRepo: Repository<Message>
 		) {
 		this.users = [];
-                const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 	}
 
 	@SubscribeMessage('broadcast')
@@ -58,8 +57,8 @@ export class WSConnection {
 
 	@SubscribeMessage('message')
 	async message(@ConnectedSocket() client: Socket, @MessageBody() data: { room_id: string, content: string }) {
-            const socket: any = client;
-            console.log(socket.request.session);
+		const tmp: any = client;
+		console.log(tmp.request.session);
 
             /*
 		const user = await this.userRepo.findOneBy({ user_id: client.request.session.user_id });

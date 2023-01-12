@@ -18,6 +18,17 @@ import {
 } from './vars';
 import { join } from 'path';
 import { sessionMiddleware } from './app.module';
+import { IoAdapter } from '@nestjs/platform-socket.io';
+import { Server } from 'socket.io';
+
+class BetterAdapter extends IoAdapter {
+	createIOServer(port: number, options: any = {}):any {
+		const server = super.createIOServer(port, options);
+		const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
+		server.use(wrap(sessionMiddleware));
+		return server;
+	}
+}
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
@@ -49,6 +60,9 @@ async function bootstrap() {
 			transform: true,
 		}),
 	);
+
+	const betterAdapter = new BetterAdapter(app);
+	app.useWebSocketAdapter(betterAdapter);
 
 	app.useStaticAssets(join(__dirname, '..', 'avatar'), { prefix: '/avatar/' });
 	//TODO use nestjs way of setting up the data sourcd
