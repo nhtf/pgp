@@ -10,6 +10,7 @@
 		await ammoInit();
 		const VRButton = (await import("three/examples/jsm/webxr/VRButton.js")).VRButton;
 		world = new Pong();
+		console.log(world);
 		container.append(world.renderer.domElement);
 		container.append(VRButton.createButton(world.renderer));
 		await world.init();

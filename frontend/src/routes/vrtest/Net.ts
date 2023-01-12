@@ -5,8 +5,8 @@ export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
-export const DESYNC_CHECK_INTERVAL = 15;
-export const DESYNC_CHECK_DELTA = 15;
+export const DESYNC_CHECK_INTERVAL = 30;
+export const SAVE_ALL_SNAPSHOTS = false;
 
 export interface Snapshot {
 	time: number;
@@ -27,6 +27,7 @@ export class State {
 	public maxTime: number;
 	public minTime: number | null;
 	private snapshots: Snapshot[];
+	private allSnapshots: Snapshot[];
 	private allEvents: Event[];
 	private newEvents: Event[];
 	private listeners: Map<string, { (event: Event): void; }[]>;
@@ -37,6 +38,7 @@ export class State {
 		this.maxTime = 0;
 		this.minTime = null;
 		this.snapshots = [];
+		this.allSnapshots = [];
 		this.allEvents = [];
 		this.newEvents = [];
 		this.listeners = new Map();
@@ -90,6 +92,11 @@ export class State {
 			this.clean();
 		}
 
+		if (SAVE_ALL_SNAPSHOTS) {
+			this.allSnapshots = this.allSnapshots.filter(x => x.time != this.time);
+			this.allSnapshots.push(this.save());
+		}
+
 		if (this.time > this.maxTime) {
 			this.maxTime = this.time;
 
@@ -113,13 +120,13 @@ export class State {
 				});
 			}
 
-			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.socket !== null) {
-				const latest = this.getLatest(this.time - DESYNC_CHECK_DELTA);
+			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_INTERVAL + SYNCHRONIZE_INTERVAL && this.socket !== null) {
+				const latest = this.getLatest(this.time - DESYNC_CHECK_INTERVAL);
 
 				if (latest !== null) {
 					this.socket.emit("broadcast", {
 						name: "desync-check",
-						snapshot: this.getLatest(this.time - DESYNC_CHECK_DELTA),
+						snapshot: latest,
 					});
 				}
 			}
@@ -213,7 +220,7 @@ export class State {
 			} else if (message.name === "desync-check") {
 				let latest = this.getLatest(message.snapshot.time);
 
-				if (latest !== null) {
+				if (latest !== null && this.time > DESYNC_CHECK_INTERVAL + SYNCHRONIZE_INTERVAL) {
 					console.log("running desync check");
 
 					this.load(latest);

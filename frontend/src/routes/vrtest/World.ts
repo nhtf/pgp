@@ -63,6 +63,7 @@ export class World extends State {
 		this.cameraGroup = new THREE.Group();
 		this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));
 		this.world.setGravity(this.addAmmoObject(new Ammo.btVector3(0, -9.81, 0)));
+		this.world.getSolverInfo().set_m_solverMode(0);
 		this.entities = [];
 		this.blueprints = new Map();
 		
@@ -177,16 +178,45 @@ export class World extends State {
 	
 	public lateTick() {
 		for (let i = 0; i < STEPS_PER_TICK; i++) {
+			for (let entity of this.entities) {
+				this.world.removeRigidBody(entity.physicsObject);
+				entity.physicsObject.forceActivationState(1);
+				entity.physicsTick();
+				entity.position = Vector.fromObject(entity.position.intoObject());
+				entity.rotation = Quaternion.fromObject(entity.rotation.intoObject());
+				entity.linearVelocity = Vector.fromObject(entity.linearVelocity.intoObject());
+				entity.angularVelocity = Vector.fromObject(entity.angularVelocity.intoObject());
+			}
+
 			this.broadphaseInterface.resetPool(this.collisionDispatcher);
 			this.constraintSolver.reset();
 
-			for (let entity of this.entities) {
-				entity.physicsTick();
+			const sortedEntities = this.entities;
+			sortedEntities.sort((a, b) => a.uuid.localeCompare(b.uuid));
+
+			Ammo.destroy(this.collisionConfiguration);
+			Ammo.destroy(this.collisionDispatcher);
+			Ammo.destroy(this.broadphaseInterface);
+			Ammo.destroy(this.constraintSolver);
+			Ammo.destroy(this.world);
+
+			this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+			this.collisionDispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
+			this.broadphaseInterface = new Ammo.btDbvtBroadphase();
+			this.constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
+		
+			this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));
+			const gravity = new Ammo.btVector3(0, -9.81, 0);
+			this.world.setGravity(gravity);
+			this.world.getSolverInfo().set_m_solverMode(0);
+			Ammo.destroy(gravity);
+
+			for (let entity of sortedEntities) {
+				this.world.addRigidBody(entity.physicsObject);
 			}
 
 			this.world.stepSimulation(1 / TICKS_PER_SECOND / STEPS_PER_TICK, 1, 1 / TICKS_PER_SECOND / STEPS_PER_TICK);
 
-			/*
 			const numManifolds = this.collisionDispatcher.getNumManifolds();
 
 			for (let i = 0; i < numManifolds; i++) {
@@ -200,12 +230,10 @@ export class World extends State {
 					const contact = manifold.getContactPoint(0);
 					const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
 					const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
-					entity0?.onCollision(entity1 ?? null, contact0, contact1);
-					entity1?.onCollision(entity0 ?? null, contact1, contact0);
+					//entity0?.onCollision(entity1 ?? null, contact0, contact1);
+					//entity1?.onCollision(entity0 ?? null, contact1, contact0);
 				}
 			}
-
-		   */
 		}
 
 		for (let entity of this.entities) {

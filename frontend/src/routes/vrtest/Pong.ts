@@ -105,6 +105,12 @@ export class Ball extends Entity {
 		mesh.castShadow = true;
 	}
 
+	public lateTick() {
+		this.rotation = new Quaternion(0, 0, 0, 1);
+
+		super.lateTick();
+	}
+
 	public destroy() {
 		this.geometry.dispose();
 		this.material.dispose();
@@ -141,6 +147,8 @@ export class Paddle extends Entity {
 		super.earlyTick();
 	}
 }
+
+let counter = 201;
 
 export class Pong extends World {
 	public paddleUUID: string;
@@ -182,12 +190,16 @@ export class Pong extends World {
 	public earlyTick() {
 		if (this.time >= this.maxTime) {
 			this.sendUpdate("paddle", this.paddleUUID, {
-				targetPosition: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)),
-				targetRotation: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)),
+				targetPosition: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)).intoObject(),
+				targetRotation: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)).intoObject(),
 			});
 		}
 
 		super.earlyTick();
+
+		if (counter++ == 200) {
+			console.log(this.get(Ball.UUID)?.position);
+		}
 	}
 
 	public start(options: WorldOptions) {
@@ -196,10 +208,12 @@ export class Pong extends World {
 
 			if (paddle !== null) {
 				this.sendUpdate("ball", Ball.UUID, {
-					position: paddle.position.add(new Vector(0, 0.25, 0)),
-					linearVelocity: new Vector(0, 2, 0),
-					angularVelocity: new Vector(0, 0, 0),
+					position: paddle.position.add(new Vector(0, 0.25, 0)).intoObject(),
+					linearVelocity: new Vector(0, 1, 0).intoObject(),
+					angularVelocity: new Vector(0, 0, 0).intoObject(),
 				});
+
+				counter = 0;
 			}
 		});
 

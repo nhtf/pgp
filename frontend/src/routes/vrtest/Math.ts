@@ -2,9 +2,17 @@ import { Ammo } from "./Ammo";
 import * as THREE from "three";
 
 export interface VectorObject {
-	x: number;
-	y: number;
-	z: number;
+	x: string;
+	y: string;
+	z: string;
+}
+
+function serializeFloat(value: number): string {
+	return `${Math.round(value * 1000000) / 1000000}`
+}
+
+function deserializeFloat(value: string): number {
+	return parseFloat(value);
 }
 
 export class Vector {
@@ -27,7 +35,7 @@ export class Vector {
 	}
 
 	intoObject(): VectorObject {
-		return { x: this.x, y: this.y, z: this.z };
+		return { x: serializeFloat(this.x), y: serializeFloat(this.y), z: serializeFloat(this.z) };
 	}
 
 	static fromAmmo(vector: Ammo.btVector3): Vector {
@@ -45,7 +53,7 @@ export class Vector {
 	}
 
 	static fromObject(vector: VectorObject): Vector {
-		return new Vector(vector.x, vector.y, vector.z);
+		return new Vector(deserializeFloat(vector.x), deserializeFloat(vector.y), deserializeFloat(vector.z));
 	}
 
 	add(other: Vector): Vector {
@@ -62,10 +70,10 @@ export class Vector {
 }
 
 export interface QuaternionObject {
-	x: number;
-	y: number;
-	z: number;
-	w: number;
+	x: string;
+	y: string;
+	z: string;
+	w: string;
 }
 
 export class Quaternion {
@@ -90,7 +98,7 @@ export class Quaternion {
 	}
 
 	intoObject(): QuaternionObject {
-		return { x: this.x, y: this.y, z: this.z, w: this.w };
+		return { x: serializeFloat(this.x), y: serializeFloat(this.y), z: serializeFloat(this.z), w: serializeFloat(this.w) };
 	}
 
 	static fromAmmo(quaternion: Ammo.btQuaternion): Quaternion {
@@ -108,7 +116,7 @@ export class Quaternion {
 	}
 
 	static fromObject(quaternion: QuaternionObject): Quaternion {
-		return new Quaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+		return new Quaternion(deserializeFloat(quaternion.x), deserializeFloat(quaternion.y), deserializeFloat(quaternion.z), deserializeFloat(quaternion.w));
 	}
 
 	euler(): Vector {

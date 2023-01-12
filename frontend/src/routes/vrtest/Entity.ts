@@ -95,12 +95,12 @@ export abstract class Entity {
 
 	public physicsTick() {
 		if (this.targetPosition !== null) {
-			let position = Vector.fromObject(this.targetPosition);
+			let position = this.targetPosition;
 			this.linearVelocity = position.sub(this.position).scale(50);
 		}
 
 		if (this.targetRotation !== null) {
-			let rotation = Quaternion.fromObject(this.targetRotation);
+			let rotation = this.targetRotation;
 			this.angularVelocity = rotation.mul(this.rotation.inverse()).euler().scale(50);
 		}
 	}
@@ -144,7 +144,7 @@ export abstract class Entity {
 	}
 }
 
-export function createPhysicsObject(collisionShape: Ammo.btCollisionShape, mass: number) {
+export function createPhysicsObject(collisionShape: Ammo.btCollisionShape, mass: number): Ammo.btRigidBody {
 	const transform = new Ammo.btTransform();
 	transform.setIdentity();
 	const motionState = new Ammo.btDefaultMotionState();
