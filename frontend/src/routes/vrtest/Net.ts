@@ -1,11 +1,13 @@
 import { Socket, io } from "socket.io-client";
+import { Counter, randomHex } from "./Util";
 
 export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
-export const DESYNC_CHECK_INTERVAL = 30;
+export const DESYNC_CHECK_INTERVAL = 0;
+export const DESYNC_CHECK_DELTA = 0;
 export const SAVE_ALL_SNAPSHOTS = false;
 
 export interface Snapshot {
@@ -26,6 +28,8 @@ export class State {
 	public time: number;
 	public maxTime: number;
 	public minTime: number | null;
+	public bandwidthDownload: Counter;
+	public bandwidthUpload: Counter;
 	private snapshots: Snapshot[];
 	private allSnapshots: Snapshot[];
 	private allEvents: Event[];
@@ -37,6 +41,8 @@ export class State {
 		this.time = 0;
 		this.maxTime = 0;
 		this.minTime = null;
+		this.bandwidthDownload = new Counter(5);
+		this.bandwidthUpload = new Counter(5);
 		this.snapshots = [];
 		this.allSnapshots = [];
 		this.allEvents = [];
@@ -104,15 +110,15 @@ export class State {
 				this.applyMerge();
 			}
 
-			if (this.time % UPDATE_INTERVAL == 0 && this.socket !== null) {
-				this.socket.emit("broadcast", {
+			if (this.time % UPDATE_INTERVAL == 0) {
+				this.broadcast({
 					name: "update",
 					events: this.newEvents.splice(0),
 				});
 			}
 
 			if (this.time % SYNCHRONIZE_INTERVAL == 0 && this.socket !== null) {
-				this.socket.emit("broadcast", {
+				this.broadcast({
 					name: "synchronize",
 					time: this.time,
 					snapshot: this.snapshots[0],
@@ -120,11 +126,11 @@ export class State {
 				});
 			}
 
-			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_INTERVAL + SYNCHRONIZE_INTERVAL && this.socket !== null) {
-				const latest = this.getLatest(this.time - DESYNC_CHECK_INTERVAL);
+			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL && this.socket !== null) {
+				const latest = this.getLatest(this.time - DESYNC_CHECK_DELTA);
 
 				if (latest !== null) {
-					this.socket.emit("broadcast", {
+					this.broadcast({
 						name: "desync-check",
 						snapshot: latest,
 					});
@@ -147,7 +153,7 @@ export class State {
 	public send(name: string, event: any) {
 		event.name = name;
 		event.time = this.time;
-		event.uuid = crypto.randomUUID();
+		event.uuid = randomHex(8);
 		this.allEvents.push(event as Event);
 		this.newEvents.push(event as Event);
 	}
@@ -202,9 +208,13 @@ export class State {
 	}
 
 	public start(options: Options) {
+		this.snapshots.push(this.save());
+
 		this.socket = io(options.address ?? "ws://localhost:3000", { withCredentials: true });
 		this.socket.on("exception", console.error);
 		this.socket.on("broadcast", message => {
+			this.bandwidthDownload.add(JSON.stringify(message).length);
+
 			if (message.name === "update") {
 				this.merge(message.events);
 			} else if (message.name === "synchronize") {
@@ -220,12 +230,13 @@ export class State {
 			} else if (message.name === "desync-check") {
 				let latest = this.getLatest(message.snapshot.time);
 
-				if (latest !== null && this.time > DESYNC_CHECK_INTERVAL + SYNCHRONIZE_INTERVAL) {
+				if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
 					console.log("running desync check");
 
 					this.load(latest);
 					this.forward(message.snapshot.time);
 					const testState = this.save();
+					this.load(this.snapshots[this.snapshots.length - 1]);
 					this.forward(this.maxTime);
 
 					if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
@@ -234,6 +245,11 @@ export class State {
 				}
 			}
 		});
+	}
+
+	private broadcast(message: any) {
+		this.bandwidthUpload.add(JSON.stringify(message).length);
+		this.socket?.emit("broadcast", message);
 	}
 
 	public stop() {

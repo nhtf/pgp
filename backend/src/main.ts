@@ -21,6 +21,9 @@ import { sessionMiddleware } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
 import { Server } from 'socket.io';
 
+//https://docs.nestjs.com/websockets/adapter
+//https://socket.io/get-started/chat
+//https://socket.io/how-to/use-with-express-session
 class BetterAdapter extends IoAdapter {
 	createIOServer(port: number, options: any = {}):any {
 		const server = super.createIOServer(port, options);

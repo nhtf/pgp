@@ -11,6 +11,7 @@
 
 	let friends = data.friends;
 	let show_edit = false;
+	let avatar = data.user.avatar;
 
 	function toggleDropOut(event: Event | undefined,username: string) {
 		if (document.getElementById(username)) {
@@ -77,15 +78,35 @@
             mode: "cors",
             body: formData
         });
-		if (!upload.ok) {
+		if (upload.ok) {
 			const result = await upload.json();
 			console.log(result);
+			data.user.avatar = result.new_avatar;
+			avatar = data.user.avatar;
+			const avatar_el = document.getElementById('small-avatar');
+			if (avatar_el) {
+				avatar_el.setAttribute('src', result.new_avatar);
+			}
 		}
-		
+		src = null;
+		show_edit = false;
     }
 
 	function toggleEdit() {
 		show_edit = !show_edit;
+		src = null;
+	}
+
+	let src: string | null;
+
+	function onChange() {
+		var reader = new FileReader();
+		reader.onload = function (e) {
+		if (e.target && e.target.result) {
+			src = e.target.result as string;
+			}
+		}
+		reader.readAsDataURL(filevar[0]);
 	}
 </script>
 
@@ -104,9 +125,28 @@
 				{#if data.user.username === data.username}
 					<img on:click={toggleEdit} src={edit_icon} alt="edit icon" id="edit-icon"/>
 					{#if show_edit}
-					<div class="edit-avatar">
-					<input name="file"  id="file-to-upload" type="file" accept="image/*" bind:files={filevar}>
-					<button on:click={upload} >Submit</button>
+					<div class="edit-avatar-window">
+						<div class="close-button">
+						<svg on:click={toggleEdit} fill="currentColor" width="24" height="24">
+							<path d="M13.42 12L20 18.58 18.58 20 12 13.42 5.42 20 4 18.58 10.58 12 4 5.42 5.42 4 12 10.58 18.58 4 20 5.42z"></path>
+						  </svg>
+						</div>
+						{#if !src}
+						<div class="avatar-preview-container">
+						<img class="current-avatar" src={data.user.avatar} alt="avatar" />
+						</div>
+						<div class="image-selector">
+							<input name="file" class="hidden"  id="image-selector_file_upload" type="file" accept="image/*" bind:files={filevar} on:change={onChange}>
+							<label  for="image-selector_file_upload">edit avatar</label>
+						</div>
+					{/if}
+					{#if src}
+						<div class="avatar-preview-container">
+						<img src={src} class="current-avatar"/>
+						</div>
+						<div class="image-selector" on:click={upload}>submit
+						</div>
+					{/if}
 					</div>
 					{/if}
 				{/if}
@@ -159,19 +199,84 @@
 			Arial, sans-serif;
 	}
 
-	.edit-avatar {
+	.edit-avatar-window {
 		display: flex;
 		position: fixed;
+		flex-direction: column;
 		z-index: 25;
-		top: 50%;
-		left: 50%;
+		top: calc(50% - 200px);
+		left: calc(50% - 176px);
 		background: var(--box-color);
 		border-radius: 6px;
-		border-width: 2px;
+		border-width: 1px;
 		border-color: var(--border-color);
 		border-style: solid;
-		width: 250px;
-		height: 150px;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+		width: 400px;
+		height: 350px;
+		justify-content: center;
+		align-items: center;
+		text-align: center;
+		align-self: flex-end;
+	}
+
+	.close-button {
+		display: flex;
+		position: relative;
+		align-self: flex-end;
+		align-items: center;
+		justify-content: center;
+		bottom: 30px;
+		right: 10px;
+		cursor: pointer;
+	}
+
+	.close-button:hover {
+		box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
+		border-radius: 6px;
+	}
+
+	.image-selector {
+		display: flex;
+		position: relative;
+		height: 30px;
+		width: 100px;
+		align-self: center;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		border-width: 1px;
+		border-color: var(--scrollbar-thumb);
+		border-style: solid;
+		top: 20px;
+		cursor: pointer;
+	}
+
+	.image-selector:hover {
+		background: rgb(25, 30, 35);
+	}
+
+	.avatar-preview-container {
+		display: flex;
+		position: relative;
+		align-self: center;
+		align-items: center;
+		justify-content: center;
+		width: 200px;
+		height: 200px;
+		border-radius: 50%;
+		border-width: 5px;
+		border-color: rgb(25, 30, 35);
+		border-style: solid;
+		overflow: hidden;
+		
+	}
+
+	.current-avatar {
+		position: relative;
+		width: auto;
+		max-height: 250px;
+		object-fit: contain;
 	}
 
 	.block_container {

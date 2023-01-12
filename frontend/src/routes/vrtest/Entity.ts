@@ -4,15 +4,25 @@ import type { VectorObject, QuaternionObject } from "./Math";
 import type { World } from "./World";
 import type * as THREE from "three";
 
+export interface EntityUpdate {
+	uuid: string;
+	pos?: VectorObject;
+	rot?: QuaternionObject;
+	lv?: VectorObject;
+	av?: VectorObject;
+	tp?: VectorObject | null;
+	tr?: QuaternionObject | null;
+}
+
 export interface EntityObject {
 	uuid: string;
 	name: string;
-	position: VectorObject;
-	rotation: QuaternionObject;
-	linearVelocity: VectorObject;
-	angularVelocity: VectorObject;
-	targetPosition: VectorObject | null;
-	targetRotation: QuaternionObject | null;
+	pos: VectorObject;
+	rot: QuaternionObject;
+	lv: VectorObject;
+	av: VectorObject;
+	tp: VectorObject | null;
+	tr: QuaternionObject | null;
 }
 
 export abstract class Entity {
@@ -114,24 +124,28 @@ export abstract class Entity {
 		return {
 			uuid: this.uuid,
 			name: this.name,
-			position: this.position.intoObject(),
-			rotation: this.rotation.intoObject(),
-			linearVelocity: this.linearVelocity.intoObject(),
-			angularVelocity: this.angularVelocity.intoObject(),
-			targetPosition: this.targetPosition ? this.targetPosition.intoObject() : null,
-			targetRotation: this.targetRotation ? this.targetRotation.intoObject() : null,
+			pos: this.position.intoObject(),
+			rot: this.rotation.intoObject(),
+			lv: this.linearVelocity.intoObject(),
+			av: this.angularVelocity.intoObject(),
+			tp: this.targetPosition ? this.targetPosition.intoObject() : null,
+			tr: this.targetRotation ? this.targetRotation.intoObject() : null,
 		};
 	}
 
-	public load(entity: EntityObject) {
-		this.position = Vector.fromObject(entity.position);
-		this.rotation = Quaternion.fromObject(entity.rotation);
-		this.linearVelocity = Vector.fromObject(entity.linearVelocity);
-		this.angularVelocity = Vector.fromObject(entity.angularVelocity);
-		this.targetPosition = entity.targetPosition ? Vector.fromObject(entity.targetPosition) : null;
-		this.targetRotation = entity.targetRotation ? Quaternion.fromObject(entity.targetRotation) : null;
-
-		// TODO: use a new MotionState
+	public load(entity: EntityUpdate) {
+		if (entity.pos !== undefined)
+			this.position = Vector.fromObject(entity.pos);
+		if (entity.rot !== undefined)
+			this.rotation = Quaternion.fromObject(entity.rot);
+		if (entity.lv !== undefined)
+			this.linearVelocity = Vector.fromObject(entity.lv);
+		if (entity.av !== undefined)
+			this.angularVelocity = Vector.fromObject(entity.av);
+		if (entity.tp !== undefined)
+			this.targetPosition = entity.tp ? Vector.fromObject(entity.tp) : null;
+		if (entity.tr !== undefined)
+			this.targetRotation = entity.tr ? Quaternion.fromObject(entity.tr) : null;
 	}
 
 	public destroy() {

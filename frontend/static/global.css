@@ -55,4 +55,9 @@ body {
   body {
 	background: var(--bkg-color);
   }
+
+  canvas {
+	height: 200px;
+	width: 200px;
+}
   

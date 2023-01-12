@@ -2,7 +2,7 @@ import { Ammo } from "./Ammo";
 import * as THREE from "three";
 import { State } from "./Net";
 import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "./Net";
-import type { Entity, EntityObject } from "./Entity";
+import type { Entity, EntityObject, EntityUpdate } from "./Entity";
 import { Vector, Quaternion } from "./Math";
 import type { VectorObject, QuaternionObject } from "./Math";
 
@@ -17,8 +17,12 @@ export interface Snapshot extends NetSnapshot {
 	entities: EntityObject[];
 }
 
-export interface UpdateEvent extends NetEvent {
+export interface CreateEvent extends NetEvent {
 	entity: EntityObject;
+}
+
+export interface UpdateEvent extends NetEvent {
+	entity: EntityUpdate;
 }
 
 export interface DeleteEvent extends NetEvent {
@@ -77,6 +81,12 @@ export class World extends State {
 		this.scene.background = new THREE.Color("skyblue");
 		this.scene.add(this.cameraGroup);
 
+		this.on("create", netEvent => {
+			const event = netEvent as CreateEvent;
+			console.log("create event", event.entity.uuid);
+			this.create(event.entity);
+		});
+
 		this.on("update", netEvent => {
 			const event = netEvent as UpdateEvent;
 			this.update(event.entity);
@@ -88,17 +98,22 @@ export class World extends State {
 		});
 	}
 
-	public update(object: EntityObject) {
+	public create(object: EntityObject) {
 		let entity = this.get(object.uuid);
 
 		if (entity === null) {
 			const blueprint = this.blueprints.get(object.name);
 
 			if (blueprint !== undefined) {
-				entity = blueprint(object);
-				this.add(entity);
+				this.add(blueprint(object));
 			}
 		}
+
+		this.update(object);
+	}
+
+	public update(object: EntityUpdate) {
+		let entity = this.get(object.uuid);
 
 		if (entity !== null) {
 			entity.load(object);
@@ -128,21 +143,29 @@ export class World extends State {
 		this.entities.splice(this.entities.indexOf(entity), 1);
 	}
 
-	public sendUpdate(name: string, uuid: string, object: Partial<EntityObject>) {
-		let entity = this.get(uuid);
+	public sendCreate(object: EntityObject) {
+		this.send("create", { entity: object });
+	}
 
-		this.send("update", {
-			entity: {
-				name,
-				uuid,
-				position: object.position ?? entity?.position ?? new Vector(0, 0, 0).intoObject(),
-				rotation: object.rotation ?? entity?.rotation ?? new Quaternion(0, 0, 0, 1).intoObject(),
-				linearVelocity: object.linearVelocity ?? entity?.linearVelocity ?? new Vector(0, 0, 0).intoObject(),
-				angularVelocity: object.angularVelocity ?? entity?.angularVelocity ?? new Vector(0, 0, 0).intoObject(),
-				targetPosition: object.targetPosition !== undefined ? object.targetPosition : (entity?.targetPosition ?? null),
-				targetRotation: object.targetRotation !== undefined ? object.targetRotation : (entity?.targetRotation ?? null),
-			}
-		});
+	public sendUpdate(object: EntityUpdate) {
+		this.send("update", { entity: object });
+	}
+
+	public sendCreateOrUpdate(object: Partial<EntityObject>) {
+		const entity = this.get(object.uuid!);
+
+		if (entity === null) {
+			object.pos ??= new Vector(0, 0, 0).intoObject();
+			object.rot ??= new Quaternion(0, 0, 0, 1).intoObject();
+			object.lv ??= new Vector(0, 0, 0).intoObject();
+			object.av ??= new Vector(0, 0, 0).intoObject();
+			object.tp ??= null;
+			object.tr ??= null;
+			this.sendCreate(object as EntityObject);
+		} else {
+			delete object.name;
+			this.sendUpdate(object as EntityUpdate);
+		}
 	}
 
 	public sendDelete(uuid: string) {
@@ -177,44 +200,29 @@ export class World extends State {
 	}
 	
 	public lateTick() {
+		for (let entity of this.entities) {
+			this.world.removeRigidBody(entity.physicsObject);
+			entity.physicsObject.forceActivationState(1);
+			entity.position = Vector.fromObject(entity.position.intoObject());
+			entity.rotation = Quaternion.fromObject(entity.rotation.intoObject());
+			entity.linearVelocity = Vector.fromObject(entity.linearVelocity.intoObject());
+			entity.angularVelocity = Vector.fromObject(entity.angularVelocity.intoObject());
+		}
+
+		const sortedEntities = this.entities;
+		sortedEntities.sort((a, b) => a.uuid.localeCompare(b.uuid));
+
+		for (let entity of sortedEntities) {
+			this.world.addRigidBody(entity.physicsObject);
+		}
+
 		for (let i = 0; i < STEPS_PER_TICK; i++) {
 			for (let entity of this.entities) {
-				this.world.removeRigidBody(entity.physicsObject);
-				entity.physicsObject.forceActivationState(1);
 				entity.physicsTick();
-				entity.position = Vector.fromObject(entity.position.intoObject());
-				entity.rotation = Quaternion.fromObject(entity.rotation.intoObject());
-				entity.linearVelocity = Vector.fromObject(entity.linearVelocity.intoObject());
-				entity.angularVelocity = Vector.fromObject(entity.angularVelocity.intoObject());
 			}
 
 			this.broadphaseInterface.resetPool(this.collisionDispatcher);
 			this.constraintSolver.reset();
-
-			const sortedEntities = this.entities;
-			sortedEntities.sort((a, b) => a.uuid.localeCompare(b.uuid));
-
-			Ammo.destroy(this.collisionConfiguration);
-			Ammo.destroy(this.collisionDispatcher);
-			Ammo.destroy(this.broadphaseInterface);
-			Ammo.destroy(this.constraintSolver);
-			Ammo.destroy(this.world);
-
-			this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
-			this.collisionDispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
-			this.broadphaseInterface = new Ammo.btDbvtBroadphase();
-			this.constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
-		
-			this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));
-			const gravity = new Ammo.btVector3(0, -9.81, 0);
-			this.world.setGravity(gravity);
-			this.world.getSolverInfo().set_m_solverMode(0);
-			Ammo.destroy(gravity);
-
-			for (let entity of sortedEntities) {
-				this.world.addRigidBody(entity.physicsObject);
-			}
-
 			this.world.stepSimulation(1 / TICKS_PER_SECOND / STEPS_PER_TICK, 1, 1 / TICKS_PER_SECOND / STEPS_PER_TICK);
 
 			const numManifolds = this.collisionDispatcher.getNumManifolds();
@@ -230,8 +238,8 @@ export class World extends State {
 					const contact = manifold.getContactPoint(0);
 					const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
 					const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
-					//entity0?.onCollision(entity1 ?? null, contact0, contact1);
-					//entity1?.onCollision(entity0 ?? null, contact1, contact0);
+					entity0?.onCollision(entity1 ?? null, contact0, contact1);
+					entity1?.onCollision(entity0 ?? null, contact1, contact0);
 				}
 			}
 		}
@@ -266,7 +274,7 @@ export class World extends State {
 
 		for (let entity of snapshot.entities) {
 			uuids.add(entity.uuid);
-			this.update(entity);
+			this.create(entity);
 		}
 
 		for (let entity of this.entities) {

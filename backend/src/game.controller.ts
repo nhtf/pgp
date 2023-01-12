@@ -39,9 +39,11 @@ export class GameController {
 				// console.log(value);
 				let avatarPath: string;
 				let isFriend: boolean = false;
+				/*TODO uncomment and update this
 				avatarPath = BACKEND_ADDRESS + '/' + AVATAR_DIR + '/';
 				avatarPath += user.has_avatar ? user.user_id : DEFAULT_AVATAR;
 				avatarPath += '.jpg';
+			   */
 
 				value.friends.then((dat) => {
 					dat?.forEach((lol) => {

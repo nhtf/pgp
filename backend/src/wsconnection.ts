@@ -1,4 +1,4 @@
-import { Inject, HttpStatus, HttpException } from '@nestjs/common';
+import { Inject, HttpStatus, HttpException, UseGuards } from '@nestjs/common';
 import {
 	MessageBody,
 	SubscribeMessage,
@@ -15,6 +15,8 @@ import { GetUser } from './util';
 import * as session from 'express-session';
 import express from 'express';
 import { sessionMiddleware } from './app.module';
+import { authorize } from './auth/auth.guard';
+import { dataSource } from './app.module';
 
 @WebSocketGateway({
 	cors: { origin: 'http://localhost:5173', credentials: true },
@@ -34,6 +36,14 @@ export class WSConnection {
 		private readonly messageRepo: Repository<Message>
 		) {
 		this.users = [];
+	}
+
+	async handleConnection(client: Socket) {
+		const request: any = client.request;
+		if (!authorize(request.session)) {
+			client.emit('exception', {errorMessage: 'unauthorized'});
+			client.disconnect();
+		}
 	}
 
 	@SubscribeMessage('broadcast')

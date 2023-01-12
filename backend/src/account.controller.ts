@@ -16,12 +16,12 @@ import {
 	Session,
 	UseGuards,
 	UseInterceptors,
-        UploadedFile,
-        ParseFilePipeBuilder,
+	UploadedFile,
+	ParseFilePipeBuilder,
 } from '@nestjs/common';
 import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
 import { Request, Response } from 'express';
-import { open } from 'node:fs/promises';
+import { open, rm } from 'node:fs/promises';
 import { finished, Readable } from 'node:stream';
 import { join } from 'path';
 import * as sharp from 'sharp';
@@ -33,6 +33,7 @@ import { SessionObject } from './SessionUtils';
 import { GetUser, GetUserQuery } from './util';
 import { AVATAR_DIR, BACKEND_ADDRESS } from './vars';
 import { dataSource } from './app.module';
+import { randomBytes } from 'node:crypto';
 
 import { Express } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
@@ -76,7 +77,7 @@ export class AccountController {
 		private readonly userRepo: Repository<User>,
 		@Inject('FRIENDREQUEST_REPO')
 		private requestRepo: Repository<FriendRequest>,
-	) {}
+	) { }
 
 	@Post('setup')
 	@HttpCode(HttpStatus.CREATED)
@@ -88,8 +89,9 @@ export class AccountController {
 		if (user.username !== null)
 			throw new HttpException('already setup user', HttpStatus.FORBIDDEN);
 
-		const other_user = await this.userRepo.findOneBy({ username:
-			username_dto.username,
+		const other_user = await this.userRepo.findOneBy({
+			username:
+				username_dto.username,
 		});
 		if (other_user)
 			throw new HttpException('username already taken', HttpStatus.BAD_REQUEST);
@@ -135,76 +137,55 @@ export class AccountController {
 		return user;
 	}
 
-        /*
 	@Post('set_image')
 	@UseGuards(SetupGuard)
+	@UseInterceptors(FileInterceptor('file'))
 	async set_image(
 		@GetUser() user: User,
+		@UploadedFile(
+			new ParseFilePipeBuilder().addMaxSizeValidator({ maxSize: 5242880 }).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
+		uploaded_file: Express.Multer.File,
 		@Req() request: Request,
 		@Res() response: Response,
 	) {
+		if (!uploaded_file)
+			throw new HttpException('no file', HttpStatus.BAD_REQUEST);
 		const avatar_path = join(
 			AVATAR_DIR,
 			this.get_avatar_filename(user.user_id),
 		);
 
-		const transform = sharp().resize(200, 200).jpeg();
-		const file = await open(avatar_path, 'w');
-		const stream = file.createWriteStream();
-		request.pipe(transform).pipe(stream);
-
-		finished(transform, (error: Error) => {
-			if (error) {
-				response.status(HttpStatus.BAD_REQUEST).json('bad image');
-			} else {
-				response.status(HttpStatus.ACCEPTED);
-				user.has_avatar = true;
-				this.userRepo.save(user);
-			}
-			stream.close();
-			file.close();
-			return response.send();
-		});
-	}
-       */
-
-	@Post('set_image')
-	@UseGuards(SetupGuard)
-        @UseInterceptors(FileInterceptor('file'))
-	async set_image(
-		@GetUser() user: User,
-                @UploadedFile(
-                    new ParseFilePipeBuilder().addMaxSizeValidator({ maxSize: 5242880 }).build({errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY}))
-                uploaded_file: Express.Multer.File,
-		@Req() request: Request,
-		@Res() response: Response,
-	) {
-                if (!uploaded_file)
-                    throw new HttpException('no file', HttpStatus.BAD_REQUEST);
-		const avatar_path = join(
-			AVATAR_DIR,
-			this.get_avatar_filename(user.user_id),
-		);
+		let new_base = null;
+		while ((new_base = randomBytes(20).toString('hex')) === user.username)
+			continue;
 
 		const transform = sharp().resize(200, 200).jpeg();
-		const file = await open(avatar_path, 'w');
+		const file = await open(user.avatar_path(new_base), 'w');
 		const stream = file.createWriteStream();
 
-                const istream = new Readable();
-                istream.push(uploaded_file.buffer);
-                istream.push(null);
+		const istream = new Readable();
+		istream.push(uploaded_file.buffer);
+		istream.push(null);
 		istream.pipe(transform).pipe(stream);
 
-		finished(transform, (error: Error) => {
-			if (error) {
-				response.status(HttpStatus.BAD_REQUEST).json('bad image');
-			} else {
-				response.status(HttpStatus.ACCEPTED);
-				user.has_avatar = true;
-				this.userRepo.save(user);
+		finished(transform, async (error: Error) => {
+			try {
+				if (error) {
+					response.status(HttpStatus.BAD_REQUEST).json('bad image');
+				} else {
+					//TODO catch exceptions
+					if (user.avatar_base)
+						await rm(user.avatar_path(user.avatar_base));
+					user.avatar_base = new_base;
+					response.status(HttpStatus.ACCEPTED).json({ new_avatar: user.avatar });
+					this.userRepo.save(user);
+				}
+				stream.close();
+				file.close();
+			} catch (error) {
+				response.status(HttpStatus.INTERNAL_SERVER_ERROR).json('could not set image');
+				console.error(error);
 			}
-			stream.close();
-			file.close();
 			return response.send();
 		});
 	}

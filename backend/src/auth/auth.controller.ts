@@ -155,7 +155,7 @@ export class AuthController {
 			user.auth_req = AuthLevel.OAuth;
 			user.secret = undefined;
 			user.username = undefined;
-			user.has_avatar = false;
+			user.avatar_base = null;
 			await this.userRepo.save(user);
 		}
 

@@ -1,18 +1,21 @@
 import { Ammo } from "./Ammo";
 import * as THREE from "three";
 
-export interface VectorObject {
-	x: string;
-	y: string;
-	z: string;
+export type VectorObject = string;
+
+function serialize(value: ArrayBufferLike): string {
+	return btoa(String.fromCharCode(...new Uint8Array(value)));
 }
 
-function serializeFloat(value: number): string {
-	return `${Math.round(value * 1000000) / 1000000}`
-}
+function deserialize(value: string): ArrayBufferLike {
+	value = atob(value);
+	const bytes = new Uint8Array(value.length);
 
-function deserializeFloat(value: string): number {
-	return parseFloat(value);
+	for (let i = 0; i < value.length; i++) {
+		bytes[i] = value.charCodeAt(i);
+	}
+
+	return bytes.buffer;
 }
 
 export class Vector {
@@ -35,7 +38,11 @@ export class Vector {
 	}
 
 	intoObject(): VectorObject {
-		return { x: serializeFloat(this.x), y: serializeFloat(this.y), z: serializeFloat(this.z) };
+		const buffer = new Float32Array(3);
+		buffer[0] = this.x;
+		buffer[1] = this.y;
+		buffer[2] = this.z;
+		return serialize(buffer.buffer);
 	}
 
 	static fromAmmo(vector: Ammo.btVector3): Vector {
@@ -53,7 +60,8 @@ export class Vector {
 	}
 
 	static fromObject(vector: VectorObject): Vector {
-		return new Vector(deserializeFloat(vector.x), deserializeFloat(vector.y), deserializeFloat(vector.z));
+		const buffer = new Float32Array(deserialize(vector));
+		return new Vector(buffer[0], buffer[1], buffer[2]);
 	}
 
 	add(other: Vector): Vector {
@@ -69,12 +77,7 @@ export class Vector {
 	}
 }
 
-export interface QuaternionObject {
-	x: string;
-	y: string;
-	z: string;
-	w: string;
-}
+export type QuaternionObject = string;
 
 export class Quaternion {
 	x: number;
@@ -98,7 +101,12 @@ export class Quaternion {
 	}
 
 	intoObject(): QuaternionObject {
-		return { x: serializeFloat(this.x), y: serializeFloat(this.y), z: serializeFloat(this.z), w: serializeFloat(this.w) };
+		const buffer = new Float32Array(4);
+		buffer[0] = this.x;
+		buffer[1] = this.y;
+		buffer[2] = this.z;
+		buffer[3] = this.w;
+		return serialize(buffer.buffer);
 	}
 
 	static fromAmmo(quaternion: Ammo.btQuaternion): Quaternion {
@@ -116,7 +124,8 @@ export class Quaternion {
 	}
 
 	static fromObject(quaternion: QuaternionObject): Quaternion {
-		return new Quaternion(deserializeFloat(quaternion.x), deserializeFloat(quaternion.y), deserializeFloat(quaternion.z), deserializeFloat(quaternion.w));
+		const buffer = new Float32Array(deserialize(quaternion));
+		return new Quaternion(buffer[0], buffer[1], buffer[2], buffer[3]);
 	}
 
 	euler(): Vector {

@@ -40,9 +40,9 @@ class UserDto {
 	@IsOptional()
 	secret?: string;
 
-	@IsBoolean()
+	@IsString()
 	@IsOptional()
-	has_avatar?: boolean;
+	avatar?: string;
 
 	@IsEnum(AuthLevel)
 	@IsOptional()
@@ -72,7 +72,7 @@ export class DebugController {
 		user.username = dto.username;
 		user.oauth_id = dto.oauth_id ?? -1;
 		user.secret = dto.secret;
-		user.has_avatar = dto.has_avatar ?? false;
+		user.avatar_base = dto.avatar ?? null;
 		user.auth_req = dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth;
 		user.online = true;
 		await this.userRepo.save(user);
@@ -86,7 +86,7 @@ export class DebugController {
 			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
 		user.oauth_id = dto.oauth_id ?? user.oauth_id;
 		user.secret = dto.secret ?? user.secret;
-		user.has_avatar = dto.has_avatar ?? user.has_avatar;
+		user.avatar_base = dto.avatar ?? user.avatar_base;
 		user.auth_req = dto.auth_req ? AuthLevel[dto.auth_req] : user.auth_req;
 		await this.userRepo.save(user);
 		return user;

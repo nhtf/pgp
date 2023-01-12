@@ -4,6 +4,7 @@ import { World } from "./World";
 import type { Options as WorldOptions } from "./World";
 import { Ammo } from "./Ammo";
 import { Vector, Quaternion } from "./Math";
+import { randomHex } from "./Util";
 import * as THREE from "three";
 
 const textureLoader = new THREE.TextureLoader();
@@ -66,7 +67,7 @@ async function createFloor(world: Pong) {
 }
 
 export class Table extends Entity {
-	static readonly UUID = "6520af0e-f9f2-48ab-9cb1-55a7993043cc";
+	static readonly UUID = "TABLE";
 
 	public name = "table";
 	public dynamic = false;
@@ -81,7 +82,7 @@ export class Table extends Entity {
 }
 
 export class Ball extends Entity {
-	public static readonly UUID = "a80489ec-3b79-4c97-9bc3-d26f80d76bfb";
+	public static readonly UUID = "BALL";
 	public static readonly RADIUS = 0.02;
 	public static readonly MASS = 0.0027;
 	public static readonly RESTITUTION = 0.9;
@@ -103,12 +104,6 @@ export class Ball extends Entity {
 		this.geometry = geometry;
 		this.material = material;
 		mesh.castShadow = true;
-	}
-
-	public lateTick() {
-		this.rotation = new Quaternion(0, 0, 0, 1);
-
-		super.lateTick();
 	}
 
 	public destroy() {
@@ -148,8 +143,6 @@ export class Paddle extends Entity {
 	}
 }
 
-let counter = 201;
-
 export class Pong extends World {
 	public paddleUUID: string;
 	public rightController: THREE.XRTargetRaySpace;
@@ -160,7 +153,7 @@ export class Pong extends World {
 	public constructor() {
 		super();
 		
-		this.paddleUUID = crypto.randomUUID();
+		this.paddleUUID = "PADDLE-" + randomHex(8);
 
 		this.rightController = this.renderer.xr.getController(0);
 		this.leftController = this.renderer.xr.getController(1);
@@ -189,17 +182,15 @@ export class Pong extends World {
 
 	public earlyTick() {
 		if (this.time >= this.maxTime) {
-			this.sendUpdate("paddle", this.paddleUUID, {
-				targetPosition: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)).intoObject(),
-				targetRotation: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)).intoObject(),
+			this.sendCreateOrUpdate({
+				name: "paddle",
+				uuid: this.paddleUUID,
+				tp: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)).intoObject(),
+				tr: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)).intoObject(),
 			});
 		}
 
 		super.earlyTick();
-
-		if (counter++ == 200) {
-			console.log(this.get(Ball.UUID)?.position);
-		}
 	}
 
 	public start(options: WorldOptions) {
@@ -207,13 +198,14 @@ export class Pong extends World {
 			const paddle = this.get(this.paddleUUID);
 
 			if (paddle !== null) {
-				this.sendUpdate("ball", Ball.UUID, {
-					position: paddle.position.add(new Vector(0, 0.25, 0)).intoObject(),
-					linearVelocity: new Vector(0, 1, 0).intoObject(),
-					angularVelocity: new Vector(0, 0, 0).intoObject(),
+				this.sendCreateOrUpdate({
+					name: "ball",
+					uuid: Ball.UUID,
+					pos: paddle.position.add(new Vector(0, 0.25, 0)).intoObject(),
+					rot: new Quaternion(0, 0, 0, 1).intoObject(),
+					lv: new Vector(0, 1, 0).intoObject(),
+					av: new Vector(0, 0, 0).intoObject(),
 				});
-
-				counter = 0;
 			}
 		});
 

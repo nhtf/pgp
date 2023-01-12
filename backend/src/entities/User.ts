@@ -14,6 +14,7 @@ import {
 } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from '../vars';
+import { join } from 'path';
 
 @Entity()
 export class User {
@@ -40,8 +41,11 @@ export class User {
 	username: string | null;
 
 	@Exclude()
-	@Column()
-	has_avatar: boolean;
+	@Column({
+		//TODO remove this attribute
+		nullable: true,
+	})
+	avatar_base: string; 
 
 	@OneToMany(() => FriendRequest, (request) => request.from)
 	sent_friend_requests: Promise<FriendRequest[]>;
@@ -81,8 +85,11 @@ export class User {
 
 	@Expose()
 	get avatar(): string {
-		const avatar = this.has_avatar ? this.user_id.toString() : DEFAULT_AVATAR;
-		return BACKEND_ADDRESS + '/' + AVATAR_DIR + '/' + avatar + '.jpg';
+		return BACKEND_ADDRESS + '/' + this.avatar_path(this.avatar_base);
+	}
+
+	avatar_path(base: string): string {
+		return join(AVATAR_DIR, this.user_id + base + '.jpg');
 	}
 
 	async add_friend(target: User) {
