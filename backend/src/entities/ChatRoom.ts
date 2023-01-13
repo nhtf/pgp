@@ -10,8 +10,7 @@ import {
 	OneToMany,
 	JoinTable,
 } from 'typeorm';
-import { Exclude, Expose } from 'class-transformer';
-import { classToPlain } from 'class-transformer';
+import { Exclude, Expose, instanceToPlain } from 'class-transformer';
 import { Access } from '../Access';
 
 @Entity()
@@ -24,7 +23,7 @@ export class ChatRoom {
 	})
 	name: string;
 
-	@Exclude()
+	// @Exclude() TODO: check
 	@Column({
 		nullable: true,
 	})
@@ -70,22 +69,33 @@ export class ChatRoom {
 
 	async add_member(user: User) {
 		const room_members = await this.members;
-		if (room_members) room_members.push(user);
-		else this.members = Promise.resolve([user]);
+	
+		if (room_members) {
+			room_members.push(user);
+		}
+		else {
+			this.members = Promise.resolve([user]);
+		}
 	}
 
 	async add_admin(user: User) {
 		const room_admins = await this.admins;
-		if (room_admins) room_admins.push(user);
-		else this.admins = Promise.resolve([user]);
+
+		if (room_admins) {
+			room_admins.push(user);
+		}
+		else {
+			this.admins = Promise.resolve([user]);
+		}
 	}
 
 	async serialize() {
 		return {
-			...classToPlain(this),
+			...instanceToPlain(this),
 			owner: await this.owner,
 			admins: await this.admins,
 			members: await this.members,
+			messages: (await this.messages).length,
 		};
 	}
 }

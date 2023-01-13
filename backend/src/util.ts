@@ -80,7 +80,11 @@ export const GetUser = createParamDecorator(
 		const user = await dataSource
 			.getRepository(User)
 			.findOneBy({ user_id: request.session.user_id });
-		if (!user) throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+
+		if (!user) {
+			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+		}
+
 		return user;
 	},
 );

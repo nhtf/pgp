@@ -26,8 +26,12 @@ export class Counter {
 		this.clean();
 	}
 
-	public average(): number {
+	public sum(): number {
 		this.clean();
 		return this.samples.map(s => s.value).reduce((p, c) => p + c);
+	}
+
+	public average(): number {
+		return this.sum() / this.samples.length;
 	}
 }

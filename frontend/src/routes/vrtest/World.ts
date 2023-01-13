@@ -1,13 +1,16 @@
+import { Debug } from "./Debug";
 import { Ammo } from "./Ammo";
 import * as THREE from "three";
-import { State } from "./Net";
+import { Net } from "./Net";
 import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "./Net";
 import type { Entity, EntityObject, EntityUpdate } from "./Entity";
 import { Vector, Quaternion } from "./Math";
 import type { VectorObject, QuaternionObject } from "./Math";
+import { Counter } from "./Util";
 
 export const TICKS_PER_SECOND = 60;
-export const STEPS_PER_TICK = 5;
+export const STEPS_PER_TICK = 10;
+export const PHYSICS_MULTIPLIER = 1;
 
 export interface ThreeObject {
 	dispose(): void;
@@ -31,12 +34,14 @@ export interface DeleteEvent extends NetEvent {
 
 export interface Options extends NetOptions {
 	container: Element;
+	debug?: boolean;
 }
 
-export class World extends State {
+export class World extends Net {
 	private ammoObjects: any[];
 	private threeObjects: ThreeObject[];
 	private physicsObjectId: number;
+	public frameTime: Counter;
 	public scene: THREE.Scene;
 	public renderer: THREE.WebGLRenderer;
 	public camera: THREE.PerspectiveCamera;
@@ -48,6 +53,7 @@ export class World extends State {
 	private collisionDispatcher: Ammo.btCollisionDispatcher;
 	private broadphaseInterface: Ammo.btDbvtBroadphase;
 	private constraintSolver: Ammo.btSequentialImpulseConstraintSolver;
+	private debug?: Debug;
 
 	public constructor() {
 		super();
@@ -55,6 +61,7 @@ export class World extends State {
 		this.ammoObjects = [];
 		this.threeObjects = [];
 		this.physicsObjectId = 0;
+		this.frameTime = new Counter(5);
 
 		this.collisionConfiguration = this.addAmmoObject(new Ammo.btDefaultCollisionConfiguration());
 		this.collisionDispatcher = this.addAmmoObject(new Ammo.btCollisionDispatcher(this.collisionConfiguration));
@@ -83,7 +90,6 @@ export class World extends State {
 
 		this.on("create", netEvent => {
 			const event = netEvent as CreateEvent;
-			console.log("create event", event.entity.uuid);
 			this.create(event.entity);
 		});
 
@@ -113,7 +119,7 @@ export class World extends State {
 	}
 
 	public update(object: EntityUpdate) {
-		let entity = this.get(object.uuid);
+		let entity = this.get(object.uuid!);
 
 		if (entity !== null) {
 			entity.load(object);
@@ -151,20 +157,20 @@ export class World extends State {
 		this.send("update", { entity: object });
 	}
 
-	public sendCreateOrUpdate(object: Partial<EntityObject>) {
-		const entity = this.get(object.uuid!);
+	public sendCreateOrUpdate(createObject: any, updateObject: any) {
+		const entity = this.get(updateObject.uuid!);
 
 		if (entity === null) {
-			object.pos ??= new Vector(0, 0, 0).intoObject();
-			object.rot ??= new Quaternion(0, 0, 0, 1).intoObject();
-			object.lv ??= new Vector(0, 0, 0).intoObject();
-			object.av ??= new Vector(0, 0, 0).intoObject();
-			object.tp ??= null;
-			object.tr ??= null;
-			this.sendCreate(object as EntityObject);
+			Object.assign(createObject, updateObject);
+			createObject.pos ??= new Vector(0, 0, 0).intoObject();
+			createObject.rot ??= new Quaternion(0, 0, 0, 1).intoObject();
+			createObject.lv ??= new Vector(0, 0, 0).intoObject();
+			createObject.av ??= new Vector(0, 0, 0).intoObject();
+			createObject.tp ??= null;
+			createObject.tr ??= null;
+			this.sendCreate(createObject as EntityObject);
 		} else {
-			delete object.name;
-			this.sendUpdate(object as EntityUpdate);
+			this.sendUpdate(updateObject as EntityUpdate);
 		}
 	}
 
@@ -221,10 +227,10 @@ export class World extends State {
 				entity.physicsTick();
 			}
 
+			const physicsStep = 1 / TICKS_PER_SECOND / STEPS_PER_TICK * PHYSICS_MULTIPLIER;
 			this.broadphaseInterface.resetPool(this.collisionDispatcher);
 			this.constraintSolver.reset();
-			this.world.stepSimulation(1 / TICKS_PER_SECOND / STEPS_PER_TICK, 1, 1 / TICKS_PER_SECOND / STEPS_PER_TICK);
-
+			this.world.stepSimulation(physicsStep, 1, physicsStep);
 			const numManifolds = this.collisionDispatcher.getNumManifolds();
 
 			for (let i = 0; i < numManifolds; i++) {
@@ -244,8 +250,14 @@ export class World extends State {
 			}
 		}
 
-		for (let entity of this.entities) {
+
+		for (let entity of [...this.entities]) {
 			entity.lateTick();
+
+			if (entity.removed) {
+				this.remove(entity);
+				entity.destroy();
+			}
 		}
 
 		super.lateTick();
@@ -266,7 +278,7 @@ export class World extends State {
 		return {
 			entities,
 			...super.save(),
-		}
+		};
 	}
 
 	public load(snapshot: Snapshot) {
@@ -294,13 +306,19 @@ export class World extends State {
 		let clientWidth: number;
 		let clientHeight: number;
 
+		if (options.debug) {
+			this.debug = new Debug(this);
+		}
+
 		this.renderer.setAnimationLoop((currentTime) => {
 			if (previousTime !== undefined) {
 				const timeDelta = (currentTime - previousTime) / 1000;
 				const stepDelta = Math.floor(timeDelta * TICKS_PER_SECOND);
 
 				for (let i = 0; i < stepDelta; i++) {
+					const start = performance.now() / 1000;
 					this.tick();
+					this.frameTime.add(performance.now() / 1000 - start);
 				}
 
 				previousTime += stepDelta / TICKS_PER_SECOND * 1000;
@@ -323,6 +341,10 @@ export class World extends State {
 				this.camera.updateProjectionMatrix();
 				this.renderer.setSize(clientWidth, clientHeight);
 				this.renderer.setPixelRatio(window.devicePixelRatio);
+			}
+
+			if (this.debug !== undefined) {
+				this.debug.update();
 			}
 
 			this.renderer.render(this.scene, this.camera);

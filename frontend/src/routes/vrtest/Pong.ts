@@ -1,11 +1,24 @@
 import { loadModel, createShape } from "./Model";
 import { Entity, createPhysicsObject } from "./Entity";
+import type { EntityObject } from "./Entity";
 import { World } from "./World";
-import type { Options as WorldOptions } from "./World";
+import type { Options as WorldOptions, Snapshot as WorldSnapshot, CreateEvent } from "./World";
+import { State, Player } from "./State";
+import type { Snapshot as StateSnapshot } from "./State";
 import { Ammo } from "./Ammo";
 import { Vector, Quaternion } from "./Math";
 import { randomHex } from "./Util";
 import * as THREE from "three";
+
+export interface Snapshot extends WorldSnapshot {
+	state: StateSnapshot;
+}
+
+export interface PaddleObject extends EntityObject {
+	userID: number;
+}
+
+export type PaddleUpdate = Partial<PaddleObject>;
 
 const textureLoader = new THREE.TextureLoader();
 
@@ -67,7 +80,7 @@ async function createFloor(world: Pong) {
 }
 
 export class Table extends Entity {
-	static readonly UUID = "TABLE";
+	static readonly UUID = "table";
 
 	public name = "table";
 	public dynamic = false;
@@ -82,7 +95,7 @@ export class Table extends Entity {
 }
 
 export class Ball extends Entity {
-	public static readonly UUID = "BALL";
+	public static readonly UUID = "ball";
 	public static readonly RADIUS = 0.02;
 	public static readonly MASS = 0.0027;
 	public static readonly RESTITUTION = 0.9;
@@ -106,6 +119,13 @@ export class Ball extends Entity {
 		mesh.castShadow = true;
 	}
 
+	public earlyTick() {
+		if (this.position.y < 0) {
+			(this.world as Pong).state.onFloorHit();
+			this.removed = true;
+		}
+	}
+
 	public destroy() {
 		this.geometry.dispose();
 		this.material.dispose();
@@ -114,7 +134,16 @@ export class Ball extends Entity {
 	}
 
 	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {
-		console.log("collision", other?.name, p0, p1);
+		console.log("collision", this.world.time, p0, p1);
+		if (other?.name == "table") {
+			if (p1.y > 0.785) {
+				this.removed ||= !(this.world as Pong).state.onTableHit(null);
+			} else {
+				this.removed ||= !(this.world as Pong).state.onTableHit(p1.x > 0 ? 1 : 0);
+			}
+		} else if (other?.name == "paddle") {
+			this.removed ||= !(this.world as Pong).state.onPaddleHit((other as Paddle).userID);
+		}
 	}
 }
 
@@ -125,13 +154,15 @@ export class Paddle extends Entity {
 
 	public name = "paddle";
 	public dynamic = true;
+	public userID: number;
 
-	public constructor(world: Pong, uuid: string) {
+	public constructor(world: Pong, uuid: string, userID: number) {
 		const shape = createShape(world.paddleModel!);
 		const physicsObject = createPhysicsObject(shape, Paddle.MASS);
 
 		physicsObject.setRestitution(Paddle.RESTITUTION);
 		super(world, uuid, world.paddleModel!.clone(), physicsObject);
+		this.userID = userID;
 	}
 
 	public earlyTick() {
@@ -141,6 +172,20 @@ export class Paddle extends Entity {
 
 		super.earlyTick();
 	}
+
+	public save(): PaddleObject {
+		return {
+			...super.save(),
+			userID: this.userID,
+		};
+	}
+
+	public load(entity: PaddleUpdate) {
+		if (entity.userID !== undefined)
+			this.userID = entity.userID;
+
+		super.load(entity);
+	}
 }
 
 export class Pong extends World {
@@ -149,19 +194,32 @@ export class Pong extends World {
 	public leftController: THREE.XRTargetRaySpace;
 	public tableModel?: THREE.Object3D;
 	public paddleModel?: THREE.Object3D;
+	public userID?: number;
+	public state: State;
 
 	public constructor() {
 		super();
-		
-		this.paddleUUID = "PADDLE-" + randomHex(8);
+
+		this.paddleUUID = "paddle-" + randomHex(8);
+		this.state = new State();
 
 		this.rightController = this.renderer.xr.getController(0);
 		this.leftController = this.renderer.xr.getController(1);
 		this.cameraGroup.add(this.rightController);
 		this.cameraGroup.add(this.leftController);
 
+		this.on("create", netEvent => {
+			const event = netEvent as CreateEvent;
+
+			if (event.entity.name == "paddle") {
+				const entity = event.entity as PaddleObject;
+				const team = this.state.teams[0].players.length > this.state.teams[1].players.length ? 1 : 0;
+				this.state.players.push(new Player(this.state, entity.userID, team));
+			}
+		});
+
 		this.register("ball", object => new Ball(this, object.uuid));
-		this.register("paddle", object => new Paddle(this, object.uuid));
+		this.register("paddle", object => new Paddle(this, object.uuid, (object as PaddleObject).userID));
 	}
 
 	public async init() {
@@ -170,6 +228,10 @@ export class Pong extends World {
 			rotate: new Vector(Math.PI / 6 * 4, 0, 0),
 			translate: new Vector(0, 0.02, -0.04),
 		};
+
+		const response = await fetch("http://localhost:3000/account/whoami", { credentials: "include" });
+		const json = await response.json();
+		this.userID = json.user_id;
 
 		this.tableModel = await loadModel("./Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("./Assets/gltf/paddle/paddle.gltf", paddleTransform);
@@ -184,6 +246,8 @@ export class Pong extends World {
 		if (this.time >= this.maxTime) {
 			this.sendCreateOrUpdate({
 				name: "paddle",
+				userID: this.userID!,
+			}, {
 				uuid: this.paddleUUID,
 				tp: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)).intoObject(),
 				tr: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)).intoObject(),
@@ -191,6 +255,18 @@ export class Pong extends World {
 		}
 
 		super.earlyTick();
+	}
+	
+	public save(): Snapshot {
+		return {
+			state: this.state.save(),
+			...super.save(),
+		};
+	}
+
+	public load(snapshot: Snapshot) {
+		this.state.load(snapshot.state);
+		super.load(snapshot);
 	}
 
 	public start(options: WorldOptions) {
@@ -200,8 +276,9 @@ export class Pong extends World {
 			if (paddle !== null) {
 				this.sendCreateOrUpdate({
 					name: "ball",
+				}, {
 					uuid: Ball.UUID,
-					pos: paddle.position.add(new Vector(0, 0.25, 0)).intoObject(),
+					pos: paddle.position.add(new Vector(0, 0.25, 0)).add(new Vector(0, 0.473, -0.881).rotate(paddle.rotation).scale(0.05)).intoObject(),
 					rot: new Quaternion(0, 0, 0, 1).intoObject(),
 					lv: new Vector(0, 1, 0).intoObject(),
 					av: new Vector(0, 0, 0).intoObject(),

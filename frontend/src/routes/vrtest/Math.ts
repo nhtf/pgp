@@ -75,6 +75,25 @@ export class Vector {
 	scale(scalar: number): Vector {
 		return new Vector(this.x * scalar, this.y * scalar, this.z * scalar);
 	}
+
+	dot(other: Vector): number {
+		return this.x * other.x + this.y * other.y + this.z * other.z;
+	}
+
+	cross(other: Vector): Vector {
+		return new Vector(
+			this.y * other.z - this.z * other.y,
+			this.z * other.x - this.x * other.z,
+			this.x * other.y - this.y * other.x,
+		);
+	}
+
+	rotate(quaternion: Quaternion): Vector {
+		const v = this;
+		const u = new Vector(quaternion.x, quaternion.y, quaternion.z);
+		const s = quaternion.w;
+		return u.scale(2 * u.dot(v)).add(v.scale(s * s - u.dot(u))).add(u.cross(v).scale(2 * s));
+	}
 }
 
 export type QuaternionObject = string;

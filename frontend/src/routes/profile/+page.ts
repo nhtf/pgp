@@ -1,10 +1,7 @@
-
-import { error } from '@sveltejs/kit';
-
 export const ssr = false;
 
 /** @type {import('./$types').PageLoad} */
-export async function load({fetch}) {
+export async function load({ fetch }: any) {
 	let userlog: string;
     const res = await fetch("http://localhost:3000/account/whoami", {
 			method: "GET",

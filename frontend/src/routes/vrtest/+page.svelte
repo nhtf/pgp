@@ -16,13 +16,24 @@
 		console.log(world);
 		container.append(world.renderer.domElement);
 		container.append(VRButton.createButton(world.renderer));
+		const canvas = document.querySelector('canvas');
+		if (canvas) {
+			canvas.style.position = "relative";
+			canvas.style.display = "flex";
+			canvas.style.justifyContent = "center";
+			canvas.style.height = "calc(100vh - 80px)";
+			canvas.style.width = "100%";
+			canvas.style.alignItems = "center";
+			canvas.style.borderRadius = "6px";
+			canvas.style.margin = "0 auto";
+		}
 		const button = document.getElementById('VRButton');
 		if (button) {
 			button.style.zIndex = "100000";
 			button.addEventListener('click', changeCanvasSize);
 		}
 		await world.init();
-		world.start({ container });
+		world.start({ container, debug: false });
 		
 		
 	});
@@ -32,27 +43,29 @@
 	});
 
 	function changeCanvasSize() {
-		console.log("what up");
 		const canvas = document.querySelector('canvas');
-		console.log("canvas.....: ", canvas);
-		if (canvas && canvas.style) {
-			canvas.style.display = "block";
-			canvas.style.position = "relative";
-			canvas.style.top = "71px";
-			canvas.style.height = "calc(100vh - 71px)";}
+		if (canvas) {
+			canvas.style.position = "fixed";
+			canvas.style.display = "flex";
+			canvas.style.justifyContent = "center";
+			canvas.style.height = "calc(100vh - 80px)";
+			canvas.style.width = "calc(100% - 10px)";
+			canvas.style.alignItems = "center";
+			canvas.style.top = "75px";
+			canvas.style.left = "5px";
+			canvas.style.borderRadius = "6px";
+		}
 	}
+
 </script>
 
-<div bind:this="{container}" id="container"></div>
+<div bind:this="{container}" class="container"></div>
 
 <style>
-	#container {
-		height: calc(100vh - 71px);
+	.container {
+		margin-left: 5px;
+		margin-right: 5px;
+		margin-bottom: 5px;
 	}
-
-	canvas {
-	height: 200px;
-	width: 200px;
-}
 	
 </style>

@@ -21,10 +21,10 @@ export interface Event {
 }
 
 export interface Options {
-	address: string | null;
+	address?: string;
 }
 
-export class State {
+export class Net {
 	public time: number;
 	public maxTime: number;
 	public minTime: number | null;

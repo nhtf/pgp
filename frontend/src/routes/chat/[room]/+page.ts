@@ -4,7 +4,7 @@ import type { PageLoad } from "./$types"
 export const load = (async ({ fetch, params }: any) => {
 	const whoami = "http://localhost:3000/account/whoami";
 	const endpoint = "http://localhost:3000/chat/room";
-
+	
     let response = await fetch(whoami, {
 		credentials: "include",
 	});
@@ -18,7 +18,7 @@ export const load = (async ({ fetch, params }: any) => {
 
 	const user = await response.json();
 
-    response = await fetch(endpoint + "?id=" + params.id, {
+    response = await fetch(endpoint + "?id=" + params.room, {
 			credentials: "include",
 		});
 	

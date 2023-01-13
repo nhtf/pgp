@@ -29,9 +29,10 @@ import {
 	IsEnum,
 } from 'class-validator';
 import * as argon2 from 'argon2';
-import { classToPlain } from 'class-transformer';
+import { instanceToPlain } from 'class-transformer';
 import { PGP_DEBUG } from './vars';
 import { Access } from './Access';
+import { Message } from './entities/Message';
 
 class RoomDTO {
 	@IsNumberString()
@@ -73,21 +74,23 @@ const NO_SUCH_ROOM = 'room not found';
 @UseInterceptors(ClassSerializerInterceptor)
 export class ChatRoomController {
 	constructor(
-		@Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>,
+		@Inject('CHATROOM_REPO')
+		private readonly chatRepo: Repository<ChatRoom>,
 		@Inject('ROOMINVITE_REPO')
 		private readonly inviteRepo: Repository<RoomInvite>,
 	) {}
 
 	@Get('messages')
 	async messages(@GetUser() user: User, @Query() dto: RoomDTO) {
-		const room = await this.get_room(user, dto.id);
-
-		return await room.messages;
+		const room = await this.getRoom(user, dto.id);
+		const messages = await room.messages;
+	
+		return Promise.all(messages.map((message: Message) => message.serialize()));
 	}
 
 	@Get('room')
 	async room(@Query() dto: RoomDTO) {
-		return await this.chatRepo.findOneById(dto.id);
+		return await this.chatRepo.findOneBy({ id: Number(dto.id) });
 	}
 
 	@Get('rooms')
@@ -118,7 +121,7 @@ export class ChatRoomController {
 
 		if (is_private && dto.password)
 			throw new HttpException(
-				'a room cannot be both private and password protected',
+				'A room cannot be both private and password protected',
 				HttpStatus.UNPROCESSABLE_ENTITY,
 			);
 		if (
@@ -129,7 +132,7 @@ export class ChatRoomController {
 			}))
 		)
 			throw new HttpException(
-				'a room with this name already exists',
+				'A room with this name already exists',
 				HttpStatus.UNPROCESSABLE_ENTITY,
 			);
 
@@ -150,7 +153,7 @@ export class ChatRoomController {
 		} catch (err) {
 			console.error(err);
 			throw new HttpException(
-				'could not create room',
+				'Could not create room',
 				HttpStatus.INTERNAL_SERVER_ERROR,
 			);
 		}
@@ -162,7 +165,7 @@ export class ChatRoomController {
 
 	@Post('leave')
 	async leave(@GetUser() user: User, @Body() dto: RoomDTO) {
-		const room = await this.get_room(user, dto.id);
+		const room = await this.getRoom(user, dto.id);
 
 		const owner = await room.owner;
 		if (user.user_id === owner.user_id)
@@ -189,7 +192,7 @@ export class ChatRoomController {
 
 	@Get('info')
 	async info(@GetUser() user: User, @Query() dto: RoomDTO) {
-		const room = await this.chatRepo.findOneById(dto.id);
+		const room = await this.chatRepo.findOneBy({ id: Number(dto.id) });
 
 		//TODO check if you can't get information about a private room you're not a member of
 		if (
@@ -213,7 +216,7 @@ export class ChatRoomController {
 				HttpStatus.UNPROCESSABLE_ENTITY,
 			);
 
-		const room = await this.get_room(user, dto.id);
+		const room = await this.getRoom(user, dto.id);
 
 		const admins = await room.admins;
 		if (!admins.find((current: User) => current.user_id === user.user_id))
@@ -243,7 +246,7 @@ export class ChatRoomController {
 		@Body() dto: RoomDTO,
 		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
 	) {
-		const room = await this.get_room(user, dto.id);
+		const room = await this.getRoom(user, dto.id);
 
 		const admins = await room.admins;
 		if (!admins.find((current: User) => current.user_id === user.user_id))
@@ -284,7 +287,7 @@ export class ChatRoomController {
 		@Body() dto: RoomDTO,
 		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
 	) {
-		const room = await this.get_room(user, dto.id);
+		const room = await this.getRoom(user, dto.id);
 
 		const owner = await room.owner;
 		if (user.user_id !== owner.user_id)
@@ -316,7 +319,7 @@ export class ChatRoomController {
 	@Post('join')
 	@HttpCode(HttpStatus.NO_CONTENT)
 	async join(@GetUser() user: User, @Body() dto: JoinRoomDTO) {
-		const room = await this.chatRepo.findOneById(dto.id);
+		const room = await this.chatRepo.findOneBy({ id: Number(dto.id) });
 		if (!room) throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
 
 		const members = await room.members;
@@ -365,7 +368,7 @@ export class ChatRoomController {
 	@Delete('delete')
 	@HttpCode(HttpStatus.NO_CONTENT)
 	async delete(@GetUser() user: User, @Query() dto: RoomDTO) {
-		const room = await this.get_room(user, dto.id);
+		const room = await this.getRoom(user, dto.id);
 
 		const owner = await room.owner;
 		if (owner.user_id !== user.user_id)
@@ -384,7 +387,7 @@ export class ChatRoomController {
 		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
 		@Body() dto: RoomDTO,
 	) {
-		const room = await this.get_room(user, dto.id);
+		const room = await this.getRoom(user, dto.id);
 
 		const admins = await room.admins;
 		if (!admins.find((current) => current.user_id === user.user_id))
@@ -436,7 +439,7 @@ export class ChatRoomController {
 		return await Promise.all(
 			invites.map(async (invite) => {
 				return {
-					...classToPlain(invite),
+					...instanceToPlain(invite),
 					from: await invite.from,
 					to: await invite.to,
 					room: await (await invite.room).serialize(),
@@ -445,9 +448,10 @@ export class ChatRoomController {
 		);
 	}
 
-	async get_room(user: User, id: string | number): Promise<ChatRoom> {
-		const room = await this.chatRepo.findOneById(id);
-		if (!room) throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
+	async getRoom(user: User, id: string): Promise<ChatRoom> {
+		const room = await this.chatRepo.findOneBy({ id: Number(id) });
+		if (!room) 
+			throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
 
 		const members = await room.members;
 		if (

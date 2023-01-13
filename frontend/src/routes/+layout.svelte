@@ -190,6 +190,7 @@
             <li><a href="/">Home</a></li>
             <li><a href="/chat">Chat</a></li>
             <li><a href="/vrtest">PongVR</a></li>
+            <li><a href="/leaderboard">Leaderboard</a></li>
             <div class="fill" />
             {#if !data.username}
                 <li><a href="http://localhost:3000/oauth/login">login</a></li>
@@ -256,7 +257,7 @@
     nav {
         position: sticky;
         top: 0;
-        z-index: 10;
+        z-index: 100000;
     }
 
     .menu {

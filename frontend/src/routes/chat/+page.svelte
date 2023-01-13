@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { error } from "@sveltejs/kit";
     import { onMount } from "svelte";
+    import Swal from "sweetalert2";
 
     export let data: {
         fetch: any
@@ -13,29 +13,36 @@
     ];
 
     let room_name = "";
+    let other_name = "";
     let password = "";
     let access = options[0];
-    let rooms: any[] = [];
-    $: rooms;
+    let rooms: any[];
+    $: rooms = [];
 
     onMount(fetchRooms);
 
     async function fetchRooms() {
-        const endpoint = "http://localhost:3000/chat/rooms";
-        const response = await data.fetch(endpoint, {
+        const URL = "http://localhost:3000/chat/rooms";
+        const response = await data.fetch(URL, {
             credentials: "include",
-            mode: "cors",
 	    });
 
         if (!response.ok) {
-            throw error(response.status, "Failed to load user rooms");
+           return Swal.fire({
+                icon: "error",
+                text: "Login to see user rooms",
+            }).then(() => {
+                window.location.replace("/profile"); // TODO: /login
+            });
         }
 
         rooms = await response.json();
+
+        console.log(rooms);
     }
 
     async function createRoom() {
-        const endpoint = "http://localhost:3000/chat/create";
+        const URL = "http://localhost:3000/chat/create";
 
         let room_dto: any = {
             "name": room_name,
@@ -46,26 +53,31 @@
             room_dto.password = password;
         }
 
-        let response = await data.fetch(endpoint, {
+        const response = await data.fetch(URL, {
             method: "POST",
             credentials: "include",
             headers: {
                 "Content-Type": "application/json"
             },
+            
             body: JSON.stringify(room_dto),
         });
 
         if (!response.ok) {
-            return alert((await response.json()).message)
+            const error = (await response.json()).message;
+        
+            return Swal.fire({
+                icon: "error",
+                text: error,
+            });
         }
 
         fetchRooms();
     }
 
     async function deleteRoom(id: number) {
-        const endpoint = "http://localhost:3000/chat/delete";
-        
-        let response = await fetch(endpoint + "?id=" + id, {
+        const URL = "http://localhost:3000/chat/delete";
+        const response = await data.fetch(URL + "?id=" + id, {
             method: "DELETE",
             credentials: "include",
             headers: {
@@ -74,10 +86,21 @@
         });
 
         if (!response.ok) {
-            return alert((await response.json()).message)
-        }
+            const error = (await response.json()).message;
         
-        fetchRooms();
+            return Swal.fire({
+                icon: "error",
+                text: error,
+            });
+        }
+
+        rooms = rooms.filter((room) => {
+            return room.id != id;
+        })
+    }
+
+    async function invite() {
+        
     }
 
 </script>
@@ -115,9 +138,9 @@
     <li>
         <ul class="room">
             <li><img id="small-avatar" src={room.owner.avatar} alt="avatar"/></li>
-            <li>{room.name}</li>
             <li>{room.owner.username}</li>
-            <li>{room.members.length}</li>
+            <li style="width: 2em;">{room.members.length}</li>
+            <li style="width: 8em;">{room.name}</li>
             <li>
                 <form action={"/chat/" + room.id}>
                     <input type="submit" value="Go">
@@ -128,6 +151,14 @@
                     <input type="submit" value="Delete">
                 </form>
             </li>
+            {#if room.admins.find((admin) => admin.id === room.owner.username)}
+            <li>
+                <form on:submit|preventDefault={() => invite()}>
+                    <input bind:value={room_name} type="text" placeholder="username..." style="text-indent: 1em;" >
+                    <input type="submit" value="Invite">
+                </form>
+            </li>
+            {/if}
         </ul>
     </li>
 {/each}
@@ -141,8 +172,8 @@
     flex-direction: column;
     gap: 1em;
     list-style: none;
+    margin: 1em;
 }
-
 
 .room {
     background-color:steelblue;
@@ -154,14 +185,14 @@
     gap: 1em;
 }
 
-.room input {
-    border-radius: 1em;
-}
-
 .room li {
     display: flex;
     list-style: none;
     flex-direction: row;
+}
+
+.room input {
+    border-radius: 1em;
 }
 
 #small-avatar {

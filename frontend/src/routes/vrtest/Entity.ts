@@ -4,16 +4,6 @@ import type { VectorObject, QuaternionObject } from "./Math";
 import type { World } from "./World";
 import type * as THREE from "three";
 
-export interface EntityUpdate {
-	uuid: string;
-	pos?: VectorObject;
-	rot?: QuaternionObject;
-	lv?: VectorObject;
-	av?: VectorObject;
-	tp?: VectorObject | null;
-	tr?: QuaternionObject | null;
-}
-
 export interface EntityObject {
 	uuid: string;
 	name: string;
@@ -23,7 +13,10 @@ export interface EntityObject {
 	av: VectorObject;
 	tp: VectorObject | null;
 	tr: QuaternionObject | null;
+	lu: number;
 }
+
+export type EntityUpdate = Partial<EntityObject>;
 
 export abstract class Entity {
 	public uuid: string;
@@ -130,6 +123,7 @@ export abstract class Entity {
 			av: this.angularVelocity.intoObject(),
 			tp: this.targetPosition ? this.targetPosition.intoObject() : null,
 			tr: this.targetRotation ? this.targetRotation.intoObject() : null,
+			lu: this.lastUpdate,
 		};
 	}
 
@@ -146,6 +140,8 @@ export abstract class Entity {
 			this.targetPosition = entity.tp ? Vector.fromObject(entity.tp) : null;
 		if (entity.tr !== undefined)
 			this.targetRotation = entity.tr ? Quaternion.fromObject(entity.tr) : null;
+		if (entity.lu !== undefined)
+			this.lastUpdate = entity.lu;
 	}
 
 	public destroy() {
