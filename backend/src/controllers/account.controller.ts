@@ -5,6 +5,7 @@ import {
 	Controller,
 	ExecutionContext,
 	Get,
+	Patch,
 	HttpCode,
 	HttpException,
 	HttpStatus,
@@ -23,20 +24,25 @@ import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
 import { Request, Response } from 'express';
 import { open, rm } from 'node:fs/promises';
 import { finished, Readable } from 'node:stream';
-import { join } from 'path';
+import { join, } from 'path';
 import * as sharp from 'sharp';
 import { Repository } from 'typeorm';
-import { AuthGuard } from './auth/auth.guard';
-import { FriendRequest } from './entities/FriendRequest';
-import { User } from './entities/User';
-import { SessionObject } from './SessionUtils';
-import { GetUser, GetUserQuery } from './util';
-import { AVATAR_DIR, BACKEND_ADDRESS } from './vars';
-import { dataSource } from './app.module';
+import { AuthGuard } from '../auth/auth.guard';
+import { FriendRequest } from '../entities/FriendRequest';
+import { User } from '../entities/User';
+import { SessionObject } from '../SessionUtils';
+import { GetUser, GetUserQuery } from '../util';
+import { AVATAR_DIR, BACKEND_ADDRESS, DEFAULT_AVATAR } from '../vars';
+import { dataSource } from '../app.module';
 import { randomBytes } from 'node:crypto';
-
 import { Express } from 'express';
 import { FileInterceptor } from '@nestjs/platform-express';
+
+
+//TODO refactor backend so that user are gotten by BACKEND_ADDRESS/users/{username|id}
+//and that friend requests are located in BACKEND_ADDRESS/requests/
+//where you can create a friend request by a POST on that addres and DELETE a specific request
+//by BACKEND/requests/{id} DELETE etc...
 
 class UsernameDTO {
 	@IsString()
@@ -48,6 +54,13 @@ class UsernameDTO {
 	@IsOptional()
 	user_id?: number;
 }
+
+class DenyFriendRequestDTO {
+	@IsNumberString()
+	id!: string;
+}
+
+//TODO for POST requests, pass data via body not query
 
 @Injectable()
 export class SetupGuard implements CanActivate {
@@ -101,7 +114,7 @@ export class AccountController {
 		await this.userRepo.save(user);
 	}
 
-	@Post('rename')
+	@Patch('rename')
 	@HttpCode(HttpStatus.CREATED)
 	async rename(@GetUser() user: User, @Body() dto: UsernameDTO) {
 		if (await this.userRepo.findOneBy({ username: dto.username }))
@@ -132,7 +145,7 @@ export class AccountController {
 
 	@Get('whois')
 	async whois(
-		@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User,
+		@GetUserQuery() user: User,
 	) {
 		return user;
 	}
@@ -143,24 +156,21 @@ export class AccountController {
 	async set_image(
 		@GetUser() user: User,
 		@UploadedFile(
-			new ParseFilePipeBuilder().addMaxSizeValidator({ maxSize: 5242880 }).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
+			new ParseFilePipeBuilder().addMaxSizeValidator({ maxSize: 10485760 }).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
 		uploaded_file: Express.Multer.File,
 		@Req() request: Request,
 		@Res() response: Response,
 	) {
 		if (!uploaded_file)
 			throw new HttpException('no file', HttpStatus.BAD_REQUEST);
-		const avatar_path = join(
-			AVATAR_DIR,
-			this.get_avatar_filename(user.user_id),
-		);
 
 		let new_base = null;
-		while ((new_base = randomBytes(20).toString('hex')) === user.username)
-			continue;
+		do {
+			new_base = user.user_id + randomBytes(20).toString('hex');
+		} while (new_base === user.avatar_base);
 
 		const transform = sharp().resize(200, 200).jpeg();
-		const file = await open(user.avatar_path(new_base), 'w');
+		const file = await open(join(AVATAR_DIR, new_base + '.jpg'), 'w');
 		const stream = file.createWriteStream();
 
 		const istream = new Readable();
@@ -173,9 +183,8 @@ export class AccountController {
 				if (error) {
 					response.status(HttpStatus.BAD_REQUEST).json('bad image');
 				} else {
-					//TODO catch exceptions
-					if (user.avatar_base)
-						await rm(user.avatar_path(user.avatar_base));
+					if (user.avatar_base != DEFAULT_AVATAR)
+						await rm(user.avatar_path);
 					user.avatar_base = new_base;
 					response.status(HttpStatus.ACCEPTED).json({ new_avatar: user.avatar });
 					this.userRepo.save(user);
@@ -190,11 +199,27 @@ export class AccountController {
 		});
 	}
 
+	@Post('delete_request')
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@UseGuards(SetupGuard)
+	async delete_request(@GetUser() user: User, @Body() dto: DenyFriendRequestDTO) {
+		const request = await this.requestRepo.findOneById(dto.id);
+
+		if (!request)
+			throw new HttpException('not found', HttpStatus.NOT_FOUND);
+
+		const from = await request.from;
+		const to = await request.to;
+		if (from.user_id  !== user.user_id && to.user_id !== user.user_id)
+			throw new HttpException('not found', HttpStatus.NOT_FOUND);
+		await this.requestRepo.remove(request);
+	}
+
 	@Post('befriend')
 	@UseGuards(SetupGuard)
 	async befriend(
 		@GetUser() me: User,
-		@GetUserQuery({ username: 'username', user_id: 'user_id' }) target: User,
+		@GetUserQuery() target: User,
 	) {
 		if (target.user_id === me.user_id)
 			throw new HttpException(
@@ -276,14 +301,8 @@ export class AccountController {
 	@UseGuards(SetupGuard)
 	async unfriend(
 		@GetUser() me: User,
-		@GetUserQuery({ username: 'username', user_id: 'user_id' }) target: User,
+		@GetUserQuery() target: User,
 	) {
-		if (target.user_id === me.user_id)
-			throw new HttpException(
-				'you cannot unfriend yourself :/',
-				HttpStatus.BAD_REQUEST,
-			);
-
 		const my_friends = await me.friends;
 		const target_idx = my_friends
 			? my_friends.findIndex((user: User) => user.user_id == target.user_id)

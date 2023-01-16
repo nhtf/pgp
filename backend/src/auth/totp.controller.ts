@@ -14,12 +14,11 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { authenticator } from 'otplib';
-import * as session from 'express-session';
-import { SessionUtils, SessionObject } from '../SessionUtils';
+import { SessionUtils } from '../SessionUtils';
 import { AuthLevel } from './AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
-import { SetupGuard } from '../account.controller';
+import { SetupGuard } from '../controllers/account.controller';
 import * as qrcode from 'qrcode';
 import { GetUser } from '../util';
 import { User } from '../entities/User';

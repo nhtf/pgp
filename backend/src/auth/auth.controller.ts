@@ -1,10 +1,8 @@
 import {
 	Controller,
 	Get,
-	UseGuards,
 	Req,
 	Res,
-	Put,
 	Post,
 	Query,
 	HttpException,
@@ -14,16 +12,13 @@ import {
 } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { AuthorizationCode, AccessToken } from 'simple-oauth2';
-import * as session from 'express-session';
 import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
-import isAlphanumeric from 'validator/lib/isAlphanumeric';
 import { SessionUtils, SessionObject } from '../SessionUtils';
 import { User } from '../entities/User';
 import { AuthLevel } from './AuthLevel';
-import { AuthGuard } from './auth.guard';
 import { IsAlphanumeric } from 'class-validator';
-import { BACKEND_ADDRESS, FRONTEND_ADDRESS, DEFAULT_AVATAR } from '../vars';
+import { BACKEND_ADDRESS, FRONTEND_ADDRESS } from '../vars';
 import { Repository } from 'typeorm';
 
 interface result_dto {

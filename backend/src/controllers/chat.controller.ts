@@ -14,12 +14,12 @@ import {
 	ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { Repository, Not } from 'typeorm';
-import { AuthGuard } from './auth/auth.guard';
-import { User } from './entities/User';
-import { ChatRoom } from './entities/ChatRoom';
-import { RoomInvite } from './entities/RoomInvite';
+import { AuthGuard } from '../auth/auth.guard';
+import { User } from '../entities/User';
+import { ChatRoom } from '../entities/ChatRoom';
+import { RoomInvite } from '../entities/RoomInvite';
 import { SetupGuard } from './account.controller';
-import { GetUser, GetUserBody } from './util';
+import { GetUser, GetUserQuery } from '../util';
 import {
 	IsNumberString,
 	IsString,
@@ -30,9 +30,9 @@ import {
 } from 'class-validator';
 import * as argon2 from 'argon2';
 import { instanceToPlain } from 'class-transformer';
-import { PGP_DEBUG } from './vars';
-import { Access } from './Access';
-import { Message } from './entities/Message';
+import { PGP_DEBUG } from '../vars';
+import { Access } from '../Access';
+import { Message } from '../entities/Message';
 
 class RoomDTO {
 	@IsNumberString()
@@ -90,7 +90,12 @@ export class ChatRoomController {
 
 	@Get('room')
 	async room(@Query() dto: RoomDTO) {
-		return await this.chatRepo.findOneBy({ id: Number(dto.id) });
+		const room = await this.chatRepo.findOneBy({ id: Number(dto.id) });
+
+		if (!room)
+			throw new HttpException("Room not found", HttpStatus.NOT_FOUND);
+
+		return room.serialize();
 	}
 
 	@Get('rooms')
@@ -195,11 +200,9 @@ export class ChatRoomController {
 		const room = await this.chatRepo.findOneBy({ id: Number(dto.id) });
 
 		//TODO check if you can't get information about a private room you're not a member of
-		if (
-			!room ||
-			(room.access == Access.PRIVATE && !(await room.has_member(user)))
-		)
+		if (!room || (room.access == Access.PRIVATE && !(await room.has_member(user)))) {
 			throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
+		}
 		return room.serialize();
 	}
 
@@ -208,7 +211,7 @@ export class ChatRoomController {
 	async promote(
 		@GetUser() user: User,
 		@Body() dto: RoomDTO,
-		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
+		@GetUserQuery() target: User,
 	) {
 		if (user.user_id === target.user_id)
 			throw new HttpException(
@@ -244,7 +247,7 @@ export class ChatRoomController {
 	async demote(
 		@GetUser() user: User,
 		@Body() dto: RoomDTO,
-		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
+		@GetUserQuery() target: User,
 	) {
 		const room = await this.getRoom(user, dto.id);
 
@@ -285,11 +288,11 @@ export class ChatRoomController {
 	async transfer(
 		@GetUser() user: User,
 		@Body() dto: RoomDTO,
-		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
+		@GetUserQuery() target: User,
 	) {
 		const room = await this.getRoom(user, dto.id);
-
 		const owner = await room.owner;
+	
 		if (user.user_id !== owner.user_id)
 			throw new HttpException(
 				'not the owner of the room',
@@ -384,12 +387,12 @@ export class ChatRoomController {
 	@HttpCode(HttpStatus.NO_CONTENT)
 	async invite(
 		@GetUser() user: User,
-		@GetUserBody({ username: 'username', user_id: 'user_id' }) target: User,
+		@GetUserQuery() target: User,
 		@Body() dto: RoomDTO,
 	) {
 		const room = await this.getRoom(user, dto.id);
-
 		const admins = await room.admins;
+
 		if (!admins.find((current) => current.user_id === user.user_id))
 			throw new HttpException(
 				'only admins can invite users',
@@ -417,6 +420,7 @@ export class ChatRoomController {
 				user_id: target.user_id,
 			},
 		});
+	
 		if (invite)
 			throw new HttpException(
 				'already invited user',

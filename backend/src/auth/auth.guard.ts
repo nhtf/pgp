@@ -1,7 +1,5 @@
 import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
-import { Request } from 'express';
 import { dataSource } from '../app.module';
-import * as session from 'express-session';
 import { User } from '../entities/User';
 
 export async function authorize(session): Promise<boolean> {

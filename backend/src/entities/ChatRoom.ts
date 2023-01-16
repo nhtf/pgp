@@ -95,7 +95,7 @@ export class ChatRoom {
 			owner: await this.owner,
 			admins: await this.admins,
 			members: await this.members,
-			messages: (await this.messages).length,
+			messages: await Promise.all((await this.messages).map((message) => message.serialize())),
 		};
 	}
 }

@@ -1,30 +1,26 @@
 import {
 	Controller,
-	Post,
 	Inject,
 	HttpException,
 	HttpStatus,
 	Req,
-	HttpCode,
-	Delete,
 	Get,
 	Query,
 } from '@nestjs/common';
 import {
 	Length,
 	IsString,
-	IsBoolean,
 	IsOptional,
 	IsInt,
 	IsEnum,
 } from 'class-validator';
-import { User } from './entities/User';
-import { ChatRoom } from './entities/ChatRoom';
-import { AuthLevel } from './auth/AuthLevel';
+import { User } from '../entities/User';
+import { ChatRoom } from '../entities/ChatRoom';
+import { AuthLevel } from '../auth/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
-import { SessionUtils } from './SessionUtils';
-import { GetUserQuery } from './util';
+import { SessionUtils } from '../SessionUtils';
+import { GetUserQuery } from '../util';
 
 class UserDto {
 	@IsString()
@@ -42,7 +38,7 @@ class UserDto {
 
 	@IsString()
 	@IsOptional()
-	avatar?: string;
+	avatar_base?: string;
 
 	@IsEnum(AuthLevel)
 	@IsOptional()
@@ -72,7 +68,7 @@ export class DebugController {
 		user.username = dto.username;
 		user.oauth_id = dto.oauth_id ?? -1;
 		user.secret = dto.secret;
-		user.avatar_base = dto.avatar ?? null;
+		user.avatar_base = dto.avatar_base ?? null;
 		user.auth_req = dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth;
 		user.online = true;
 		await this.userRepo.save(user);
@@ -86,7 +82,7 @@ export class DebugController {
 			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
 		user.oauth_id = dto.oauth_id ?? user.oauth_id;
 		user.secret = dto.secret ?? user.secret;
-		user.avatar_base = dto.avatar ?? user.avatar_base;
+		user.avatar_base = dto.avatar_base ?? user.avatar_base;
 		user.auth_req = dto.auth_req ? AuthLevel[dto.auth_req] : user.auth_req;
 		await this.userRepo.save(user);
 		return user;
@@ -103,7 +99,7 @@ export class DebugController {
 
 	@Get('su')
 	async su(
-		@GetUserQuery({ username: 'username', user_id: 'user_id' }) user: User,
+		@GetUserQuery() user: User,
 		@Req() request: Request,
 	) {
 		this.sessionUtils.regenerate_session(request.session);

@@ -8,12 +8,11 @@ import {
 	Post,
 	Query,
 } from '@nestjs/common';
-import { FindManyOptions, Repository } from 'typeorm';
-import { AuthGuard } from './auth/auth.guard';
+import { Repository } from 'typeorm';
+import { AuthGuard } from '../auth/auth.guard';
 import { SetupGuard } from './account.controller';
-import { User } from './entities/User';
-import { GetUser } from './util';
-import { DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_DIR } from './vars';
+import { User } from '../entities/User';
+import { GetUser } from '../util';
 
 type simple = { username: string; friend: boolean; avatar: string };
 

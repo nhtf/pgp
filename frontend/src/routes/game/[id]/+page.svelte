@@ -6,9 +6,12 @@
 	let world: Pong | undefined;
 	let container: Element;
 
-	
+	/** @type {import('./$types').PageData} */
+	export let params;
 
 	onMount(async() => {
+		console.log(params);
+
 		await ammoInit();
 		const VRButton = (await import("three/examples/jsm/webxr/VRButton.js")).VRButton;
 		
@@ -16,7 +19,10 @@
 		console.log(world);
 		container.append(world.renderer.domElement);
 		container.append(VRButton.createButton(world.renderer));
+
 		const canvas = document.querySelector('canvas');
+		const button = document.getElementById('VRButton');
+
 		if (canvas) {
 			canvas.style.position = "relative";
 			canvas.style.display = "flex";
@@ -27,15 +33,14 @@
 			canvas.style.borderRadius = "6px";
 			canvas.style.margin = "0 auto";
 		}
-		const button = document.getElementById('VRButton');
+
 		if (button) {
 			button.style.zIndex = "100000";
 			button.addEventListener('click', changeCanvasSize);
 		}
+
 		await world.init();
 		world.start({ container, debug: false });
-		
-		
 	});
 
 	onDestroy(() => {
@@ -67,5 +72,4 @@
 		margin-right: 5px;
 		margin-bottom: 5px;
 	}
-	
 </style>

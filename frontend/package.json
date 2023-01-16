@@ -30,6 +30,7 @@
 	},
 	"type": "module",
 	"dependencies": {
+		"@sweetalert2/theme-dark": "^5.0.15",
 		"ammojs": "^0.0.2",
 		"ammojs-typed": "github:nhtf/ammojs-typed",
 		"socket.io-client": "^4.5.3",

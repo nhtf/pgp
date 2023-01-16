@@ -3,16 +3,13 @@ import {
 	ExecutionContext,
 	HttpException,
 	HttpStatus,
-	applyDecorators,
-	UseGuards,
 } from '@nestjs/common';
 import { User } from './entities/User';
 import { dataSource } from './app.module';
-import { FindOptionsWhere, EntityTarget, ObjectLiteral } from 'typeorm';
+import { EntityTarget, ObjectLiteral } from 'typeorm';
 import { validate } from 'class-validator';
 import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
-import { AuthGuard } from './auth/auth.guard';
-import * as bodyParser from 'body-parser';
+import { Console } from 'console';
 
 class UserDTO {
 	@IsString()
@@ -27,16 +24,25 @@ class UserDTO {
 
 async function GetUserByDTO(dto: UserDTO) {
 	const result = await validate(dto);
-	if (result.length !== 0)
+
+	if (result.length !== 0) {
 		throw new HttpException(result[0].constraints, HttpStatus.BAD_REQUEST);
-	if (!dto.username && !dto.user_id)
+	}
+
+	if (!dto.username && !dto.user_id) {
 		throw new HttpException(
 			'either username or user_id has to be set',
 			HttpStatus.BAD_REQUEST,
 		);
+	}
 
 	const user = await dataSource.getRepository(User).findOneBy(dto);
-	if (!user) throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+	if (!user) {
+		console.log(404);
+		
+		throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+	}
+
 	return user;
 }
 
@@ -47,29 +53,17 @@ export const Repo = createParamDecorator(
 );
 
 export const GetUserQuery = createParamDecorator(
-	async (
-		where: { username?: string; user_id?: string },
-		ctx: ExecutionContext,
-	) => {
+	async (data: unknown, ctx: ExecutionContext) => {
 		const request = ctx.switchToHttp().getRequest();
 		const dto = new UserDTO();
 
-		if (where.username) dto.username = request.query[where.username];
-		if (where.user_id) dto.user_id = request.query[where.user_id];
-		return GetUserByDTO(dto);
-	},
-);
+		if (request.query.username) {
+			dto.username = request.query.username
+		}
+		if (request.query.user_id) {
+			dto.user_id = request.query.user_id
+		}
 
-export const GetUserBody = createParamDecorator(
-	async (
-		where: { username?: string; user_id?: string },
-		ctx: ExecutionContext,
-	) => {
-		const request = ctx.switchToHttp().getRequest();
-		const dto = new UserDTO();
-
-		if (where.username) dto.username = request.body[where.username];
-		if (where.user_id) dto.user_id = request.body[where.user_id];
 		return GetUserByDTO(dto);
 	},
 );

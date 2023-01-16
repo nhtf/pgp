@@ -31,6 +31,7 @@ export const load = (async ({ fetch }: any) => {
 		username: item.username,
 		avatar: item.avatar,
 		user_id: item.user_id,
-                auth_req: auth_req
+                auth_req: auth_req,
+                fetch: fetch
 	};
 }) satisfies LayoutLoad;

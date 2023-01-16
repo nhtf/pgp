@@ -1,18 +1,16 @@
-import { AppController } from './app.controller';
-import { Module, Inject, Injectable } from '@nestjs/common';
+import { AppController } from './controllers/app.controller';
+import { Module } from '@nestjs/common';
 import { WSConnection } from './wsconnection';
-import { TypeOrmModule } from '@nestjs/typeorm';
 import { AuthController } from './auth/auth.controller';
 import { TotpController } from './auth/totp.controller';
-import { DebugController } from './debug.controller';
-import { ChatRoomController } from './chat.controller';
+import { DebugController } from './controllers/debug.controller';
+import { ChatRoomController } from './controllers/chat.controller';
 import { SessionUtils } from './SessionUtils';
-import { AccountController } from './account.controller';
-import { DataSource, Repository } from 'typeorm';
+import { AccountController } from './controllers/account.controller';
+import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
-import { GameController } from './game.controller';
+import { GameController } from './controllers/game.controller';
 import { AuthGuard } from './auth/auth.guard';
-import { User } from './entities/User';
 import * as session from 'express-session';
 import { SESSION_SECRET } from './vars';
 

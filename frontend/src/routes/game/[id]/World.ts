@@ -6,11 +6,12 @@ import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions 
 import type { Entity, EntityObject, EntityUpdate } from "./Entity";
 import { Vector, Quaternion } from "./Math";
 import type { VectorObject, QuaternionObject } from "./Math";
-import { Counter } from "./Util";
+import { Counter, Map2 } from "./Util";
 
 export const TICKS_PER_SECOND = 60;
 export const STEPS_PER_TICK = 10;
 export const PHYSICS_MULTIPLIER = 1;
+export const COLLISION_DELAY = 10;
 
 export interface ThreeObject {
 	dispose(): void;
@@ -18,6 +19,7 @@ export interface ThreeObject {
 
 export interface Snapshot extends NetSnapshot {
 	entities: EntityObject[];
+	collisions: [string | null, string | null, number][];
 }
 
 export interface CreateEvent extends NetEvent {
@@ -53,6 +55,7 @@ export class World extends Net {
 	private collisionDispatcher: Ammo.btCollisionDispatcher;
 	private broadphaseInterface: Ammo.btDbvtBroadphase;
 	private constraintSolver: Ammo.btSequentialImpulseConstraintSolver;
+	private collisions: Map2<Entity | null, Entity | null, number>;
 	private debug?: Debug;
 
 	public constructor() {
@@ -76,6 +79,7 @@ export class World extends Net {
 		this.world.setGravity(this.addAmmoObject(new Ammo.btVector3(0, -9.81, 0)));
 		this.world.getSolverInfo().set_m_solverMode(0);
 		this.entities = [];
+		this.collisions = new Map2();
 		this.blueprints = new Map();
 		
 		this.renderer.setPixelRatio(window.devicePixelRatio);
@@ -168,6 +172,7 @@ export class World extends Net {
 			createObject.av ??= new Vector(0, 0, 0).intoObject();
 			createObject.tp ??= null;
 			createObject.tr ??= null;
+			createObject.lu ??= this.time;
 			this.sendCreate(createObject as EntityObject);
 		} else {
 			this.sendUpdate(updateObject as EntityUpdate);
@@ -227,6 +232,7 @@ export class World extends Net {
 				entity.physicsTick();
 			}
 
+			const subFrame = this.time * STEPS_PER_TICK + i;
 			const physicsStep = 1 / TICKS_PER_SECOND / STEPS_PER_TICK * PHYSICS_MULTIPLIER;
 			this.broadphaseInterface.resetPool(this.collisionDispatcher);
 			this.constraintSolver.reset();
@@ -237,19 +243,29 @@ export class World extends Net {
 				const manifold = this.collisionDispatcher.getManifoldByIndexInternal(i);
 				const body0 = manifold.getBody0().getUserIndex();
 				const body1 = manifold.getBody1().getUserIndex();
-				const entity0 = this.entities.find(e => e.physicsObject.getUserIndex() == body0);
-				const entity1 = this.entities.find(e => e.physicsObject.getUserIndex() == body1);
+				const entity0 = this.entities.find(e => e.physicsObject.getUserIndex() == body0) ?? null;
+				const entity1 = this.entities.find(e => e.physicsObject.getUserIndex() == body1) ?? null;
+				const lastCollision = this.collisions.get(entity0, entity1) ?? -COLLISION_DELAY;
 
-				if (manifold.getNumContacts() > 0) {
+				if (manifold.getNumContacts() > 0 && subFrame - lastCollision >= COLLISION_DELAY) {
 					const contact = manifold.getContactPoint(0);
 					const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
 					const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
 					entity0?.onCollision(entity1 ?? null, contact0, contact1);
 					entity1?.onCollision(entity0 ?? null, contact1, contact0);
+					this.collisions.set(entity0, entity1, subFrame);
+					this.collisions.set(entity1, entity0, subFrame);
 				}
 			}
 		}
 
+		const subFrame = (this.time + 1) * STEPS_PER_TICK;
+
+		for (let [key1, key2, value] of [...this.collisions.entries()]) {
+			if (subFrame - value >= COLLISION_DELAY) {
+				this.collisions.delete(key1, key2);
+			}
+		}
 
 		for (let entity of [...this.entities]) {
 			entity.lateTick();
@@ -265,6 +281,7 @@ export class World extends Net {
 
 	public save(): Snapshot {
 		const entities = [];
+		const collisions: [string | null, string | null, number][] = [];
 
 		const sortedEntities = this.entities;
 		sortedEntities.sort((a, b) => a.uuid.localeCompare(b.uuid));
@@ -275,8 +292,13 @@ export class World extends Net {
 			}
 		}
 
+		for (let [e1, e2, t] of this.collisions.entries()) {
+			collisions.push([e1 === null ? null : e1.uuid, e2 === null ? null : e2.uuid, t]);
+		}
+
 		return {
 			entities,
+			collisions,
 			...super.save(),
 		};
 	}
@@ -293,6 +315,12 @@ export class World extends Net {
 			if (!uuids.has(entity.uuid) && entity.dynamic) {
 				this.delete(entity.uuid);
 			}
+		}
+
+		this.collisions.clear();
+
+		for (let [uuid1, uuid2, t] of snapshot.collisions) {
+			this.collisions.set(uuid1 === null ? null : this.get(uuid1)!, uuid2 === null ? null : this.get(uuid2)!, t);
 		}
 
 		super.load(snapshot);

@@ -46,29 +46,25 @@ export class WSConnection {
 		client.broadcast.emit('broadcast', data);
 	}
 
-	@SubscribeMessage('joinGame')
-	joinGame(@MessageBody() data: string): boolean {
-		if (this.users.find((id) => id === data) === undefined) {
-			this.users.push(data);
-			return true;
-		}
-		return true;
+	@SubscribeMessage('joinRoom')
+	joinRoom(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+		client.join("room-" + id);
 	}
 
-	@SubscribeMessage('joinRoom')
-	joinRoom(@ConnectedSocket() client: Socket, @MessageBody() data: { room_id: string }) {
-		client.join(data.room_id);
+	@SubscribeMessage('joinGame')
+	joinGame(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+		client.join("game-" + id);
 	}
 
 	@SubscribeMessage('message')
 	async message(@ConnectedSocket() client: Socket, @MessageBody() data: { room_id: string, content: string }) {
 		const request: any = client.request;
-	
 		const user = await this.userRepo.findOneBy({ user_id: request.session.user_id });
+	
 		if (!user)
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 
-		this.server.in(data.room_id).emit("message", {
+		this.server.in("room-" + data.room_id).emit("message", {
 			user: {
 				username: user.username,
 				avatar: user.avatar,

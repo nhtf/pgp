@@ -2,19 +2,13 @@ import {
 	Get,
 	Controller,
 	UseGuards,
-	Session,
-	Req,
 	Redirect,
 	HttpStatus,
 } from '@nestjs/common';
-import { Request } from 'express';
-import * as session from 'express-session';
-import { AuthGuard } from './auth/auth.guard';
-import { AccessToken } from 'simple-oauth2';
+import { AuthGuard } from '../auth/auth.guard';
 import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
-import { SessionUtils, SessionObject } from './SessionUtils';
-import { BACKEND_ADDRESS } from './vars';
+import { BACKEND_ADDRESS } from '../vars';
 
 interface IntraDTO {
 	id: number;

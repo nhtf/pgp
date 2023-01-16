@@ -2,138 +2,11 @@
     import { onMount } from 'svelte';
     import { _default_profile_image } from "./+layout";
     import type { LayoutData } from './$types';
-    import Swal from "sweetalert2";
-    import * as validator from "validator";
+    import {enable_2fa, disable_2fa, logout } from "./layout_log_functions";
     export let data: LayoutData;
     let show = false;
-    let enabled_2fa = data.auth_req === 2;
 
-    async function enable_2fa() {
-            const response = await fetch("http://localhost:3000/otp/setup", {
-                    method: "POST",
-                    credentials: "include",
-            });
-
-            if (!response.ok) {
-                    console.error(response.message);
-            } else {
-                    const data = await response.json();
-
-                    await Swal.fire({
-                            title: "Setup 2FA",
-                            footer: `${data.secret}`,
-                            input: "text",
-                            imageUrl: `${data.qr}`,
-                            imageWidth: 400,
-                            imageHeight: 400,
-                            imageAlt: "2FA qr code",
-                            showCancelButton: true,
-                            confirmButtonText: "Setup",
-                            showLoaderOnConfirm: true,
-                            inputAutoTrim: true,
-                            inputPlaceholder: "Enter your 2FA code",
-                            inputValidator: (code) => {
-                                if (!validator.isLength(code, { min: 6, max: 6 }))
-                                    return "OTP must be 6 characters long";
-                                if (!validator.isInt(code, { min: 0, max: 999999 }))
-                                    return "OTP consist of only numbers";
-                            },
-                            preConfirm: (code) => {
-                                    return fetch("http://localhost:3000/otp/setup_verify", {
-                                            method: "POST",
-                                            credentials: "include",
-                                            headers: {
-                                                    "Content-Type": "application/x-www-form-urlencoded",
-                                            },
-                                            body: `otp=${code}`,
-                                    })
-                                            .then((response) => {
-                                                    console.log(response);
-                                                    if (!response.ok) {
-                                                            throw new Error("not ok");
-                                                    }
-                                                    return "done";
-                                            })
-                                            .catch((error) => {
-                                                    Swal.showValidationMessage(`Could not setup 2FA: ${error}`);
-                                            });
-                            },
-                            allowOutsideClick: () => !Swal.isLoading(),
-                    }).then((result) => {
-                            if (result.isConfirmed) {
-                                    Swal.fire({
-                                            position: "top-end",
-                                            icon: "success",
-                                            title: "Successfully setup 2FA",
-                                            showConfirmButton: false,
-                                            timer: 1300,
-                                    });
-                                    enabled_2fa = true;
-                            }
-                    });
-            }
-    }
-
-    async function disable_2fa() {
-            await Swal.fire({
-                    title: "Are you sure?",
-                    icon: "warning",
-                    showCancelButton: true,
-                    confirmButtonText: "Yes, disable 2FA",
-                    cancelButtonColor: "#d33",
-                    confirmButtonColor: "#198754",
-                    allowOutsideClick: () => !Swal.isLoading(),
-                    focusCancel: true,
-                    preConfirm: () => {
-                            return fetch("http://localhost:3000/otp/disable", {
-                                    method: "POST",
-                                    credentials: "include",
-                            })
-                                    .then((response) => {
-                                            if (!response.ok) throw new Error(response.statusText);
-                                            return null;
-                                    })
-                                    .catch((error) => {
-                                            Swal.showValidationMessage(`Could not disable 2FA: ${error}`);
-                                    });
-                    },
-            }).then((result) => {
-                    if (result.isConfirmed) {
-                            Swal.fire({
-                                    position: "top-end",
-                                    icon: "success",
-                                    title: "Successfully disabled 2FA",
-                                    showConfirmButton: false,
-                                    timer: 1300,
-                            });
-                            enabled_2fa = false;
-                            data.auth_req = 1;
-                    }
-            });
-    }
-
-    async function logout() {
-        const response = await fetch("http://localhost:3000/oauth/logout", {
-            method: "POST",
-            credentials: "include",
-        });
-
-        if (!response.ok) {
-            const info = await response.json();
-            const Toast = Swal.mixin({
-                toast: true,
-                position: "top-end",
-                showConfirmButton: false,
-                timer: 3000,
-                timerProgressBar: false
-            });
-
-            Toast.fire({
-                icon: "error",
-                title: info.message,
-            });
-        }
-    }
+    let two_fa_enable = data.auth_req == 2;
 
     let currentTheme: string;
 	const THEMES = {
@@ -142,17 +15,11 @@
 	};
 	const STORAGE_KEY = 'theme';
 	const DARK_PREFERENCE = '(prefers-color-scheme: dark)';
-
 	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
-
-	const toggleTheme = () => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-
+	const toggleTheme = () => {const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      // clear storage
-      localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY);
     } else {
-      // store opposite of preference
       localStorage.setItem(STORAGE_KEY, prefersDarkThemes() ? THEMES.LIGHT : THEMES.DARK);
     }
 	applyTheme();
@@ -172,6 +39,7 @@
   };
 
   onMount(() => {
+    window.fetch = data.fetch;
     applyTheme();
     window.matchMedia(DARK_PREFERENCE).addEventListener('change', applyTheme);
   });
@@ -182,14 +50,36 @@
         else
             show = !show;
     }
+
+    let hamburger = false;
+
+    function changeHamburger() {
+       hamburger = !hamburger;
+    }
+
+    async function disable() {
+        let res = await disable_2fa();
+        if (res) {
+            two_fa_enable = false;
+            data.auth_req = 1;
+        }
+    }
+
+    async function enable() {
+        let res = await disable_2fa();
+        if (res) {
+            two_fa_enable = true;
+            data.auth_req = 2;
+        }
+    }
 </script>
 
 <nav>
     <div class="menu">
-        <ul>
+        <ul id="nav-menu">
             <li><a href="/">Home</a></li>
             <li><a href="/chat">Chat</a></li>
-            <li><a href="/vrtest">PongVR</a></li>
+            <li><a href="/game">PongVR</a></li>
             <li><a href="/leaderboard">Leaderboard</a></li>
             <div class="fill" />
             {#if !data.username}
@@ -204,22 +94,76 @@
                     {#if show}
                     <ul>
                         <li><a href="/profile/{data.username}">Profile</a></li>
-                        {#if enabled_2fa}
-                            <li><a on:click={disable_2fa}>Disable 2FA</a></li>
+                        {#if two_fa_enable}
+                            <li><a on:click={disable}>Disable 2FA</a></li>
                         {:else}
-                            <li><a on:click={enable_2fa}>Enable 2FA</a></li>
+                            <li><a on:click={enable}>Enable 2FA</a></li>
                         {/if}
                         <li><a on:click={logout} href="/">Logout</a></li>
                         {#if currentTheme === THEMES.DARK}
-                        <li on:click={toggleTheme}>lightmode</li>
+                        <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
                         {:else}
-                        <li on:click={toggleTheme}>darkmode</li>
+                        <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
                         {/if}
                     </ul>
                     {/if}
                 </li>
             {/if}
         </ul>
+        <ul id="mobile">
+        <ul id="nav-menu-mobile">
+            <div class="hamburger" on:click={changeHamburger} on:keypress={changeHamburger}>
+                {#if !hamburger}
+                <div class="bar1"></div>
+                <div class="bar2"></div>
+                <div class="bar3"></div>
+                {:else}
+                <div class="bar1" id="change0"></div>
+                <div class="bar2" id="change1"></div>
+                <div class="bar3" id="change2"></div>
+                {/if}
+            </div>
+            {#if hamburger}
+            <li><ul id="ham-drop">
+            <li><a href="/">Home</a></li>
+            <li><a href="/chat">Chat</a></li>
+            <li><a href="/game">PongVR</a></li>
+            <li><a href="/leaderboard">Leaderboard</a></li>
+        </ul>
+            </li>
+            {/if}
+        </ul>
+        <div class="fill" />
+        <ul id="nav-menu-mobile">
+            {#if !data.username}
+                <li><a href="http://localhost:3000/oauth/login">login</a></li>
+            {:else}
+                <li>
+                    <img
+                        id="small-avatar"
+                        src={data.avatar}
+                        alt="small-avatar"
+                    />
+                    {#if show}
+                    <ul>
+                        <li><a href="/profile/{data.username}">Profile</a></li>
+                        {#if two_fa_enable}
+                            <li><a on:click={disable}>Disable 2FA</a></li>
+                        {:else}
+                            <li><a on:click={enable}>Enable 2FA</a></li>
+                        {/if}
+                        <li><a on:click={logout} href="/">Logout</a></li>
+                        {#if currentTheme === THEMES.DARK}
+                        <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
+                        {:else}
+                        <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
+                        {/if}
+                    </ul>
+                    {/if}
+                </li>
+            {/if}
+        </ul>
+    </ul>
     </div>
 </nav>
 
@@ -261,6 +205,7 @@
     }
 
     .menu {
+        /* display: flex; */
         background: var(--box-color);
         position: sticky;
         top: 0;
@@ -295,6 +240,11 @@
         box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
     }
 
+    #theme-mode:hover {
+        border-radius: 6px;
+        box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
+    }
+
     .menu ul li ul li:hover {
         border-radius: 6px;
         padding-top: 5px;
@@ -309,6 +259,60 @@
         background: var(--box-color);
         border-radius: 6px;
         box-shadow: 0px 10px 10px 0px rgba(0, 0, 0, 0.5);
+    }
+
+    #nav-menu-mobile {
+        display: none;
+        flex-direction: column;
+    }
+
+    #mobile {
+        display: none;
+        justify-content: flex-start;
+    }
+
+    #ham-drop {
+        right: 0;
+        left: 0em;
+        top: 6em;
+        width: 175px;
+    }
+
+    @media (max-width: 450px) {
+        #nav-menu {
+            display: none;
+        }
+        #nav-menu-mobile {
+            display: flex;
+        }
+
+        #mobile {
+            display: flex;
+        }
+    }
+
+    .bar1, .bar2, .bar3 {
+        width: 35px;
+        height: 3px;
+        background-color: rgb(255, 255, 255);
+        margin: 6px 0;
+        transition: 0.4s;
+    }
+
+    #change0 {
+  transform: translate(0, 14px) rotate(-45deg);
+}
+
+#change1 {opacity: 0;}
+
+#change2 {
+  transform: translate(0, -14px) rotate(45deg);
+}
+
+    .hamburger {
+        display: inline-block;
+        cursor: pointer;
+        align-self: flex-start;
     }
 
 </style>

@@ -2,6 +2,7 @@
 	import { _default_profile_image as profile_image } from "../../+layout";
 	import { page } from "$app/stores";
 	import type { PageData } from './$types';
+	import Swal from "sweetalert2";
 	export let data: PageData;
 
 	const add_friend = "/Assets/icons/add-friend.png";
@@ -72,14 +73,33 @@
     async function upload() {
 		const formData = new FormData();
         formData.append('file', filevar[0]);
+		if (filevar[0].size > 10485760) {
+			const Toast = Swal.mixin({
+				toast: true,
+				position: 'bottom-end',
+				showConfirmButton: false,
+				timer: 3000,
+				timerProgressBar: false,
+				didOpen: (toast) => {
+					toast.addEventListener('mouseenter', Swal.stopTimer);
+					toast.addEventListener('mouseleave', Swal.resumeTimer);
+				}
+			});
+			Toast.fire({
+				icon: 'error',
+				title: 'File is more than 10 MiB large'
+			});
+			return;
+		}
         const upload = await data.fetch('http://localhost:3000/account/set_image', {
             method: 'POST',
 			credentials: "include",
             mode: "cors",
             body: formData
         });
+		console.log(upload);
+		const result = await upload.json();
 		if (upload.ok) {
-			const result = await upload.json();
 			console.log(result);
 			data.user.avatar = result.new_avatar;
 			avatar = data.user.avatar;
@@ -87,6 +107,22 @@
 			if (avatar_el) {
 				avatar_el.setAttribute('src', result.new_avatar);
 			}
+		} else {
+			const Toast = Swal.mixin({
+				toast: true,
+				position: 'bottom-end',
+				showConfirmButton: false,
+				timer: 3000,
+				timerProgressBar: false,
+				didOpen: (toast) => {
+					toast.addEventListener('mouseenter', Swal.stopTimer);
+					toast.addEventListener('mouseleave', Swal.resumeTimer);
+				}
+			});
+			Toast.fire({
+				icon: 'error',
+				title: `${result}`
+			});
 		}
 		src = null;
 		show_edit = false;

@@ -9,7 +9,6 @@ import {
 	Column,
 	ManyToMany,
 	JoinTable,
-	ManyToOne,
 	OneToMany,
 } from 'typeorm';
 import { Exclude, Expose } from 'class-transformer';
@@ -42,6 +41,7 @@ export class User {
 
 	@Exclude()
 	@Column({
+		default: DEFAULT_AVATAR,
 		//TODO remove this attribute
 		nullable: true,
 	})
@@ -85,11 +85,15 @@ export class User {
 
 	@Expose()
 	get avatar(): string {
-		return BACKEND_ADDRESS + '/' + this.avatar_path(this.avatar_base);
+		return BACKEND_ADDRESS + '/' + this.avatar_path;
 	}
 
-	avatar_path(base: string): string {
-		return join(AVATAR_DIR, this.user_id + base + '.jpg');
+	get avatar_basename(): string {
+		return this.avatar_base + '.jpg';
+	}
+
+	get avatar_path(): string {
+		return join(AVATAR_DIR, this.avatar_basename);
 	}
 
 	async add_friend(target: User) {

@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { onMount } from "svelte";
     import Swal from "sweetalert2";
+    import type { Room } from "./+page";
 
     export let data: {
-        fetch: any
+        fetch: any,
+        rooms: Room[]
     };
 
     const options = [
@@ -13,19 +14,15 @@
     ];
 
     let room_name = "";
-    let other_name = "";
     let password = "";
     let access = options[0];
-    let rooms: any[];
-    $: rooms = [];
-
-    onMount(fetchRooms);
+    let rooms: Room[] = data.rooms;
 
     async function fetchRooms() {
         const URL = "http://localhost:3000/chat/rooms";
-        const response = await data.fetch(URL, {
+        const response = await fetch(URL, {
             credentials: "include",
-	    });
+        });
 
         if (!response.ok) {
            return Swal.fire({
@@ -36,9 +33,7 @@
             });
         }
 
-        rooms = await response.json();
-
-        console.log(rooms);
+       rooms = await response.json();
     }
 
     async function createRoom() {
@@ -80,9 +75,6 @@
         const response = await data.fetch(URL + "?id=" + id, {
             method: "DELETE",
             credentials: "include",
-            headers: {
-                "Content-Type": "application/x-www-form-urlencoded"
-            },
         });
 
         if (!response.ok) {
@@ -94,13 +86,7 @@
             });
         }
 
-        rooms = rooms.filter((room) => {
-            return room.id != id;
-        })
-    }
-
-    async function invite() {
-        
+        rooms = rooms.filter((room) => room.id != id);
     }
 
 </script>
@@ -137,7 +123,7 @@
 {#each rooms as room}
     <li>
         <ul class="room">
-            <li><img id="small-avatar" src={room.owner.avatar} alt="avatar"/></li>
+            <li><img id="small-avatar" src={room.owner.avatar} alt=""/></li>
             <li>{room.owner.username}</li>
             <li style="width: 2em;">{room.members.length}</li>
             <li style="width: 8em;">{room.name}</li>
@@ -151,14 +137,6 @@
                     <input type="submit" value="Delete">
                 </form>
             </li>
-            {#if room.admins.find((admin) => admin.id === room.owner.username)}
-            <li>
-                <form on:submit|preventDefault={() => invite()}>
-                    <input bind:value={room_name} type="text" placeholder="username..." style="text-indent: 1em;" >
-                    <input type="submit" value="Invite">
-                </form>
-            </li>
-            {/if}
         </ul>
     </li>
 {/each}
