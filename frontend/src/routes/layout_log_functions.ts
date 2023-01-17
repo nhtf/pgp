@@ -1,4 +1,5 @@
 import Swal from "sweetalert2";
+import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
 
 export async function enable_2fa() {
@@ -22,6 +23,9 @@ export async function enable_2fa() {
             imageAlt: "2FA qr code",
             showCancelButton: true,
             confirmButtonText: "Setup",
+            confirmButtonColor: "var(--confirm-color)",
+            cancelButtonColor: "var(--cancel-color",
+            background: "var(--box-color)",
             showLoaderOnConfirm: true,
             inputAutoTrim: true,
             inputPlaceholder: "Enter your 2FA code",
@@ -126,5 +130,9 @@ export async function logout() {
             icon: "error",
             title: info.message,
         });
+        return false;
+    }
+    else {
+        return true;
     }
 }

@@ -9,7 +9,12 @@ import { dataSource } from './app.module';
 import { EntityTarget, ObjectLiteral } from 'typeorm';
 import { validate } from 'class-validator';
 import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
-import { Console } from 'console';
+import { ChatRoom } from './entities/ChatRoom';
+
+class RoomDTO {
+	@IsNumberString()
+	id: string;
+}
 
 class UserDTO {
 	@IsString()
@@ -22,7 +27,7 @@ class UserDTO {
 	user_id?: number;
 }
 
-async function GetUserByDTO(dto: UserDTO) {
+export async function GetUserByDTO(dto: UserDTO) {
 	const result = await validate(dto);
 
 	if (result.length !== 0) {
@@ -38,8 +43,6 @@ async function GetUserByDTO(dto: UserDTO) {
 
 	const user = await dataSource.getRepository(User).findOneBy(dto);
 	if (!user) {
-		console.log(404);
-		
 		throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 	}
 
@@ -82,3 +85,31 @@ export const GetUser = createParamDecorator(
 		return user;
 	},
 );
+
+export const GetRoomQuery = createParamDecorator(
+	async (where: undefined, ctx: ExecutionContext) => {
+		const request = ctx.switchToHttp().getRequest();
+		const dto = new RoomDTO;
+
+		if (request.query.id) {
+			dto.id = request.query.id;
+		}
+
+		return getRoomByDTO(dto);
+	}
+)
+
+async function getRoomByDTO(dto: RoomDTO) {
+	const result = await validate(dto);
+
+	if (result.length != 0) {
+		throw new HttpException(result[0].constraints, HttpStatus.BAD_REQUEST);
+	}
+
+	const room = await dataSource.getRepository(ChatRoom).findOneBy({ id: Number(dto.id) });
+	if (!room) {
+		throw new HttpException('room not found', HttpStatus.NOT_FOUND);
+	}
+
+	return room;
+}

@@ -1,17 +1,19 @@
+import { redirect } from "@sveltejs/kit";
+import { doFetch } from "../../stores";
+import type { PageLoad } from "./$types"
+
 export const ssr = false;
 
-/** @type {import('./$types').PageLoad} */
-export async function load({ fetch }: any) {
-	let userlog: string;
-    const res = await fetch("http://localhost:3000/account/whoami", {
-			method: "GET",
-			credentials: "include",
-			mode: "cors",
-			headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-			},
-		});
-		const item = await res.json();
-        userlog = item.username;
-    return {userlog};
-  }
+export const load = (async ({ fetch }: any) => {
+    const response = await doFetch(fetch, "/account/whoami", {
+		credentials: "include",
+	});
+
+	if (!response.ok) {
+		throw redirect(307, "/account_setup");
+	} else {
+		const user = await response.json();
+	
+		throw redirect(307, "/profile/" + user.username);
+	}
+}) satisfies PageLoad

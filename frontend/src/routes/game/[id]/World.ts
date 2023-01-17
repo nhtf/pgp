@@ -99,7 +99,12 @@ export class World extends Net {
 
 		this.on("update", netEvent => {
 			const event = netEvent as UpdateEvent;
+			const entity = this.get(event.entity.uuid!);
 			this.update(event.entity);
+
+			if (entity !== null) {
+				entity.lastUpdate = this.time;
+			}
 		});
 
 		this.on("delete", netEvent => {
@@ -127,7 +132,6 @@ export class World extends Net {
 
 		if (entity !== null) {
 			entity.load(object);
-			entity.lastUpdate = this.time;
 		}
 	}
 
@@ -328,11 +332,13 @@ export class World extends Net {
 
 	public render(deltaTime: number) {}
 
-	public start(options: Options) {
+	public async start(options: Options) {
 		let previousRenderTime: number;
 		let previousTime: number;
 		let clientWidth: number;
 		let clientHeight: number;
+		
+		await super.start(options);
 
 		if (options.debug) {
 			this.debug = new Debug(this);
@@ -346,6 +352,11 @@ export class World extends Net {
 				for (let i = 0; i < stepDelta; i++) {
 					const start = performance.now() / 1000;
 					this.tick();
+
+					for (let entity of this.entities) {
+						entity.renderTick();
+					}
+
 					this.frameTime.add(performance.now() / 1000 - start);
 				}
 
@@ -377,8 +388,6 @@ export class World extends Net {
 
 			this.renderer.render(this.scene, this.camera);
 		});
-		
-		super.start(options);
 	}
 
 	public stop() {

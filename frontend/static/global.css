@@ -12,14 +12,20 @@ body {
 	margin: 0;
 	--text-color: rgb(0, 0, 0);
 	--bkg-color: #dee4e7;
-	--box-color:#f9f9f9;
+	--box-color:rgb(249, 249, 249);
+	--ham-color: #5a5b5b;
+	--confirm-color: rgb(148, 148, 148);
+	--cancel-color: rgb(75, 75, 75);
 	--shadow-color:82, 90, 114, 0.5;
 	--invert: invert(0%);
 	--hover-color: rgb(156, 155, 155);
-	--border-color:#f7f7f7;
+	--border-color:rgb(235, 235, 235);
 	--border-style: solid;
 	--scrollbar-thumb: #9d9c9c;
 	--scrollbar-bkg: #dcdcdc;
+	font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
+			Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
+			Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -27,11 +33,14 @@ body {
 	body:not(.light) {
 		--text-color: rgb(255, 255, 255);
 		--bkg-color:rgb(63, 63, 63);
-		--box-color:rgb(41, 45, 57);
+		--box-color:rgb(69, 76, 95);
+		--ham-color: #dee4e7;
+		--confirm-color: rgb(15, 16, 20);
+		--cancel-color: rgb(26, 60, 163);
 		--shadow-color:82, 90, 114, 0.5;
 		--invert: invert(100%);
 		--hover-color: rgb(156, 155, 155);
-		--border-color:rgb(50, 55, 65);
+		--border-color:rgb(39, 42, 51);
 		--border-style: solid;
 		--scrollbar-thumb: #7b7b7b;
 		--scrollbar-bkg: #383838;
@@ -43,10 +52,13 @@ body {
 	--text-color: rgb(255, 255, 255);
 	--bkg-color:rgb(63, 63, 63);
 	--box-color:rgb(41, 45, 57);
+	--ham-color: #dee4e7;
+	--confirm-color: rgb(15, 16, 20);
+	--cancel-color: rgb(26, 60, 163);
 	--shadow-color:82, 90, 114, 0.5;
 	--invert: invert(100%);
 	--hover-color: rgb(156, 155, 155);
-	--border-color:rgb(41, 45, 57);
+	--border-color:rgb(39, 42, 51);
 	--border-style: solid;
 	--scrollbar-thumb: #7b7b7b;
 	--scrollbar-bkg: #383838;
@@ -56,7 +68,19 @@ body {
 	background: var(--bkg-color);
   }
 
-  canvas {
-	height: 200px;
-	width: 200px;
+  .swal2-title {
+	position: relative;
+	max-width: 100%;
+	margin: 0;
+	padding: 0.8em 1em 0;
+	color: var(--text-color);
+	font-size: 1.875em;
+	font-weight: 600;
+	text-align: center;
+	text-transform: none;
+	word-wrap: break-word;
+  }
+
+  #swal2-title {
+	color: var(--text-color);
   }

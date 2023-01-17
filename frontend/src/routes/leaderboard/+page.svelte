@@ -1,279 +1,59 @@
 <script lang="ts">
-    type leaderdata = {
-        username: string;
-        avatar: string;
-        wins: number;
-        losses: number;
-        draws: number;
-        rank: number;
-    };
-    let leaderboardData = [
-        {id: "vrpong",
-        data: [
-            {
-                username: "user1",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 10,
-                losses: 0,
-                draws: 0,
-                rank: 1,
-            },
-            {
-                username: "user5",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 7,
-                losses: 1,
-                draws: 3,
-                rank: 2,
-            },
-            {
-                username: "user2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 6,
-                losses: 3,
-                draws: 1,
-                rank: 3,
-            },
-            {
-                username: "user3",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 6,
-                losses: 2,
-                draws: 0,
-                rank: 4,
-            },
-            {
-                username: "user4",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 3,
-                losses: 7,
-                draws: 7,
-                rank: 5,
-            },
-            {
-                username: "user6",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 2,
-                losses: 2,
-                draws: 2,
-                rank: 6,
-            },
-            {
-                username: "user8",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 1,
-                losses: 4,
-                draws: 3,
-                rank: 7,
-            },
-        ]},
-        {id: "orpong",
-        data:[
-            {
-                username: "user1d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 10,
-                losses: 0,
-                draws: 0,
-                rank: 1,
-            },
-            {
-                username: "user5d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 7,
-                losses: 1,
-                draws: 3,
-                rank: 2,
-            },
-            {
-                username: "user2d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 6,
-                losses: 3,
-                draws: 1,
-                rank: 3,
-            },
-            {
-                username: "user3d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 6,
-                losses: 2,
-                draws: 0,
-                rank: 4,
-            },
-            {
-                username: "user4d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 3,
-                losses: 7,
-                draws: 7,
-                rank: 5,
-            },
-            {
-                username: "user6d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 2,
-                losses: 2,
-                draws: 2,
-                rank: 6,
-            },
-            {
-                username: "user8d2",
-                avatar: "http://localhost:3000/avatar/3.jpg",
-                wins: 1,
-                losses: 4,
-                draws: 3,
-                rank: 7,
-            },
-        ]},
-        ];
+    import {LEADERBOARDS, changeSort} from "./sorting";
+    import type { PageData } from './$types';
+    export let data: PageData;
 
-    type sorting = { type: string; active: string; ascending: boolean };
-    type sorter = sorting[];
-
-    const LEADERBOARDS = [
-        {
-            title: "VR Pong",
-            id: "vrpong",
-            sorter: [
-                { type: "rank", active: "active", ascending: false },
-                { type: "user", active: "inactive", ascending: false },
-                { type: "win", active: "inactive", ascending: false },
-                { type: "lose", active: "inactive", ascending: false },
-                { type: "draw", active: "inactive", ascending: false },
-            ],
-            active: true,
-        },
-        {
-            title: "Classic Pong",
-            id: "2dpong",
-            sorter: [
-                { type: "rank", active: "active", ascending: false },
-                { type: "user", active: "inactive", ascending: false },
-                { type: "win", active: "inactive", ascending: false },
-                { type: "lose", active: "inactive", ascending: false },
-                { type: "draw", active: "inactive", ascending: false },
-            ],
-            active: true,
-        },
-    ];
-
-    function changeSort(sorter: sorter, type: number, index: number) {
-        sorter.forEach((value, index) => {
-            if (index !== type) {
-                value.active = "inactive";
-                value.ascending = false;
-            }
-        });
-        if (sorter[type].active === "active") {
-            sorter[type].ascending = !sorter[type].ascending;
-            leaderboardData[index].data.sort(compare_functions[type]);
-            if (!sorter[type].ascending) {
-                leaderboardData[index].data.reverse();
-            }
-        } else {
-            sorter[type].active = "active";
-        }
-        LEADERBOARDS[index].sorter = sorter;
-        leaderboardData = leaderboardData;
+    function sort(sorter: any, index_sorter: number, index: number) {
+        changeSort(sorter, index_sorter, index, data.lb);
+        data.lb = data.lb;
     }
 
-    function compare_rank(a: leaderdata, b: leaderdata) {
-        if (a.rank < b.rank) {
-            return -1;
+    function changeActive(id: string) {
+        console.log(id);
+        const el = document.getElementById(id);
+        if (el) {
+            el.style.display = "flex";
         }
-        if (a.rank > b.rank) {
-            return 1;
-        }
-        return 0;
     }
-
-    function compare_username(a: leaderdata, b: leaderdata) {
-        if (a.username < b.username) {
-            return -1;
-        }
-        if (a.username > b.username) {
-            return 1;
-        }
-        return 0;
-    }
-
-    function compare_wins(a: leaderdata, b: leaderdata) {
-        if (a.wins < b.wins) {
-            return -1;
-        }
-        if (a.wins > b.wins) {
-            return 1;
-        }
-        return 0;
-    }
-
-    function compare_losses(a: leaderdata, b: leaderdata) {
-        if (a.losses < b.losses) {
-            return -1;
-        }
-        if (a.losses > b.losses) {
-            return 1;
-        }
-        return 0;
-    }
-
-    function compare_draws(a: leaderdata, b: leaderdata) {
-        if (a.draws < b.draws) {
-            return -1;
-        }
-        if (a.draws > b.draws) {
-            return 1;
-        }
-        return 0;
-    }
-
-    const compare_functions = [
-        compare_rank,
-        compare_username,
-        compare_wins,
-        compare_losses,
-        compare_draws,
-    ];
+    
 </script>
 
 <div class="block_container">
-    {#each LEADERBOARDS as { title, id, sorter, active }, index}
+    <div class="tabs">
+        {#each LEADERBOARDS as { title, id, sorter, active }, index}
         {#if active}
-            <div class="block_vert" {id}>
+        <div class="block_cell" id="active-tab">{title}</div>
+        {:else}
+        <div class="block_cell" id="inactive-tab" on:click={() => changeActive(id)}>{title}</div>
+        {/if}
+        {/each}
+    </div>
+    {#each LEADERBOARDS as { title, id, sorter, active }, index}
+        <!-- {#if active} -->
+            <div class="block_vert" id={id}>
                 <h1>{title}</h1>
-                {#if leaderboardData}
+                {#if data}
                     <div class="block_hor" id="legend">
                         {#each sorter as { type, active, ascending }, index_sorter}
-                            <div class="block_cell" id={active}>
-                                {type}
-                                <div
-                                    class="block_cell"
-                                    id="arrow-icon"
-                                    on:click={() => {
-                                        changeSort(sorter, index_sorter, index);
-                                    }}
-                                    on:keypress={() => {
-                                        changeSort(sorter, index_sorter, index);
-                                    }}
-                                >
-                                    {#if !ascending}
-                                        <i class="arrow down" />
-                                    {:else}
-                                        <i class="arrow up" />
-                                    {/if}
-                                </div>
+                        <div class="block_cell" id={active}>
+                            {type}
+                            <div class="block_cell" id="arrow-icon"
+                                on:click={() => {sort(sorter, index_sorter, index);}}
+                                on:keypress={() => {sort(sorter, index_sorter, index);}}
+                            >
+                                {#if !ascending}
+                                    <i class="arrow down" />
+                                {:else}
+                                    <i class="arrow up" />
+                                {/if}
                             </div>
+                        </div>
                         {/each}
                     </div>
-                    {#each leaderboardData[index].data as { username, avatar, wins, losses, draws, rank }}
+                    {#each data.lb[index].data as { username, avatar, wins, losses, draws, rank }}
                         <div class="block_hor" id="rank{rank}">
                             <div class="block_cell">{rank}</div>
-                            <div class="block_cell"><img
-                                id="small-avatars"
-                                src={avatar}
-                                alt="avatar"
-                            />{username}</div>
+                            <div class="block_cell"><img id="small-avatars" src={avatar} alt="avatar"/>{username}</div>
                             <div class="block_cell">{wins}</div>
                             <div class="block_cell">{losses}</div>
                             <div class="block_cell">{draws}</div>
@@ -281,7 +61,7 @@
                     {/each}
                 {/if}
             </div>
-        {/if}
+        <!-- {/if} -->
     {/each}
 </div>
 
@@ -294,6 +74,10 @@
 
     #active {
         text-decoration: underline;
+    }
+
+    #active-tab {
+        background: black;
     }
 
     .arrow {
@@ -353,8 +137,18 @@
         box-shadow: 0 0 0 var(--box-color);
     }
 
+    .tabs {
+        display: none;
+        display: flex;
+        background: var(--box-color);
+        border-radius: 6px;
+        flex-direction: row;
+        justify-content: center;
+    }
+
     .block_container {
         display: flex;
+        height: 100%;
         gap: 10px;
         padding-left: 10px;
         padding-right: 10px;
@@ -364,15 +158,18 @@
         color: var(--text-color);
         text-decoration: none;
         justify-content: center;
+        position: relative;
+        top: 0;
     }
 
     /* vertical blocks */
     .block_vert {
-        height: calc(90vh - 10em);
+        height: calc(100vh - 150px);
         flex-grow: 1;
         display: flex;
         padding-left: 25px;
         padding-right: 25px;
+        padding-bottom: 25px;
         background: var(--box-color);
         border-radius: 6px;
         flex-direction: column;
@@ -384,8 +181,7 @@
         border-style: solid;
         scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
         scrollbar-width: thin;
-        overflow-x: auto;
-        max-width: 750px;
+        max-width: 600px;
         align-self: center;
     }
 
@@ -398,7 +194,6 @@
         display: flex;
         flex-direction: row;
         min-width: 80%;
-        /* margin-left: 25px; */
         padding: 3px;
         margin: 5px;
         justify-content: center;
@@ -416,31 +211,28 @@
         padding-left: 2px;
         padding-right: 2px;
         height: 45px;
-        max-width: 200px;
         overflow: hidden;
         align-items: center;
         color: var(--text-color);
-        text-decoration: none;
         text-align: center;
         display: flex;
         flex-direction: row;
-        align-self: center;
         position: relative;
     }
 
     .block_cell:first-child {
-        align-self: flex-start;
+        /* align-self: flex-start; */
+        width: 50px;
+        align-self: center;
+        /* justify-content: flex-start; */
     }
 
     .block_cell:nth-child(2) {
         flex-grow: 1;
         text-align: center;
         min-width: 100px;
-    }
-
-    .block_cell:nth-child(3) {
-        /* width: 50px; */
-        right: 1em;
+        max-width: 200px;
+        /* padding-left: 10px; */
     }
 
     #small-avatars {
@@ -452,40 +244,6 @@
 
     #small-avatars:hover {
         box-shadow: 2px 2px 5px 5px rgba(var(--shadow-color));
-    }
-
-    .dropdown-content {
-        display: none;
-        flex-direction: column;
-        position: fixed;
-        min-width: 100px;
-        background-color: var(--box-color);
-        border: 1px solid var(--border-color);
-        border-radius: 8px;
-        box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-        z-index: 20;
-        /* top: 50px; */
-        top: 0;
-    }
-
-    #drop-cell {
-        color: var(--text-color);
-        padding: 8px 10px;
-        border-radius: 6px;
-    }
-
-    #drop-cell:hover {
-        box-shadow: 1px 1px 2px 2px rgba(var(--shadow-color));
-        cursor: pointer;
-    }
-
-    #dropbtn {
-        cursor: pointer;
-        align-self: center;
-    }
-
-    #dropbtn:hover {
-        text-decoration: underline;
     }
 
     ::-webkit-scrollbar {
@@ -504,5 +262,19 @@
         border-radius: 8px 8px 8px 8px;
         box-shadow: inset 12px 12px 12px 12px var(--scrollbar-thumb);
         margin: 0px auto;
+    }
+
+    @media (max-width: 450px) {
+        .tabs {
+            display: flex;
+        }
+
+        #vrpong {
+            display: flex;
+        }
+
+        #orpong {
+            display: none;
+        }
     }
 </style>

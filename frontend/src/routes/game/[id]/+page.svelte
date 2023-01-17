@@ -7,10 +7,10 @@
 	let container: Element;
 
 	/** @type {import('./$types').PageData} */
-	export let params;
+	export let data;
 
 	onMount(async() => {
-		console.log(params);
+		console.log(data);
 
 		await ammoInit();
 		const VRButton = (await import("three/examples/jsm/webxr/VRButton.js")).VRButton;
@@ -39,8 +39,7 @@
 			button.addEventListener('click', changeCanvasSize);
 		}
 
-		await world.init();
-		world.start({ container, debug: false });
+		await world.start({ container, room: data.params.id });
 	});
 
 	onDestroy(() => {

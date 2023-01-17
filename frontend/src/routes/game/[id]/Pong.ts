@@ -11,6 +11,9 @@ import { randomHex } from "./Util";
 import type { Event as NetEvent } from "./Net";
 import * as THREE from "three";
 
+import { get } from "../../util/Web";
+import { unwrap } from "../../util/Alert";
+
 export interface Snapshot extends WorldSnapshot {
 	state: StateSnapshot;
 }
@@ -167,6 +170,10 @@ export class Paddle extends Entity {
 		physicsObject.setRestitution(Paddle.RESTITUTION);
 		super(world, uuid, world.paddleModel!.clone(), physicsObject);
 		this.userID = userID;
+
+		if (uuid != world.paddleUUID) {
+			this.interpolation = 0.25;
+		}
 	}
 
 	public earlyTick() {
@@ -218,7 +225,11 @@ export class Pong extends World {
 			if (event.entity.name == "paddle") {
 				const entity = event.entity as PaddleObject;
 				const team = this.state.teams[0].players.length > this.state.teams[1].players.length ? 1 : 0;
-				this.state.players.push(new Player(this.state, entity.userID, team));
+				const player = this.state.players.find(p => p.user == entity.userID);
+
+				if (player === undefined) {
+					this.state.players.push(new Player(this.state, entity.userID, team));
+				}
 			}
 		});
 
@@ -236,7 +247,7 @@ export class Pong extends World {
 						uuid: Ball.UUID,
 						pos: paddle.position.add(new Vector(0, 0.25, 0)).add(new Vector(0, 0.473, -0.881).rotate(paddle.rotation).scale(0.05)).intoObject(),
 						rot: new Quaternion(0, 0, 0, 1).intoObject(),
-						lv: new Vector(0, 1, 0).intoObject(),
+						lv: new Vector(0, 3, 0).intoObject(),
 						av: new Vector(0, 0, 0).intoObject(),
 						tp: null,
 						tr: null,
@@ -248,26 +259,6 @@ export class Pong extends World {
 
 		this.register("ball", object => new Ball(this, object.uuid));
 		this.register("paddle", object => new Paddle(this, object.uuid, (object as PaddleObject).userID));
-	}
-
-	public async init() {
-		const paddleTransform = {
-			scale: new Vector(0.048, 0.048, 0.048),
-			rotate: new Vector(Math.PI / 6 * 4, 0, 0),
-			translate: new Vector(0, 0.02, -0.04),
-		};
-
-		const response = await fetch("http://localhost:3000/account/whoami", { credentials: "include" });
-		const json = await response.json();
-		this.userID = json.user_id;
-
-		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
-		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
-
-		await createLights(this);
-		await createFloor(this);
-
-		this.add(new Table(this, Table.UUID));
 	}
 
 	public earlyTick() {
@@ -297,12 +288,31 @@ export class Pong extends World {
 		super.load(snapshot);
 	}
 
-	public start(options: WorldOptions) {
+	public async start(options: WorldOptions) {
+		const paddleTransform = {
+			scale: new Vector(0.048, 0.048, 0.048),
+			rotate: new Vector(Math.PI / 6 * 4, 0, 0),
+			translate: new Vector(0, 0.02, -0.04),
+		};
+
+		const response = await unwrap(get("/account/whoami"));
+		this.userID = response.user_id;
+
+		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
+		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
+
+		await createLights(this);
+		await createFloor(this);
+
+		this.add(new Table(this, Table.UUID));
+
 		this.rightController.addEventListener("selectstart", () => {
 			this.send("ball", {
 				paddle: this.paddleUUID,
 			});
 		});
+
+		await super.start(options);
 
 		window.onkeydown = event => {
 			const forward = new THREE.Vector3();
@@ -328,8 +338,6 @@ export class Pong extends World {
 				this.cameraGroup.position.add(new THREE.Vector3(0, -1 / 8, 0));
 			}
 		};
-
-		super.start(options);
 	}
 
 	public stop() {

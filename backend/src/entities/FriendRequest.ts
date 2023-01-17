@@ -1,5 +1,5 @@
 import { User } from './User';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
 import { classToPlain } from 'class-transformer';
 
 @Entity()
@@ -7,7 +7,7 @@ export class FriendRequest {
 	@PrimaryGeneratedColumn()
 	id!: number;
 
-	@Column()
+	@CreateDateColumn()
 	date: Date;
 
 	@ManyToOne(() => User, (user) => user.sent_friend_requests)

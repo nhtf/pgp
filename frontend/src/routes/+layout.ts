@@ -4,7 +4,7 @@ import  { error } from '@sveltejs/kit';
 export const _default_profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
 export const load = (async ({ fetch }: any) => {
-    const res = await fetch("http://localhost:3000/account/whoami", {
+    const res = await fetch("http://localhost:3000/user/me", {
 			method: "GET",
 			credentials: "include",
 			mode: "cors",
@@ -14,18 +14,7 @@ export const load = (async ({ fetch }: any) => {
 		});
     const item = await res.json();
 
-    let auth_req = 0;
-
-    if (res.ok) {
-        const response = await fetch('http://localhost:3000/account/auth_req', {
-                credentials: 'include'
-        });
-
-        if (!response.ok)
-                throw error(response.status, response.message);
-
-        auth_req = await response.json();
-    }
+    let auth_req = item.auth_req;
 
     return {
 		username: item.username,

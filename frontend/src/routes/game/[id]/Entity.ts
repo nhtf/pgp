@@ -29,6 +29,7 @@ export abstract class Entity {
 	public lastUpdate: number;
 	public world: World;
 	public removed: boolean;
+	public interpolation: number;
 
 	public constructor(world: World, uuid: string, renderObject: THREE.Object3D, physicsObject: Ammo.btRigidBody) {
 		this.world = world;
@@ -39,6 +40,7 @@ export abstract class Entity {
 		this.targetRotation = null;
 		this.lastUpdate = 0;
 		this.removed = false;
+		this.interpolation = 1;
 	}
 
 	public get position(): Vector {
@@ -109,8 +111,11 @@ export abstract class Entity {
 	}
 
 	public lateTick() {
-		this.renderObject.position.copy(this.position.intoThree());
-		this.renderObject.quaternion.copy(this.rotation.intoThree());
+	}
+
+	public renderTick() {
+		this.renderObject.position.lerp(this.position.intoThree(), this.interpolation);
+		this.renderObject.quaternion.slerp(this.rotation.intoThree(), this.interpolation);
 	}
 
 	public save(): EntityObject {

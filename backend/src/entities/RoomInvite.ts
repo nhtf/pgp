@@ -3,10 +3,10 @@ import { ChatRoom } from './ChatRoom';
 import {
 	Entity,
 	PrimaryGeneratedColumn,
-	Column,
 	CreateDateColumn,
 	ManyToOne,
 } from 'typeorm';
+import { instanceToPlain } from 'class-transformer';
 
 @Entity()
 export class RoomInvite {
@@ -22,6 +22,15 @@ export class RoomInvite {
 	@ManyToOne(() => User, (user) => user.incoming_room_invites)
 	to: Promise<User>;
 
-	@ManyToOne(() => ChatRoom, (room) => room.invites)
+	@ManyToOne(() => ChatRoom, (room) => room.invites, { onDelete: "CASCADE"})
 	room: Promise<ChatRoom>;
+
+	async serialize() {
+		return {
+			...instanceToPlain(this),
+			from: await this.from,
+			to: await this.to,
+			room: await (await this.room).serialize(),
+		}
+	}
 }

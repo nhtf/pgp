@@ -22,6 +22,7 @@ export interface Event {
 
 export interface Options {
 	address?: string;
+	room: string;
 }
 
 export class Net {
@@ -36,6 +37,7 @@ export class Net {
 	private newEvents: Event[];
 	private listeners: Map<string, { (event: Event): void; }[]>;
 	private socket: Socket | null;
+	private lastSync: number;
 
 	protected constructor() {
 		this.time = 0;
@@ -49,6 +51,7 @@ export class Net {
 		this.newEvents = [];
 		this.listeners = new Map();
 		this.socket = null;
+		this.lastSync = 0;
 	}
 
 	protected save(): Snapshot {
@@ -117,16 +120,18 @@ export class Net {
 				});
 			}
 
-			if (this.time % SYNCHRONIZE_INTERVAL == 0 && this.socket !== null) {
+			if (this.time - this.lastSync >= SYNCHRONIZE_INTERVAL) {
 				this.broadcast({
 					name: "synchronize",
 					time: this.time,
 					snapshot: this.snapshots[0],
 					events: this.allEvents
 				});
+
+				this.lastSync = this.time;
 			}
 
-			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL && this.socket !== null) {
+			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
 				const latest = this.getLatest(this.time - DESYNC_CHECK_DELTA);
 
 				if (latest !== null) {
@@ -207,10 +212,13 @@ export class Net {
 		this.minTime = null;
 	}
 
-	public start(options: Options) {
+	public async start(options: Options) {
 		this.snapshots.push(this.save());
 
-		this.socket = io(options.address ?? "ws://localhost:3000", { withCredentials: true });
+		this.socket = io(options.address ?? "ws://localhost:3000/game", { withCredentials: true });
+		this.socket?.on("connect", () => {
+			this.socket?.emit("join", { "scope": "game", "room": options.room });
+		});
 		this.socket.on("exception", console.error);
 		this.socket.on("broadcast", message => {
 			this.bandwidthDownload.add(JSON.stringify(message).length);
@@ -219,14 +227,14 @@ export class Net {
 				this.merge(message.events);
 			} else if (message.name === "synchronize") {
 				if (message.snapshot.time > this.time) {
+					this.minTime = null;
 					this.load(message.snapshot);
-					this.snapshots.push(message.snapshot);
-					this.clean();
+					this.snapshots = [message.snapshot];
 				}
 
 				this.maxTime = Math.max(this.maxTime, message.time);
 				this.merge(message.events);
-				this.applyMerge();
+				this.forward(message.time);
 			} else if (message.name === "desync-check") {
 				let latest = this.getLatest(message.snapshot.time);
 

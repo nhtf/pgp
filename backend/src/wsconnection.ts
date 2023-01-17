@@ -14,13 +14,12 @@ import { User } from './entities/User';
 import { authorize } from './auth/auth.guard';
 
 @WebSocketGateway({
+	namespace: "room",
 	cors: { origin: 'http://localhost:5173', credentials: true },
 })
 export class WSConnection {
 	@WebSocketServer()
 	server: Server;
-
-	users: string[];
 
 	constructor(
 		@Inject('CHATROOM_REPO')
@@ -30,30 +29,20 @@ export class WSConnection {
 		@Inject('MESSAGE_REPO')
 		private readonly messageRepo: Repository<Message>
 		) {
-		this.users = [];
 	}
 
 	async handleConnection(client: Socket) {
 		const request: any = client.request;
-		if (!authorize(request.session)) {
+	
+		if (!request.session || !authorize(request.session)) {
 			client.emit('exception', { errorMessage: 'unauthorized' });
 			client.disconnect();
 		}
 	}
 
-	@SubscribeMessage('broadcast')
-	async broadcast(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
-		client.broadcast.emit('broadcast', data);
-	}
-
-	@SubscribeMessage('joinRoom')
-	joinRoom(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
-		client.join("room-" + id);
-	}
-
-	@SubscribeMessage('joinGame')
-	joinGame(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
-		client.join("game-" + id);
+	@SubscribeMessage('join')
+	join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+		client.join(id);
 	}
 
 	@SubscribeMessage('message')
@@ -64,7 +53,7 @@ export class WSConnection {
 		if (!user)
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 
-		this.server.in("room-" + data.room_id).emit("message", {
+		this.server.in(data.room_id).emit("message", {
 			user: {
 				username: user.username,
 				avatar: user.avatar,

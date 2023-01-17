@@ -19,7 +19,7 @@ import { User } from '../entities/User';
 import { ChatRoom } from '../entities/ChatRoom';
 import { RoomInvite } from '../entities/RoomInvite';
 import { SetupGuard } from './account.controller';
-import { GetUser, GetUserQuery } from '../util';
+import { GetRoomQuery, GetUser, GetUserQuery } from '../util';
 import {
 	IsNumberString,
 	IsString,
@@ -29,10 +29,8 @@ import {
 	IsEnum,
 } from 'class-validator';
 import * as argon2 from 'argon2';
-import { instanceToPlain } from 'class-transformer';
 import { PGP_DEBUG } from '../vars';
 import { Access } from '../Access';
-import { Message } from '../entities/Message';
 
 class RoomDTO {
 	@IsNumberString()
@@ -80,45 +78,6 @@ export class ChatRoomController {
 		private readonly inviteRepo: Repository<RoomInvite>,
 	) {}
 
-	@Get('messages')
-	async messages(@GetUser() user: User, @Query() dto: RoomDTO) {
-		const room = await this.getRoom(user, dto.id);
-		const messages = await room.messages;
-	
-		return Promise.all(messages.map((message: Message) => message.serialize()));
-	}
-
-	@Get('room')
-	async room(@Query() dto: RoomDTO) {
-		const room = await this.chatRepo.findOneBy({ id: Number(dto.id) });
-
-		if (!room)
-			throw new HttpException("Room not found", HttpStatus.NOT_FOUND);
-
-		return room.serialize();
-	}
-
-	@Get('rooms')
-	async rooms(@GetUser() user: User) {
-		const list = await this.chatRepo.find();
-
-		if (PGP_DEBUG)
-			return await Promise.all(list.map((room: ChatRoom) => room.serialize()));
-
-		return await Promise.all(
-			list
-				.filter(async (room: ChatRoom) => {
-					return (
-						room.access == Access.PRIVATE ||
-						(await room.members).findIndex(
-							(current: User) => current.user_id === user.user_id,
-						) >= 0
-					);
-				})
-				.map((room: ChatRoom) => room.serialize()),
-		);
-	}
-
 	@Post('create')
 	@HttpCode(HttpStatus.CREATED)
 	async createRoom(@GetUser() user: User, @Body() dto: CreateRoomDTO) {
@@ -164,6 +123,8 @@ export class ChatRoomController {
 		}
 		room.members = Promise.resolve([user]);
 		room.admins = Promise.resolve([user]);
+
+		console.log(room);
 
 		return await this.chatRepo.save(room);
 	}
@@ -370,10 +331,9 @@ export class ChatRoomController {
 
 	@Delete('delete')
 	@HttpCode(HttpStatus.NO_CONTENT)
-	async delete(@GetUser() user: User, @Query() dto: RoomDTO) {
-		const room = await this.getRoom(user, dto.id);
-
+	async delete(@GetUser() user: User, @GetRoomQuery() room: any) {
 		const owner = await room.owner;
+	
 		if (owner.user_id !== user.user_id)
 			throw new HttpException(
 				'only the owner of a room can delete the room',
@@ -388,7 +348,7 @@ export class ChatRoomController {
 	async invite(
 		@GetUser() user: User,
 		@GetUserQuery() target: User,
-		@Body() dto: RoomDTO,
+		@Query() dto: RoomDTO,
 	) {
 		const room = await this.getRoom(user, dto.id);
 		const admins = await room.admins;
@@ -413,12 +373,9 @@ export class ChatRoomController {
 			);
 
 		const invite = await this.inviteRepo.findOneBy({
-			from: {
-				user_id: user.user_id,
-			},
-			to: {
-				user_id: target.user_id,
-			},
+			from: {	user_id: user.user_id },
+			to: { user_id: target.user_id },
+			room: { id: room.id },
 		});
 	
 		if (invite)
@@ -434,21 +391,29 @@ export class ChatRoomController {
 		await this.inviteRepo.save(room_invite);
 	}
 
-	@Get('invites')
-	async invites(@GetUser() user: User) {
+	@Get('invites/to')
+	async invitesTo(@GetUser() user: User) {
 		const invites = await this.inviteRepo.findBy({
 			to: { user_id: user.user_id },
 		});
 
 		return await Promise.all(
 			invites.map(async (invite) => {
-				return {
-					...instanceToPlain(invite),
-					from: await invite.from,
-					to: await invite.to,
-					room: await (await invite.room).serialize(),
-				};
+				return await invite.serialize();
 			}),
+		);
+	}
+
+	@Get('invites/room')
+	async invitesRoom(@GetRoomQuery() room: any) {
+		const invites = await this.inviteRepo.findBy({
+			room: { id: room.id },
+		});
+
+		return await Promise.all(
+			invites.map(async (invite) => {
+				return await invite.serialize();
+			})
 		);
 	}
 

@@ -2,22 +2,23 @@
     import { onMount } from "svelte";
     import Swal from "sweetalert2";
     import socket from "../websocket";
-    import type { Message, Room, User } from "../+page";
+	import type { Invite, Message, Room, User } from "../../../stores";
+    import { doFetch, FRONTEND } from "../../../stores";
 
 	export let data: {
-		fetch: any
+		fetch: any,
 		user: User,
 		room: Room,
+		invites: Invite[],
 	};
 
+	let invites: Invite[] = data.invites;
 	let messages: Message[] = data.room.messages;
 	let invitee: string = "";
 	let body: string = "";
 
-	console.log(messages);
-
 	onMount(() => {
-		socket.emit("joinRoom", data.room.id);
+		socket.emit("join", data.room.id);
 	});
 
 	socket.on("message", (data: { content: string, user: any }) => {
@@ -42,15 +43,20 @@
 	}
 
     async function invite() {
-        const URL = "http://localhost:3000/chat/invite";
-		const response = await data.fetch(URL + "?username=" + invitee, {
-			method: "POST",
-			credentials: "include",
-		});
+		if (!invitee.length) {
+			return Swal.fire({
+                icon: "warning",
+                text: "Please enter a username",
+				timer: 3000,
+            });
+		}
+		const response = await doFetch(data.fetch, "/chat/invite",
+			{ method: "POST", credentials: "include" },
+			{ username: invitee, id: data.room.id });
 
 		if (!response.ok) {
 			const error = await response.json();
-
+		
 			return Swal.fire({
 				icon: "error",
 				text: error.message,
@@ -63,17 +69,40 @@
 		})
     }
 
+    async function deleteRoom() {
+        const response = await doFetch(data.fetch, `/room/${data.room.id}`, { method: "DELETE" } );
+
+        if (!response.ok) {
+			const error = await response.json();
+		
+			return Swal.fire({
+				icon: "error",
+                text: error.message,
+            });
+        }
+
+        window.location.assign(FRONTEND + "/chat");
+    }
+
 </script>
 
-<form class="send" on:submit|preventDefault={sendMessage}>
-	<input bind:value={body} type="text">
-	<input type="submit" value="Send"/>
-</form>
-
-<form class="invite" on:submit|preventDefault={invite}>
-	<input bind:value={invitee} type="text" placeholder="username...">
-	<input type="submit" value="Invite">
-</form>
+<ul class="option">
+	<li>
+		<form on:submit|preventDefault={sendMessage}>
+			<input bind:value={body} type="text" placeholder="message...">
+			<input type="submit" value="Send"/>
+		</form>
+	</li>
+	<li>
+		<form on:submit|preventDefault={invite}>
+			<input bind:value={invitee} type="text" placeholder="username...">
+			<input type="submit" value="Invite">
+		</form>
+	</li>
+	<li>
+		<button on:click={deleteRoom}>Delete</button>
+	</li>
+</ul>
 
 <h1 style="margin: 1em">{data.room.name}</h1>
 {#each messages as message}
@@ -90,6 +119,14 @@
 	{/if}
 {/each}
 
+<h1 style="margin: 1em">Invites {invites.length}</h1>
+{#each invites as invite}
+	<div class="message">
+		<div>From: {invite.from.username}</div>
+		<div>To: {invite.to.username}</div>
+	</div>
+{/each}
+
 <style>
 
 h1 {
@@ -98,16 +135,14 @@ h1 {
 	padding: 1em;
 }
 
-.send {
+.option {
 	position: fixed;
 	bottom: 1em;
-	left: 1em;
 }
 
-.invite {
-	position: fixed;
-	bottom: 1em;
-	right: 1em;
+.option li {
+	list-style: none;
+	margin: 1em
 }
 
 .message {

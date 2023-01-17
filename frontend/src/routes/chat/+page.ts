@@ -1,32 +1,9 @@
 import { redirect } from "@sveltejs/kit";
+import { doFetch } from "../../stores";
 import type { PageLoad } from "./$types"
 
-export type User = {
-	user_id: number,
-	username: string,
-	avatar: string
-};
-
-export type Message = {
-	content: string,
-	user: User,
-};
-
-export type Room = {
-    id: number,
-    name: string,
-    owner: User,
-    admins: User[],
-    members: User[],
-    invites: any[],
-    messages: Message[],
-}
-
 export const load = (async ({ fetch }: any) => {
-    const URL = "http://localhost:3000/chat/rooms";
-    const response = await fetch(URL, {
-        credentials: "include",
-    });
+    const response = await doFetch(fetch, "/room");
 
     if (!response.ok) {
         throw redirect(307, "/profile");

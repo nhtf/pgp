@@ -1,60 +1,66 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount } from "svelte";
     import { _default_profile_image } from "./+layout";
-    import type { LayoutData } from './$types';
-    import {enable_2fa, disable_2fa, logout } from "./layout_log_functions";
+    import type { LayoutData } from "./$types";
+    import { enable_2fa, disable_2fa, logout } from "./layout_log_functions";
     export let data: LayoutData;
     let show = false;
 
     let two_fa_enable = data.auth_req == 2;
 
     let currentTheme: string;
-	const THEMES = {
-		DARK: 'dark',
-		LIGHT: 'light',
-	};
-	const STORAGE_KEY = 'theme';
-	const DARK_PREFERENCE = '(prefers-color-scheme: dark)';
-	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
-	const toggleTheme = () => {const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-        localStorage.removeItem(STORAGE_KEY);
-    } else {
-      localStorage.setItem(STORAGE_KEY, prefersDarkThemes() ? THEMES.LIGHT : THEMES.DARK);
-    }
-	applyTheme();
-  };
+    const THEMES = {
+        DARK: "dark",
+        LIGHT: "light",
+    };
+    const STORAGE_KEY = "theme";
+    const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
+    const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
+    const toggleTheme = () => {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            localStorage.removeItem(STORAGE_KEY);
+        } else {
+            localStorage.setItem(
+                STORAGE_KEY,
+                prefersDarkThemes() ? THEMES.LIGHT : THEMES.DARK
+            );
+        }
+        applyTheme();
+    };
 
-  const applyTheme = () => {
-    const preferredTheme = prefersDarkThemes() ? THEMES.DARK : THEMES.LIGHT;
-    currentTheme = localStorage.getItem(STORAGE_KEY) ?? preferredTheme;
+    const applyTheme = () => {
+        const preferredTheme = prefersDarkThemes() ? THEMES.DARK : THEMES.LIGHT;
+        currentTheme = localStorage.getItem(STORAGE_KEY) ?? preferredTheme;
 
-    if (currentTheme === THEMES.DARK) {
-      document.body.classList.remove(THEMES.LIGHT);
-      document.body.classList.add(THEMES.DARK);
-    } else {
-      document.body.classList.remove(THEMES.DARK);
-      document.body.classList.add(THEMES.LIGHT);
-    }
-  };
+        if (currentTheme === THEMES.DARK) {
+            document.body.classList.remove(THEMES.LIGHT);
+            document.body.classList.add(THEMES.DARK);
+        } else {
+            document.body.classList.remove(THEMES.DARK);
+            document.body.classList.add(THEMES.LIGHT);
+        }
+    };
 
-  onMount(() => {
-    window.fetch = data.fetch;
-    applyTheme();
-    window.matchMedia(DARK_PREFERENCE).addEventListener('change', applyTheme);
-  });
+    onMount(() => {
+        window.fetch = data.fetch;
+        applyTheme();
+        window
+            .matchMedia(DARK_PREFERENCE)
+            .addEventListener("change", applyTheme);
+    });
 
-  function toggle_dropdown(e: MouseEvent) {
+    function toggle_dropdown(e: MouseEvent) {
+        
         if (!e.target || !e.target.id || e.target.id !== "small-avatar")
             show = false;
-        else
-            show = !show;
+        else show = !show;
     }
 
     let hamburger = false;
 
     function changeHamburger() {
-       hamburger = !hamburger;
+        hamburger = !hamburger;
     }
 
     async function disable() {
@@ -66,10 +72,18 @@
     }
 
     async function enable() {
-        let res = await disable_2fa();
+        let res = await enable_2fa();
         if (res) {
             two_fa_enable = true;
             data.auth_req = 2;
+        }
+    }
+
+    async function logoutfn() {
+        let res = await logout();
+        if (res) {
+            data.username = null;
+            window.location.href = "/";
         }
     }
 </script>
@@ -86,93 +100,87 @@
                 <li><a href="http://localhost:3000/oauth/login">login</a></li>
             {:else}
                 <li>
-                    <img
-                        id="small-avatar"
-                        src={data.avatar}
-                        alt="small-avatar"
-                    />
+                    <img id="small-avatar" src={data.avatar} alt="small-avatar"/>
                     {#if show}
-                    <ul>
-                        <li><a href="/profile/{data.username}">Profile</a></li>
+                        <ul><li><a href="/profile/{data.username}">profile</a></li>
                         {#if two_fa_enable}
-                            <li><a on:click={disable}>Disable 2FA</a></li>
+                            <li><a on:click={disable}>disable 2fa</a></li>
                         {:else}
-                            <li><a on:click={enable}>Enable 2FA</a></li>
+                            <li><a on:click={enable}>enable 2fa</a></li>
                         {/if}
-                        <li><a on:click={logout} href="/">Logout</a></li>
                         {#if currentTheme === THEMES.DARK}
-                        <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
+                            <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
                         {:else}
-                        <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
+                            <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
                         {/if}
-                    </ul>
+                        <li><a on:click={logoutfn} href="/">logout</a></li>
+                        </ul>
                     {/if}
                 </li>
             {/if}
         </ul>
         <ul id="mobile">
-        <ul id="nav-menu-mobile">
-            <div class="hamburger" on:click={changeHamburger} on:keypress={changeHamburger}>
-                {#if !hamburger}
-                <div class="bar1"></div>
-                <div class="bar2"></div>
-                <div class="bar3"></div>
-                {:else}
-                <div class="bar1" id="change0"></div>
-                <div class="bar2" id="change1"></div>
-                <div class="bar3" id="change2"></div>
-                {/if}
-            </div>
-            {#if hamburger}
-            <li><ul id="ham-drop">
-            <li><a href="/">Home</a></li>
-            <li><a href="/chat">Chat</a></li>
-            <li><a href="/game">PongVR</a></li>
-            <li><a href="/leaderboard">Leaderboard</a></li>
-        </ul>
-            </li>
-            {/if}
-        </ul>
-        <div class="fill" />
-        <ul id="nav-menu-mobile">
-            {#if !data.username}
-                <li><a href="http://localhost:3000/oauth/login">login</a></li>
-            {:else}
-                <li>
-                    <img
-                        id="small-avatar"
-                        src={data.avatar}
-                        alt="small-avatar"
-                    />
-                    {#if show}
-                    <ul>
-                        <li><a href="/profile/{data.username}">Profile</a></li>
-                        {#if two_fa_enable}
-                            <li><a on:click={disable}>Disable 2FA</a></li>
-                        {:else}
-                            <li><a on:click={enable}>Enable 2FA</a></li>
-                        {/if}
-                        <li><a on:click={logout} href="/">Logout</a></li>
-                        {#if currentTheme === THEMES.DARK}
-                        <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
-                        {:else}
-                        <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
-                        {/if}
-                    </ul>
+            <ul id="nav-menu-mobile">
+                <div
+                    class="hamburger"
+                    on:click={changeHamburger}
+                    on:keypress={changeHamburger}
+                >
+                    {#if !hamburger}
+                        <div class="bar1" />
+                        <div class="bar2" />
+                        <div class="bar3" />
+                    {:else}
+                        <div class="bar1" id="change0" />
+                        <div class="bar2" id="change1" />
+                        <div class="bar3" id="change2" />
                     {/if}
-                </li>
-            {/if}
+                </div>
+                {#if hamburger}
+                    <li>
+                        <ul id="ham-drop">
+                            <li><a href="/">Home</a></li>
+                            <li><a href="/chat">Chat</a></li>
+                            <li><a href="/game">PongVR</a></li>
+                            <li><a href="/leaderboard">Leaderboard</a></li>
+                        </ul>
+                    </li>
+                {/if}
+            </ul>
+            <div class="fill" />
+            <ul id="nav-menu-mobile">
+                {#if !data.username}
+                    <li><a href="http://localhost:3000/oauth/login">login</a></li>
+                {:else}
+                    <li><img id="small-avatar" src={data.avatar} alt="small-avatar"/>
+                    {#if show}
+                        <ul>
+                            <li><a href="/profile/{data.username}">Profile</a></li>
+                            {#if two_fa_enable}
+                                <li><a on:click={disable}>Disable 2FA</a></li>
+                            {:else}
+                                <li><a on:click={enable}>Enable 2FA</a></li>
+                            {/if}
+                            <li><a on:click={logout} href="/">Logout</a></li>
+                            {#if currentTheme === THEMES.DARK}
+                                <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
+                            {:else}
+                                <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
+                                {/if}
+                        </ul>
+                    {/if}
+                    </li>
+                {/if}
+            </ul>
         </ul>
-    </ul>
     </div>
 </nav>
 
 <slot />
 
-<svelte:window on:click={toggle_dropdown}/>
+<svelte:window on:click={toggle_dropdown} />
 
-<style> 
-
+<style>
     #small-avatar {
         display: flex;
         max-width: 35px;
@@ -214,9 +222,9 @@
         border-width: 2px;
         border-style: solid;
     }
-    
+
     /* parent */
-    .menu ul { 
+    .menu ul {
         display: flex;
         justify-content: space-evenly;
         align-items: center;
@@ -291,23 +299,27 @@
         }
     }
 
-    .bar1, .bar2, .bar3 {
+    .bar1,
+    .bar2,
+    .bar3 {
         width: 35px;
         height: 3px;
-        background-color: rgb(255, 255, 255);
+        background-color: var(--ham-color);
         margin: 6px 0;
         transition: 0.4s;
     }
 
     #change0 {
-  transform: translate(0, 14px) rotate(-45deg);
-}
+        transform: translate(0, 14px) rotate(-45deg);
+    }
 
-#change1 {opacity: 0;}
+    #change1 {
+        opacity: 0;
+    }
 
-#change2 {
-  transform: translate(0, -14px) rotate(45deg);
-}
+    #change2 {
+        transform: translate(0, -14px) rotate(45deg);
+    }
 
     .hamburger {
         display: inline-block;

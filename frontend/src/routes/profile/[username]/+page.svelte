@@ -1,8 +1,12 @@
 <script lang="ts">
 	import { _default_profile_image as profile_image } from "../../+layout";
 	import { page } from "$app/stores";
+	import { io } from 'socket.io-client';
 	import type { PageData } from './$types';
 	import Swal from "sweetalert2";
+    import type { Invite } from "../../../stores";
+	import Dropdownmenu from "../../../dropdownmenu.svelte";
+
 	export let data: PageData;
 
 	const add_friend = "/Assets/icons/add-friend.png";
@@ -13,56 +17,10 @@
 	let friends = data.friends;
 	let show_edit = false;
 	let avatar = data.user.avatar;
+	let score = new Map();
 
-	function toggleDropOut(event: Event | undefined,username: string) {
-		if (document.getElementById(username)) {
-			const elem = document.getElementById(username);
-			if (elem) {
-				const temp = elem.style.display;
-				resetToggles();
-				if (temp === "none" || temp === "") {
-					elem.style.display = "block";
-					const mouse = event as MouseEvent;
-					elem.style.top =  mouse.clientY + 25 + 'px';
-				} else {
-					elem.style.display = "none";
-				}
-			}
-		}
-	}
+	let invites: Invite[] = [];
 
-	function resetToggles() {
-		var dropdowns = document.getElementsByClassName("dropdown-content");
-		for (let i = 0; i < dropdowns.length; i++) {
-			const dropDown = dropdowns[i] as HTMLElement;
-			dropDown.style.display = "none";
-		}
-	}
-
-	function clickfunction(event: MouseEvent) {
-		if (!event || !event.target) {
-			return;
-		}
-		// console.log(event.target);
-		const element = event.target as Element;
-		if (!element.matches("#dropbtn")) {
-			resetToggles();
-		}
-	}
-
-	async function unfriend(username: string, index: number) {
-		const response = await data.fetch(`http://localhost:3000/account/unfriend?username=${username}`, {
-			method: "POST",
-			credentials: "include",
-			mode: "cors",
-		});
-		if (response.ok) {
-			console.log("unfriend succesful.\n");
-			friends.splice(index, 1);
-			friends = friends;
-		}
-	}
-	// console.log("form: ", form);
 	let filevar: FileList;
 
 	function resetImage() {
@@ -133,17 +91,54 @@
 		src = null;
 	}
 
+	function resetToggles() {
+		var dropdowns = document.getElementsByClassName("dropdown-content");
+		for (let i = 0; i < dropdowns.length; i++) {
+			const dropDown = dropdowns[i] as HTMLElement;
+			dropDown.style.display = "none";
+		}
+	}
+
+	function clickfunction(event: MouseEvent) {
+		if (!event || !event.target)
+			return;
+		const element = event.target as Element;
+		if (!element.matches("#dropbtn"))
+			resetToggles();
+	}
+
 	let src: string | null;
 
 	function onChange() {
 		var reader = new FileReader();
 		reader.onload = function (e) {
-		if (e.target && e.target.result) {
-			src = e.target.result as string;
-			}
+			if (e.target && e.target.result)
+				src = e.target.result as string;
 		}
 		reader.readAsDataURL(filevar[0]);
 	}
+
+	function checkGameScores() {
+		let socket = io("ws://localhost:3000/game", {withCredentials: true});
+		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
+		socket.on("status", (status) => {
+			data.friends.forEach((user) => {
+				if (status.players.length > 1 && status.teams.length > 1) {
+					for (let i = 0; i < status.players.length; i+=1) {
+					if (status.players[i].user === user.user_id) {
+						const points = status.teams[0].score + " - " + status.teams[1].score;
+						score.set(user.username, points);
+						// console.log("setting something");
+					}
+				}
+				}
+				
+			})
+			score = score;
+		});
+	}
+
+	checkGameScores();
 </script>
 
 <svelte:window on:click={clickfunction}/>
@@ -159,11 +154,11 @@
 					<img id="avatar" src={profile_image} alt="avatar" />
 				{/if}
 				{#if data.user.username === data.username}
-					<img on:click={toggleEdit} src={edit_icon} alt="edit icon" id="edit-icon"/>
+					<img on:click={toggleEdit} on:keypress={toggleEdit} src={edit_icon} alt="edit icon" id="edit-icon"/>
 					{#if show_edit}
 					<div class="edit-avatar-window">
 						<div class="close-button">
-						<svg on:click={toggleEdit} fill="currentColor" width="24" height="24">
+						<svg on:click={toggleEdit} on:keypress={toggleEdit} fill="currentColor" width="24" height="24">
 							<path d="M13.42 12L20 18.58 18.58 20 12 13.42 5.42 20 4 18.58 10.58 12 4 5.42 5.42 4 12 10.58 18.58 4 20 5.42z"></path>
 						  </svg>
 						</div>
@@ -172,7 +167,7 @@
 						<img class="current-avatar" src={data.user.avatar} alt="avatar" />
 						</div>
 						<div class="image-selector">
-							<input name="file" class="hidden"  id="image-selector_file_upload" type="file" accept="image/*" bind:files={filevar} on:change={onChange}>
+							<input name="file" class="hidden" id="image-selector_file_upload" type="file" accept="image/*" bind:files={filevar} on:change={onChange}>
 							<label  for="image-selector_file_upload">edit avatar</label>
 						</div>
 					{/if}
@@ -180,7 +175,7 @@
 						<div class="avatar-preview-container">
 						<img src={src} class="current-avatar"/>
 						</div>
-						<div class="image-selector" on:click={upload}>submit
+						<div class="image-selector" on:click={upload} on:keypress={upload}>submit
 						</div>
 					{/if}
 					</div>
@@ -193,35 +188,25 @@
 		<h1 >Friends</h1>
 		{#if friends}
 			{#each friends as { username, avatar, online, in_game }, index}
-				<div class="block_hor">
-					<div class="block_cell"
-						on:click={() => toggleDropOut(event, username)}
-						on:keypress={() => toggleDropOut(event, username)}
-					>
-						<div class="block_hor" id="dropbtn">{username}</div>
+				<div class="block_hor" id="friend-hor">
+					<div class="block_cell">
+						<Dropdownmenu drop={{options: data.options.get(username), img: null}}/>
 						{#if online && !in_game}
 							<div class="block_hor" id="online">online</div>
 						{:else if !in_game}
 							<div class="block_hor" id="offline">offline</div>
 						{:else}
+							{#if score.has(username)}
 							<div class="block_hor" id="in_game">playing</div>
+							<div class="block_hor" id="scoredv">{score.get(username)}</div>
+							{:else}
+							<div class="block_hor" id="in_game">playing</div>
+							{/if}
 						{/if}
-						<div id={username} class="dropdown-content">
-							<div class="block_hor" id="drop-cell">view profile</div>
-							{#if in_game}
-								<div class="block_hor" id="drop-cell">spectate</div>
-							{/if}
-							{#if online}
-								<div class="block_hor" id="drop-cell">invite game</div>
-							{/if}
-							<div class="block_hor" id="drop-cell" on:click={() => unfriend(username, index)}>unfriend</div>
-						</div>
 					</div>
-					<a href="/profile/{username}">
-						<div class="block_cell">
-							<img id="small-avatars" src={avatar} alt="avatar" />
-						</div>
-					</a>
+					<div class="block_cell avatar-cell">
+						<Dropdownmenu drop={{options: data.options.get(username), img: avatar}}/>
+					</div>				
 				</div>
 			{/each}
 		{/if}
@@ -380,6 +365,7 @@
 		justify-content: space-evenly;
 		flex-grow: 0;
 		min-width: 100px;
+		min-height: 40px;
 		/* max-height: 40px; */
 		align-items: center;
 		color: var(--text-color);
@@ -390,12 +376,16 @@
 		position: relative;
 	}
 
+	.avatar-cell {
+		flex-grow: 1;
+	}
+
 	.block_cell:first-child {
 		flex-grow: 1;
 		text-align: center;
 	}
 
-	#small-avatars {
+	.small-avatars {
 		max-width: 35px;
 		max-height: 35px;
 		border-radius: 50%;
@@ -411,7 +401,7 @@
 		filter: var(--invert);
 	}
 
-	#small-avatars:hover {
+	.small-avatars:hover {
 		box-shadow: 2px 2px 5px 5px rgba(var(--shadow-color));
 	}
 
@@ -427,14 +417,15 @@
 
 	#online,
 	#offline,
-	#in_game {
+	#in_game, #scoredv {
 		position: relative;
 		font-size: small;
 		top: -5px;
 		cursor:default;
+		padding: 0;
 	}
 
-	#online {
+	#online{
 		color: #5193af;
 	}
 
@@ -442,38 +433,25 @@
 		color: rgb(250, 93, 93);
 	}
 
-	#in_game {
+	#in_game, #scoredv {
 		color: #88c5a4;
 	}
 
-	.dropdown-content {
-		display: none;
-		flex-direction: column;
-		position: fixed;
-		min-width: 100px;
-		background-color: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 8px;
-		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-		z-index: 20;
-		/* top: 50px; */
-		top: 0;
+	#scoredv {
+		font-size: 10px;
+		top: -5px;
 	}
 
-	#drop-cell {
-		color: var(--text-color);
-		padding: 8px 10px;
-		border-radius: 6px;
-	}
-
-	#drop-cell:hover {
-		box-shadow: 1px 1px 2px 2px rgba(var(--shadow-color));
-		cursor: pointer;
+	#friend-hor {
+		min-height: 55px;
+		border: 2px solid var(--border-color);
+		/* box-shadow: 2px 2px 2px 2px rgba(0, 0, 0, 0.4); */
 	}
 
 	#dropbtn {
 		cursor: pointer;
 		align-self: center;
+		/* padding: 0; */
 	}
 
 	#dropbtn:hover {

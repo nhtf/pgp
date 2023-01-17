@@ -1,5 +1,6 @@
 import { AppController } from './controllers/app.controller';
 import { Module } from '@nestjs/common';
+import { GameGateway } from './gateways/game.gateway';
 import { WSConnection } from './wsconnection';
 import { AuthController } from './auth/auth.controller';
 import { TotpController } from './auth/totp.controller';
@@ -7,12 +8,14 @@ import { DebugController } from './controllers/debug.controller';
 import { ChatRoomController } from './controllers/chat.controller';
 import { SessionUtils } from './SessionUtils';
 import { AccountController } from './controllers/account.controller';
+import { UserController } from './controllers/user.controller';
 import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
 import { GameController } from './controllers/game.controller';
 import { AuthGuard } from './auth/auth.guard';
 import * as session from 'express-session';
 import { SESSION_SECRET } from './vars';
+import { RoomController } from './controllers/room.controller';
 
 const entityFiles = [
 	'./entities/User',
@@ -95,8 +98,11 @@ const entityProviders = entityFiles.map<{
 		DebugController,
 		GameController,
 		ChatRoomController,
+		UserController,
+		RoomController,
 	],
 	providers: [
+		GameGateway,
 		WSConnection,
 		SessionUtils,
 		AuthGuard,
