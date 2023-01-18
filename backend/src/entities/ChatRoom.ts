@@ -63,7 +63,7 @@ export class ChatRoom {
 
 	async has_member(user: User): Promise<boolean> {
 		return !!(await this.members).find(
-			(current: User) => current.user_id === user.user_id,
+			(current: User) => current.id === user.id,
 		);
 	}
 

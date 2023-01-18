@@ -24,7 +24,7 @@ class UserDTO {
 
 	@IsNumberString()
 	@IsOptional()
-	user_id?: number;
+	id?: number;
 }
 
 export async function GetUserByDTO(dto: UserDTO) {
@@ -34,9 +34,9 @@ export async function GetUserByDTO(dto: UserDTO) {
 		throw new HttpException(result[0].constraints, HttpStatus.BAD_REQUEST);
 	}
 
-	if (!dto.username && !dto.user_id) {
+	if (!dto.username && !dto.id) {
 		throw new HttpException(
-			'either username or user_id has to be set',
+			'either username or id has to be set',
 			HttpStatus.BAD_REQUEST,
 		);
 	}
@@ -63,8 +63,8 @@ export const GetUserQuery = createParamDecorator(
 		if (request.query.username) {
 			dto.username = request.query.username
 		}
-		if (request.query.user_id) {
-			dto.user_id = request.query.user_id
+		if (request.query.id) {
+			dto.id = request.query.id
 		}
 
 		return GetUserByDTO(dto);
@@ -76,7 +76,7 @@ export const GetUser = createParamDecorator(
 		const request = ctx.switchToHttp().getRequest();
 		const user = await dataSource
 			.getRepository(User)
-			.findOneBy({ user_id: request.session.user_id });
+			.findOneBy({ id: request.session.user_id });
 
 		if (!user) {
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);

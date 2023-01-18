@@ -131,7 +131,7 @@ export class RoomController {
 	async delete(@GetUser() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
 		const owner = await room.owner;
 	
-		if (owner.user_id !== user.user_id) {
+		if (owner.id !== user.id) {
 			throw new HttpException(NOT_OWNER, HttpStatus.UNAUTHORIZED);
 		}
 

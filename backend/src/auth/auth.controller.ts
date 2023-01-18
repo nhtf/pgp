@@ -105,7 +105,7 @@ export class AuthController {
 		}
 	}
 
-	async get_user_id(access_token: AccessToken): Promise<number | undefined> {
+	async get_id(access_token: AccessToken): Promise<number | undefined> {
 		let rest_client = new rm.RestClient('pgp', 'https://api.intra.42.fr', [
 			new BearerCredentialHandler(access_token.token.access_token, false),
 		]);
@@ -119,7 +119,7 @@ export class AuthController {
 
 		const result = res.result;
 		if (!result.id || !result.login) {
-			console.error('did not properly receive user_id and/or login from intra');
+			console.error('did not properly receive id and/or login from intra');
 			return undefined;
 		}
 		return result.id;
@@ -139,7 +139,7 @@ export class AuthController {
 				HttpStatus.SERVICE_UNAVAILABLE,
 			);
 
-		const oauth_id = await this.get_user_id(access_token);
+		const oauth_id = await this.get_id(access_token);
 		if (oauth_id == undefined)
 			throw new HttpException('bad gateway', HttpStatus.BAD_GATEWAY);
 
@@ -155,7 +155,7 @@ export class AuthController {
 		}
 
 		request.session.access_token = access_token.token.access_token;
-		request.session.user_id = user.user_id;
+		request.session.user_id = user.id;
 		request.session.auth_level = AuthLevel.OAuth;
 
 		this.session_utils.save_session(request.session);

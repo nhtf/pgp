@@ -48,7 +48,7 @@ export class WSConnection {
 	@SubscribeMessage('message')
 	async message(@ConnectedSocket() client: Socket, @MessageBody() data: { room_id: string, content: string }) {
 		const request: any = client.request;
-		const user = await this.userRepo.findOneBy({ user_id: request.session.user_id });
+		const user = await this.userRepo.findOneBy({ id: request.session.user_id });
 	
 		if (!user)
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);

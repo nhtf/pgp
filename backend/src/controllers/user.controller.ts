@@ -34,7 +34,7 @@ class UsernameDTO {
 
 class RequestDTO {
 	@IsNumberString()
-	user_id!: string;
+	id!: string;
 }
 
 @Injectable()
@@ -48,7 +48,7 @@ export class InjectUser implements CanActivate {
 			return false;
 		}
 		const user = await dataSource.getRepository(User).findOneBy({
-			user_id: request.session.user_id
+			id: request.session.user_id
 		});
 		request.user = user;
 		return true;
@@ -66,7 +66,7 @@ export class SetupGuard implements CanActivate {
 			return false;
 		}
 		const user = await dataSource.getRepository(User).findOneBy({
-			user_id: request.session.user_id
+			id: request.session.user_id
 		});
 		if (user.username == null) {
 			response.status(403).json('no username set');
@@ -103,7 +103,7 @@ export class UserService {
 	async set_avatar(user: User, avatar_file: Express.Multer.File) {
 		let new_base;
 		do {
-			new_base = user.user_id + randomBytes(20).toString('hex');
+			new_base = user.id + randomBytes(20).toString('hex');
 		} while (new_base === user.avatar_base);
 
 		const transform = sharp().resize(200, 200).jpeg();
@@ -144,40 +144,40 @@ export class UserService {
 
 	async unfriend(user: User, target: User) {
 		const user_friends = await user.friends;
-		const friend_idx =  user_friends ? user_friends.findIndex((x: User) => x.user_id === target.user_id) : -1;
+		const friend_idx =  user_friends ? user_friends.findIndex((x: User) => x.id === target.id) : -1;
 		if (friend_idx < 0) {
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		}
 
 		const friend = user_friends[friend_idx];
 		const friend_friends = await friend.friends;
-		const user_idx = friend_friends ? friend_friends.findIndex((x: User) => x.user_id === user.user_id) : -1;
+		const idx = friend_friends ? friend_friends.findIndex((x: User) => x.id === user.id) : -1;
 
 		user_friends.splice(friend_idx, 1);
-		friend_friends.splice(user_idx, 1);
+		friend_friends.splice(idx, 1);
 		return this.user_repo.save([user, friend]);
 	}
 
 	async list_requests(user: User) {
 		return Promise.all(
 			(await this.request_repo.findBy([
-				{ from: { user_id: user.user_id } },
-				{ to: { user_id: user.user_id } } ])
+				{ from: { id: user.id } },
+				{ to: { id: user.id } } ])
 			).map(request => request.serialize()));
 	}
 
 	async create_request(user: User, target: User) {
-		if (user.user_id === target.user_id)
+		if (user.id === target.id)
 			throw new HttpException('cannot befriend yourself', HttpStatus.UNPROCESSABLE_ENTITY);
 
 		const user_friends = await user.friends;
-		if (user_friends && user_friends.find((friend: User) => friend.user_id === target.user_id))
+		if (user_friends && user_friends.find((friend: User) => friend.id === target.id))
 			throw new HttpException('already friends', HttpStatus.FORBIDDEN);
 
-		if (await this.request_repo.findOneBy({ from: { user_id: user.user_id }, to: { user_id: target.user_id } }))
+		if (await this.request_repo.findOneBy({ from: { id: user.id }, to: { id: target.id } }))
 			throw new HttpException('already exists', HttpStatus.FORBIDDEN);
 
-		const request = await this.request_repo.findOneBy({ from: { user_id: target.user_id }, to: { user_id: user.user_id } });
+		const request = await this.request_repo.findOneBy({ from: { id: target.id }, to: { id: user.id } });
 		if (request) {
 			user.add_friend(target);
 			target.add_friend(user);
@@ -197,7 +197,7 @@ export class UserService {
 		if (!request)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 
-		if (user.user_id !== (await request.from).user_id && user.user_id !== (await request.to).user_id)
+		if (user.id !== (await request.from).id && user.id !== (await request.to).id)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		await this.request_repo.remove(request);
 	}
@@ -226,7 +226,7 @@ export function ParseIDPipe(type: any) {
 }
 
 
-//TODO implement for both username and user_id
+//TODO implement for both username and id
 //probaly like this
 //BACKEND_ADDRESS/user/id/1
 //and
@@ -281,7 +281,7 @@ export class UserController {
 		@Param('id', ParseIDPipe(User)) user: User,
 		@Body() dto: UsernameDTO,
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		return this.user_service.set_username(user, dto.username);
 	}
@@ -305,7 +305,7 @@ export class UserController {
 			}).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
 		uploaded_file: Express.Multer.File,
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		return await this.user_service.set_avatar(user, uploaded_file);
 	}
@@ -316,7 +316,7 @@ export class UserController {
 		@Me() me: User,
 		@Param('id', ParseIDPipe(User)) user: User
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		return this.user_service.list_friends(user);
 	}
@@ -329,7 +329,7 @@ export class UserController {
 		@Param('id', ParseIDPipe(User)) user: User,
 		@Param('friend_id', ParseIDPipe(User)) friend: User
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		return this.user_service.unfriend(user, friend);
 	}
@@ -340,7 +340,7 @@ export class UserController {
 		@Me() me: User,
 		@Param('id', ParseIDPipe(User)) user: User
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		return this.user_service.list_requests(user);
 	}
@@ -352,10 +352,10 @@ export class UserController {
 		@Param('id', ParseIDPipe(User)) user: User,
 		@Body() dto: RequestDTO
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
-		const target = await this.user_repo.findOneById(dto.user_id);
+		const target = await this.user_repo.findOneById(dto.id);
 		if (!target)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		return this.user_service.create_request(user, target);
@@ -368,7 +368,7 @@ export class UserController {
 		@Param('id', ParseIDPipe(User)) user: User,
 		@Param('request_id', ParseIntPipe) request_id: number
 	) {
-		if (user.user_id !== me.user_id)
+		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		await this.user_service.delete_request(user, request_id);
 	}

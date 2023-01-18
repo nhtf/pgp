@@ -52,7 +52,7 @@ class UsernameDTO {
 
 	@IsNumberString()
 	@IsOptional()
-	user_id?: number;
+	id?: number;
 }
 
 class DenyFriendRequestDTO {
@@ -72,7 +72,7 @@ export class SetupGuard implements CanActivate {
 			response.status(400).json('bad request');
 			return false;
 		}
-		const user = await dataSource.getRepository(User).findOneBy({ user_id: request.session.user_id });
+		const user = await dataSource.getRepository(User).findOneBy({ id: request.session.user_id });
 		if (user.username == null) {
 			response.status(403).json('no username set');
 			return false;
@@ -123,8 +123,8 @@ export class AccountController {
 		await this.userRepo.save(user);
 	}
 
-	get_avatar_filename(user_id: number) {
-		return user_id.toString() + '.jpg';
+	get_avatar_filename(id: number) {
+		return id.toString() + '.jpg';
 	}
 
 	get_avatar_path(avatar: string): string {
@@ -166,7 +166,7 @@ export class AccountController {
 
 		let new_base = null;
 		do {
-			new_base = user.user_id + randomBytes(20).toString('hex');
+			new_base = user.id + randomBytes(20).toString('hex');
 		} while (new_base === user.avatar_base);
 
 		const transform = sharp().resize(200, 200).jpeg();
@@ -210,7 +210,7 @@ export class AccountController {
 
 		const from = await request.from;
 		const to = await request.to;
-		if (from.user_id  !== user.user_id && to.user_id !== user.user_id)
+		if (from.id  !== user.id && to.id !== user.id)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		await this.requestRepo.remove(request);
 	}
@@ -221,7 +221,7 @@ export class AccountController {
 		@GetUser() me: User,
 		@GetUserQuery() target: User,
 	) {
-		if (target.user_id === me.user_id)
+		if (target.id === me.id)
 			throw new HttpException(
 				'you cannot befriend yourself :/',
 				HttpStatus.BAD_REQUEST,
@@ -229,7 +229,7 @@ export class AccountController {
 
 		const my_friends = await me.friends;
 
-		if (my_friends.find((user) => user.user_id == target.user_id))
+		if (my_friends.find((user) => user.id == target.id))
 			throw new HttpException(
 				'already friends with this user',
 				HttpStatus.TOO_MANY_REQUESTS,
@@ -238,10 +238,10 @@ export class AccountController {
 		const outstanding_request = await this.requestRepo.findOne({
 			where: {
 				from: {
-					user_id: me.user_id,
+					id: me.id,
 				},
 				to: {
-					user_id: target.user_id,
+					id: target.id,
 				},
 			},
 		});
@@ -254,10 +254,10 @@ export class AccountController {
 		const incoming_request = await this.requestRepo.findOne({
 			where: {
 				from: {
-					user_id: target.user_id,
+					id: target.id,
 				},
 				to: {
-					user_id: me.user_id,
+					id: me.id,
 				},
 			},
 		});
@@ -287,7 +287,7 @@ export class AccountController {
 	@UseGuards(SetupGuard)
 	async friend_requests(@GetUser() me: User) {
 		const requests = await this.requestRepo.findBy({
-			to: { user_id: me.user_id },
+			to: { id: me.id },
 		});
 		return await Promise.all(
 			requests.map((request) => {
@@ -305,7 +305,7 @@ export class AccountController {
 	) {
 		const my_friends = await me.friends;
 		const target_idx = my_friends
-			? my_friends.findIndex((user: User) => user.user_id == target.user_id)
+			? my_friends.findIndex((user: User) => user.id == target.id)
 			: -1;
 
 		if (target_idx < 0)
