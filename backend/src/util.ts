@@ -86,6 +86,15 @@ export const GetUser = createParamDecorator(
 	},
 );
 
+export const Me = createParamDecorator(
+	async (where: undefined, ctx: ExecutionContext) => {
+		const user = ctx.switchToHttp().getRequest().user;
+		if (!user)
+			throw new HttpException('unauthorized', HttpStatus.UNAUTHORIZED);
+		return user;
+	}
+);
+
 export const GetRoomQuery = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
 		const request = ctx.switchToHttp().getRequest();

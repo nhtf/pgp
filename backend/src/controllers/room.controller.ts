@@ -8,7 +8,6 @@ import { GetUser } from "src/util";
 import { Repository } from "typeorm";
 import isNumeric from "validator/lib/isNumeric";
 import * as argon2 from 'argon2';
-import { access } from "fs";
 
 const NO_SUCH_ROOM = "room not found";
 const NOT_A_MEMBER = "not a member";
