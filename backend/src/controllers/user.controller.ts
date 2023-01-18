@@ -7,7 +7,7 @@ import { FriendRequest } from '../entities/FriendRequest';
 import { InstanceChecker, Repository } from 'typeorm';
 import { IsString, Length, IsOptional, IsNumberString } from 'class-validator';
 import { AuthGuard } from '../auth/auth.guard';
-import { GetUser, GetUserByDTO, Me } from '../util';
+import { GetUser, GetUserByDTO, InjectUser, Me, ParseIDPipe } from '../util';
 import { dataSource } from '../app.module';
 import { randomBytes } from 'node:crypto';
 import { open, rm } from 'node:fs/promises';
@@ -30,29 +30,6 @@ class UsernameDTO {
 	@IsString()
 	@Length(3, 20)
 	username: string;
-}
-
-class RequestDTO {
-	@IsNumberString()
-	id!: string;
-}
-
-@Injectable()
-export class InjectUser implements CanActivate {
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const http = context.switchToHttp();
-		const request = http.getRequest();
-		const response = http.getResponse();
-		if (request.session.user_id == undefined) {
-			response.status(400).json('bad request');
-			return false;
-		}
-		const user = await dataSource.getRepository(User).findOneBy({
-			id: request.session.user_id
-		});
-		request.user = user;
-		return true;
-	}
 }
 
 @Injectable()
@@ -107,6 +84,7 @@ export class UserService {
 		} while (new_base === user.avatar_base);
 
 		const transform = sharp().resize(200, 200).jpeg();
+		//TODO catch possible exception thrown by open
 		const file = await open(join(AVATAR_DIR, new_base + '.jpg'), 'w');
 		const stream = file.createWriteStream();
 
@@ -118,7 +96,7 @@ export class UserService {
 		const promise = new Promise((resolve, reject) => {
 			finished(transform, async (error: Error) => {
 				if (error) {
-					reject({statusCode: 400, statusMessage: 'bad image'});
+					reject({statusCode: HttpStatus.UNPROCESSABLE_ENTITY, statusMessage: 'bad image'});
 				} else {
 					try {
 						if (user.avatar_base !== DEFAULT_AVATAR)
@@ -126,16 +104,21 @@ export class UserService {
 						user.avatar_base = new_base;
 					} catch (ex) {
 						console.error(ex);
-						reject({statusCode: 500, statusMessage: 'could not set image'});
+						reject({statusCode: HttpStatus.INTERNAL_SERVER_ERROR, statusMessage: 'could not set image'});
 					}
 				}
+				//TODO check if the files get properly closed on an exception
 				stream.close();
 				file.close();
 				await this.user_repo.save(user);
 				resolve(user);
 			});
 		});
-		return promise;
+		try {
+			return await promise;
+		} catch (error) {
+			throw new HttpException(error.statusMessage, error.statusCode);
+		}
 	}
 
 	async list_friends(user: User) {
@@ -192,48 +175,12 @@ export class UserService {
 		}
 	}
 
-	async delete_request(user: User, request_id: number) {
-		const request = await this.request_repo.findOneById(request_id);
-		if (!request)
-			throw new HttpException('not found', HttpStatus.NOT_FOUND);
-
+	async delete_request(user: User, request: FriendRequest) {
 		if (user.id !== (await request.from).id && user.id !== (await request.to).id)
 			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		await this.request_repo.remove(request);
 	}
 }
-
-export function ParseIDPipe(type: any) {
-	return class ParseIDPipe implements PipeTransform {
-		async transform(value: any, metadata: ArgumentMetadata) {
-			if (!value || value === null)
-				throw new HttpException('id not specified', HttpStatus.BAD_REQUEST);
-			if (!['string', 'number'].includes(typeof value))
-				throw new HttpException('id must be either a string or an number', HttpStatus.BAD_REQUEST);
-			if (!isNumeric(value, { no_symbols: true }))
-				throw new HttpException('id must consist of only digits', HttpStatus.BAD_REQUEST);
-			const id = Number(value);
-			if (!isFinite(id))
-				throw new HttpException('id must be finite', HttpStatus.UNPROCESSABLE_ENTITY);
-			if (id > Number.MAX_SAFE_INTEGER)
-				throw new HttpException(`id may not be larger that ${Number.MAX_SAFE_INTEGER}`, HttpStatus.UNPROCESSABLE_ENTITY);
-			const entity = await dataSource.getRepository(type).findOneBy({ id: Number(value) });
-			if (!entity)
-				throw new HttpException('user not found', HttpStatus.NOT_FOUND);
-			return entity;
-		}
-	};
-}
-
-
-//TODO implement for both username and id
-//probaly like this
-//BACKEND_ADDRESS/user/id/1
-//and
-//BACKEND_ADDRESS/user/username
-//
-//
-//TODO check if there is a better way to handle view and editing permissions
 
 @Controller('user(s)?/id')
 @UseGuards(AuthGuard, InjectUser)
@@ -245,29 +192,6 @@ export class UserController {
 		private readonly user_repo: Repository<User>,
 		private readonly user_service: UserService
 	) {}
-
-	async select_user(id: any, me: User) {
-		if (typeof id === 'number') {
-			return dataSource.getRepository(User).findOneById(id);
-		} else if (typeof id === 'string') {
-			if (id === 'me') {
-				return Promise.resolve(me);
-			} 
-			const user = await dataSource.getRepository(User).findOneBy({ username: id });
-			if (user)
-				return user;
-			if (isNumeric(id, { no_symbols: true })) {
-				return dataSource.getRepository(User).findOneById(id);
-			}
-		}
-		return Promise.resolve(null);
-	}
-
-	@Get()
-	@UseGuards(SetupGuard)
-	async get_all() {
-		return this.user_service.get_all();
-	}
 
 	@Get(':id')
 	@UseGuards(SetupGuard)
@@ -287,6 +211,7 @@ export class UserController {
 	}
 
 	@Get(':id/avatar')
+	@UseGuards(SetupGuard)
 	async get_avatar(
 		@Param('id', ParseIDPipe(User)) user: User,
 		@Res() response: Response
@@ -296,6 +221,7 @@ export class UserController {
 
 	@Put(':id/avatar')
 	@UseInterceptors(FileInterceptor('avatar'))
+	@UseGuards(SetupGuard)
 	async set_avatar(
 		@Me() me: User,
 		@Param('id', ParseIDPipe(User)) user: User,
@@ -350,14 +276,10 @@ export class UserController {
 	async create_request(
 		@Me() me: User,
 		@Param('id', ParseIDPipe(User)) user: User,
-		@Body() dto: RequestDTO
+		@Body('id', ParseIDPipe(User)) target, 
 	) {
 		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
-
-		const target = await this.user_repo.findOneById(dto.id);
-		if (!target)
-			throw new HttpException('not found', HttpStatus.NOT_FOUND);
 		return this.user_service.create_request(user, target);
 	}
 
@@ -366,10 +288,239 @@ export class UserController {
 	async delete_request(
 		@Me() me: User,
 		@Param('id', ParseIDPipe(User)) user: User,
-		@Param('request_id', ParseIntPipe) request_id: number
+		@Param('request_id', ParseIDPipe(FriendRequest)) request: FriendRequest
 	) {
 		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
-		await this.user_service.delete_request(user, request_id);
+		await this.user_service.delete_request(user, request);
+	}
+}
+
+//TODO do not allow whitespaces in username
+class ParseUsernamePipe implements PipeTransform {
+	async transform(value: any, metadata: ArgumentMetadata) {
+		if (!value || value === null)
+			throw new HttpException('username not specified', HttpStatus.BAD_REQUEST);
+		if (typeof value !== 'string')
+			throw new HttpException('username must be a string', HttpStatus.BAD_REQUEST);
+		if (!isLength(value, { min: 3, max: 20 }))
+			throw new HttpException('username must be 3 to 20 characters long', HttpStatus.BAD_REQUEST);
+		const entity = await dataSource.getRepository(User).findOneBy({ username: value });
+		if (!entity)
+			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+		return entity;
+	}
+}
+
+@Controller('user(s)?/me')
+@UseGuards(AuthGuard, InjectUser)
+@UseInterceptors(ClassSerializerInterceptor)
+export class MeController {
+
+	constructor(
+		@Inject('USER_REPO')
+		private readonly user_repo: Repository<User>,
+		private readonly user_service: UserService
+	) {}
+
+	@Get()
+	@UseGuards(SetupGuard)
+	async get_all(@Me() user: User) {
+		return this.user_service.get_user(user);
+	}
+
+	@Put('username')
+	async set_username(
+		@Me() user: User,
+		@Body() dto: UsernameDTO,
+	) {
+		return this.user_service.set_username(user, dto.username);
+	}
+
+	@Get('avatar')
+	@UseGuards(SetupGuard)
+	async get_avatar(
+		@Me() user: User,
+		@Res() response: Response
+	) {
+		response.redirect(user.avatar);
+	}
+
+	@Put('avatar')
+	@UseInterceptors(FileInterceptor('avatar'))
+	@UseGuards(SetupGuard)
+	async set_avatar(
+		@Me() user: User,
+		@UploadedFile(
+			new ParseFilePipeBuilder().addMaxSizeValidator({
+				maxSize: 10485760
+			}).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
+		uploaded_file: Express.Multer.File,
+	) {
+		return await this.user_service.set_avatar(user, uploaded_file);
+	}
+
+	@Get('friends')
+	@UseGuards(SetupGuard)
+	async list_friends(
+		@Me() user: User
+	) {
+		return this.user_service.list_friends(user);
+	}
+
+	@Delete('friends/:friend_id')
+	@UseGuards(SetupGuard)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async unfriend(
+		@Me() user: User,
+		@Param('friend_id', ParseUsernamePipe) friend: User
+	) {
+		return this.user_service.unfriend(user, friend);
+	}
+
+	@Get('friends/requests')
+	@UseGuards(SetupGuard)
+	async list_requests(
+		@Me() user: User,
+	) {
+		return this.user_service.list_requests(user);
+	}
+
+	@Post('friends/requests')
+	@UseGuards(SetupGuard)
+	async create_request(
+		@Me() user: User,
+		@Body('id', ParseIDPipe(User)) target: User
+	) {
+		return this.user_service.create_request(user, target);
+	}
+
+	@Delete('friends/requests/:request_id')
+	@UseGuards(SetupGuard)
+	async delete_request(
+		@Me() user: User,
+		@Param('request_id', ParseIDPipe(FriendRequest)) request: FriendRequest
+	) {
+		await this.user_service.delete_request(user, request);
+	}
+}
+
+@Controller('user(s)?/')
+@UseGuards(AuthGuard, InjectUser)
+@UseInterceptors(ClassSerializerInterceptor)
+export class UsernameController {
+
+	constructor(
+		@Inject('USER_REPO')
+		private readonly user_repo: Repository<User>,
+		private readonly user_service: UserService
+	) {}
+
+	@Get()
+	@UseGuards(SetupGuard)
+	async get_all() {
+		return this.user_service.get_all();
+	}
+
+	@Get(':username')
+	@UseGuards(SetupGuard)
+	async get_user(@Param('username', ParseUsernamePipe) user: User) {
+		return this.user_service.get_user(user);
+	}
+
+	@Put(':username/username')
+	async set_username(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User,
+		@Body() dto: UsernameDTO,
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		return this.user_service.set_username(user, dto.username);
+	}
+
+	@Get(':username/avatar')
+	@UseGuards(SetupGuard)
+	async get_avatar(
+		@Param('username', ParseUsernamePipe) user: User,
+		@Res() response: Response
+	) {
+		response.redirect(user.avatar);
+	}
+
+	@Put(':username/avatar')
+	@UseInterceptors(FileInterceptor('avatar'))
+	@UseGuards(SetupGuard)
+	async set_avatar(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User,
+		@UploadedFile(
+			new ParseFilePipeBuilder().addMaxSizeValidator({
+				maxSize: 10485760
+			}).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
+		uploaded_file: Express.Multer.File,
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		return await this.user_service.set_avatar(user, uploaded_file);
+	}
+
+	@Get(':username/friends')
+	@UseGuards(SetupGuard)
+	async list_friends(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		return this.user_service.list_friends(user);
+	}
+
+	@Delete(':username/friends/:friend_id')
+	@UseGuards(SetupGuard)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async unfriend(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User,
+		@Param('friend_id', ParseUsernamePipe) friend: User
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		return this.user_service.unfriend(user, friend);
+	}
+
+	@Get(':username/friends/requests')
+	@UseGuards(SetupGuard)
+	async list_requests(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		return this.user_service.list_requests(user);
+	}
+
+	@Post(':username/friends/requests')
+	@UseGuards(SetupGuard)
+	async create_request(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User,
+		@Body('id', ParseIDPipe(User)) target: User
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		return this.user_service.create_request(user, target);
+	}
+
+	@Delete(':username/friends/requests/:request_id')
+	@UseGuards(SetupGuard)
+	async delete_request(
+		@Me() me: User,
+		@Param('username', ParseUsernamePipe) user: User,
+		@Param('request_id', ParseIDPipe(FriendRequest)) request: FriendRequest
+	) {
+		if (user.id !== me.id)
+			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+		await this.user_service.delete_request(user, request);
 	}
 }

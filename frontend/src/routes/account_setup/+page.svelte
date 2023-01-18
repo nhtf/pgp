@@ -32,23 +32,6 @@
 			});
 		}
 	}
-
-	// onMount(async() => {
-	// 	const response = await fetch('http://localhost:3000/account/whoami',
-	// 		{
-	// 			method: 'GET',
-	// 			credentials: 'include',
-	// 			mode: 'cors',
-	// 			headers: {
-	// 				'Content-Type': 'application/x-www-form-urlencoded'
-	// 			},
-	// 		});
-	// 	if (response.ok) {
-	// 		window.location = 'http://localhost:5173/profile';
-	// 	} else if (response.status === 401) {
-	// 		window.location = 'http://localhost:3000/login';
-	// 	}
-	// });
 </script>
 
 <div class='flex-container'>

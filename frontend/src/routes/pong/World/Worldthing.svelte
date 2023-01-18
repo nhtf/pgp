@@ -1,7 +1,8 @@
 <script lang="ts">
   import { World } from "./World";
-  import { onMount, onDestroy } from "svelte";
-  import socket from "../../chat/websocket";
+  import { onMount } from "svelte";
+  import socket from "../../room/websocket";
+  // wrong namespace
 
   let world: World;
 

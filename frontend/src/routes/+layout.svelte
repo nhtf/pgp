@@ -3,16 +3,19 @@
     import { _default_profile_image } from "./+layout";
     import type { LayoutData } from "./$types";
     import { enable_2fa, disable_2fa, logout } from "./layout_log_functions";
-    export let data: LayoutData;
-    let show = false;
+    import Dropdownmenu from "$lib/dropdownmenu.svelte";
 
-    let two_fa_enable = data.auth_req == 2;
+    export let data: LayoutData;
+
+    const user = data.user;
+    let two_fa_enable = user?.auth_req == 2;
 
     let currentTheme: string;
     const THEMES = {
         DARK: "dark",
         LIGHT: "light",
     };
+
     const STORAGE_KEY = "theme";
     const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
     const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
@@ -29,6 +32,54 @@
         applyTheme();
     };
 
+    async function disable() {
+        let res = await disable_2fa();
+        if (res) {
+            two_fa_enable = false;
+            if (data.user)
+                data.user.auth_req = 1;
+        }
+    }
+
+    async function enable() {
+        let res = await enable_2fa();
+        if (res) {
+            two_fa_enable = true;
+            if (data.user)
+                data.user.auth_req = 2;
+        }
+    }
+
+    async function logoutfn() {
+        let res = await logout();
+        if (res) {
+            if (data.user)
+                data.user.username = ""; // CHECK
+            window.location.href = "/";
+        }
+    }
+
+    let drop1 = {
+        options: {
+            title: "okdrop", 
+            data: [
+                {text: "profile", fn: null, show: true, redir: `/profile/${user?.username}`},
+                {text: "disable 2fa", fn: disable, show: false, redir: null},
+                {text: "enable 2fa", fn: enable, show: true, redir: null},
+                {text: "lightmode", fn: toggleTheme, show: true, redir: null},
+                {text: "darkmode", fn: toggleTheme, show: true, redir: null},
+                {text: "logout", fn: logoutfn, show: true, redir: null},
+            ],
+            offsetx: 20,
+            offsety: 60,
+        },
+        img: user?.avatar,
+    };
+
+    let drop2 = drop1;
+    
+
+    //TODO make it also change the options for the dropdownmenu
     const applyTheme = () => {
         const preferredTheme = prefersDarkThemes() ? THEMES.DARK : THEMES.LIGHT;
         currentTheme = localStorage.getItem(STORAGE_KEY) ?? preferredTheme;
@@ -48,14 +99,19 @@
         window
             .matchMedia(DARK_PREFERENCE)
             .addEventListener("change", applyTheme);
+        if (currentTheme === "dark") {
+            drop1.options.data[4].show = false;
+        }
+        else
+            drop1.options.data[3].show = false;
+        if (two_fa_enable) {
+            drop1.options.data[2].show = false;
+        }
+        else
+            drop1.options.data[1].show = false;
+        drop2 = drop1;
+        drop2.options.title = "okdrop1";
     });
-
-    function toggle_dropdown(e: MouseEvent) {
-        
-        if (!e.target || !e.target.id || e.target.id !== "small-avatar")
-            show = false;
-        else show = !show;
-    }
 
     let hamburger = false;
 
@@ -63,60 +119,35 @@
         hamburger = !hamburger;
     }
 
-    async function disable() {
-        let res = await disable_2fa();
-        if (res) {
-            two_fa_enable = false;
-            data.auth_req = 1;
-        }
-    }
+    function resetToggles() {
+		var dropdowns = document.getElementsByClassName("dropdown-content");
+		for (let i = 0; i < dropdowns.length; i++) {
+			const dropDown = dropdowns[i] as HTMLElement;
+			dropDown.style.display = "none";
+		}
+	}
 
-    async function enable() {
-        let res = await enable_2fa();
-        if (res) {
-            two_fa_enable = true;
-            data.auth_req = 2;
-        }
-    }
-
-    async function logoutfn() {
-        let res = await logout();
-        if (res) {
-            data.username = null;
-            window.location.href = "/";
-        }
-    }
+    function clickfunction(event: MouseEvent) {
+		if (!event || !event.target)
+			return;
+		const element = event.target as Element;
+		if (!element.matches("#dropbtn"))
+			resetToggles();
+	}
 </script>
 
 <nav>
     <div class="menu">
         <ul id="nav-menu">
             <li><a href="/">Home</a></li>
-            <li><a href="/chat">Chat</a></li>
+            <li><a href="/room">Room</a></li>
             <li><a href="/game">PongVR</a></li>
             <li><a href="/leaderboard">Leaderboard</a></li>
             <div class="fill" />
-            {#if !data.username}
+            {#if !user?.username}
                 <li><a href="http://localhost:3000/oauth/login">login</a></li>
             {:else}
-                <li>
-                    <img id="small-avatar" src={data.avatar} alt="small-avatar"/>
-                    {#if show}
-                        <ul><li><a href="/profile/{data.username}">profile</a></li>
-                        {#if two_fa_enable}
-                            <li><a on:click={disable}>disable 2fa</a></li>
-                        {:else}
-                            <li><a on:click={enable}>enable 2fa</a></li>
-                        {/if}
-                        {#if currentTheme === THEMES.DARK}
-                            <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
-                        {:else}
-                            <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
-                        {/if}
-                        <li><a on:click={logoutfn} href="/">logout</a></li>
-                        </ul>
-                    {/if}
-                </li>
+                <Dropdownmenu drop={drop1}/>
             {/if}
         </ul>
         <ul id="mobile">
@@ -140,7 +171,7 @@
                     <li>
                         <ul id="ham-drop">
                             <li><a href="/">Home</a></li>
-                            <li><a href="/chat">Chat</a></li>
+                            <li><a href="/room">Room</a></li>
                             <li><a href="/game">PongVR</a></li>
                             <li><a href="/leaderboard">Leaderboard</a></li>
                         </ul>
@@ -149,27 +180,10 @@
             </ul>
             <div class="fill" />
             <ul id="nav-menu-mobile">
-                {#if !data.username}
+                {#if !user?.username}
                     <li><a href="http://localhost:3000/oauth/login">login</a></li>
                 {:else}
-                    <li><img id="small-avatar" src={data.avatar} alt="small-avatar"/>
-                    {#if show}
-                        <ul>
-                            <li><a href="/profile/{data.username}">Profile</a></li>
-                            {#if two_fa_enable}
-                                <li><a on:click={disable}>Disable 2FA</a></li>
-                            {:else}
-                                <li><a on:click={enable}>Enable 2FA</a></li>
-                            {/if}
-                            <li><a on:click={logout} href="/">Logout</a></li>
-                            {#if currentTheme === THEMES.DARK}
-                                <li id="theme-mode" on:click={toggleTheme}>lightmode</li>
-                            {:else}
-                                <li id="theme-mode" on:click={toggleTheme}>darkmode</li>
-                                {/if}
-                        </ul>
-                    {/if}
-                    </li>
+                    <Dropdownmenu drop={drop2}/>
                 {/if}
             </ul>
         </ul>
@@ -178,24 +192,11 @@
 
 <slot />
 
-<svelte:window on:click={toggle_dropdown} />
+<svelte:window on:click={clickfunction} />
 
 <style>
-    #small-avatar {
-        display: flex;
-        max-width: 35px;
-        max-height: 35px;
-        border-radius: 50%;
-        margin-left: 5px;
-    }
 
-    #small-avatar:hover {
-        box-shadow: 2px 2px 3px 2px rgba(var(--shadow-color));
-    }
-
-    .fill {
-        flex: auto;
-    }
+    .fill {flex: auto;}
 
     * {
         margin: 0;
@@ -245,12 +246,7 @@
     .menu ul li a:hover {
         /* background: var(--hover-color); */
         border-radius: 6px;
-        box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
-    }
-
-    #theme-mode:hover {
-        border-radius: 6px;
-        box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
+        box-shadow: 0 0 3px 2px var(--shadow-color);
     }
 
     .menu ul li ul li:hover {

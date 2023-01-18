@@ -19,6 +19,7 @@ import {
 	UseInterceptors,
 	UploadedFile,
 	ParseFilePipeBuilder,
+	Redirect,
 } from '@nestjs/common';
 import { IsNumberString, IsOptional, IsString, Length } from 'class-validator';
 import { Request, Response } from 'express';
@@ -138,7 +139,7 @@ export class AccountController {
 	}
 
 	@Get('whoami')
-	@UseGuards(SetupGuard)
+	@Redirect(BACKEND_ADDRESS + '/user/me', HttpStatus.PERMANENT_REDIRECT)
 	async whoami(@GetUser() user: User) {
 		return user;
 	}
@@ -146,8 +147,9 @@ export class AccountController {
 	@Get('whois')
 	async whois(
 		@GetUserQuery() user: User,
+		@Res() response: Response,
 	) {
-		return user;
+		response.redirect(HttpStatus.PERMANENT_REDIRECT, BACKEND_ADDRESS + '/user/id/' + user.id);
 	}
 
 	@Post('set_image')

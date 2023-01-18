@@ -33,7 +33,7 @@
 	}
 
 	onMount(async() => {
-		const response = await fetch('http://localhost:3000/account/whoami',
+		const response = await fetch('http://localhost:3000/user/me',
 			{
 				method: 'GET',
 				credentials: 'include',

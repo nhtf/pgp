@@ -1,67 +1,108 @@
 <script lang="ts">
     import {LEADERBOARDS, changeSort} from "./sorting";
     import type { PageData } from './$types';
+    import { onMount } from "svelte";
     export let data: PageData;
+    let width: number;
+    let height: number;
 
     function sort(sorter: any, index_sorter: number, index: number) {
         changeSort(sorter, index_sorter, index, data.lb);
         data.lb = data.lb;
     }
 
-    function changeActive(id: string) {
+    function changeActive(id: string, index: number) {
         console.log(id);
+        for (let i = 0; i < LEADERBOARDS.length; i+=1) {
+            LEADERBOARDS[i].active = false;
+            const el = document.getElementById(LEADERBOARDS[i].id);
+            if (el)
+                el.style.display = "none";
+        }
+        LEADERBOARDS[index].active = true;
         const el = document.getElementById(id);
         if (el) {
             el.style.display = "flex";
         }
     }
     
+    function checkwindow() {
+        console.log(width, height);
+        console.log(LEADERBOARDS);
+        if (width > 1350) {
+            for (let i = 0; i < LEADERBOARDS.length; i+=1) {
+                const el = document.getElementById(LEADERBOARDS[i].id);
+                if (el)
+                    el.style.display = "flex";
+            }
+        }
+        else {
+            for (let i = 0; i < LEADERBOARDS.length; i+=1) {
+                const el = document.getElementById(LEADERBOARDS[i].id);
+                if (el) {
+                    if (LEADERBOARDS[i].active)
+                        el.style.display = "flex";
+                    else
+                        el.style.display = "none";
+                }
+            }
+        }
+    }
+
+    onMount(() => {
+        checkwindow();
+    });
 </script>
+
+<svelte:window on:resize={checkwindow} bind:innerWidth={width} bind:innerHeight={height}/>
 
 <div class="block_container">
     <div class="tabs">
-        {#each LEADERBOARDS as { title, id, sorter, active }, index}
+        {#each LEADERBOARDS as { title, id, active }, index}
         {#if active}
-        <div class="block_cell" id="active-tab">{title}</div>
+        <div class="tab_cell" id="active-tab">{title}</div>
         {:else}
-        <div class="block_cell" id="inactive-tab" on:click={() => changeActive(id)}>{title}</div>
+        <div class="tab_cell" id="inactive-tab" 
+            on:click={() => changeActive(id, index)}
+            on:keypress={() => changeActive(id, index)}
+        >
+            {title}
+        </div>
         {/if}
         {/each}
     </div>
-    {#each LEADERBOARDS as { title, id, sorter, active }, index}
-        <!-- {#if active} -->
-            <div class="block_vert" id={id}>
-                <h1>{title}</h1>
-                {#if data}
-                    <div class="block_hor" id="legend">
-                        {#each sorter as { type, active, ascending }, index_sorter}
-                        <div class="block_cell" id={active}>
-                            {type}
-                            <div class="block_cell" id="arrow-icon"
-                                on:click={() => {sort(sorter, index_sorter, index);}}
-                                on:keypress={() => {sort(sorter, index_sorter, index);}}
-                            >
-                                {#if !ascending}
-                                    <i class="arrow down" />
-                                {:else}
-                                    <i class="arrow up" />
-                                {/if}
-                            </div>
+    {#each LEADERBOARDS as { title, id, sorter }, index}
+        <div class="block_vert" id={id}>
+            <h1>{title}</h1>
+            {#if data}
+                <div class="block_hor" id="legend">
+                    {#each sorter as { type, active, ascending }, index_sorter}
+                    <div class="block_cell" id={active}>
+                        {type}
+                        <div class="block_cell" id="arrow-icon"
+                            on:click={() => {sort(sorter, index_sorter, index);}}
+                            on:keypress={() => {sort(sorter, index_sorter, index);}}
+                        >
+                            {#if !ascending}
+                                <i class="arrow down" />
+                            {:else}
+                                <i class="arrow up" />
+                            {/if}
                         </div>
-                        {/each}
                     </div>
-                    {#each data.lb[index].data as { username, avatar, wins, losses, draws, rank }}
-                        <div class="block_hor" id="rank{rank}">
-                            <div class="block_cell">{rank}</div>
-                            <div class="block_cell"><img id="small-avatars" src={avatar} alt="avatar"/>{username}</div>
-                            <div class="block_cell">{wins}</div>
-                            <div class="block_cell">{losses}</div>
-                            <div class="block_cell">{draws}</div>
-                        </div>
                     {/each}
-                {/if}
-            </div>
-        <!-- {/if} -->
+                </div>
+                {#each data.lb[index].data as { username, avatar, wins, losses, draws, rank }}
+                    <div class="block_hor" id="rank{rank}">
+                        <div class="block_cell">{rank}</div>
+                        <div class="block_cell"><img class="small-avatars" src={avatar} alt="avatar"/>{username}</div>
+                        <div class="block_cell">{wins}</div>
+                        <div class="block_cell">{losses}</div>
+                        <div class="block_cell">{draws}</div>
+                    </div>
+                {/each}
+            {/if}
+        </div>
     {/each}
 </div>
 
@@ -70,14 +111,6 @@
         font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
             Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
             Arial, sans-serif;
-    }
-
-    #active {
-        text-decoration: underline;
-    }
-
-    #active-tab {
-        background: black;
     }
 
     .arrow {
@@ -100,7 +133,6 @@
 
     .arrow:hover {
         box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-        /* border: solid orange; */
     }
 
     .up {
@@ -137,50 +169,71 @@
         box-shadow: 0 0 0 var(--box-color);
     }
 
+    #active {
+        text-decoration: underline;
+    }
+
+    #active-tab {
+        background: var(--tab-active-color);
+        border-bottom: 2px solid var(--tab-underline-color);
+    }
+
+    #active-tab:hover{
+        background: var(--box-color);
+    }
+
     .tabs {
         display: none;
-        display: flex;
         background: var(--box-color);
-        border-radius: 6px;
         flex-direction: row;
         justify-content: center;
+        max-width: 200px;
+        align-self: center;
+        align-items: center;
+        height: 50px;
+        cursor: pointer;
+        border-color: var(--border-color);
+        border-radius: 6px;
+        padding: 0;
+        /* border-width: 2px;
+        border-style: solid; */
+    }
+
+    .tab_cell {
+        justify-content: center;
+        min-width: 45px;
+        padding-left: 5px;
+        padding-right: 5px;
+        margin-left: 2px;
+        margin-right: 2px;
+        height: 45px;
+        align-self: center;
+        align-items: center;
+        color: var(--text-color);
+        text-align: center;
+        display: flex;
+        flex-direction: row;
+        position: relative;
+        border-radius: 6px;
+        background: var(--tab-inactive-color);
+        /* box-shadow: 1px 1px 1px 1px var(--shadow-color); */
+        border-style: solid;
+        border-color: var(--border-color);
+        border-width: 2px;
+        /* border-style: solid; */
+    }
+
+    .tab_cell:hover {
+        box-shadow: 2px 2px 2px 2px var(--shadow-color);
     }
 
     .block_container {
-        display: flex;
-        height: 100%;
-        gap: 10px;
-        padding-left: 10px;
-        padding-right: 10px;
-        padding-top: 25px;
-        padding-bottom: 25px;
-        flex-wrap: wrap;
-        color: var(--text-color);
-        text-decoration: none;
-        justify-content: center;
-        position: relative;
-        top: 0;
+        flex-direction: row;
     }
 
-    /* vertical blocks */
     .block_vert {
-        height: calc(100vh - 150px);
         flex-grow: 1;
-        display: flex;
-        padding-left: 25px;
-        padding-right: 25px;
-        padding-bottom: 25px;
-        background: var(--box-color);
-        border-radius: 6px;
-        flex-direction: column;
-        justify-content: flex-start;
-        align-items: center;
-        overflow-y: auto;
-        border-width: 2px;
-        border-color: var(--border-color);
-        border-style: solid;
-        scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
-        scrollbar-width: thin;
+        width: 600px;
         max-width: 600px;
         align-self: center;
     }
@@ -189,15 +242,9 @@
         align-self: stretch;
     }
 
-    /* horizontal blocks */
     .block_hor {
-        display: flex;
-        flex-direction: row;
         min-width: 80%;
-        padding: 3px;
         margin: 5px;
-        justify-content: center;
-        align-items: center;
         border-radius: 6px;
         background: rgba(45, 107, 230, 0.5);
         box-shadow: 0 0  5px #9ecaed;
@@ -206,18 +253,11 @@
     .block_cell {
         margin-left: 2px;
         margin-right: 2px;
-        justify-content: center;
         min-width: 45px;
         padding-left: 2px;
         padding-right: 2px;
         height: 45px;
         overflow: hidden;
-        align-items: center;
-        color: var(--text-color);
-        text-align: center;
-        display: flex;
-        flex-direction: row;
-        position: relative;
     }
 
     .block_cell:first-child {
@@ -235,36 +275,11 @@
         /* padding-left: 10px; */
     }
 
-    #small-avatars {
-        max-width: 25px;
-        max-height: 25px;
-        border-radius: 40%;
+    .small-avatars {
         margin-right: 2px;
     }
 
-    #small-avatars:hover {
-        box-shadow: 2px 2px 5px 5px rgba(var(--shadow-color));
-    }
-
-    ::-webkit-scrollbar {
-        background: var(--box-color);
-        width: 11px;
-        box-shadow: inset 0 0 10px 10px var(--scrollbar-bkg);
-        border-top: solid 1px transparent;
-        border-bottom: solid 1px transparent;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        border-top: 3px solid transparent;
-        border-left: 3px solid transparent;
-        border-right: 2px solid transparent;
-        border-bottom: 3px solid transparent;
-        border-radius: 8px 8px 8px 8px;
-        box-shadow: inset 12px 12px 12px 12px var(--scrollbar-thumb);
-        margin: 0px auto;
-    }
-
-    @media (max-width: 450px) {
+    @media (max-width: 1350px) {
         .tabs {
             display: flex;
         }
@@ -275,6 +290,73 @@
 
         #orpong {
             display: none;
+        }
+
+        .block_container {
+            flex-direction: column;
+        }
+    }
+
+    @media (max-width: 850px) {
+        .tabs {
+            display: flex;
+        }
+
+        #vrpong {
+            display: flex;
+        }
+
+        #orpong {
+            display: none;
+        }
+
+        .block_container {
+            flex-direction: column;
+            padding-left: 2px;
+            padding-right: 2px;
+        }
+
+        .block_vert {
+            padding-left: 5px;
+            padding-right: 5px;
+            min-width: 80%;
+            max-width: 600px;
+        }
+    }
+
+    @media (max-width: 500px) {
+        .block_vert {
+            width: 400px;
+        }
+    }
+
+    @media (max-width: 400px) {
+        .block_vert {
+            width: 350px;
+        }
+    }
+
+    @media (max-height: 900px) {
+        .block_vert {
+            height: 600px;
+            padding-bottom: 0;
+        }
+    }
+
+    @media (max-height: 400px) {
+        .block_vert {
+            height: 100%;
+            padding-bottom: 0;
+        }
+    }
+
+    @media (min-width: 900px) {
+        #vrpong {
+            display: flex;
+        }
+
+        #orpong {
+            display: flex;
         }
     }
 </style>

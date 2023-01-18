@@ -4,22 +4,14 @@ import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
 import { ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
-import { DataSource } from 'typeorm';
-import * as session from 'express-session';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import {
-	HOST,
 	FRONTEND_ADDRESS,
 	BACKEND_PORT,
-	DB_PORT,
-	DB_USER,
-	DB_PASS,
-	SESSION_SECRET,
 } from './vars';
 import { join } from 'path';
 import { sessionMiddleware } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
-import { Server } from 'socket.io';
 
 //https://docs.nestjs.com/websockets/adapter
 //https://socket.io/get-started/chat

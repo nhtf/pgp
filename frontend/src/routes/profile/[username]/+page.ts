@@ -17,27 +17,26 @@ async function unfriend(username: string, index: number) {
 	}
 }
 
-type user = { username: string; avatar: string; online: boolean; in_game: boolean; user_id: number };
+type user = { username: string; avatar: string; online: boolean; in_game: boolean; id: number };
 
 let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
 let friends: user[] = [
-	{ username: "dummy1", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy2", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy3", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy4", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy5", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy6", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy7", avatar: profile_image, online: true, in_game: true, user_id: 2 },
-	{ username: "dummy8", avatar: profile_image, online: true, in_game: false, user_id: 0 },
-	{ username: "dummy9", avatar: profile_image, online: true, in_game: false, user_id: 0},
-	{ username: "dummy10", avatar: profile_image, online: false, in_game: false, user_id: 0},
-	{ username: "dummy11", avatar: profile_image, online: false, in_game: false, user_id: 0},
-	{ username: "dummy12", avatar: profile_image, online: false, in_game: true, user_id: 0 }
+	{ username: "dummy1", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy2", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy3", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy4", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy5", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy6", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy7", avatar: profile_image, online: true, in_game: true, id: 2 },
+	{ username: "dummy8", avatar: profile_image, online: true, in_game: false, id: 0 },
+	{ username: "dummy9", avatar: profile_image, online: true, in_game: false, id: 0},
+	{ username: "dummy10", avatar: profile_image, online: false, in_game: false, id: 0},
+	{ username: "dummy11", avatar: profile_image, online: false, in_game: false, id: 0},
+	{ username: "dummy12", avatar: profile_image, online: false, in_game: true, id: 0 }
 ];
 
-/** @type {import('./$types').PageLoad} */
-export const load = (async ({ fetch, params }: any) => {
+export const load: PageLoad = (async ({ fetch, params }: any) => {
 
 	let options = new Map();
 
@@ -54,13 +53,13 @@ export const load = (async ({ fetch, params }: any) => {
 			]});
 	})
 	//getting userstuff
-	const res = await fetch(`http://localhost:3000/account/whois?username=${params.username}`, {
+	const res = await fetch(`http://localhost:3000/user/${params.username}`, {
 		method: "GET",
 		credentials: "include",
 		mode: "cors",
 	});
 	const user = await res.json();
-	if (!user.user_id) {
+	if (!user.id) {
 		throw error(404, "username not found");
 	}
 
@@ -76,7 +75,7 @@ export const load = (async ({ fetch, params }: any) => {
 	const friend_list_json = await friend_list.json();
 	if (friend_list_json !== undefined) {
 		friend_list_json.forEach((value: any) => {
-			let newUser: user = { username: value.username, avatar: value.avatar, online: value.online, in_game: false, user_id: value.user_id };
+			let newUser: user = { username: value.username, avatar: value.avatar, online: value.online, in_game: false, id: value.id };
 			friends.push(newUser);
 			options.set(user.username, 
 				{
