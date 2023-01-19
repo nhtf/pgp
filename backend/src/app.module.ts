@@ -16,6 +16,9 @@ import { AuthGuard } from './auth/auth.guard';
 import * as session from 'express-session';
 import { SESSION_SECRET } from './vars';
 import { RoomController } from './controllers/room.controller';
+import { InviteController } from './controllers/invite.controller';
+
+import { TestController } from './RoomService';
 
 const entityFiles = [
 	'./entities/User',
@@ -24,24 +27,27 @@ const entityFiles = [
 	'./entities/ChatRoom',
 	'./entities/GameRequest',
 	'./entities/RoomInvite',
+	"./entities/Invite",
+	"./entities/Room",
+	"./entities/Member",
 ];
 
 export const sessionMiddleware = session({
-			store: new (require('connect-pg-simple')(session))({
-				//TODO this is probably not the right way to connect to the database for sessions
-				conString: 'postgres://postgres:postgres@localhost:5432/dev',
-				createTableIfMissing: true,
-			}),
-			secret: SESSION_SECRET,
-			resave: true,
-			saveUninitialized: false,
-			cookie: {
-				maxAge: 72000000, //TODO set the right maxAge
-				sameSite: 'strict',
-			},
-		});
+	store: new (require('connect-pg-simple')(session))({
+		//TODO this is probably not the right way to connect to the database for sessions
+		conString: 'postgres://postgres:postgres@localhost:5432/dev',
+		createTableIfMissing: true,
+	}),
+	secret: SESSION_SECRET,
+	resave: true,
+	saveUninitialized: false,
+	cookie: {
+		maxAge: 72000000, //TODO set the right maxAge
+		sameSite: 'strict',
+		//TODO set secure attribute
+	},
+});
 
-// TODO: move all entities to directory
 export const dataSource = new DataSource({
 	type: 'postgres',
 	host: HOST,
@@ -102,6 +108,8 @@ const entityProviders = entityFiles.map<{
 		MeController,
 		UsernameController,
 		RoomController,
+		InviteController,
+		TestController,
 	],
 	providers: [
 		GameGateway,

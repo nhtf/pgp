@@ -2,12 +2,12 @@
 	import { onMount, onDestroy } from "svelte";
 	import { Ammo, ammoInit } from "./Ammo";
 	import { Pong } from "./Pong";
+	import type { PageData } from './$types';
 
 	let world: Pong | undefined;
 	let container: Element;
 
-	/** @type {import('./$types').PageData} */
-	export let data;
+	export let data: PageData;
 
 	onMount(async() => {
 		console.log(data);

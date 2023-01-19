@@ -2,6 +2,7 @@ import { FriendRequest } from './FriendRequest';
 import { RoomInvite } from './RoomInvite';
 import { ChatRoom } from './ChatRoom';
 import { GameRequest } from './GameRequest';
+import { Member } from './Member';
 import { AuthLevel } from '../auth/AuthLevel';
 import {
 	Entity,
@@ -25,7 +26,9 @@ export class User {
 	oauth_id: number;
 
 	@Exclude()
-	@Column()
+	@Column({
+		   default: AuthLevel.OAuth
+	})
 	auth_req: AuthLevel;
 
 	@Exclude()
@@ -74,6 +77,7 @@ export class User {
 	})
 	online: boolean;
 
+	// TODO: clean
 	@OneToMany(() => ChatRoom, (chatRoom: ChatRoom) => chatRoom.owner)
 	owned_chat_rooms: Promise<ChatRoom[]>;
 
@@ -82,6 +86,9 @@ export class User {
 
 	@ManyToMany(() => ChatRoom, (chatroom: ChatRoom) => chatroom.members)
 	all_chat_rooms: Promise<ChatRoom[]>;
+
+	@OneToMany(() => Member, (member) => member.user)
+	members: Promise<Member[]>;
 
 	@Expose()
 	get avatar(): string {

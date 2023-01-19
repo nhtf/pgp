@@ -3,15 +3,16 @@ import type { User } from "$lib/types";
 import type { LayoutLoad } from "./$types";
 
 export const _default_profile_image = "https://www.w3schools.com/howto/img_avatar.png";
+export const ssr = false;
 
 export const load: LayoutLoad = (async ({ fetch }) => {
-	let user: User | undefined;
+	window.fetch = fetch;
 
 	try {
-		user = await get(fetch, "/user/me");
-	} catch (err) {
-		user = undefined;
-	}
+		const user: User = await get(window.fetch, "/user/me");
 
-    return { fetch, user };
+		return { fetch, user };
+	} catch (err) {
+		return { fetch };
+	}
 }) satisfies LayoutLoad;

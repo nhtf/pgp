@@ -15,6 +15,7 @@ import { validate } from 'class-validator';
 import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
 import isNumeric from 'validator/lib/isNumeric';
 import { ChatRoom } from './entities/ChatRoom';
+import isLength from 'validator/lib/isLength';
 
 class RoomDTO {
 	@IsNumberString()
@@ -171,3 +172,19 @@ export function ParseIDPipe(type: any) {
 	};
 }
 
+
+//TODO do not allow whitespaces in username
+export class ParseUsernamePipe implements PipeTransform {
+	async transform(value: any, metadata: ArgumentMetadata) {
+		if (!value || value === null)
+			throw new HttpException('username not specified', HttpStatus.BAD_REQUEST);
+		if (typeof value !== 'string')
+			throw new HttpException('username must be a string', HttpStatus.BAD_REQUEST);
+		if (!isLength(value, { min: 3, max: 20 }))
+			throw new HttpException('username must be 3 to 20 characters long', HttpStatus.BAD_REQUEST);
+		const entity = await dataSource.getRepository(User).findOneBy({ username: value });
+		if (!entity)
+			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+		return entity;
+	}
+}

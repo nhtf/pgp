@@ -1,18 +1,21 @@
-import { Column, Entity, OneToOne } from "typeorm";
+import { Column, Entity, OneToOne, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
+import { Room } from "./Room";
+import { Role } from "src/Enums/Role";
 import { User } from "./User";
 
-export enum Role {
-	OWNER = "owner",
-	ADMIN = "admin",
-	MEMBER = "member",
-}
-
 @Entity()
-class Member {
-	@OneToOne(() => User)
-	@Column()
-	user: Promise<User>
+export class Member {
+	@PrimaryGeneratedColumn()
+	id: number;
 
-	@Column()
-	role: Role
+	@ManyToOne(() => User, (user) => user.members)
+	user: Promise<User>;
+
+	@ManyToOne(() => Room)
+	room: Promise<Room>;
+
+	@Column({
+		nullable: true,
+	})
+	role: Role;
 }

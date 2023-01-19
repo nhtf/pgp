@@ -6,6 +6,6 @@ export const load: PageLoad = (async ({ parent }: any) => {
 	const { user } = await parent();
 	const URL = user ? `/profile/${user.username}` : `/account_setup`;
 	
-	throw redirect(307, `${FRONTEND}${URL}`);
+	throw redirect(302, URL);
 
 }) satisfies PageLoad;

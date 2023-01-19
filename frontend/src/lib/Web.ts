@@ -6,7 +6,7 @@ export async function json(
 	input: RequestInfo | URL,
 	info?: RequestInit | undefined,
 ): Promise<any> {
-	console.log(`${input}, ${JSON.stringify(info)}`);
+	// console.log(`${input}, ${JSON.stringify(info)}`);
 
 	const response = await fetch(input, info);
 	const status = response.status;
@@ -27,8 +27,19 @@ export async function get(fetch: any, pathname: string, query?: any) {
 
 export async function post(fetch: any, pathname: string, body: any) {
 	return await json(fetch, `${BACKEND}${pathname}`, {
-		method: "POST",
 		credentials: "include",
+		method: "POST",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(body),
+	});
+}
+
+export async function put(fetch: any, pathname: string, body: any) {
+	return await json(fetch, `${BACKEND}${pathname}`, {
+		credentials: "include",
+		method: "PUT",
 		headers: {
 			"Content-Type": "application/json",
 		},
@@ -38,7 +49,7 @@ export async function post(fetch: any, pathname: string, body: any) {
 
 export async function remove(fetch: any, pathname: string) {
 	return await json(fetch, `${BACKEND}${pathname}`, {
-		method: "DELETE",
 		credentials: "include",
+		method: "DELETE",
 	});
 }

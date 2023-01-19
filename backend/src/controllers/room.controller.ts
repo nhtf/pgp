@@ -1,33 +1,17 @@
-import { ArgumentMetadata, BadRequestException, Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Inject, Injectable, NotFoundException, Param, ParseIntPipe, PipeTransform, Post, Query, Request, UnprocessableEntityException, UseGuards, UseInterceptors } from "@nestjs/common";
-import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
-import { Access } from "src/Access";
+import { ArgumentMetadata, BadRequestException, Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpException, HttpStatus, Inject, Injectable, NotFoundException, Param, ParseIntPipe, PipeTransform, Post, Query, Request, UnprocessableEntityException, UseGuards, UseInterceptors } from "@nestjs/common";
+import { Access } from "src/Enums/Access";
 import { AuthGuard } from "src/auth/auth.guard";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { User } from "src/entities/User";
-import { GetUser, InjectUser, Me } from "src/util";
+import { InjectUser, Me, ParseUsernamePipe } from "src/util";
 import { Repository } from "typeorm";
 import isNumeric from "validator/lib/isNumeric";
 import * as argon2 from 'argon2';
+import { RoomInvite } from "src/entities/RoomInvite";
 
 const NO_SUCH_ROOM = "room not found";
 const NOT_A_MEMBER = "not a member";
 const NOT_OWNER = "not the owner";
-
-class CreateRoomDTO {
-	@MinLength(3)
-	@MaxLength(20)
-	@IsString()
-	name: string;
-
-	@IsEnum(Access)
-	access: string;
-
-	@MinLength(3)
-	@MaxLength(20)
-	@IsString()
-	@IsOptional()
-	password: string;
-}
 
 @Injectable()
 export class RoomValidationPipe implements PipeTransform {
@@ -41,14 +25,14 @@ export class RoomValidationPipe implements PipeTransform {
 		const room = await this.chatRepo.findOneBy({ id: Number(value) });
 		
 		if (!room) {
-			throw new NotFoundException(NO_SUCH_ROOM);
+			throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
 		}
 	
 		return room;
 	}
 }
 
-@Controller("/room")
+@Controller("/room(s)?")
 @UseGuards(AuthGuard, InjectUser)
 @UseInterceptors(ClassSerializerInterceptor)
 export class RoomController {
@@ -68,8 +52,8 @@ export class RoomController {
 
 	@Get(":id")
 	async room(@Me() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
-		const user_rooms = await user.all_chat_rooms;
-		const index = user_rooms.findIndex((it) => it.id === room.id);
+		const rooms = await user.all_chat_rooms;
+		const index = rooms.findIndex((it) => it.id === room.id);
 	
 		if (index < 0) {
 			if (room.access === Access.PRIVATE)
@@ -78,7 +62,7 @@ export class RoomController {
 				throw new HttpException(NOT_A_MEMBER, HttpStatus.UNAUTHORIZED);
 		}
 
-		return room.serialize();
+		return await room.serialize();
 	}
 
 	@Post()
@@ -88,8 +72,6 @@ export class RoomController {
 		@Body("access") access: string,
 		@Body("pasword") password?: string
 	) {
-		const room = new ChatRoom;
-
 		if (!name) {
 			throw new BadRequestException("missing room name");
 		}
@@ -100,20 +82,21 @@ export class RoomController {
 			throw new UnprocessableEntityException("a room with this name already exists");
 		}
 	
+		const room = new ChatRoom;
+
 		room.name = name;
-	
 		room.owner = Promise.resolve(user);
 		room.admins = Promise.resolve([user]);
 		room.members = Promise.resolve([user]);
 
 		if (!access) {
-			throw new BadRequestException("missing access specifier: public, private or protected");
+			throw new BadRequestException("missing access specifier: public or private");
 		}
 
 		room.access = Access[access];
 
-		if (room.access != Access.PROTECTED && password) {
-			throw new BadRequestException("password provided even though access is not protected");
+		if (room.password && room.password.length > 0) {
+			room.access = Access.PROTECTED;
 		}
 
 		if (room.access == Access.PROTECTED) {
@@ -131,10 +114,43 @@ export class RoomController {
 	async delete(@Me() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
 		const owner = await room.owner;
 	
-		if (owner.id !== user.id) {
+		if (owner.id != user.id) {
 			throw new HttpException(NOT_OWNER, HttpStatus.UNAUTHORIZED);
 		}
 
 		return await this.chatRepo.remove(room);
+	}
+
+	@Post(":id/invite")
+	async invite(@Me() user: User, @Param("id", RoomValidationPipe) room: ChatRoom, @Body("username", ParseUsernamePipe) invitee: User) {
+		if (!this.canInvite(user, room)) {
+			throw new HttpException(NOT_A_MEMBER, HttpStatus.FORBIDDEN);
+		}
+
+		if (user.id === invitee.id) {
+			throw new HttpException("Can't invite yourself", HttpStatus.CONFLICT);
+		}
+
+		const invite = new RoomInvite;
+
+		invite.from = Promise.resolve(user);
+		invite.to = Promise.resolve(invitee);
+		invite.room = Promise.resolve(room);
+	
+		const invites = [...await room.invites, invite];
+		
+		room.invites = Promise.resolve(invites);
+
+		console.log(room.id);
+		console.log(room);
+
+		return await this.chatRepo.save({ id: room.id, room });
+	}
+
+	async canInvite(user: User, room: ChatRoom) {
+		const admins = await room.admins;
+		const index = admins.findIndex((admin) => admin.id === user.id);
+
+		return index >= 0;
 	}
 }

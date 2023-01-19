@@ -3,16 +3,25 @@
     import Swal from "sweetalert2";
     import socket from "../websocket";
     import { unwrap } from "$lib/Alert";
-    import { FRONTEND } from "$lib/constants";
+    import type { SerializedMessage } from "$lib/types";
     import type { PageData } from "./$types";
+    import { FRONTEND } from "$lib/constants";
     import { post, remove } from "$lib/Web";
+    import { error } from "@sveltejs/kit";
 
 	export let data: PageData;
+
+	if (!data.user) {
+		throw error(401, "Unauthorized");
+	}
 
 	const room = data.room;
 	const user = data.user;
 
 	let messages = room.messages;
+	let invites = room.invites;
+	let my_invites = data.invites;
+
 	let invitee: string = "";
 	let content: string = "";
 
@@ -20,7 +29,8 @@
 		socket.emit("join", room.id);
 	});
 
-	socket.on("message", (data: { content: string, user: any }) => {
+	socket.on("message", (data: SerializedMessage) => {
+		console.log(data);
 		messages = [...messages, data];
 	})
 
@@ -47,7 +57,7 @@
             });
 		}
 
-		await unwrap(post(fetch, "/chat/invite", { username: invitee, id: room.id }));
+		await unwrap(post(fetch, `/room/${room.id}/invite`, { username: invitee }));
 
 		Swal.fire({
 			icon: "success",
@@ -94,6 +104,16 @@
 			<div>{message.content}</div>
 		</div>
 	{/if}
+{/each}
+
+<h1 style="margin: 1em">Invites {invites.length}</h1>
+{#each invites as invite}
+	<div>{JSON.stringify(invite)}</div>
+{/each}
+
+<h1 style="margin: 1em">My invites {my_invites.length}</h1>
+{#each my_invites as invite}
+	<div>{invite.from.username} -> {invite.to.username}</div>
 {/each}
 
 <style>

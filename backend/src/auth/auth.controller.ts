@@ -50,25 +50,6 @@ export class AuthController {
 		private readonly userRepo: Repository<User>,
 	) {}
 
-	@Get('whoami')
-	async amiloggedin(@Req() request: Request, @Res() response: Response) {
-		if (request.session.access_token) {
-			return response
-				.status(200)
-				.json({
-					user_id: request.session.user_id,
-				})
-				.send();
-		} else {
-			return response
-				.status(200)
-				.json({
-					user_id: 'anonymous',
-				})
-				.send();
-		}
-	}
-
 	@Get('login')
 	async login(@Req() request: Request, @Res() response: Response) {
 		const auth_uri = this.client.authorizeURL({
@@ -140,17 +121,13 @@ export class AuthController {
 			);
 
 		const oauth_id = await this.get_id(access_token);
-		if (oauth_id == undefined)
-			throw new HttpException('bad gateway', HttpStatus.BAD_GATEWAY);
+		if (!oauth_id)
+			throw new HttpException('could not verify identity', HttpStatus.INTERNAL_SERVER_ERROR);
 
 		let user = await this.userRepo.findOneBy({ oauth_id: oauth_id });
 		if (!user) {
 			user = new User();
 			user.oauth_id = oauth_id;
-			user.auth_req = AuthLevel.OAuth;
-			user.secret = undefined;
-			user.username = undefined;
-			user.avatar_base = null;
 			await this.userRepo.save(user);
 		}
 

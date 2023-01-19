@@ -27,6 +27,8 @@ body {
 	--tab-active-color: #c0bebe;
 	--tab-underline-color: #413f3f;
 	--tab-inactive-color: rgb(245, 245, 245);
+	--bar-bkg-color: rgb(249, 249, 249);
+	--bar-prog-color: rgb(130, 142, 179);
 	font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
 		Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
 		Arial, sans-serif;
@@ -52,6 +54,8 @@ body {
 		--tab-active-color: rgb(23, 26, 33);
 		--tab-inactive-color: rgb(38, 42, 54);
 		--tab-underline-color: #c0bebe;
+		--bar-bkg-color: rgb(38, 42, 54);
+		--bar-prog-color: rgb(26, 60, 163);
 	}
 }
 
@@ -73,6 +77,8 @@ body.dark {
 	--tab-active-color: rgb(23, 26, 33);
 	--tab-inactive-color: rgb(38, 42, 54);
 	--tab-underline-color: #c0bebe;
+	--bar-bkg-color: rgb(58, 65, 87);
+	--bar-prog-color: rgb(81, 107, 186);
 }
 
 body {

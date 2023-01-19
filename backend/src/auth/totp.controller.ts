@@ -20,7 +20,7 @@ import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
 import { SetupGuard } from '../controllers/account.controller';
 import * as qrcode from 'qrcode';
-import { GetUser } from '../util';
+import { Me, InjectUser } from '../util';
 import { User } from '../entities/User';
 import { Repository } from 'typeorm';
 
@@ -40,13 +40,14 @@ class OAuthGuard implements CanActivate {
 	}
 }
 
-class OtpDto {
+class OtpDTO {
 	@Length(6, 6)
 	@IsNumberString()
 	otp: string;
 }
 
 @Controller('otp')
+@UseGuards(InjectUser)
 export class TotpController {
 	constructor(
 		private readonly session_utils: SessionUtils,
@@ -56,13 +57,9 @@ export class TotpController {
 
 	@Post('setup')
 	@HttpCode(HttpStatus.ACCEPTED)
-        @UseGuards(AuthGuard, SetupGuard)
-	async setup(@GetUser() user: User, @Req() request: Request) {
+    @UseGuards(AuthGuard, SetupGuard)
+	async setup(@Me() user: User, @Req() request: Request) {
 		let session = request.session;
-		/*
-		if (session.secret)
-			throw new HttpException('already requested otp setup', HttpStatus.TOO_MANY_REQUESTS);
-		*/
 		if (user.auth_req === AuthLevel.TWOFA)
 			throw new HttpException('already setup 2fa', HttpStatus.FORBIDDEN);
 
@@ -94,8 +91,8 @@ export class TotpController {
 	}
 
 	@Post('disable')
-        @UseGuards(AuthGuard, SetupGuard)
-	async disable(@GetUser() user: User, @Req() request: Request) {
+	@UseGuards(AuthGuard, SetupGuard)
+	async disable(@Me() user: User, @Req() request: Request) {
 		if (request.session.auth_level != AuthLevel.TWOFA)
 			throw new HttpException('no totp has been set up', HttpStatus.FORBIDDEN);
 
@@ -141,8 +138,8 @@ export class TotpController {
 
 	@Post('setup_verify')
 	@HttpCode(HttpStatus.CREATED)
-        @UseGuards(AuthGuard, SetupGuard)
-	async setup_verify(@GetUser() user: User, @Body() otp_dto: OtpDto, @Req() request: Request) {
+	@UseGuards(AuthGuard, SetupGuard)
+	async setup_verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
 		if (!request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 
@@ -157,8 +154,8 @@ export class TotpController {
 
 	@Post('verify')
 	@HttpCode(HttpStatus.OK)
-        @UseGuards(OAuthGuard, SetupGuard)
-	async verify(@GetUser() user: User, @Body() otp_dto: OtpDto, @Req() request: Request) {
+	@UseGuards(OAuthGuard, SetupGuard)
+	async verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
 		if (request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 

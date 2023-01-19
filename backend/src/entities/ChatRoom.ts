@@ -11,7 +11,8 @@ import {
 	JoinTable,
 } from 'typeorm';
 import { Exclude, Expose, instanceToPlain } from 'class-transformer';
-import { Access } from '../Access';
+import { Access } from '../Enums/Access';
+import { _RoomInvite } from './Invite';
 
 @Entity()
 export class ChatRoom {
@@ -95,6 +96,7 @@ export class ChatRoom {
 			owner: await this.owner,
 			admins: await this.admins,
 			members: await this.members,
+			invites: await Promise.all((await this.invites).map((invite) => invite.serialize())),
 			messages: await Promise.all((await this.messages).map((message) => message.serialize())),
 		};
 	}

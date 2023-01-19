@@ -21,9 +21,11 @@ class BetterAdapter extends IoAdapter {
 		const server = super.createIOServer(port, options);
 		const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 		server.use(wrap(sessionMiddleware));
+		server.of('/room').use(wrap(sessionMiddleware));
 		return server;
 	}
 }
+
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);

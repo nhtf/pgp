@@ -1,23 +1,18 @@
 import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata } from '@nestjs/common';
-import { Reflector }from '@nestjs/core';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { Express, Response, Request } from 'express';
+import { Express, Response} from 'express';
 import { User } from '../entities/User';
 import { FriendRequest } from '../entities/FriendRequest';
-import { InstanceChecker, Repository } from 'typeorm';
-import { IsString, Length, IsOptional, IsNumberString } from 'class-validator';
+import { Repository } from 'typeorm';
+import { IsString, Length } from 'class-validator';
 import { AuthGuard } from '../auth/auth.guard';
-import { GetUser, GetUserByDTO, InjectUser, Me, ParseIDPipe } from '../util';
+import { InjectUser, Me, ParseIDPipe, ParseUsernamePipe } from '../util';
 import { dataSource } from '../app.module';
 import { randomBytes } from 'node:crypto';
 import { open, rm } from 'node:fs/promises';
 import { finished, Readable } from 'node:stream';
 import { join } from 'path';
 import { AVATAR_DIR, DEFAULT_AVATAR } from '../vars';
-import isNumeric from 'validator/lib/isNumeric';
-import isInt from 'validator/lib/isInt';
-import isLength from 'validator/lib/isLength';
-import { instanceToPlain } from 'class-transformer';
 import * as sharp from 'sharp';
 
 declare module 'express' {
@@ -293,22 +288,6 @@ export class UserController {
 		if (user.id !== me.id)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
 		await this.user_service.delete_request(user, request);
-	}
-}
-
-//TODO do not allow whitespaces in username
-class ParseUsernamePipe implements PipeTransform {
-	async transform(value: any, metadata: ArgumentMetadata) {
-		if (!value || value === null)
-			throw new HttpException('username not specified', HttpStatus.BAD_REQUEST);
-		if (typeof value !== 'string')
-			throw new HttpException('username must be a string', HttpStatus.BAD_REQUEST);
-		if (!isLength(value, { min: 3, max: 20 }))
-			throw new HttpException('username must be 3 to 20 characters long', HttpStatus.BAD_REQUEST);
-		const entity = await dataSource.getRepository(User).findOneBy({ username: value });
-		if (!entity)
-			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
-		return entity;
 	}
 }
 

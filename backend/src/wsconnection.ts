@@ -1,4 +1,4 @@
-import { HttpException, HttpStatus, Inject } from '@nestjs/common';
+import {  HttpException, HttpStatus, Inject } from '@nestjs/common';
 import {
 	MessageBody,
 	SubscribeMessage,
@@ -12,10 +12,11 @@ import { ChatRoom } from './entities/ChatRoom';
 import { Message } from './entities/Message';
 import { User } from './entities/User';
 import { authorize } from './auth/auth.guard';
+import { FRONTEND_ADDRESS } from './vars';
 
 @WebSocketGateway({
 	namespace: "room",
-	cors: { origin: 'http://localhost:5173', credentials: true },
+	cors: { origin: FRONTEND_ADDRESS, credentials: true },
 })
 export class WSConnection {
 	@WebSocketServer()
@@ -50,12 +51,14 @@ export class WSConnection {
 		const request: any = client.request;
 		const user = await this.userRepo.findOneBy({ id: request.session.user_id });
 	
-		if (!user)
+		if (!user) {
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
+		}
 
 		this.server.in(data.id).emit("message", {
 			user: {
-				username: user.username,
+				id: user.id,
+				// username: user.username,
 				avatar: user.avatar,
 			},
 			content: data.content

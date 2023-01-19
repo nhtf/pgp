@@ -45,7 +45,9 @@
             {#each options as opt}
                 <input bind:group={room_access} name="access" type="radio" value={opt}/>{opt}
             {/each}
-            <input bind:value={room_password} type="text" placeholder="password..."/>
+            {#if room_access === "public"}
+                <input bind:value={room_password} type="text" placeholder="password..."/>
+            {/if}
         <input type="submit" value="Create"/>
     </form>
 {#each rooms as room}

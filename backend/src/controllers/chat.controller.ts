@@ -4,7 +4,6 @@ import {
 	Inject,
 	Post,
 	Get,
-	Delete,
 	Query,
 	Body,
 	HttpException,
@@ -30,7 +29,7 @@ import {
 } from 'class-validator';
 import * as argon2 from 'argon2';
 import { PGP_DEBUG } from '../vars';
-import { Access } from '../Access';
+import { Access } from '../Enums/Access';
 
 class RoomDTO {
 	@IsNumberString()
@@ -40,23 +39,6 @@ class RoomDTO {
 class JoinRoomDTO {
 	@IsNumberString()
 	id: string;
-
-	@MinLength(3)
-	@MaxLength(20)
-	@IsString()
-	@IsOptional()
-	password: string;
-}
-
-class CreateRoomDTO {
-	@MinLength(3)
-	@MaxLength(20)
-	@IsString()
-	name: string;
-
-	//@IsString()
-	@IsEnum(Access)
-	access: string;
 
 	@MinLength(3)
 	@MaxLength(20)
@@ -77,57 +59,6 @@ export class ChatRoomController {
 		@Inject('ROOMINVITE_REPO')
 		private readonly inviteRepo: Repository<RoomInvite>,
 	) {}
-
-	@Post('create')
-	@HttpCode(HttpStatus.CREATED)
-	async createRoom(@GetUser() user: User, @Body() dto: CreateRoomDTO) {
-		const is_private = dto.access === 'private';
-
-		if (is_private && dto.password)
-			throw new HttpException(
-				'A room cannot be both private and password protected',
-				HttpStatus.UNPROCESSABLE_ENTITY,
-			);
-		if (
-			!is_private &&
-			(await this.chatRepo.findOneBy({
-				name: dto.name,
-				access: Not(Access.PRIVATE),
-			}))
-		)
-			throw new HttpException(
-				'A room with this name already exists',
-				HttpStatus.UNPROCESSABLE_ENTITY,
-			);
-
-		const room = new ChatRoom();
-		//TODO generate proper random id for room
-
-		room.owner = Promise.resolve(user);
-		room.access = is_private
-			? Access.PRIVATE
-			: dto.password
-			? Access.PROTECTED
-			: Access.PUBLIC;
-		room.name = dto.name;
-		try {
-			room.password = dto.password
-				? await argon2.hash(dto.password)
-				: undefined;
-		} catch (err) {
-			console.error(err);
-			throw new HttpException(
-				'Could not create room',
-				HttpStatus.INTERNAL_SERVER_ERROR,
-			);
-		}
-		room.members = Promise.resolve([user]);
-		room.admins = Promise.resolve([user]);
-
-		console.log(room);
-
-		return await this.chatRepo.save(room);
-	}
 
 	@Post('leave')
 	async leave(@GetUser() user: User, @Body() dto: RoomDTO) {
@@ -329,20 +260,6 @@ export class ChatRoomController {
 		await this.chatRepo.save(room);
 	}
 
-	@Delete('delete')
-	@HttpCode(HttpStatus.NO_CONTENT)
-	async delete(@GetUser() user: User, @GetRoomQuery() room: any) {
-		const owner = await room.owner;
-	
-		if (owner.id !== user.id)
-			throw new HttpException(
-				'only the owner of a room can delete the room',
-				HttpStatus.FORBIDDEN,
-			);
-
-		await this.chatRepo.remove(room);
-	}
-
 	@Post('invite')
 	@HttpCode(HttpStatus.NO_CONTENT)
 	async invite(
@@ -400,7 +317,7 @@ export class ChatRoomController {
 		return await Promise.all(
 			invites.map(async (invite) => {
 				return await invite.serialize();
-			}),
+			})
 		);
 	}
 

@@ -2,13 +2,12 @@
     import { onMount } from "svelte";
     import { _default_profile_image } from "./+layout";
     import type { LayoutData } from "./$types";
-    import { enable_2fa, disable_2fa, logout } from "./layout_log_functions";
+    import { logout } from "./layout_log_functions";
     import Dropdownmenu from "$lib/dropdownmenu.svelte";
 
     export let data: LayoutData;
 
     const user = data.user;
-    let two_fa_enable = user?.auth_req == 2;
 
     let currentTheme: string;
     const THEMES = {
@@ -32,24 +31,6 @@
         applyTheme();
     };
 
-    async function disable() {
-        let res = await disable_2fa();
-        if (res) {
-            two_fa_enable = false;
-            if (data.user)
-                data.user.auth_req = 1;
-        }
-    }
-
-    async function enable() {
-        let res = await enable_2fa();
-        if (res) {
-            two_fa_enable = true;
-            if (data.user)
-                data.user.auth_req = 2;
-        }
-    }
-
     async function logoutfn() {
         let res = await logout();
         if (res) {
@@ -63,9 +44,8 @@
         options: {
             title: "okdrop", 
             data: [
-                {text: "profile", fn: null, show: true, redir: `/profile/${user?.username}`},
-                {text: "disable 2fa", fn: disable, show: false, redir: null},
-                {text: "enable 2fa", fn: enable, show: true, redir: null},
+                {text: "profile", fn: null, show: true, redir: `/profile/${data.user?.username}`},
+                {text: "settings", fn: null, show: true, redir: "/settings"},
                 {text: "lightmode", fn: toggleTheme, show: true, redir: null},
                 {text: "darkmode", fn: toggleTheme, show: true, redir: null},
                 {text: "logout", fn: logoutfn, show: true, redir: null},
@@ -100,15 +80,10 @@
             .matchMedia(DARK_PREFERENCE)
             .addEventListener("change", applyTheme);
         if (currentTheme === "dark") {
-            drop1.options.data[4].show = false;
-        }
-        else
             drop1.options.data[3].show = false;
-        if (two_fa_enable) {
-            drop1.options.data[2].show = false;
         }
         else
-            drop1.options.data[1].show = false;
+            drop1.options.data[2].show = false;
         drop2 = drop1;
         drop2.options.title = "okdrop1";
     });
@@ -282,7 +257,7 @@
         width: 175px;
     }
 
-    @media (max-width: 450px) {
+    @media (max-width: 500px) {
         #nav-menu {
             display: none;
         }
