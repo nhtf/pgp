@@ -1,19 +1,11 @@
-import { redirect } from "@sveltejs/kit";
-import { doFetch } from "../../stores";
+import { FRONTEND } from "$lib/constants";
 import type { PageLoad } from "./$types"
+import { redirect } from "@sveltejs/kit";
 
-export const ssr = false;
-
-export const load = (async ({ fetch }: any) => {
-    const response = await doFetch(fetch, "/account/whoami", {
-		credentials: "include",
-	});
-
-	if (!response.ok) {
-		throw redirect(307, "/account_setup");
-	} else {
-		const user = await response.json();
+export const load: PageLoad = (async ({ parent }: any) => {
+	const { user } = await parent();
+	const URL = user ? `/profile/${user.username}` : `/account_setup`;
 	
-		throw redirect(307, "/profile/" + user.username);
-	}
-}) satisfies PageLoad
+	throw redirect(307, `${FRONTEND}${URL}`);
+
+}) satisfies PageLoad;

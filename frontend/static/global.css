@@ -1,4 +1,5 @@
-html, body {
+html,
+body {
 	width: 100%;
 	height: 100%;
 	color: var(--text-color);
@@ -12,63 +13,73 @@ body {
 	margin: 0;
 	--text-color: rgb(0, 0, 0);
 	--bkg-color: #dee4e7;
-	--box-color:rgb(249, 249, 249);
+	--box-color: rgb(249, 249, 249);
 	--ham-color: #5a5b5b;
 	--confirm-color: rgb(148, 148, 148);
 	--cancel-color: rgb(75, 75, 75);
-	--shadow-color:82, 90, 114, 0.5;
+	--shadow-color: rgba(82, 90, 114, 0.5);
 	--invert: invert(0%);
 	--hover-color: rgb(156, 155, 155);
-	--border-color:rgb(235, 235, 235);
+	--border-color: rgb(235, 235, 235);
 	--border-style: solid;
 	--scrollbar-thumb: #9d9c9c;
 	--scrollbar-bkg: #dcdcdc;
+	--tab-active-color: #c0bebe;
+	--tab-underline-color: #413f3f;
+	--tab-inactive-color: rgb(245, 245, 245);
 	font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
-			Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
-			Arial, sans-serif;
+		Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
+		Arial, sans-serif;
 }
 
 @media (prefers-color-scheme: dark) {
+
 	/* defaults to dark theme */
 	body:not(.light) {
 		--text-color: rgb(255, 255, 255);
-		--bkg-color:rgb(63, 63, 63);
-		--box-color:rgb(69, 76, 95);
+		--bkg-color: rgb(63, 63, 63);
+		--box-color: rgb(41, 45, 57);
 		--ham-color: #dee4e7;
 		--confirm-color: rgb(15, 16, 20);
 		--cancel-color: rgb(26, 60, 163);
-		--shadow-color:82, 90, 114, 0.5;
+		--shadow-color: rgba(82, 90, 114, 0.5);
 		--invert: invert(100%);
 		--hover-color: rgb(156, 155, 155);
-		--border-color:rgb(39, 42, 51);
+		--border-color: rgb(39, 42, 51);
 		--border-style: solid;
 		--scrollbar-thumb: #7b7b7b;
 		--scrollbar-bkg: #383838;
+		--tab-active-color: rgb(23, 26, 33);
+		--tab-inactive-color: rgb(38, 42, 54);
+		--tab-underline-color: #c0bebe;
 	}
-  }
+}
 
-  /* Need for if the os theme not dark mode is */
-  body.dark {
+/* Need for if the os theme not dark mode is */
+body.dark {
 	--text-color: rgb(255, 255, 255);
-	--bkg-color:rgb(63, 63, 63);
-	--box-color:rgb(41, 45, 57);
+	--bkg-color: rgb(63, 63, 63);
+	--box-color: rgb(41, 45, 57);
 	--ham-color: #dee4e7;
 	--confirm-color: rgb(15, 16, 20);
 	--cancel-color: rgb(26, 60, 163);
-	--shadow-color:82, 90, 114, 0.5;
+	--shadow-color: rgba(82, 90, 114, 0.5);
 	--invert: invert(100%);
 	--hover-color: rgb(156, 155, 155);
-	--border-color:rgb(39, 42, 51);
+	--border-color: rgb(39, 42, 51);
 	--border-style: solid;
 	--scrollbar-thumb: #7b7b7b;
 	--scrollbar-bkg: #383838;
-  }
+	--tab-active-color: rgb(23, 26, 33);
+	--tab-inactive-color: rgb(38, 42, 54);
+	--tab-underline-color: #c0bebe;
+}
 
-  body {
+body {
 	background: var(--bkg-color);
-  }
+}
 
-  .swal2-title {
+.swal2-title {
 	position: relative;
 	max-width: 100%;
 	margin: 0;
@@ -79,8 +90,93 @@ body {
 	text-align: center;
 	text-transform: none;
 	word-wrap: break-word;
-  }
+}
 
-  #swal2-title {
+#swal2-title {
 	color: var(--text-color);
-  }
+}
+
+.block_container {
+	display: flex;
+	height: calc(100% - 98px);
+	gap: 10px;
+	padding-left: 10px;
+	padding-right: 10px;
+	padding-top: 25px;
+	padding-bottom: 25px;
+	flex-wrap: wrap;
+	color: var(--text-color);
+	text-decoration: none;
+	justify-content: center;
+	position: relative;
+	top: 0;
+}
+
+.block_vert {
+	display: flex;
+	height: calc(100vh - 200px);
+	background: var(--box-color);
+	flex-direction: column;
+	justify-content: flex-start;
+	align-items: center;
+	overflow-y: auto;
+	border-color: var(--border-color);
+	border-radius: 6px;
+	border-width: 2px;
+	border-style: solid;
+	scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
+	scrollbar-width: thin;
+	padding: 25px;
+	padding-top: 0;
+}
+
+/* horizontal blocks */
+.block_hor {
+	display: flex;
+	flex-direction: row;
+	padding: 3px;
+	justify-content: center;
+	align-items: center;
+
+}
+
+.block_cell {
+	display: flex;
+	align-items: center;
+	text-align: center;
+	position: relative;
+	color: var(--text-color);
+	justify-content: center;
+}
+
+::-webkit-scrollbar {
+	background: var(--box-color);
+	width: 11px;
+	box-shadow: inset 0 0 10px 10px var(--scrollbar-bkg);
+	border-top: solid 1px transparent;
+	border-bottom: solid 1px transparent;
+}
+
+::-webkit-scrollbar-thumb {
+	border-top: 3px solid transparent;
+	border-left: 3px solid transparent;
+	border-right: 2px solid transparent;
+	border-bottom: 3px solid transparent;
+	border-radius: 8px 8px 8px 8px;
+	box-shadow: inset 12px 12px 12px 12px var(--scrollbar-thumb);
+	margin: 0px auto;
+}
+
+.small-avatars {
+	max-width: 30px;
+	max-height: 30px;
+	border-radius: 50%;
+}
+
+.small-avatars:hover {
+	box-shadow: 2px 2px 5px 5px var(--shadow-color);
+}
+
+a {
+	text-decoration: none;
+}

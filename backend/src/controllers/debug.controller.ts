@@ -103,7 +103,7 @@ export class DebugController {
 		@Req() request: Request,
 	) {
 		this.sessionUtils.regenerate_session(request.session);
-		request.session.user_id = user.user_id;
+		request.session.user_id = user.id;
 		request.session.auth_level = user.auth_req;
 		return user;
 	}

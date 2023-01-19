@@ -46,14 +46,14 @@ export class WSConnection {
 	}
 
 	@SubscribeMessage('message')
-	async message(@ConnectedSocket() client: Socket, @MessageBody() data: { room_id: string, content: string }) {
+	async message(@ConnectedSocket() client: Socket, @MessageBody() data: { id: string, content: string }) {
 		const request: any = client.request;
-		const user = await this.userRepo.findOneBy({ user_id: request.session.user_id });
+		const user = await this.userRepo.findOneBy({ id: request.session.user_id });
 	
 		if (!user)
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 
-		this.server.in(data.room_id).emit("message", {
+		this.server.in(data.id).emit("message", {
 			user: {
 				username: user.username,
 				avatar: user.avatar,
@@ -64,7 +64,7 @@ export class WSConnection {
 		const message = new Message;
 	
 		message.user = Promise.resolve(user);
-		message.room = Promise.resolve(await this.chatroomRepo.findOneBy({ id: Number(data.room_id) }));
+		message.room = Promise.resolve(await this.chatroomRepo.findOneBy({ id: Number(data.id) }));
 		message.content = data.content;
 		// TODO check if number, private room
 

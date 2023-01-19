@@ -8,7 +8,7 @@ import { DebugController } from './controllers/debug.controller';
 import { ChatRoomController } from './controllers/chat.controller';
 import { SessionUtils } from './SessionUtils';
 import { AccountController } from './controllers/account.controller';
-import { UserController } from './controllers/user.controller';
+import { UserController, UsernameController, MeController, UserService } from './controllers/user.controller';
 import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
 import { GameController } from './controllers/game.controller';
@@ -99,6 +99,8 @@ const entityProviders = entityFiles.map<{
 		GameController,
 		ChatRoomController,
 		UserController,
+		MeController,
+		UsernameController,
 		RoomController,
 	],
 	providers: [
@@ -106,6 +108,7 @@ const entityProviders = entityFiles.map<{
 		WSConnection,
 		SessionUtils,
 		AuthGuard,
+		UserService,
 		...databaseProviders,
 		...entityProviders,
 	],

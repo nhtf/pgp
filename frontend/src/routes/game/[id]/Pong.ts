@@ -11,8 +11,8 @@ import { randomHex } from "./Util";
 import type { Event as NetEvent } from "./Net";
 import * as THREE from "three";
 
-import { get } from "../../util/Web";
-import { unwrap } from "../../util/Alert";
+import { get } from "$lib/Web";
+import { unwrap } from "$lib/Alert";
 
 export interface Snapshot extends WorldSnapshot {
 	state: StateSnapshot;
@@ -295,8 +295,9 @@ export class Pong extends World {
 			translate: new Vector(0, 0.02, -0.04),
 		};
 
-		const response = await unwrap(get("/account/whoami"));
-		this.userID = response.user_id;
+		// TODO: data.fetch
+		const response = await unwrap(get(fetch, "/user/me"));
+		this.userID = response.id;
 
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);

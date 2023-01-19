@@ -2,7 +2,6 @@
     export let drop: any;
 
     function toggleDropOut(event: Event | undefined,username: string) {
-        console.log("toggggggle");
 		if (document.getElementById(username)) {
 			const elem = document.getElementById(username);
 			if (elem) {
@@ -11,8 +10,18 @@
 				if (temp === "none" || temp === "") {
 					elem.style.display = "flex";
 					const mouse = event as MouseEvent;
-					elem.style.top =  mouse.clientY + 25 + 'px';
-					elem.style.left = mouse.clientX -25 + 'px';
+                    if (drop.options.offsety) {
+                        elem.style.marginTop = drop.options.offsety + 'px';
+                    }
+                    else {
+					    elem.style.top =  mouse.clientY + 25 + 'px';
+                    }
+                    if (drop.options.offsetx){
+                        elem.style.marginRight = drop.options.offsetx + 'px';
+                    }
+                    else {
+                        elem.style.left = mouse.clientX -30 + 'px';
+                    }
 				} else {
 					elem.style.display = "none";
 				}
@@ -27,7 +36,6 @@
 			dropDown.style.display = "none";
 		}
 	}
-    console.log(drop);
 </script>
 
 <div class="block_cell" 
@@ -69,40 +77,36 @@
         border-radius: 8px;
         box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
         z-index: 20;
-        /* top: 50px; */
         top: 0;
         justify-content: center;
         align-items: center;
+        text-decoration: none;
+        margin-right: 5px;
     }
 
     #drop-cell {
+        text-decoration: none;
         color: var(--text-color);
         padding: 8px 10px;
         border-radius: 6px;
     }
 
     #drop-cell:hover {
-        box-shadow: 1px 1px 2px 2px rgba(var(--shadow-color));
+        box-shadow: 1px 1px 2px 2px var(--shadow-color);
         cursor: pointer;
     }
 
     #dropbtn {
         cursor: pointer;
         align-self: center;
+        display: flex;
     }
 
     #dropbtn:hover {
         text-decoration: underline;
     }
-
+    
     .small-avatars {
-		max-width: 35px;
-		max-height: 35px;
-		border-radius: 50%;
-		margin-right: 2em;
-	}
-
-    .small-avatars:hover {
-		box-shadow: 2px 2px 5px 5px rgba(var(--shadow-color));
-	}
+        margin-right: 2em;
+    }
 </style>

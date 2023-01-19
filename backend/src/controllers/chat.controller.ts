@@ -134,7 +134,7 @@ export class ChatRoomController {
 		const room = await this.getRoom(user, dto.id);
 
 		const owner = await room.owner;
-		if (user.user_id === owner.user_id)
+		if (user.id === owner.id)
 			throw new HttpException(
 				'cannot leave room as owner',
 				HttpStatus.FORBIDDEN,
@@ -142,13 +142,13 @@ export class ChatRoomController {
 
 		const admins = await room.admins;
 		const admin_idx = admins.findIndex(
-			(current: User) => current.user_id == user.user_id,
+			(current: User) => current.id == user.id,
 		);
 		if (admin_idx >= 0) admins.splice(admin_idx, 1);
 
 		const members = await room.members;
 		const member_idx = members.findIndex(
-			(current: User) => current.user_id === user.user_id,
+			(current: User) => current.id === user.id,
 		);
 		members.splice(member_idx, 1);
 
@@ -174,7 +174,7 @@ export class ChatRoomController {
 		@Body() dto: RoomDTO,
 		@GetUserQuery() target: User,
 	) {
-		if (user.user_id === target.user_id)
+		if (user.id === target.id)
 			throw new HttpException(
 				'cannot promote yourself',
 				HttpStatus.UNPROCESSABLE_ENTITY,
@@ -183,20 +183,20 @@ export class ChatRoomController {
 		const room = await this.getRoom(user, dto.id);
 
 		const admins = await room.admins;
-		if (!admins.find((current: User) => current.user_id === user.user_id))
+		if (!admins.find((current: User) => current.id === user.id))
 			throw new HttpException(
 				'not an admin of this room',
 				HttpStatus.FORBIDDEN,
 			);
 
-		if (admins.find((current: User) => current.user_id === target.user_id))
+		if (admins.find((current: User) => current.id === target.id))
 			throw new HttpException(
 				'user already an admin',
 				HttpStatus.TOO_MANY_REQUESTS,
 			);
 
 		const members = await room.members;
-		if (!members.find((current: User) => current.user_id === target.user_id))
+		if (!members.find((current: User) => current.id === target.id))
 			throw new HttpException('no such user in the room', HttpStatus.NOT_FOUND);
 
 		admins.push(target);
@@ -213,27 +213,27 @@ export class ChatRoomController {
 		const room = await this.getRoom(user, dto.id);
 
 		const admins = await room.admins;
-		if (!admins.find((current: User) => current.user_id === user.user_id))
+		if (!admins.find((current: User) => current.id === user.id))
 			throw new HttpException(
 				'not an admin of this room',
 				HttpStatus.FORBIDDEN,
 			);
 
 		const owner = await room.owner;
-		if (user.user_id === owner.user_id && target.user_id === user.user_id)
+		if (user.id === owner.id && target.id === user.id)
 			throw new HttpException(
 				'cannot demote yourself as owner',
 				HttpStatus.FORBIDDEN,
 			);
 
-		if (owner.user_id !== user.user_id && user.user_id !== target.user_id)
+		if (owner.id !== user.id && user.id !== target.id)
 			throw new HttpException(
 				'cannot demote other users',
 				HttpStatus.FORBIDDEN,
 			);
 
 		const target_idx = admins.findIndex(
-			(current: User) => current.user_id === target.user_id,
+			(current: User) => current.id === target.id,
 		);
 		if (target_idx < 0)
 			throw new HttpException(
@@ -254,13 +254,13 @@ export class ChatRoomController {
 		const room = await this.getRoom(user, dto.id);
 		const owner = await room.owner;
 	
-		if (user.user_id !== owner.user_id)
+		if (user.id !== owner.id)
 			throw new HttpException(
 				'not the owner of the room',
 				HttpStatus.FORBIDDEN,
 			);
 
-		if (user.user_id === target.user_id)
+		if (user.id === target.id)
 			throw new HttpException(
 				'cannot transfer ownership to yourself',
 				HttpStatus.UNPROCESSABLE_ENTITY,
@@ -273,7 +273,7 @@ export class ChatRoomController {
 			);
 
 		const admins = await room.admins;
-		if (!admins.find((current) => current.user_id === target.user_id))
+		if (!admins.find((current) => current.id === target.id))
 			await room.add_admin(target);
 
 		room.owner = Promise.resolve(target);
@@ -289,7 +289,7 @@ export class ChatRoomController {
 		const members = await room.members;
 
 		const idx = members.findIndex(
-			(current: User) => current.user_id === user.user_id,
+			(current: User) => current.id === user.id,
 		);
 		if (idx >= 0)
 			throw new HttpException(
@@ -301,7 +301,7 @@ export class ChatRoomController {
 			const room_invites = await Promise.all(
 				(
 					await room.invites
-				).filter(async (invite) => (await invite.to).user_id === user.user_id),
+				).filter(async (invite) => (await invite.to).id === user.id),
 			);
 			if (room_invites.length === 0)
 				throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
@@ -334,7 +334,7 @@ export class ChatRoomController {
 	async delete(@GetUser() user: User, @GetRoomQuery() room: any) {
 		const owner = await room.owner;
 	
-		if (owner.user_id !== user.user_id)
+		if (owner.id !== user.id)
 			throw new HttpException(
 				'only the owner of a room can delete the room',
 				HttpStatus.FORBIDDEN,
@@ -353,28 +353,28 @@ export class ChatRoomController {
 		const room = await this.getRoom(user, dto.id);
 		const admins = await room.admins;
 
-		if (!admins.find((current) => current.user_id === user.user_id))
+		if (!admins.find((current) => current.id === user.id))
 			throw new HttpException(
 				'only admins can invite users',
 				HttpStatus.FORBIDDEN,
 			);
 
-		if (user.user_id === target.user_id)
+		if (user.id === target.id)
 			throw new HttpException(
 				'cannot invite yourself',
 				HttpStatus.UNPROCESSABLE_ENTITY,
 			);
 
 		const members = await room.members;
-		if (members.find((current) => current.user_id === target.user_id))
+		if (members.find((current) => current.id === target.id))
 			throw new HttpException(
 				'user already member of channel',
 				HttpStatus.TOO_MANY_REQUESTS,
 			);
 
 		const invite = await this.inviteRepo.findOneBy({
-			from: {	user_id: user.user_id },
-			to: { user_id: target.user_id },
+			from: {	id: user.id },
+			to: { id: target.id },
 			room: { id: room.id },
 		});
 	
@@ -394,7 +394,7 @@ export class ChatRoomController {
 	@Get('invites/to')
 	async invitesTo(@GetUser() user: User) {
 		const invites = await this.inviteRepo.findBy({
-			to: { user_id: user.user_id },
+			to: { id: user.id },
 		});
 
 		return await Promise.all(
@@ -425,7 +425,7 @@ export class ChatRoomController {
 		const members = await room.members;
 		if (
 			room.access == Access.PRIVATE &&
-			!members.find((current: User) => current.user_id === user.user_id)
+			!members.find((current: User) => current.id === user.id)
 		)
 			throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
 		return room;

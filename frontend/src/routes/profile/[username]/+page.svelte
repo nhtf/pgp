@@ -4,14 +4,12 @@
 	import { io } from 'socket.io-client';
 	import type { PageData } from './$types';
 	import Swal from "sweetalert2";
-    import type { Invite } from "../../../stores";
-	import Dropdownmenu from "../../../dropdownmenu.svelte";
+	import Dropdownmenu from '$lib/dropdownmenu.svelte';
 
 	export let data: PageData;
 
-	const add_friend = "/Assets/icons/add-friend.png";
-	const remove_friend = "/Assets/icons/remove-friend.png";
-	const pong_icon = "/Assets/icons/pong-icon.png";
+	const user = data.user;
+
 	const edit_icon = "/Assets/icons/pen.png";
 
 	let friends = data.friends;
@@ -19,12 +17,10 @@
 	let avatar = data.user.avatar;
 	let score = new Map();
 
-	let invites: Invite[] = [];
-
 	let filevar: FileList;
 
 	function resetImage() {
-		data.user.avatar = "http://localhost:3000/avatar/" + data.user_id + ".jpg";
+		user.avatar = "http://localhost:3000/avatar/" + user.id + ".jpg";
 	};
 
 
@@ -55,12 +51,19 @@
             mode: "cors",
             body: formData
         });
-		console.log(upload);
 		const result = await upload.json();
 		if (upload.ok) {
-			console.log(result);
 			data.user.avatar = result.new_avatar;
+			
+			const avatars = document.querySelectorAll("*");
+			for (let i = 0; i < avatars.length; i+=1) {
+				const imgsrc = avatars[i].getAttribute("src");
+				if (imgsrc === avatar) {
+					avatars[i].setAttribute("src", result.new_avatar);
+				}
+			}
 			avatar = data.user.avatar;
+			user.avatar = avatar;
 			const avatar_el = document.getElementById('small-avatar');
 			if (avatar_el) {
 				avatar_el.setAttribute('src', result.new_avatar);
@@ -91,22 +94,6 @@
 		src = null;
 	}
 
-	function resetToggles() {
-		var dropdowns = document.getElementsByClassName("dropdown-content");
-		for (let i = 0; i < dropdowns.length; i++) {
-			const dropDown = dropdowns[i] as HTMLElement;
-			dropDown.style.display = "none";
-		}
-	}
-
-	function clickfunction(event: MouseEvent) {
-		if (!event || !event.target)
-			return;
-		const element = event.target as Element;
-		if (!element.matches("#dropbtn"))
-			resetToggles();
-	}
-
 	let src: string | null;
 
 	function onChange() {
@@ -125,7 +112,7 @@
 			data.friends.forEach((user) => {
 				if (status.players.length > 1 && status.teams.length > 1) {
 					for (let i = 0; i < status.players.length; i+=1) {
-					if (status.players[i].user === user.user_id) {
+					if (status.players[i].user === user.id) {
 						const points = status.teams[0].score + " - " + status.teams[1].score;
 						score.set(user.username, points);
 						// console.log("setting something");
@@ -141,19 +128,17 @@
 	checkGameScores();
 </script>
 
-<svelte:window on:click={clickfunction}/>
-
 <div class="block_container">
 	<div class="block_vert" id="info">
 		<div class="block_hor" id="stretch">
 			<div class="block_cell"><h1>{$page.params.username}</h1></div>
 			<div class="block_cell" >
-				{#if data.user.avatar}
-					<img id="avatar" src={data.user.avatar} alt="avatar" />
+				{#if user.avatar}
+					<img id="avatar" src={user.avatar} alt="avatar" />
 				{:else}
 					<img id="avatar" src={profile_image} alt="avatar" />
 				{/if}
-				{#if data.user.username === data.username}
+				{#if data.user.username === user.username}
 					<img on:click={toggleEdit} on:keypress={toggleEdit} src={edit_icon} alt="edit icon" id="edit-icon"/>
 					{#if show_edit}
 					<div class="edit-avatar-window">
@@ -173,7 +158,7 @@
 					{/if}
 					{#if src}
 						<div class="avatar-preview-container">
-						<img src={src} class="current-avatar"/>
+						<img src={src} class="current-avatar" alt=""/>
 						</div>
 						<div class="image-selector" on:click={upload} on:keypress={upload}>submit
 						</div>
@@ -196,11 +181,9 @@
 						{:else if !in_game}
 							<div class="block_hor" id="offline">offline</div>
 						{:else}
+							<div class="block_hor" id="in_game">playing</div>
 							{#if score.has(username)}
-							<div class="block_hor" id="in_game">playing</div>
 							<div class="block_hor" id="scoredv">{score.get(username)}</div>
-							{:else}
-							<div class="block_hor" id="in_game">playing</div>
 							{/if}
 						{/if}
 					</div>
@@ -253,7 +236,7 @@
 	}
 
 	.close-button:hover {
-		box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
+		box-shadow: 0 0 3px 2px var(--shadow-color);
 		border-radius: 6px;
 	}
 
@@ -300,84 +283,19 @@
 		object-fit: contain;
 	}
 
-	.block_container {
-		display: flex;
-		gap: 10px;
-		padding: 25px;
-		flex-wrap: wrap;
-		color: var(--text-color);
-		text-decoration: none;
-	}
+	.block_vert {flex-grow: 0.1;}
 
-	/* vertical blocks */
-	.block_vert {
-		height: calc(90vh - 10em);
-		flex-grow: 0.1;
-		display: flex;
-		margin: 25px;
-		background: var(--box-color);
-		border-radius: 6px;
-		flex-direction: column;
-		justify-content: flex-start;
-		align-items: center;
-		overflow-y: auto;
-		border-width: 2px;
-		border-color: var(--border-color);
-		border-style: solid;
-		scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
-		scrollbar-width: thin;
-	}
+	#info {flex-grow: 3;}
 
-	#info {
-		flex-grow: 3;
-	}
-
-	a {
-		text-decoration: none;
-	}
-
-	#stretch {
-		align-self: stretch;
-	}
-
-	/* horizontal blocks */
-	.block_hor {
-		display: flex;
-		flex-direction: row;
-		padding: 3px;
-		justify-content: space-between;
-		align-items: center;
-		/* position: relative; */
-		/* align-self: stretch; */
-	}
-
-	#profile_link:hover {
-		box-shadow: 0 0 3px 2px rgba(var(--shadow-color));
-		border-radius: 6px;
-	}
+	#stretch {align-self: stretch;}
 	
-	.hidden {
-		display: none;
-	}
+	.hidden {display: none;}
 
 	.block_cell {
-		padding: 5px;
-		justify-content: space-evenly;
-		flex-grow: 0;
+		flex-direction: column;
 		min-width: 100px;
 		min-height: 40px;
-		/* max-height: 40px; */
-		align-items: center;
-		color: var(--text-color);
-		text-decoration: none;
-		text-align: center;
-		display: flex;
-		flex-direction: column;
-		position: relative;
-	}
-
-	.avatar-cell {
-		flex-grow: 1;
+		padding: 5px;
 	}
 
 	.block_cell:first-child {
@@ -385,29 +303,7 @@
 		text-align: center;
 	}
 
-	.small-avatars {
-		max-width: 35px;
-		max-height: 35px;
-		border-radius: 50%;
-		margin-right: 2em;
-	}
-
-	#invite {
-		max-width: 35px;
-		max-height: 35px;
-		border-radius: 50%;
-		margin-right: 2em;
-		-webkit-filter: var(--invert);
-		filter: var(--invert);
-	}
-
-	.small-avatars:hover {
-		box-shadow: 2px 2px 5px 5px rgba(var(--shadow-color));
-	}
-
-	#invite:hover {
-		box-shadow: 2px 2px 5px 5px rgba(var(--shadow-color));
-	}
+	.avatar-cell {flex-grow: 1;}
 
 	#avatar {
 		width: 100px;
@@ -420,22 +316,13 @@
 	#in_game, #scoredv {
 		position: relative;
 		font-size: small;
-		top: -5px;
 		cursor:default;
 		padding: 0;
 	}
 
-	#online{
-		color: #5193af;
-	}
-
-	#offline {
-		color: rgb(250, 93, 93);
-	}
-
-	#in_game, #scoredv {
-		color: #88c5a4;
-	}
+	#online{color: #5193af;}
+	#offline {color: rgb(250, 93, 93);}
+	#in_game, #scoredv {color: #88c5a4;}
 
 	#scoredv {
 		font-size: 10px;
@@ -445,17 +332,6 @@
 	#friend-hor {
 		min-height: 55px;
 		border: 2px solid var(--border-color);
-		/* box-shadow: 2px 2px 2px 2px rgba(0, 0, 0, 0.4); */
-	}
-
-	#dropbtn {
-		cursor: pointer;
-		align-self: center;
-		/* padding: 0; */
-	}
-
-	#dropbtn:hover {
-		text-decoration: underline;
 	}
 
 	#edit-icon {
@@ -471,25 +347,19 @@
 		border-radius: 6px;
 	}
 
-	#edit-icon:hover {
-		box-shadow: 1px 1px 1px 1px rgba(var(--shadow-color));
+	#edit-icon:hover {box-shadow: 1px 1px 1px 1px var(--shadow-color);}
+
+	/* 
+	#invite {
+		max-width: 35px;
+		max-height: 35px;
+		border-radius: 50%;
+		margin-right: 2em;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
 	}
 
-	::-webkit-scrollbar {
-		background: var(--box-color);
-		width: 11px;
-		box-shadow: inset 0 0 10px 10px var(--scrollbar-bkg);
-		border-top: solid 1px transparent;
-		border-bottom: solid 1px transparent;
-	}
-
-	::-webkit-scrollbar-thumb {
-		border-top: 3px solid transparent;
-		border-left: 3px solid transparent;
-		border-right: 2px solid transparent;
-		border-bottom: 3px solid transparent;
-		border-radius: 8px 8px 8px 8px;
-		box-shadow: inset 12px 12px 12px 12px var(--scrollbar-thumb);
-		margin: 0px auto;
-	}
+	#invite:hover {
+		box-shadow: 2px 2px 5px 5px var(--shadow-color);
+	} */
 </style>

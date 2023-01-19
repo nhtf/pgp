@@ -1,14 +1,15 @@
+import { error } from "@sveltejs/kit";
 import Swal from "sweetalert2";
 
 export async function unwrap<T>(promise: Promise<T>): Promise<T> {
 	try {
 		return await promise;
-	} catch (e) {
+	} catch (err: any) {
 		Swal.fire({
 			icon: "error",
-			text: `${e}`,
+			text: `${err.message}`,
 		});
 
-		throw e;
+		throw error(err.status, err.message);
 	}
 }

@@ -103,7 +103,7 @@ export class TotpController {
 		user.auth_req = AuthLevel.OAuth;
 
 		const access_token = request.session.access_token;
-		const user_id = request.session.user_id;
+		const id = request.session.user_id;
 
 		await this.userRepo.save(user);
 		if (!(await this.session_utils.regenerate_session(request.session)))
@@ -113,7 +113,7 @@ export class TotpController {
 			);
 		request.session.auth_level = AuthLevel.OAuth;
 		request.session.access_token = access_token;
-		request.session.user_id = user_id;
+		request.session.user_id = id;
 	}
 
 	async authenticate(
@@ -125,7 +125,7 @@ export class TotpController {
 			throw new HttpException('invalid otp', HttpStatus.CONFLICT);
 
 		const access_token = request.session.access_token;
-		const user_id = request.session.user_id;
+		const id = request.session.user_id;
 
 		if (!(await this.session_utils.regenerate_session(request.session)))
 			throw new HttpException(
@@ -134,7 +134,7 @@ export class TotpController {
 			);
 
 		request.session.access_token = access_token;
-		request.session.user_id = user_id;
+		request.session.user_id = id;
 		request.session.auth_level = AuthLevel.TWOFA;
 		await this.session_utils.save_session(request.session);
 	}

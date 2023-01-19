@@ -1,14 +1,13 @@
-import { ArgumentMetadata, BadRequestException, ClassSerializerInterceptor, Controller, Delete, Get, HttpException, HttpStatus, Inject, Injectable, NotFoundException, Param, ParseIntPipe, PipeTransform, Post, Query, Request, UnprocessableEntityException, UseGuards, UseInterceptors } from "@nestjs/common";
+import { ArgumentMetadata, BadRequestException, Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpCode, HttpException, HttpStatus, Inject, Injectable, NotFoundException, Param, ParseIntPipe, PipeTransform, Post, Query, Request, UnprocessableEntityException, UseGuards, UseInterceptors } from "@nestjs/common";
 import { IsEnum, IsOptional, IsString, MaxLength, MinLength } from "class-validator";
 import { Access } from "src/Access";
 import { AuthGuard } from "src/auth/auth.guard";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { User } from "src/entities/User";
-import { GetUser } from "src/util";
+import { GetUser, InjectUser, Me } from "src/util";
 import { Repository } from "typeorm";
 import isNumeric from "validator/lib/isNumeric";
 import * as argon2 from 'argon2';
-import { access } from "fs";
 
 const NO_SUCH_ROOM = "room not found";
 const NOT_A_MEMBER = "not a member";
@@ -50,7 +49,7 @@ export class RoomValidationPipe implements PipeTransform {
 }
 
 @Controller("/room")
-@UseGuards(AuthGuard)
+@UseGuards(AuthGuard, InjectUser)
 @UseInterceptors(ClassSerializerInterceptor)
 export class RoomController {
 	constructor(@Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>) {}
@@ -61,14 +60,14 @@ export class RoomController {
 	}
 
 	@Get()
-	async userRooms(@GetUser() user: User) {
+	async userRooms(@Me() user: User) {
 		const rooms = await user.all_chat_rooms;
 	
 		return await Promise.all(rooms.map((room) => room.serialize()));
 	}
 
 	@Get(":id")
-	async room(@GetUser() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
+	async room(@Me() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
 		const user_rooms = await user.all_chat_rooms;
 		const index = user_rooms.findIndex((it) => it.id === room.id);
 	
@@ -84,10 +83,10 @@ export class RoomController {
 
 	@Post()
 	async create(
-		@GetUser() user: User,
-		@Query("name") name: string,
-		@Query("access") access: string,
-		@Query("pasword") password?: string
+		@Me() user: User,
+		@Body("name") name: string,
+		@Body("access") access: string,
+		@Body("pasword") password?: string
 	) {
 		const room = new ChatRoom;
 
@@ -129,24 +128,13 @@ export class RoomController {
 	}
 
 	@Delete(":id")
-	async delete(@GetUser() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
+	async delete(@Me() user: User, @Param("id", RoomValidationPipe) room: ChatRoom) {
 		const owner = await room.owner;
 	
-		if (owner.user_id !== user.user_id) {
+		if (owner.id !== user.id) {
 			throw new HttpException(NOT_OWNER, HttpStatus.UNAUTHORIZED);
 		}
 
-		await this.chatRepo.remove(room);
-	}
-
-
-	async getRoom(id: number) {
-		const room = await this.chatRepo.findOneBy({ id });
-
-		if (!room) {
-			throw new HttpException(NO_SUCH_ROOM, HttpStatus.NOT_FOUND);
-		}
-
-		return room;		
+		return await this.chatRepo.remove(room);
 	}
 }

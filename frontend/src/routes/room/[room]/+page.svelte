@@ -2,23 +2,22 @@
     import { onMount } from "svelte";
     import Swal from "sweetalert2";
     import socket from "../websocket";
-	import type { Invite, Message, Room, User } from "../../../stores";
-    import { doFetch, FRONTEND } from "../../../stores";
+    import { unwrap } from "$lib/Alert";
+    import { FRONTEND } from "$lib/constants";
+    import type { PageData } from "./$types";
+    import { post, remove } from "$lib/Web";
 
-	export let data: {
-		fetch: any,
-		user: User,
-		room: Room,
-		invites: Invite[],
-	};
+	export let data: PageData;
 
-	let invites: Invite[] = data.invites;
-	let messages: Message[] = data.room.messages;
+	const room = data.room;
+	const user = data.user;
+
+	let messages = room.messages;
 	let invitee: string = "";
-	let body: string = "";
+	let content: string = "";
 
 	onMount(() => {
-		socket.emit("join", data.room.id);
+		socket.emit("join", room.id);
 	});
 
 	socket.on("message", (data: { content: string, user: any }) => {
@@ -26,20 +25,17 @@
 	})
 
 	function sendMessage() {
-		if (body.length) {
-			socket.emit("message", {
-				room_id: data.room.id,
-				content: body,
-			});
-		} else {
-           Swal.fire({
+		if (!content.length) {
+           return Swal.fire({
                 icon: "warning",
                 text: "Can't send empty messages",
 				timer: 3000,
             });
 		}
+	
+		socket.emit("message", { id: room.id, content });
 
-		body = "";
+		content = "";
 	}
 
     async function invite() {
@@ -50,18 +46,8 @@
 				timer: 3000,
             });
 		}
-		const response = await doFetch(data.fetch, "/chat/invite",
-			{ method: "POST", credentials: "include" },
-			{ username: invitee, id: data.room.id });
 
-		if (!response.ok) {
-			const error = await response.json();
-		
-			return Swal.fire({
-				icon: "error",
-				text: error.message,
-			});
-		}
+		await unwrap(post(fetch, "/chat/invite", { username: invitee, id: room.id }));
 
 		Swal.fire({
 			icon: "success",
@@ -70,18 +56,9 @@
     }
 
     async function deleteRoom() {
-        const response = await doFetch(data.fetch, `/room/${data.room.id}`, { method: "DELETE" } );
+        await unwrap(remove(fetch, `/room/${room.id}`));
 
-        if (!response.ok) {
-			const error = await response.json();
-		
-			return Swal.fire({
-				icon: "error",
-                text: error.message,
-            });
-        }
-
-        window.location.assign(FRONTEND + "/chat");
+        window.location.assign(FRONTEND + "/room");
     }
 
 </script>
@@ -89,7 +66,7 @@
 <ul class="option">
 	<li>
 		<form on:submit|preventDefault={sendMessage}>
-			<input bind:value={body} type="text" placeholder="message...">
+			<input bind:value={content} type="text" placeholder="message...">
 			<input type="submit" value="Send"/>
 		</form>
 	</li>
@@ -104,9 +81,9 @@
 	</li>
 </ul>
 
-<h1 style="margin: 1em">{data.room.name}</h1>
+<h1 style="margin: 1em">{room.name}</h1>
 {#each messages as message}
-	{#if message.user.user_id == data.user.user_id}
+	{#if message.user.id == user.id}
 		<div class="message" style="flex-direction: row-reverse">
 			<img src={message.user.avatar} alt="">
 			<div>{message.content}</div>
@@ -117,14 +94,6 @@
 			<div>{message.content}</div>
 		</div>
 	{/if}
-{/each}
-
-<h1 style="margin: 1em">Invites {invites.length}</h1>
-{#each invites as invite}
-	<div class="message">
-		<div>From: {invite.from.username}</div>
-		<div>To: {invite.to.username}</div>
-	</div>
 {/each}
 
 <style>

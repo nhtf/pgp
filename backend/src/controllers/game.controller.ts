@@ -34,13 +34,13 @@ export class GameController {
 		if (result == null) return undefined;
 		let simpleUser: simple[] = [];
 		await result.forEach((value) => {
-			if (value.user_id !== user.user_id) {
+			if (value.id !== user.id) {
 				// console.log(value);
 				let avatarPath: string;
 				let isFriend: boolean = false;
 				/*TODO uncomment and update this
 				avatarPath = BACKEND_ADDRESS + '/' + AVATAR_DIR + '/';
-				avatarPath += user.has_avatar ? user.user_id : DEFAULT_AVATAR;
+				avatarPath += user.has_avatar ? user.id : DEFAULT_AVATAR;
 				avatarPath += '.jpg';
 			   */
 
