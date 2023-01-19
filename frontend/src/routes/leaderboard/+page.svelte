@@ -8,6 +8,8 @@
         data.lb = data.lb;
     }
 
+    const leaderboards = ["vrpong", "orpong"];
+
     function changeActive(id: string) {
         console.log(id);
         const el = document.getElementById(id);
