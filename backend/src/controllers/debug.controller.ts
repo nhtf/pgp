@@ -15,12 +15,12 @@ import {
 	IsEnum,
 } from 'class-validator';
 import { User } from '../entities/User';
-import { ChatRoom } from '../entities/ChatRoom';
 import { AuthLevel } from '../auth/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { SessionUtils } from '../SessionUtils';
 import { GetUserQuery } from '../util';
+import { Room } from 'src/entities/Room';
 
 class UserDto {
 	@IsString()
@@ -51,7 +51,7 @@ export class DebugController {
 	constructor(
 		@Inject('USER_REPO') private readonly userRepo: Repository<User>,
 		private readonly sessionUtils: SessionUtils,
-		@Inject('CHATROOM_REPO') private readonly chatRepo: Repository<ChatRoom>,
+		@Inject("ROOM_REPO") private readonly roomRepo: Repository<Room>,
 	) {}
 
 	@Get('useradd')
@@ -120,5 +120,12 @@ export class DebugController {
 	async lsuser() {
 		const users = await this.userRepo.find();
 		return { users: users };
+	}
+
+	@Get("rooms")
+	async rooms() {
+		const rooms = await this.roomRepo.find();
+	
+		return await Promise.all(rooms.map((room) => room.serialize()));
 	}
 }

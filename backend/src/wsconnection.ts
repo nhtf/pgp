@@ -8,11 +8,11 @@ import {
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { Repository } from 'typeorm';
-import { ChatRoom } from './entities/ChatRoom';
 import { Message } from './entities/Message';
 import { User } from './entities/User';
 import { authorize } from './auth/auth.guard';
 import { FRONTEND_ADDRESS } from './vars';
+import { Room } from './entities/Room';
 
 @WebSocketGateway({
 	namespace: "room",
@@ -23,8 +23,8 @@ export class WSConnection {
 	server: Server;
 
 	constructor(
-		@Inject('CHATROOM_REPO')
-		private readonly chatroomRepo: Repository<ChatRoom>,
+		@Inject('ROOM_REPO')
+		private readonly roomRepo: Repository<Room>,
 		@Inject('USER_REPO')
 		private readonly userRepo: Repository<User>,
 		@Inject('MESSAGE_REPO')
@@ -58,7 +58,6 @@ export class WSConnection {
 		this.server.in(data.id).emit("message", {
 			user: {
 				id: user.id,
-				// username: user.username,
 				avatar: user.avatar,
 			},
 			content: data.content
@@ -67,7 +66,7 @@ export class WSConnection {
 		const message = new Message;
 	
 		message.user = Promise.resolve(user);
-		message.room = Promise.resolve(await this.chatroomRepo.findOneBy({ id: Number(data.id) }));
+		// message.room = Promise.resolve(await this.roomRepo.findOneBy({ id: Number(data.id) }));
 		message.content = data.content;
 		// TODO check if number, private room
 

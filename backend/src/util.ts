@@ -14,7 +14,6 @@ import { EntityTarget, ObjectLiteral } from 'typeorm';
 import { validate } from 'class-validator';
 import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
 import isNumeric from 'validator/lib/isNumeric';
-import { ChatRoom } from './entities/ChatRoom';
 import isLength from 'validator/lib/isLength';
 
 class RoomDTO {
@@ -116,58 +115,36 @@ export const GetUser = createParamDecorator(
 export const Me = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
 		const user = ctx.switchToHttp().getRequest().user;
+	
 		if (!user)
 			throw new HttpException('unauthorized', HttpStatus.UNAUTHORIZED);
+
 		return user;
 	}
 );
 
-export const GetRoomQuery = createParamDecorator(
-	async (where: undefined, ctx: ExecutionContext) => {
-		const request = ctx.switchToHttp().getRequest();
-		const dto = new RoomDTO;
-
-		if (request.query.id) {
-			dto.id = request.query.id;
-		}
-
-		return getRoomByDTO(dto);
-	}
-)
-
-async function getRoomByDTO(dto: RoomDTO) {
-	const result = await validate(dto);
-
-	if (result.length != 0) {
-		throw new HttpException(result[0].constraints, HttpStatus.BAD_REQUEST);
-	}
-
-	const room = await dataSource.getRepository(ChatRoom).findOneBy({ id: Number(dto.id) });
-	if (!room) {
-		throw new HttpException('room not found', HttpStatus.NOT_FOUND);
-	}
-
-	return room;
+export async function parseId(type: any, value: any) {
+	if (!value || value === null)
+		throw new HttpException('id not specified', HttpStatus.BAD_REQUEST);
+	if (!['string', 'number'].includes(typeof value))
+		throw new HttpException('id must be either a string or an number', HttpStatus.BAD_REQUEST);
+	if (!isNumeric(value, { no_symbols: true }))
+		throw new HttpException('id must consist of only digits', HttpStatus.BAD_REQUEST);
+	const id = Number(value);
+	if (!isFinite(id))
+		throw new HttpException('id must be finite', HttpStatus.UNPROCESSABLE_ENTITY);
+	if (id > Number.MAX_SAFE_INTEGER)
+		throw new HttpException(`id may not be larger that ${Number.MAX_SAFE_INTEGER}`, HttpStatus.UNPROCESSABLE_ENTITY);
+	const entity = await dataSource.getRepository(type).findOneBy({ id: Number(value) });
+	if (!entity)
+		throw new HttpException('not found', HttpStatus.NOT_FOUND);
+	return entity;
 }
 
 export function ParseIDPipe(type: any) {
 	return class ParseIDPipe implements PipeTransform {
 		async transform(value: any, metadata: ArgumentMetadata) {
-			if (!value || value === null)
-				throw new HttpException('id not specified', HttpStatus.BAD_REQUEST);
-			if (!['string', 'number'].includes(typeof value))
-				throw new HttpException('id must be either a string or an number', HttpStatus.BAD_REQUEST);
-			if (!isNumeric(value, { no_symbols: true }))
-				throw new HttpException('id must consist of only digits', HttpStatus.BAD_REQUEST);
-			const id = Number(value);
-			if (!isFinite(id))
-				throw new HttpException('id must be finite', HttpStatus.UNPROCESSABLE_ENTITY);
-			if (id > Number.MAX_SAFE_INTEGER)
-				throw new HttpException(`id may not be larger that ${Number.MAX_SAFE_INTEGER}`, HttpStatus.UNPROCESSABLE_ENTITY);
-			const entity = await dataSource.getRepository(type).findOneBy({ id: Number(value) });
-			if (!entity)
-				throw new HttpException('not found', HttpStatus.NOT_FOUND);
-			return entity;
+			return parseId(type, value);
 		}
 	};
 }

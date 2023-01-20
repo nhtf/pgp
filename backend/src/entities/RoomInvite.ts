@@ -6,7 +6,7 @@ import {
 	ManyToOne,
 } from 'typeorm';
 import { Exclude, instanceToPlain } from 'class-transformer';
-import { ChatRoom } from './ChatRoom';
+import { Room } from './Room';
 
 @Entity()
 export class RoomInvite {
@@ -23,8 +23,8 @@ export class RoomInvite {
 	to: Promise<User>;
 
 	@Exclude()
-	@ManyToOne(() => ChatRoom, (room) => room.invites, { onDelete: "CASCADE"})
-	room: Promise<ChatRoom>;
+	@ManyToOne(() => Room, (room) => room.invites)
+	room: Promise<Room>;
 
 	async serialize() {
 		return {

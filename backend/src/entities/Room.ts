@@ -1,10 +1,16 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ChildEntity } from "typeorm";
 import { Member } from "./Member";
+import { User } from "./User";
 import { Access } from "../Enums/Access";
+import { Role } from "../Enums/Role";
+import { Message } from "./Message";
+import { Exclude, instanceToPlain } from "class-transformer";
+import { RoomInvite } from "./RoomInvite";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
 export class Room {
+	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -28,6 +34,32 @@ export class Room {
 			return Access.PUBLIC;
 	}
 
-	@OneToMany(() => Member, (member) => member.room)
+	@Exclude()
+	@OneToMany(() => Member, (member) => member.room, { cascade: true })
 	members: Promise<Member[]>;
+
+	@Exclude()
+	@OneToMany(() => RoomInvite, (invite) => invite.room)
+	invites: Promise<RoomInvite[]>;
+
+	async add_member(user: User, role?: Role) {
+		const member = new Member();
+	
+		member.user = Promise.resolve(user);
+		member.room = Promise.resolve(this);
+		member.role = role || Role.MEMBER;
+
+		const members = await this.members;
+		if (members)
+			members.push(member);
+		else
+			this.members = Promise.resolve([member]);
+	}
+
+	async serialize() {
+		return {
+			...instanceToPlain(this),
+			users: await Promise.all((await this.members).map((member) => member.user)),
+		};
+	}
 }

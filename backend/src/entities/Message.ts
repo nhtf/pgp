@@ -6,8 +6,8 @@ import {
 	ManyToOne,
 	Column,
 } from 'typeorm';
-import { ChatRoom } from './ChatRoom';
 import { instanceToPlain } from 'class-transformer';
+import { ChatRoom } from './ChatRoom';
 
 @Entity()
 export class Message {
@@ -23,7 +23,7 @@ export class Message {
 	@ManyToOne(() => User)
 	user: Promise<User>;
 
-	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE"})
+	@ManyToOne(() => ChatRoom, (room) => room.messages)
 	room: Promise<ChatRoom>;
 
 	async serialize() {

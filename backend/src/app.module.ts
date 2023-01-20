@@ -1,11 +1,10 @@
 import { AppController } from './controllers/app.controller';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { GameGateway } from './gateways/game.gateway';
 import { WSConnection } from './wsconnection';
 import { AuthController } from './auth/auth.controller';
 import { TotpController } from './auth/totp.controller';
 import { DebugController } from './controllers/debug.controller';
-import { ChatRoomController } from './controllers/chat.controller';
 import { SessionUtils } from './SessionUtils';
 import { AccountController } from './controllers/account.controller';
 import { UserController, UsernameController, MeController, UserService } from './controllers/user.controller';
@@ -15,10 +14,13 @@ import { GameController } from './controllers/game.controller';
 import { AuthGuard } from './auth/auth.guard';
 import * as session from 'express-session';
 import { SESSION_SECRET } from './vars';
-import { RoomController } from './controllers/room.controller';
-import { InviteController } from './controllers/invite.controller';
 
 import { TestController } from './RoomService';
+import { InviteService } from './InviteService';
+import { UserMiddleware } from './Middleware/UserMiddleware';
+import { RoomMiddleware } from './Middleware/RoomMiddleware';
+import { ChatRoomController } from './controllers/chatroom.controller';
+import { RouteInfo } from '@nestjs/common/interfaces';
 
 const entityFiles = [
 	'./entities/User',
@@ -30,6 +32,7 @@ const entityFiles = [
 	"./entities/Invite",
 	"./entities/Room",
 	"./entities/Member",
+	"./entities/GameRoom",
 ];
 
 export const sessionMiddleware = session({
@@ -103,12 +106,10 @@ const entityProviders = entityFiles.map<{
 		AccountController,
 		DebugController,
 		GameController,
-		ChatRoomController,
 		UserController,
 		MeController,
 		UsernameController,
-		RoomController,
-		InviteController,
+		ChatRoomController,
 		TestController,
 	],
 	providers: [
@@ -117,9 +118,18 @@ const entityProviders = entityFiles.map<{
 		SessionUtils,
 		AuthGuard,
 		UserService,
+		InviteService,
 		...databaseProviders,
 		...entityProviders,
 	],
 	exports: [...databaseProviders],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(UserMiddleware).exclude(
+			{ path: "oauth(.*)", method: RequestMethod.ALL },
+			{ path: "debug(.*)", method: RequestMethod.ALL 
+		}).forRoutes("*");
+		consumer.apply(RoomMiddleware).forRoutes(ChatRoomController);
+	}
+}

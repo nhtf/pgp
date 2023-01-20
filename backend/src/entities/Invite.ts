@@ -4,15 +4,10 @@ import {
 	PrimaryGeneratedColumn,
 	CreateDateColumn,
 	ManyToOne,
-	TableInheritance,
-	ChildEntity,
 } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
-import { ChatRoom } from './ChatRoom';
-import { GameRoom } from './GameRoom';
 
 @Entity()
-@TableInheritance({ column: { type: "varchar", name: "type" }})
 export class Invite {
 	@PrimaryGeneratedColumn()
 	id: number;
@@ -34,18 +29,3 @@ export class Invite {
 		}
 	}
 }
-
-@ChildEntity()
-export class _RoomInvite extends Invite {
-	@ManyToOne(() => ChatRoom, (room) => room.invites)
-	room: Promise<ChatRoom>
-}
-
-@ChildEntity()
-export class GameInvite extends Invite {
-	// @ManyToOne(() => GameRoom, (room) => room.invites)
-	// room: Promise<ChatRoom>
-}
-
-@ChildEntity()
-export class FriendInvite extends Invite {}

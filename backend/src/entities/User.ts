@@ -1,6 +1,5 @@
 import { FriendRequest } from './FriendRequest';
 import { RoomInvite } from './RoomInvite';
-import { ChatRoom } from './ChatRoom';
 import { GameRequest } from './GameRequest';
 import { Member } from './Member';
 import { AuthLevel } from '../auth/AuthLevel';
@@ -12,9 +11,11 @@ import {
 	JoinTable,
 	OneToMany,
 } from 'typeorm';
-import { Exclude, Expose } from 'class-transformer';
+import { Exclude, Expose, instanceToPlain } from 'class-transformer';
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from '../vars';
 import { join } from 'path';
+import { Room } from './Room';
+import { Role } from 'src/Enums/Role';
 
 @Entity()
 export class User {
@@ -77,16 +78,7 @@ export class User {
 	})
 	online: boolean;
 
-	// TODO: clean
-	@OneToMany(() => ChatRoom, (chatRoom: ChatRoom) => chatRoom.owner)
-	owned_chat_rooms: Promise<ChatRoom[]>;
-
-	@ManyToMany(() => ChatRoom, (chatRoom: ChatRoom) => chatRoom.admins)
-	admin_chat_rooms: Promise<ChatRoom[]>;
-
-	@ManyToMany(() => ChatRoom, (chatroom: ChatRoom) => chatroom.members)
-	all_chat_rooms: Promise<ChatRoom[]>;
-
+	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
 	members: Promise<Member[]>;
 
@@ -107,5 +99,15 @@ export class User {
 		const user_friends = await this.friends;
 		if (user_friends) user_friends.push(target);
 		else this.friends = Promise.resolve([target]);
+	}
+
+	toMember(room: Room, role?: Role): Member {
+		const member = new Member;
+
+		member.user = Promise.resolve(this);
+		member.room = Promise.resolve(room);
+		member.role = role ? role : Role.MEMBER;
+
+		return member;
 	}
 }
