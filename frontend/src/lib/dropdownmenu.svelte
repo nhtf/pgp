@@ -1,4 +1,6 @@
 <script lang="ts">
+    import { redirect } from "@sveltejs/kit";
+
     export let drop: any;
 
     function toggleDropOut(event: Event | undefined,username: string) {

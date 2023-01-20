@@ -4,14 +4,14 @@
     import type { PageData } from './$types';
 
     export let data: PageData;
-    let friends = data.friends;
+    let friends = data.friendlist;
     let score = new Map();
 
     function checkGameScores() {
 		let socket = io("ws://localhost:3000/game", {withCredentials: true});
 		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
 		socket.on("status", (status) => {
-			data.friends.forEach((user) => {
+			data.friendlist.forEach((user) => {
 				if (status.players.length > 1 && status.teams.length > 1) {
 					for (let i = 0; i < status.players.length; i+=1) {
                         if (status.players[i].user === user.id) {

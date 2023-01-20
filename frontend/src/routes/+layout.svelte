@@ -298,4 +298,8 @@
         align-self: flex-start;
     }
 
+    .swal2-container {
+        z-index: 10000;
+    }
+
 </style>

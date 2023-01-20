@@ -1,5 +1,5 @@
 <script lang="ts">
-
+    import { page } from '$app/stores';
 </script>
 
-<p>Error Account not found</p>
+<h1>{$page.error.message}</h1>

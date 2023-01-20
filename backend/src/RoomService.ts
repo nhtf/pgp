@@ -6,12 +6,24 @@ import { Access } from "./Enums/Access";
 import { GameRoom } from "./entities/GameRoom";
 import { dataSource } from "./app.module";
 
-import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
 import { IsString, Length, IsBooleanString, IsOptional } from "class-validator";
 import { Role } from "./Enums/Role";
 import { Me, ParseIDPipe } from "./util";
 import * as argon2 from "argon2";
 import { AuthGuard } from "./auth/auth.guard";
+
+export const GetMember = createParamDecorator(
+	async (where: undefined, ctx: ExecutionContext) => {
+		return ctx.switchToHttp().getRequest().member;
+	}
+);
+
+export const GetRoom = createParamDecorator(
+	async (where: undefined, ctx: ExecutionContext) => {
+		return ctx.switchToHttp().getRequest().room;
+	}
+);
 
 class CreateRoomDTO {
 	@Length(3, 20)
@@ -166,6 +178,7 @@ class RoomService<T extends Room> {
 }
 export function GenericRoomController<T extends Room>(type: (new () => T), route?: string) {
 	@UseGuards(AuthGuard)
+	@UseInterceptors(ClassSerializerInterceptor)
 	@Controller(route || type.name.toString().toLowerCase())
 	class RoomControllerFactory {
 		constructor(
@@ -191,16 +204,16 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		async get_visible(@Me() user: User) {
 			//TODO only return visible rooms
 			const rooms = await this.room_repo.find();
-			console.log(rooms);
-			return rooms;
+			const tmp = await Promise.all(rooms.map(async room => await room.serialize()));
+			console.log(tmp);
+			return tmp;
 			//return this.room_service.find_visible(user);
 		}
 
 		@Get(":id")
-		async get_room(@Me() user: User, @Param("id", ParseIDPipe(type)) room: T) {
-			const member = await this.get_member_or_fail(user, room);
-			//TODO properly serialize the room
-			return room;
+		async get_room(@GetRoom() room: T) {
+			console.log(room);
+			return await room.serialize();
 		}
 
 		@Post()
@@ -214,11 +227,12 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			const room = new type();
 
 			room.name = name;
-			room.is_private = Boolean(dto.is_private) ?? false;
+			room.is_private = dto.is_private === "true" || dto.is_private === "1";
 			if (!room.is_private)
 				room.password = dto.password;
-			room.add_member(user, Role.OWNER);
+			const member = await room.add_member(user, Role.OWNER);
 			await this.room_repo.save(room);
+			await this.member_repo.save(member);
 		}
 
 		//TODO make ParseIDPipe(type) return a promise that will throw errors for more natural navigation?

@@ -295,7 +295,6 @@ export class Pong extends World {
 			translate: new Vector(0, 0.02, -0.04),
 		};
 
-		// TODO: data.fetch
 		const response = await unwrap(get(fetch, "/user/me"));
 		this.userID = response.id;
 

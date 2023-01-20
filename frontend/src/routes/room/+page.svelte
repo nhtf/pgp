@@ -7,14 +7,12 @@
 
     export let data: PageData;
 
-    const options = [
-        "public",
-        "private"
-    ];
+    let room_dto= {
+        name: "",
+        private: false,
+        password: "",
+    };
 
-    let room_name = "";
-    let room_password = "";
-    let room_access = options[0];
     let rooms: SerializedRoom[] = data.rooms;
 
     async function fetchRooms(): Promise<SerializedRoom[]> {
@@ -22,12 +20,6 @@
     }
 
     async function createRoom() {
-        let room_dto: any = {
-            name: room_name,
-            access: room_access,
-            password: room_password,
-        };
-
         await unwrap(post(fetch, "/room", room_dto));
 
         rooms = await fetchRooms();
@@ -41,19 +33,15 @@
 
 <div class="room_list">
     <form class="room" on:submit|preventDefault={createRoom}>
-        <input bind:value={room_name} type="text" placeholder="Room name..."/>
-            {#each options as opt}
-                <input bind:group={room_access} name="access" type="radio" value={opt}/>{opt}
-            {/each}
-            {#if room_access === "public"}
-                <input bind:value={room_password} type="text" placeholder="password..."/>
-            {/if}
+        <input type="text" bind:value={room_dto.name} placeholder="Room name..."/>
+        <input type="checkbox" bind:checked={room_dto.private}/>Private
+        <input type="text" bind:value={room_dto.password} placeholder="password..."/>
         <input type="submit" value="Create"/>
     </form>
 {#each rooms as room}
     <button class="room" on:click={() => enter(room.id)}>
-        <img id="small-avatar" src={room.owner.avatar} alt=""/>
-        <div style="width: 4em;">{room.owner.username}</div>
+        <!-- <img id="small-avatar" src={room.owner.avatar} alt=""/>
+        <div style="width: 4em;">{room.owner.username}</div> -->
         <div>{room.members.length}</div>
         <div>{room.name}</div>
     </button>

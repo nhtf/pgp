@@ -3,14 +3,12 @@ import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../Enums/Access";
 import { Role } from "../Enums/Role";
-import { Message } from "./Message";
 import { Exclude, instanceToPlain } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
 export class Room {
-	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -35,7 +33,7 @@ export class Room {
 	}
 
 	@Exclude()
-	@OneToMany(() => Member, (member) => member.room, { cascade: true })
+	@OneToMany(() => Member, (member) => member.room)
 	members: Promise<Member[]>;
 
 	@Exclude()
@@ -54,12 +52,13 @@ export class Room {
 			members.push(member);
 		else
 			this.members = Promise.resolve([member]);
+		return member;
 	}
 
 	async serialize() {
 		return {
 			...instanceToPlain(this),
-			users: await Promise.all((await this.members).map((member) => member.user)),
+			members: await Promise.all((await this.members).map(member => member.serialize()))
 		};
 	}
 }

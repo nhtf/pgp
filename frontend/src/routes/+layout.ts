@@ -13,6 +13,7 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 
 		return { fetch, user };
 	} catch (err) {
+		console.log("error in layout.ts: ", err);
 		return { fetch };
 	}
 }) satisfies LayoutLoad;

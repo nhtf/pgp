@@ -1,9 +1,16 @@
-export type Achievment = {
+export type Achievement = {
 	name: string,
 	icon: string,
 	have: boolean,
-	text: string,
+	text: string[],
 	level: number,
+	progress: number,
+	level_cost: number[],
+}
+
+export type Member = {
+	user: User,
+	role: Role,
 }
 
 export type User = {
@@ -13,7 +20,7 @@ export type User = {
 	avatar: string,
 	online: boolean,
 	in_game: boolean,
-	achievments?: Achievment[],
+	achievements?: Achievement[],
 };
 
 export type SerializedMessage = {
@@ -24,9 +31,8 @@ export type SerializedMessage = {
 export type SerializedRoom = {
     id: number,
     name: string,
-    owner: User,
-    admins: User[],
-    members: User[],
+	is_private: boolean,
+    members: Member[],
     invites: Invite[],
     messages: SerializedMessage[],
 }

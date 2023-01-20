@@ -2,10 +2,11 @@ import { Column, Entity, ManyToOne, PrimaryGeneratedColumn } from "typeorm";
 import { Room } from "./Room";
 import { Role } from "src/Enums/Role";
 import { User } from "./User";
-import { Exclude } from "class-transformer";
+import { Exclude, instanceToPlain } from "class-transformer";
 
 @Entity()
 export class Member {
+	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -21,4 +22,11 @@ export class Member {
 		nullable: true,
 	})
 	role: Role;
+
+	async serialize() {
+		return {
+			...instanceToPlain(this),
+			user: await this.user
+		};
+	}
 }

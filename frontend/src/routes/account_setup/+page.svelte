@@ -34,10 +34,16 @@
 	}
 </script>
 
-<div class='flex-container'>
+<div class='block-container'>
+	<div class="block_vert">
+		<div class="block_hor">
 	<input class='center' id='input' type='text' bind:value={username}
 		   placeholder='username' required minlength='1' maxlength='20'>
+		</div>
+		<div class="block_hor">
 	<button class='center' id='setup' on:click={verify_code}>setup</button>
+</div>
+</div>
 </div>
 
 <style>
@@ -45,13 +51,6 @@
 		font-family: "Open Sans", -apple-system, BlinkMacSystemFont, 
 		"Segoe UI", Roboto, Oxygen-Sans, Ubuntu, Cantarell, 
 		"Helvetica Neue", Helvetica, Arial, sans-serif;
-	}
-	.flex-container {
-		display: flex;
-		align-items: center;
-		justify-content: center;
-		height: 100vw;
-		flex-direction: column;
 	}
 
 	#input {
@@ -72,5 +71,13 @@
 
 	#verify:hover {
 		background-color: #35cc88;
+	}
+
+	.block_vert {
+		flex-grow: 0.1;
+		padding: 25px;
+		width: 80%;
+		align-items: center;
+		justify-content: center;
 	}
 </style>

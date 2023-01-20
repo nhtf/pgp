@@ -19,8 +19,6 @@
 	const user = data.user;
 
 	let messages = room.messages;
-	let invites = room.invites;
-	let my_invites = data.invites;
 
 	let invitee: string = "";
 	let content: string = "";
@@ -67,8 +65,13 @@
 
     async function deleteRoom() {
         await unwrap(remove(fetch, `/room/${room.id}`));
-
-        window.location.assign(FRONTEND + "/room");
+	
+		Swal.fire({
+			icon: "success",
+			timer: 3000,
+		}).then(() => {
+			window.location.assign(FRONTEND + "/room");
+		});
     }
 
 </script>
@@ -104,16 +107,6 @@
 			<div>{message.content}</div>
 		</div>
 	{/if}
-{/each}
-
-<h1 style="margin: 1em">Invites {invites.length}</h1>
-{#each invites as invite}
-	<div>{JSON.stringify(invite)}</div>
-{/each}
-
-<h1 style="margin: 1em">My invites {my_invites.length}</h1>
-{#each my_invites as invite}
-	<div>{invite.from.username} -> {invite.to.username}</div>
 {/each}
 
 <style>
