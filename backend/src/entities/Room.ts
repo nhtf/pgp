@@ -1,4 +1,4 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ChildEntity } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../Enums/Access";
@@ -33,11 +33,11 @@ export class Room {
 	}
 
 	@Exclude()
-	@OneToMany(() => Member, (member) => member.room)
+	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete" })
 	members: Promise<Member[]>;
 
 	@Exclude()
-	@OneToMany(() => RoomInvite, (invite) => invite.room)
+	@OneToMany(() => RoomInvite, (invite) => invite.room, { cascade: true })
 	invites: Promise<RoomInvite[]>;
 
 	async add_member(user: User, role?: Role) {
@@ -56,9 +56,13 @@ export class Room {
 	}
 
 	async serialize() {
+		const members = await this.members;
+		const owner = members.find((member) => member.role === Role.OWNER);
+	
 		return {
 			...instanceToPlain(this),
-			members: await Promise.all((await this.members).map(member => member.serialize()))
+			members: await Promise.all((members).map((member) => member.serialize())),
+			owner: await owner.user,
 		};
 	}
 }

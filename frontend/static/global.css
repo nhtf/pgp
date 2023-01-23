@@ -31,7 +31,7 @@ body {
 	--bar-prog-color: rgb(130, 142, 179);
 	--progress-color: turquoise;
 	--radius: 30;
-	--circumference: 188.4955592154;
+	--circumference: 207.3451151369;
 	font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
 		Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
 		Arial, sans-serif;
@@ -61,7 +61,7 @@ body {
 		--bar-prog-color: rgb(26, 60, 163);
 		--progress-color: turquoise;
 		--radius: 30;
-		--circumference: 188.4955592154;
+		--circumference: 207.3451151369;
 	}
 }
 
@@ -87,7 +87,7 @@ body.dark {
 	--bar-prog-color: rgb(81, 107, 186);
 	--progress-color: turquoise;
 	--radius: 30;
-	--circumference: 188.4955592154;
+	--circumference: 207.3451151369;
 }
 
 body {

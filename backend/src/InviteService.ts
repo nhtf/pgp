@@ -1,13 +1,17 @@
-import { Controller } from "@nestjs/common";
+import { ClassSerializerInterceptor, Controller, Inject, UseGuards, UseInterceptors } from "@nestjs/common";
 import { Repository } from "typeorm";
-import { dataSource } from "./app.module";
+import { AuthGuard } from "./auth/auth.guard";
 import { Invite } from "./entities/Invite";
 
-export class InviteService<T extends Invite> {
-	repository: Repository<Invite>;
+export function GenericInviteController<T extends Invite>(type: (new () => T), route?: string) {
+	@UseGuards(AuthGuard)
+	@UseInterceptors(ClassSerializerInterceptor)
+	@Controller(route || type.name.toString().toLowerCase())
+	class RoomControllerFactory {
+		constructor(
+			@Inject(type.name.toString().toUpperCase() + "_REPO") readonly room_repo: Repository<T>) {}
 
-	constructor(private type: (new () => T)) {
-		this.repository = dataSource.getRepository(Invite);
-	};
+	}
 
+	return RoomControllerFactory;
 }

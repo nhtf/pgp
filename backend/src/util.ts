@@ -16,11 +16,6 @@ import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
 import isNumeric from 'validator/lib/isNumeric';
 import isLength from 'validator/lib/isLength';
 
-class RoomDTO {
-	@IsNumberString()
-	id: string;
-}
-
 class UserDTO {
 	@IsString()
 	@Length(1, 20)

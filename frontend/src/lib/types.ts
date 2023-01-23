@@ -23,18 +23,19 @@ export type User = {
 	achievements?: Achievement[],
 };
 
-export type SerializedMessage = {
+export type Message = {
 	content: string,
 	user: User,
 };
 
-export type SerializedRoom = {
+export type Room = {
     id: number,
     name: string,
 	is_private: boolean,
     members: Member[],
     invites: Invite[],
-    messages: SerializedMessage[],
+    messages: Message[],
+	owner : User,
 }
 
 export type Invite = {
@@ -42,7 +43,7 @@ export type Invite = {
 	data: Date,
 	from: User,
 	to: User,
-	room: SerializedRoom,
+	room: Room,
 }
 
 export enum Role {

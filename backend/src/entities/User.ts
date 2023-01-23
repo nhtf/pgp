@@ -2,7 +2,7 @@ import { FriendRequest } from './FriendRequest';
 import { RoomInvite } from './RoomInvite';
 import { GameRequest } from './GameRequest';
 import { Member } from './Member';
-import { AuthLevel } from '../auth/AuthLevel';
+import { AuthLevel } from '../Enums/AuthLevel';
 import {
 	Entity,
 	PrimaryGeneratedColumn,

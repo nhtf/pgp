@@ -24,16 +24,21 @@ const friends: simpleuser[] = [
 	{ username: "dummy12", avatar: profile_image, online: false, in_game: true, id: 0 }
 ];
 
-const test = "/Assets/achievement-icons/pong.svg"
+const pong = "/Assets/achievement-icons/pong.svg";
+const gamer = "/Assets/achievement-icons/gamer.svg";
+const chat = "/Assets/achievement-icons/chat.svg";
+const winner = "/Assets/achievement-icons/winner.svg";
+const popular = "/Assets/achievement-icons/popular.svg";
+const chatroom = "/Assets/achievement-icons/chatroom.svg";
 
 let dummyachievements: Achievement[] = [
-	{name: "Loser", icon: test, have: true, text: ["lost a game", "lose 5 games", "lose 10 games", "lose 15 games"], level: 0, progress: 1, level_cost: [5, 10, 15]},
-	{name: "Gamer", icon: test, have: true, text: ["played a game", "played 5 games", "played 10 games", "played 15 games"], level: 2, progress: 11, level_cost: [5, 10, 15]},
-	{name: "Winner", icon: test, have: true, text: ["won a game", "won 5 games", "won 10 games", "won 15 games"], level: 2, progress: 10, level_cost: [5, 10, 15]},
-	{name: "Popular", icon: test, have: true, text: ["made a friend", "made 5 friend", "made 10 friend", "made 15 friend"], level: 2, progress: 11, level_cost: [5, 10, 15]},
-	{name: "Chatty", icon: test, have: true, text: ["sent a message", "sent 5 message", "sent 10 message", "sent 15 message"], level: 0, progress: 1, level_cost: [5, 10, 15]},
-	{name: "Social", icon: test, have: true, text: ["joined a chatroom", "joined 5 chatroom", "joined 10 chatroom", "joined 15 chatroom"], level: 3, progress: 15, level_cost: [5, 10, 15]},
-	{name: "silver medal test", icon: test, have: true, text: ["requirement 0", "requirement 1", "requirement 2", "requirement 3"], level: 1, progress: 6, level_cost: [5, 10, 15]},
+	{name: "Loser", icon: pong, have: true, text: ["you lost the game", "lose 5 games", "lose 10 games", "lose 15 games"], level: 0, progress: 1, level_cost: [5, 10, 15]},
+	{name: "Gamer", icon: gamer, have: true, text: ["played a game", "played 5 games", "played 10 games", "played 15 games"], level: 2, progress: 11, level_cost: [5, 10, 15]},
+	{name: "Winner", icon: winner, have: true, text: ["won a game", "won 5 games", "won 10 games", "won 15 games"], level: 2, progress: 10, level_cost: [5, 10, 15]},
+	{name: "Popular", icon: popular, have: true, text: ["made a friend", "made 5 friend", "made 10 friend", "made 15 friend"], level: 2, progress: 11, level_cost: [5, 10, 15]},
+	{name: "Chatty", icon: chat, have: true, text: ["sent a message", "sent 5 message", "sent 10 message", "sent 15 message"], level: 0, progress: 1, level_cost: [5, 10, 15]},
+	{name: "Social", icon: chatroom, have: true, text: ["joined a chatroom", "joined 5 chatroom", "joined 10 chatroom", "joined 15 chatroom"], level: 3, progress: 15, level_cost: [5, 10, 15]},
+	{name: "silver medal test", icon: pong, have: true, text: ["requirement 0", "requirement 1", "requirement 2", "requirement 3"], level: 1, progress: 6, level_cost: [5, 10, 15]},
 ];
 
 function dummyoptionscreater(can_unfriend: boolean, username: string) {

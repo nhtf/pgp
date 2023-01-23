@@ -2,25 +2,31 @@
     import { FRONTEND } from "$lib/constants";
     import { unwrap } from '$lib/Alert';
     import { get, post } from '$lib/Web';
-    import type { SerializedRoom } from "$lib/types";
+    import type { Room, User } from "$lib/types";
     import type { PageData } from "./$types";
 
     export let data: PageData;
 
-    let room_dto= {
+    let room_dto: any = {
         name: "",
-        private: false,
-        password: "",
+        is_private: false,
     };
 
-    let rooms: SerializedRoom[] = data.rooms;
+    let room_password = "";
+    let rooms: Room[] = data.rooms;
 
-    async function fetchRooms(): Promise<SerializedRoom[]> {
-        return await unwrap(get(fetch, "/room"));
+    async function fetchRooms(): Promise<Room[]> {
+        return await unwrap(get(data.fetch, "/room"));
     }
 
     async function createRoom() {
-        await unwrap(post(fetch, "/room", room_dto));
+        if (room_password.length) {
+            room_dto.password = room_password;
+        }
+
+        console.log(room_dto);
+
+        await unwrap(post(data.fetch, "/room", room_dto));
 
         rooms = await fetchRooms();
     }
@@ -34,14 +40,14 @@
 <div class="room_list">
     <form class="room" on:submit|preventDefault={createRoom}>
         <input type="text" bind:value={room_dto.name} placeholder="Room name..."/>
-        <input type="checkbox" bind:checked={room_dto.private}/>Private
-        <input type="text" bind:value={room_dto.password} placeholder="password..."/>
+        <input type="checkbox" bind:checked={room_dto.is_private}/>Private
+        <input type="text" bind:value={room_password} placeholder="password..."/>
         <input type="submit" value="Create"/>
     </form>
 {#each rooms as room}
     <button class="room" on:click={() => enter(room.id)}>
-        <!-- <img id="small-avatar" src={room.owner.avatar} alt=""/>
-        <div style="width: 4em;">{room.owner.username}</div> -->
+        <img id="small-avatar" src={room.owner.avatar} alt=""/>
+        <div style="width: 4em;">{room.owner.username}</div>
         <div>{room.members.length}</div>
         <div>{room.name}</div>
     </button>

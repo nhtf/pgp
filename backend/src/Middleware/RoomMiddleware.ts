@@ -1,5 +1,4 @@
-import { HttpException, HttpStatus, Injectable, NestMiddleware } from "@nestjs/common";
-import { Member } from "src/entities/Member";
+import { Injectable, NestMiddleware } from "@nestjs/common";
 import { Room } from "src/entities/Room";
 import { parseId } from "src/util";
 
@@ -10,8 +9,6 @@ export class RoomMiddleware implements NestMiddleware {
 	
 		if (id) { 
 			req.room = await parseId(Room, id);
-
-			console.log(req.room);
 		}
 	
 		next();

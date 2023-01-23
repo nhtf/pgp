@@ -5,15 +5,11 @@
 	import Info from "./info.svelte";
 
 	export let data: PageData;
-
-	onMount(() => {
-		data = data;
-	});
 </script>
 
 <div class="block_container">
 	<Info data={data}/>
-	{#if data.friendlist}
-	<Friends data={data}></Friends>
-	{/if}
+		{#if data.friendlist}
+			<Friends data={data}></Friends>
+		{/if}
 </div>

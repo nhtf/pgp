@@ -15,7 +15,7 @@ import {
 	IsEnum,
 } from 'class-validator';
 import { User } from '../entities/User';
-import { AuthLevel } from '../auth/AuthLevel';
+import { AuthLevel } from '../Enums/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { SessionUtils } from '../SessionUtils';
@@ -118,8 +118,7 @@ export class DebugController {
 
 	@Get('lsuser')
 	async lsuser() {
-		const users = await this.userRepo.find();
-		return { users: users };
+		return this.userRepo.find();
 	}
 
 	@Get("rooms")

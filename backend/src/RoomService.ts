@@ -4,18 +4,40 @@ import { Member } from "./entities/Member";
 import { Repository, FindOptionsWhere } from "typeorm";
 import { Access } from "./Enums/Access";
 import { GameRoom } from "./entities/GameRoom";
-import { dataSource } from "./app.module";
-
-import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
-import { IsString, Length, IsBooleanString, IsOptional } from "class-validator";
+import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin } from "@nestjs/common";
+import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
 import { Role } from "./Enums/Role";
 import { Me, ParseIDPipe } from "./util";
-import * as argon2 from "argon2";
 import { AuthGuard } from "./auth/auth.guard";
+import { Observable } from "rxjs";
+import { RoomInvite } from "./entities/RoomInvite";
+
+class CreateRoomDTO {
+	@Length(3, 20)
+	@IsString()
+	name: string;
+
+	@IsBoolean()
+	is_private: boolean;
+
+	@IsString()
+	@Length(1, 200)
+	@IsOptional()
+	password: string;
+}
 
 export const GetMember = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
-		return ctx.switchToHttp().getRequest().member;
+		const request = ctx.switchToHttp().getRequest();
+
+		if (!request.member) {
+			if (request.room.access === Access.PRIVATE)
+				throw new HttpException("not found", HttpStatus.NOT_FOUND);
+			else
+				throw new HttpException("insufficient permissions", HttpStatus.FORBIDDEN);
+		}
+	
+		return request.member;
 	}
 );
 
@@ -25,157 +47,26 @@ export const GetRoom = createParamDecorator(
 	}
 );
 
-class CreateRoomDTO {
-	@Length(3, 20)
-	@IsString()
-	name: string;
+@Injectable()
+export class VisibleGuard implements CanActivate {
+	canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
+		const request = context.switchToHttp().getRequest();
 
-	@IsBooleanString()
-	is_private: string;
-
-	@IsString()
-	@Length(1, 200)
-	@IsOptional()
-	password: string;
-}
-
-class RoomService<T extends Room> { 
-	repository: Repository<Room>;
-	member_repo: Repository<Member>;
-
-	constructor(private readonly type: (new () => T)) {
-		this.repository = dataSource.getRepository(Room);
-		this.member_repo = dataSource.getRepository(Member);
-	}
-
-	async find(room: number | Room) {
-		if (typeof room === "number")
-			return this.repository.findOneBy({ id: room });
-		return Promise.resolve(room);
-	}
-
-	async find_or_fail(room: number | Room) {
-		const res = await this.find(room);
-		if (!res)
-			throw new Error("room not found");
-		return res;
-	}
-
-	async find_visible(user: User): Promise<Room[]> {
-		const list = await this.repository.find();
-		return list;
-
-		/*
-		return await Promise.all(
-			list.filter(async (room: Room) => {
-				return (room.access !== Access.PRIVATE || (await room.members).find(async member => (await member.user).id === user.id))));
-			       */
-	}
-
-	async find_member(user: User, room: Room): Promise<Member | null> {
-		return this.member_repo.findOneBy({
-			room: { id: room.id },
-			user: { id: user.id }
-		});
-	}
-
-	async create(name: string, password?: string, is_private?: boolean, owner?: User) {
-		if (await this.repository.findOneBy([{
-				name: name,
-				access: Access.PUBLIC
-			},
-			{
-				name: name,
-				access: Access.PROTECTED 
-			}])) {
-			throw new Error("room already exists");
-		}
-		const room = new this.type();
-
-		room.name = name;
-		room.is_private = is_private ?? false;
-		if (!room.is_private)
-			room.password = password;
-		if (owner)
-			room.add_member(owner, Role.OWNER);
-		return this.repository.save(room);
-	}
-
-	async delete(executor: User, room: number | Room) {
-		const target = await this.find_or_fail(room);
-		if (!target)
-			throw new Error("room not found");
-		const member = await this.find_member(executor, target);
-		if (!member && target.access === Access.PRIVATE)
-			throw new Error("not found");
-		else if (!member || member.role !== Role.OWNER)
-			throw new Error("forbidden")
-		return this.repository.remove(target);
-	}
-
-	async join(executor: User, room: number | Room, password?: string) {
-		const target = await this.find_or_fail(room);
-		const member = await this.find_member(executor, target);
-		if (member)
-			throw new Error("already member of this room");
-
-		//TODO Check if user was banned from the room 
-		if (target.access === Access.PRIVATE) {
-			//TODO check if user has invite
-		} else if (target.access === Access.PROTECTED) {
-			if (!password)
-				throw new Error("password required");
-
-			let authorized = false;
-
-			try {
-				authorized = await argon2.verify(target.password, password);
-			} catch (err) {
-				console.error(err);
-				throw new Error("could not join room");
-			}
-			if (!authorized)
-				throw new Error("invalid password");
-		}
-		await target.add_member(executor);
-		return this.repository.save(target);
-	}
-
-	async set_role(executor: User, receiver: User, role: Role, room: number | Room) {
-		const target = await this.find_or_fail(room);
-		const exec_member = await this.find_member(executor, target);
-
-		if (target.access === Access.PRIVATE && !exec_member)
-			throw new Error("room not found");
-		else if (!exec_member)
-			throw new Error("not a member of this room");
-
-		const recv_member = await this.find_member(receiver, target);
-		if (!recv_member)
-			throw new Error("user not in room");
-		if (recv_member.role >= exec_member.role || exec_member.role <= role)
-			throw new Error("insufficient permissions");
-		recv_member.role = role;
-		return this.repository.save(recv_member);
-	}
-
-	async transfer(executor: User, receiver: User, room: number | Room) {
-		const target = await this.find_or_fail(room);
-		const exec_member = await this.find_member(executor, target);
-
-		if (target.access === Access.PRIVATE && !exec_member)
-			throw new Error("room not found");
-		else if (!exec_member || exec_member.role !== Role.OWNER)
-			throw new Error("not the owner of this room");
-
-		const recv_member = await this.find_member(receiver, target);
-		if (!recv_member)
-			throw new Error("target user is not a member of this room");
-		recv_member.role = Role.OWNER;
-		exec_member.role = Role.ADMIN;
-		return this.repository.save([exec_member, recv_member]);
+		return request.room.access === Access.PUBLIC || request.member;
 	}
 }
+
+export const RoleGuard = (role: Role) => {
+	class RoleGuardMixin implements CanActivate {
+		canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
+			const member = context.switchToHttp().getRequest().member;
+
+			return member && member.role >= role;
+		}
+	}
+	return mixin(RoleGuardMixin);
+}
+
 export function GenericRoomController<T extends Room>(type: (new () => T), route?: string) {
 	@UseGuards(AuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
@@ -191,59 +82,62 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 
 		async get_member_or_fail(user: User, room: Room): Promise<Member> {
 			const member = await this.get_member(user, room);
+
 			if (!member) {
 				if (room.access === Access.PRIVATE)
 					throw new HttpException("not found", HttpStatus.NOT_FOUND);
 				else
 					throw new HttpException("insufficient permissions", HttpStatus.FORBIDDEN);
 			}
+
 			return member;
 		}
 
 		@Get()
 		async get_visible(@Me() user: User) {
-			//TODO only return visible rooms
+			// const rooms = await this.room_repo.findBy({ is_private: false } as FindOptionsWhere<T>);
 			const rooms = await this.room_repo.find();
-			const tmp = await Promise.all(rooms.map(async room => await room.serialize()));
-			console.log(tmp);
-			return tmp;
-			//return this.room_service.find_visible(user);
+		
+			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
-
-		@Get(":id")
-		async get_room(@GetRoom() room: T) {
-			console.log(room);
-			return await room.serialize();
-		}
-
+		
 		@Post()
 		async create_room(@Me() user: User, @Body() dto: CreateRoomDTO) {
-
+			
 			//TODO remove any newlines in the name
 			const name = dto.name.trim();
 		
-			if (await this.room_repo.findOneBy({ name: name, is_private: false } as FindOptionsWhere<T>))
+			if (await this.room_repo.findOneBy({ name: name, is_private: false } as FindOptionsWhere<T>)) {
 				throw new HttpException("a room with that name already exists", HttpStatus.FORBIDDEN);
+			}
+			
 			const room = new type();
-
+			
 			room.name = name;
-			room.is_private = dto.is_private === "true" || dto.is_private === "1";
-			if (!room.is_private)
+			room.is_private = dto.is_private;
+			if (!room.is_private) {
 				room.password = dto.password;
+			}
 			const member = await room.add_member(user, Role.OWNER);
 			await this.room_repo.save(room);
 			await this.member_repo.save(member);
+			
+			return {};
 		}
 
+		@UseGuards(VisibleGuard)
+		@Get(":id")
+		async get_room(@GetRoom() room: T) {
+			return room.serialize();
+		}
+		
 		//TODO make ParseIDPipe(type) return a promise that will throw errors for more natural navigation?
 		@Patch(":id")
 		async edit_room(
-			@Me() user: User,
-			@Param("id", ParseIDPipe(type)) room: T,
+			@GetMember() member: Member,
+			@GetRoom() room: T,
 			@Body("owner", ParseIDPipe(User)) new_owner: User
 		) {
-			const member = await this.get_member_or_fail(user, room);
-
 			if (member.role !== Role.OWNER)
 				throw new HttpException("not owner of this room", HttpStatus.FORBIDDEN);
 
@@ -253,37 +147,38 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			member.role = Role.ADMIN;
 			target_member.role = Role.OWNER;
 			await this.member_repo.save([member, target_member]);
+
+			return {};
 		}
 
+		@UseGuards(RoleGuard(Role.OWNER))
 		@Delete(":id")
-		async delete_room(@Me() user: User, @Param("id", ParseIDPipe(type)) room: T) {
-			const member = await this.get_member_or_fail(user, room);
-
-			if (member.role !== Role.OWNER)
-				throw new HttpException("not the owner of the room", HttpStatus.FORBIDDEN);
+		async delete_room(@GetMember() member: Member, @GetRoom() room: T) {
 			//TODO send event to room socket
 			await this.room_repo.remove(room);
+
+			return {};
 		}
 
+		@UseGuards(VisibleGuard)
 		@Get(":id/member(s)?")
-		async list_members(@Me() user: User, @Param("id", ParseIDPipe(type)) room: T) {
-			await this.get_member_or_fail(user, room);
-			return this.member_repo.findBy({ room: { id: room.id } });
+		async list_members(@GetRoom() room: T) {
+			return room.members;
 		}
 
+		@UseGuards(RoleGuard(Role.MEMBER))
 		@Patch(":id/member(s)?/:user_id")
 		async edit_member(
-			@Me() user: User,
-			@Param("id", ParseIDPipe(type)) room: T,
+			@GetMember() member: Member,
+			@GetRoom() room: T,
 			@Param("user_id", ParseIDPipe(User)) target: User,
 			@Body("role", new ParseEnumPipe(Role)) role: Role
 		) {
-			const member = await this.get_member_or_fail(user, room);
 			const target_member = await this.get_member(target, room);
 			if (!target_member)
 				throw new HttpException("user not found", HttpStatus.NOT_FOUND);
 
-			if (target_member.role >= member.role || (member.role !== Role.OWNER && role >= member.role))
+			if (target_member.role >= member.role || role >= member.role)
 				throw new HttpException("insufficient permissions", HttpStatus.FORBIDDEN);
 			target_member.role = role;
 			if (role === Role.OWNER)
@@ -291,14 +186,14 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			await this.member_repo.save([member, target_member]);
 		}
 
+		@UseGuards(RoleGuard(Role.ADMIN))
 		@Delete(":id/member(s)?/:user_id")
 		async remove_member(
-			@Me() user: User,
-		    	@Param("id", ParseIDPipe(type)) room: T,
-		    	@Param("user_id", ParseIDPipe(User)) target: User,
-		    	@Body("ban", ParseBoolPipe) ban?: boolean
+			@GetMember() member: Member,
+			@GetRoom() room: T,
+			@Param("user_id", ParseIDPipe(User)) target: User,
+			@Body("ban", ParseBoolPipe) ban?: boolean
 		) {
-			const member = await this.get_member_or_fail(user, room);
 			const target_member = await this.get_member(target, room);
 			if (!target_member)
 				throw new HttpException("user not found", HttpStatus.NOT_FOUND);
@@ -311,28 +206,45 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			await this.member_repo.remove(member);
 		}
 
-		@Get(":id/member(s)?/invite(s)?")
-		async list_invites(
-			@Me() user: User,
-			@Param("id", ParseIDPipe(type)) room: T
-		) {
-			await this.get_member_or_fail(user, room);
-			//TODO return invites
+		@Get(":id/invited")
+		async is_invited(@Me() me: User, @GetRoom() room: T) {
+			const invites = await room.invites;
+			const invited_users = await Promise.all(invites.map((invite) => invite.to));
+			const index = invited_users.findIndex((user) => user.id === me.id);
+		
+			return index >= 0;
 		}
 
-		@Post(":id/member(s)?/invite(s)?")
+		@UseGuards(VisibleGuard)
+		@Get(":id/invite(s)?")
+		async list_invites(@GetRoom() room: T) {
+			const invites = await room.invites;
+		
+			return Promise.all(invites.map((invite) => invite.serialize()));
+		}
+
+		@UseGuards(RoleGuard(Role.ADMIN))
+		@Post(":id/invite(s)?")
 		async create_invite(
-			@Me() user: User,
-			@Param("id", ParseIDPipe(type)) room: T,
+			@GetMember() member: Member,
+			@GetRoom() room: T,
 			@Body("id", ParseIDPipe(User)) target: User
 		) {
-			const member = await this.get_member_or_fail(user, room);
-
-			if (member.role < Role.ADMIN)
-				throw new HttpException("insufficient permissions", HttpStatus.FORBIDDEN);
 			if (await this.get_member(target, room))
 				throw new HttpException("user already member of this room", HttpStatus.FORBIDDEN);
-			//TODO create invite
+
+			const invites = await room.invites;
+			const invite = new RoomInvite;
+
+			invite.from = member.user;
+			invite.to = Promise.resolve(target);
+			invite.room = Promise.resolve(room);
+
+			invites.push(invite);
+	
+			await this.room_repo.save(room);
+
+			return {}
 		}
 	}
 	return RoomControllerFactory;

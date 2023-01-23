@@ -1,5 +1,4 @@
 <script src="sweetalert2.min.js">
-	import { onMount } from 'svelte';
 	import Swal from 'sweetalert2';
 	let username = '';
 
@@ -20,7 +19,7 @@
 			const info = await response.json();
 			const Toast = Swal.mixin({
 				toast: true,
-				position: 'top-end',
+				position: 'center',
 				showConfirmButton: false,
 				timer: 3000,
 				timerProgressBar: true,
@@ -34,11 +33,14 @@
 	}
 </script>
 
-<div class='block-container'>
+<div class='block_container'>
 	<div class="block_vert">
 		<div class="block_hor">
-	<input class='center' id='input' type='text' bind:value={username}
-		   placeholder='username' required minlength='1' maxlength='20'>
+		<h1>New User</h1>
+	</div>
+		<div class="block_hor">
+			<input class='center' id='input' type='text' bind:value={username}
+		   		placeholder='username' required minlength='1' maxlength='20'>
 		</div>
 		<div class="block_hor">
 	<button class='center' id='setup' on:click={verify_code}>setup</button>
@@ -54,30 +56,32 @@
 	}
 
 	#input {
+		border-radius: 6px;
 		width: 300px;
 		font-size: 35px;
+		background: var(--bkg-color);
+		color: var(--text-color);
+		border-color: var(--border-color);
 	}
 
 	#setup {
-		width: 300px;
+		color: var(--text-color);
+		font-size: large;
+		width: 150px;
 		margin-top: 20px;
-		border-radius: 0%;
-		background-color: #38d890;
-		border-color: #38d890;
+		border-radius: 6px;
+		border: 2px solid var(--scrollbar-thumb);
+		background-color: var(--box-color);
 		padding-top: 5px;
 		padding-bottom: 5px;
-		border-style: solid;
-	}
-
-	#verify:hover {
-		background-color: #35cc88;
+		cursor: pointer;
 	}
 
 	.block_vert {
 		flex-grow: 0.1;
 		padding: 25px;
-		width: 80%;
 		align-items: center;
 		justify-content: center;
+		height: 225px;
 	}
 </style>

@@ -1,13 +1,12 @@
 import { AppController } from './controllers/app.controller';
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { GameGateway } from './gateways/game.gateway';
-import { WSConnection } from './wsconnection';
 import { AuthController } from './auth/auth.controller';
 import { TotpController } from './auth/totp.controller';
 import { DebugController } from './controllers/debug.controller';
 import { SessionUtils } from './SessionUtils';
 import { AccountController } from './controllers/account.controller';
-import { UserController, UsernameController, MeController, UserService } from './controllers/user.controller';
+import { UserIDController, UserUsernameController, UserMeController, } from './controllers/user.controller';
 import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
 import { GameController } from './controllers/game.controller';
@@ -16,11 +15,11 @@ import * as session from 'express-session';
 import { SESSION_SECRET } from './vars';
 
 import { TestController } from './RoomService';
-import { InviteService } from './InviteService';
 import { UserMiddleware } from './Middleware/UserMiddleware';
 import { RoomMiddleware } from './Middleware/RoomMiddleware';
 import { ChatRoomController } from './controllers/chatroom.controller';
-import { RouteInfo } from '@nestjs/common/interfaces';
+import { RoomGateway } from './gateways/room.gateway';
+import { MemberMiddleware } from './Middleware/MemberMiddleware';
 
 const entityFiles = [
 	'./entities/User',
@@ -67,7 +66,7 @@ export const dataSource = new DataSource({
 		},
 	),
 	synchronize: true,
-	logging: false,
+	// logging: true,
 });
 
 const databaseProviders = [
@@ -106,19 +105,17 @@ const entityProviders = entityFiles.map<{
 		AccountController,
 		DebugController,
 		GameController,
-		UserController,
-		MeController,
-		UsernameController,
+		UserIDController,
+		UserMeController,
+		UserUsernameController,
 		ChatRoomController,
-		TestController,
+		TestController, //TODO remove
 	],
 	providers: [
 		GameGateway,
-		WSConnection,
+		RoomGateway,
 		SessionUtils,
 		AuthGuard,
-		UserService,
-		InviteService,
 		...databaseProviders,
 		...entityProviders,
 	],
@@ -130,6 +127,6 @@ export class AppModule implements NestModule {
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
 			{ path: "debug(.*)", method: RequestMethod.ALL 
 		}).forRoutes("*");
-		consumer.apply(RoomMiddleware).forRoutes(ChatRoomController);
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
 	}
 }

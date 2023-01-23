@@ -1,4 +1,3 @@
-import { FRONTEND } from "$lib/constants";
 import type { PageLoad } from "./$types"
 import { redirect } from "@sveltejs/kit";
 

@@ -11,6 +11,8 @@
 		let socket = io("ws://localhost:3000/game", {withCredentials: true});
 		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
 		socket.on("status", (status) => {
+            if (!data.friendlist)
+                return;
 			data.friendlist.forEach((user) => {
 				if (status.players.length > 1 && status.teams.length > 1) {
 					for (let i = 0; i < status.players.length; i+=1) {

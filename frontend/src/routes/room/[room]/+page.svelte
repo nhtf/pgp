@@ -3,7 +3,7 @@
     import Swal from "sweetalert2";
     import socket from "../websocket";
     import { unwrap } from "$lib/Alert";
-    import type { SerializedMessage } from "$lib/types";
+    import type { Message } from "$lib/types";
     import type { PageData } from "./$types";
     import { FRONTEND } from "$lib/constants";
     import { post, remove } from "$lib/Web";
@@ -24,10 +24,10 @@
 	let content: string = "";
 
 	onMount(() => {
-		socket.emit("join", room.id);
+		socket.emit("join", String(room.id));
 	});
 
-	socket.on("message", (data: SerializedMessage) => {
+	socket.on("message", (data: Message) => {
 		console.log(data);
 		messages = [...messages, data];
 	})
@@ -41,7 +41,7 @@
             });
 		}
 	
-		socket.emit("message", { id: room.id, content });
+		socket.emit("message", content);
 
 		content = "";
 	}
@@ -55,7 +55,7 @@
             });
 		}
 
-		await unwrap(post(fetch, `/room/${room.id}/invite`, { username: invitee }));
+		await unwrap(post(data.fetch, `/room/${room.id}/invite`, { id: "2" }));
 
 		Swal.fire({
 			icon: "success",
@@ -64,7 +64,7 @@
     }
 
     async function deleteRoom() {
-        await unwrap(remove(fetch, `/room/${room.id}`));
+        await unwrap(remove(data.fetch, `/room/${room.id}`));
 	
 		Swal.fire({
 			icon: "success",
@@ -73,6 +73,10 @@
 			window.location.assign(FRONTEND + "/room");
 		});
     }
+
+	async function join() {
+		// await unwrap(post(data.fetch, `/room/${room.id}/`));
+	}
 
 </script>
 
@@ -109,6 +113,10 @@
 	{/if}
 {/each}
 
+{#if data.invited}
+	<button class="join" on:click={join}>Join</button>
+{/if}
+
 <style>
 
 h1 {
@@ -144,6 +152,13 @@ h1 {
 .message img {
 	width: 1em;
 	height: 1em;
+	border-radius: 1em;
+}
+
+.join {
+	background-color: steelblue;
+	padding: 1em 4em;
+	margin: 1em;
 	border-radius: 1em;
 }
 

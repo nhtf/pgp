@@ -36,15 +36,25 @@ export async function post(fetch: any, pathname: string, body: any) {
 	});
 }
 
-export async function put(fetch: any, pathname: string, body: any) {
-	return await json(fetch, `${BACKEND}${pathname}`, {
-		credentials: "include",
-		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
-		},
-		body: JSON.stringify(body),
-	});
+export async function put(fetch: any, pathname: string, body: any, stringify: boolean) {
+	if (stringify) {
+		return await json(fetch, `${BACKEND}${pathname}`, {
+			credentials: "include",
+			method: "PUT",
+			headers: {
+				"Content-Type": "application/json",
+			},
+			body: JSON.stringify(body),
+		});
+	}
+	else {
+		return await json(fetch, `${BACKEND}${pathname}`, {
+			credentials: "include",
+			method: "PUT",
+			body: body,
+		});
+	}
+	
 }
 
 export async function remove(fetch: any, pathname: string) {

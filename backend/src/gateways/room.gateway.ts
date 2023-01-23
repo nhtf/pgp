@@ -1,4 +1,4 @@
-import {  HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject } from '@nestjs/common';
 import {
 	MessageBody,
 	SubscribeMessage,
@@ -7,30 +7,29 @@ import {
 	ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
+import { authorize } from 'src/auth/auth.guard';
+import { ChatRoom } from 'src/entities/ChatRoom';
+import { Message } from 'src/entities/Message';
+import { User } from 'src/entities/User';
+import { FRONTEND_ADDRESS } from 'src/vars';
 import { Repository } from 'typeorm';
-import { Message } from './entities/Message';
-import { User } from './entities/User';
-import { authorize } from './auth/auth.guard';
-import { FRONTEND_ADDRESS } from './vars';
-import { Room } from './entities/Room';
 
 @WebSocketGateway({
 	namespace: "room",
 	cors: { origin: FRONTEND_ADDRESS, credentials: true },
 })
-export class WSConnection {
+export class RoomGateway {
 	@WebSocketServer()
 	server: Server;
 
 	constructor(
-		@Inject('ROOM_REPO')
-		private readonly roomRepo: Repository<Room>,
+		@Inject('CHATROOM_REPO')
+		private readonly roomRepo: Repository<ChatRoom>,
 		@Inject('USER_REPO')
 		private readonly userRepo: Repository<User>,
 		@Inject('MESSAGE_REPO')
 		private readonly messageRepo: Repository<Message>
-		) {
-	}
+	) {}
 
 	async handleConnection(client: Socket) {
 		const request: any = client.request;
@@ -43,11 +42,13 @@ export class WSConnection {
 
 	@SubscribeMessage('join')
 	join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+		client.room = id;
+		
 		client.join(id);
 	}
 
 	@SubscribeMessage('message')
-	async message(@ConnectedSocket() client: Socket, @MessageBody() data: { id: string, content: string }) {
+	async message(@ConnectedSocket() client: Socket, @MessageBody() content: string) {
 		const request: any = client.request;
 		const user = await this.userRepo.findOneBy({ id: request.session.user_id });
 	
@@ -55,19 +56,20 @@ export class WSConnection {
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 		}
 
-		this.server.in(data.id).emit("message", {
+		this.server.in(client.room).emit("message", {
 			user: {
 				id: user.id,
 				avatar: user.avatar,
 			},
-			content: data.content
+			content,
 		});
-	
+
+		const room = await this.roomRepo.findOneBy({ id: Number(client.room) });
 		const message = new Message;
 	
 		message.user = Promise.resolve(user);
-		// message.room = Promise.resolve(await this.roomRepo.findOneBy({ id: Number(data.id) }));
-		message.content = data.content;
+		message.room = Promise.resolve(room);
+		message.content = content;
 		// TODO check if number, private room
 
 		await this.messageRepo.save(message);

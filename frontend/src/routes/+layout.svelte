@@ -58,8 +58,6 @@
 
     let drop2 = drop1;
     
-
-    //TODO make it also change the options for the dropdownmenu
     const applyTheme = () => {
         const preferredTheme = prefersDarkThemes() ? THEMES.DARK : THEMES.LIGHT;
         currentTheme = localStorage.getItem(STORAGE_KEY) ?? preferredTheme;

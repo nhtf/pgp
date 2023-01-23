@@ -11,8 +11,9 @@ export class ChatRoom extends Room {
 
 	async serialize() {
 		return {
-			...super.serialize(),
+			...await super.serialize(),
 			...instanceToPlain(this),
+			messages: await Promise.all((await this.messages).map((message) => message.serialize())),
 		}
 	}
 }
