@@ -15,7 +15,7 @@ import {
 import { Request } from 'express';
 import { authenticator } from 'otplib';
 import { SessionUtils } from '../SessionUtils';
-import { AuthLevel } from '../Enums/AuthLevel';
+import { AuthLevel } from '../enums/AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
 import { SetupGuard } from '../controllers/account.controller';

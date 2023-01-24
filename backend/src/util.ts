@@ -122,9 +122,11 @@ export async function parseId(type: any, value: any) {
 	if (!value || value === null)
 		throw new HttpException('id not specified', HttpStatus.BAD_REQUEST);
 	if (!['string', 'number'].includes(typeof value))
-		throw new HttpException('id must be either a string or an number', HttpStatus.BAD_REQUEST);
-	if (!isNumeric(value, { no_symbols: true }))
-		throw new HttpException('id must consist of only digits', HttpStatus.BAD_REQUEST);
+		throw new HttpException('id must be either a string or a number', HttpStatus.BAD_REQUEST);
+	if (typeof value === "string") {
+		if (!isNumeric(value, { no_symbols: true }))
+			throw new HttpException('id must consist of only digits', HttpStatus.BAD_REQUEST);
+	}
 	const id = Number(value);
 	if (!isFinite(id))
 		throw new HttpException('id must be finite', HttpStatus.UNPROCESSABLE_ENTITY);

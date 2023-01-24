@@ -7,7 +7,7 @@ export class RoomMiddleware implements NestMiddleware {
 	async use(req: any, res: any, next: (error?: any) => void) {
 		const id = req.params.id;
 	
-		if (id) { 
+		if (id) {
 			req.room = await parseId(Room, id);
 		}
 	

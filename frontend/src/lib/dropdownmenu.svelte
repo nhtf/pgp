@@ -111,4 +111,13 @@
     .small-avatars {
         margin-right: 2em;
     }
+
+    .block_hor {
+	display: flex;
+	flex-direction: row;
+	padding: 3px;
+	justify-content: center;
+	align-items: center;
+
+}
 </style>

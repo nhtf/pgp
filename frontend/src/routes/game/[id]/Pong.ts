@@ -1,4 +1,5 @@
 import { loadModel, createShape } from "./Model";
+import { DynamicText } from "./Text";
 import { Entity, createPhysicsObject } from "./Entity";
 import type { EntityObject } from "./Entity";
 import { World } from "./World";
@@ -85,6 +86,32 @@ async function createFloor(world: Pong) {
 
 	mesh.rotation.set(-Math.PI / 2, 0, 0);
 	world.scene.add(mesh);
+}
+
+async function createScoreboard(world: Pong) {
+	const material = world.addThreeObject(new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+
+	{
+		const text = new DynamicText(world, material, "0 - 0");
+		const matrix = new THREE.Matrix4();
+		matrix.makeRotationY(-Math.PI / 2);
+		text.mesh.applyMatrix4(matrix);
+		matrix.makeTranslation(-1.38, 0.74, -0.07);
+		text.mesh.applyMatrix4(matrix);
+		text.mesh.name = "score";
+		text.mesh.userData = text;
+	}
+
+	{
+		const text = new DynamicText(world, material, "0 - 0");
+		const matrix = new THREE.Matrix4();
+		matrix.makeRotationY(Math.PI / 2);
+		text.mesh.applyMatrix4(matrix);
+		matrix.makeTranslation(1.38, 0.74, 0.07);
+		text.mesh.applyMatrix4(matrix);
+		text.mesh.name = "score";
+		text.mesh.userData = text;
+	}
 }
 
 export class Table extends Entity {
@@ -275,6 +302,17 @@ export class Pong extends World {
 
 		super.earlyTick();
 	}
+
+	public render(deltaTime: number) {
+		const scoreText = `${this.state.teams[0].score} - ${this.state.teams[1].score}`;
+
+		for (let object of this.scene.getObjectsByProperty("name", "score")) {
+			const text = object.userData as DynamicText;
+			text.text = scoreText;
+		}
+
+		super.render(deltaTime);
+	}
 	
 	public save(): Snapshot {
 		return {
@@ -295,7 +333,7 @@ export class Pong extends World {
 			translate: new Vector(0, 0.02, -0.04),
 		};
 
-		const response = await unwrap(get(fetch, "/user/me"));
+		const response = await unwrap(get("/user/me"));
 		this.userID = response.id;
 
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
@@ -303,6 +341,7 @@ export class Pong extends World {
 
 		await createLights(this);
 		await createFloor(this);
+		await createScoreboard(this);
 
 		this.add(new Table(this, Table.UUID));
 

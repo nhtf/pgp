@@ -107,7 +107,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		@UseGuards(SetupGuard)
 		async set_avatar(
 			@Me() me: User,
-			@Param(options.param, ParseIDPipe(User)) user: User,
+			@Param(options.param, options.pipe) user: User,
 			@UploadedFile(
 				new ParseFilePipeBuilder().addMaxSizeValidator({
 					maxSize: 10485760
@@ -248,6 +248,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				friend_request.to = Promise.resolve(target);
 				await this.request_repo.save(friend_request);
 			}
+			return {};
 		}
 
 		@Delete(options.cparam + '/friend(s)?/request(s)?/:request_id')
@@ -264,6 +265,16 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new HttpException('not found', HttpStatus.NOT_FOUND);
 			await this.request_repo.remove(request);
 		}
+
+		@Get(`${options.cparam}/invites`)
+		async invites(@Me() user: User) {
+			const invites = await user.received_invites;
+
+			console.log("Invites:", invites);
+		
+			return Promise.all(invites.map((invite) => invite.serialize()));
+		}
+
 	}
 	return UserControllerFactory;
 }
@@ -274,6 +285,6 @@ class NullPipe implements PipeTransform {
 	}
 }
 
-export class UserIDController extends GenericUserController('user/id', { param: 'id', cparam: ':id', pipe: ParseIDPipe(User) }) {}
 export class UserMeController extends GenericUserController('user/', { param: 'me', cparam: 'me', pipe: NullPipe }) {}
+export class UserIDController extends GenericUserController('user/id', { param: 'id', cparam: ':id', pipe: ParseIDPipe(User) }) {}
 export class UserUsernameController extends GenericUserController('user/', { param: 'username', cparam: ':username', pipe: ParseUsernamePipe }) {}

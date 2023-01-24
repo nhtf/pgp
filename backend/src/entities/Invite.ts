@@ -4,10 +4,12 @@ import {
 	PrimaryGeneratedColumn,
 	CreateDateColumn,
 	ManyToOne,
+	TableInheritance,
 } from 'typeorm';
 import { instanceToPlain } from 'class-transformer';
 
 @Entity()
+@TableInheritance({ column : { type: "varchar", name: "type" } })
 export class Invite {
 	@PrimaryGeneratedColumn()
 	id: number;
@@ -15,10 +17,10 @@ export class Invite {
 	@CreateDateColumn()
 	date: Date;
 
-	@ManyToOne(() => User, (user) => user.sent_room_invites)
+	@ManyToOne(() => User, (user) => user.sent_invites, { onDelete: "CASCADE" })
 	from: Promise<User>;
 
-	@ManyToOne(() => User, (user) => user.incoming_room_invites)
+	@ManyToOne(() => User, (user) => user.received_invites, { onDelete: "CASCADE" })
 	to: Promise<User>;
 
 	async serialize() {

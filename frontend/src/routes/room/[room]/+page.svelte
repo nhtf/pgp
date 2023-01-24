@@ -55,28 +55,32 @@
             });
 		}
 
-		await unwrap(post(data.fetch, `/room/${room.id}/invite`, { id: "2" }));
+		await unwrap(post(`/room/id/${room.id}/invite`, { username: invitee }));
 
 		Swal.fire({
 			icon: "success",
 			timer: 1000,
-		})
+		});
+
+		invitee = "";
     }
 
+	async function leave() {
+		await unwrap(remove(`/room/id/${room.id}/leave`));
+
+		window.location.assign(`${FRONTEND}/room`);
+	}
+
     async function deleteRoom() {
-        await unwrap(remove(data.fetch, `/room/${room.id}`));
+        await unwrap(remove(`/room/id/${room.id}`));
 	
 		Swal.fire({
 			icon: "success",
 			timer: 3000,
 		}).then(() => {
-			window.location.assign(FRONTEND + "/room");
+			window.location.assign(`${FRONTEND}/room`);
 		});
     }
-
-	async function join() {
-		// await unwrap(post(data.fetch, `/room/${room.id}/`));
-	}
 
 </script>
 
@@ -92,6 +96,9 @@
 			<input bind:value={invitee} type="text" placeholder="username...">
 			<input type="submit" value="Invite">
 		</form>
+	</li>
+	<li>
+		<button on:click={leave}>Leave</button>
 	</li>
 	<li>
 		<button on:click={deleteRoom}>Delete</button>
@@ -112,10 +119,6 @@
 		</div>
 	{/if}
 {/each}
-
-{#if data.invited}
-	<button class="join" on:click={join}>Join</button>
-{/if}
 
 <style>
 

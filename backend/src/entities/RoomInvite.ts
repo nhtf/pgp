@@ -1,36 +1,22 @@
-import { User } from './User';
 import {
-	Entity,
-	PrimaryGeneratedColumn,
-	CreateDateColumn,
 	ManyToOne,
+	ChildEntity,
 } from 'typeorm';
 import { Exclude, instanceToPlain } from 'class-transformer';
 import { Room } from './Room';
+import { Invite } from './Invite';
 
-@Entity()
-export class RoomInvite {
-	@PrimaryGeneratedColumn()
-	id: number;
-
-	@CreateDateColumn()
-	date: Date;
-
-	@ManyToOne(() => User, (user) => user.sent_room_invites)
-	from: Promise<User>;
-
-	@ManyToOne(() => User, (user) => user.incoming_room_invites)
-	to: Promise<User>;
-
+@ChildEntity()
+export class RoomInvite extends Invite {
 	@Exclude()
-	@ManyToOne(() => Room, (room) => room.invites)
+	@ManyToOne(() => Room, (room) => room.invites, { onDelete: "CASCADE" })
 	room: Promise<Room>;
 
 	async serialize() {
 		return {
+			...super.serialize(),
 			...instanceToPlain(this),
-			from: await this.from,
-			to: await this.to,
+			room: await this.room,
 		}
 	}
 }

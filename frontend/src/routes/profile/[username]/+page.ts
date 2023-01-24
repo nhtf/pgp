@@ -1,27 +1,28 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from "./$types"
-import type { User, Achievement } from "$lib/types"
+import type { User, Achievement, Invite } from "$lib/types"
 import { get, remove } from '$lib/Web';
+import { unwrap } from '$lib/Alert';
 
 export const ssr = false;
 
 let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
-type simpleuser = {id: number; username: string; avatar: string; online: boolean; in_game: boolean;}
+type simpleuser = {id: number; username: string; avatar: string; status: string; in_game: boolean;}
 
 const friends: simpleuser[] = [
-	{ username: "dummy1", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy2", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy3", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy4", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy5", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy6", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy7", avatar: profile_image, online: true, in_game: true, id: 2 },
-	{ username: "dummy8", avatar: profile_image, online: true, in_game: false, id: 0 },
-	{ username: "dummy9", avatar: profile_image, online: true, in_game: false, id: 0},
-	{ username: "dummy10", avatar: profile_image, online: false, in_game: false, id: 0},
-	{ username: "dummy11", avatar: profile_image, online: false, in_game: false, id: 0},
-	{ username: "dummy12", avatar: profile_image, online: false, in_game: true, id: 0 }
+	{ username: "dummy1", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy2", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy3", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy4", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy5", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy6", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy7", avatar: profile_image, status: "online", in_game: true, id: 0 },
+	{ username: "dummy8", avatar: profile_image, status: "online", in_game: false, id: 0 },
+	{ username: "dummy9", avatar: profile_image, status: "online", in_game: false, id: 0},
+	{ username: "dummy10", avatar: profile_image, status: "offline", in_game: false, id: 0},
+	{ username: "dummy11", avatar: profile_image, status: "offline", in_game: false, id: 0},
+	{ username: "dummy12", avatar: profile_image, status: "offline", in_game: true, id: 0 }
 ];
 
 const pong = "/Assets/achievement-icons/pong.svg";
@@ -30,6 +31,8 @@ const chat = "/Assets/achievement-icons/chat.svg";
 const winner = "/Assets/achievement-icons/winner.svg";
 const popular = "/Assets/achievement-icons/popular.svg";
 const chatroom = "/Assets/achievement-icons/chatroom.svg";
+const vrpong = "/Assets/achievement-icons/vrpong.svg";
+const classic = "/Assets/achievement-icons/classic.svg";
 
 let dummyachievements: Achievement[] = [
 	{name: "Loser", icon: pong, have: true, text: ["you lost the game", "lose 5 games", "lose 10 games", "lose 15 games"], level: 0, progress: 1, level_cost: [5, 10, 15]},
@@ -38,7 +41,8 @@ let dummyachievements: Achievement[] = [
 	{name: "Popular", icon: popular, have: true, text: ["made a friend", "made 5 friend", "made 10 friend", "made 15 friend"], level: 2, progress: 11, level_cost: [5, 10, 15]},
 	{name: "Chatty", icon: chat, have: true, text: ["sent a message", "sent 5 message", "sent 10 message", "sent 15 message"], level: 0, progress: 1, level_cost: [5, 10, 15]},
 	{name: "Social", icon: chatroom, have: true, text: ["joined a chatroom", "joined 5 chatroom", "joined 10 chatroom", "joined 15 chatroom"], level: 3, progress: 15, level_cost: [5, 10, 15]},
-	{name: "silver medal test", icon: pong, have: true, text: ["requirement 0", "requirement 1", "requirement 2", "requirement 3"], level: 1, progress: 6, level_cost: [5, 10, 15]},
+	{name: "VR Pong", icon: vrpong, have: true, text: ["played your first VR pong game", "played 5 VR pong games", "played 10 VR pong games", "played 15 VR pong games"], level: 1, progress: 6, level_cost: [5, 10, 15]},
+	{name: "Classic Pong", icon: classic, have: true, text: ["played classic pong for the first time", "played 5 classic pong games", "played 10 classic pong games", "played 15 classic pong games"], level: 1, progress: 6, level_cost: [5, 10, 15]},
 ];
 
 function dummyoptionscreater(can_unfriend: boolean, username: string) {
@@ -49,7 +53,7 @@ function dummyoptionscreater(can_unfriend: boolean, username: string) {
 		let fn: any = null;
 		if (can_unfriend) {
 			fn = async () => {
-				const response = await remove(fetch, `/user/${username}/friends/${user.username}`);
+				const response = await remove(`/user/${username}/friends/${user.username}`);
 				return response;
 			};
 		}
@@ -59,7 +63,7 @@ function dummyoptionscreater(can_unfriend: boolean, username: string) {
 				data: [
 				{text: "view profile", fn: null, show: true, redir: "/profile/" + user.username},
 				{text: "spectate", fn: null, show: user.in_game, redir: null}, 
-				{text: "invite game", fn: null, show: user.online && !user.in_game, redir: null}, 
+				{text: "invite game", fn: null, show: user.status !== "offline" && !user.in_game, redir: null}, 
 				{text: "unfriend", fn: fn, show: true, redir: null}
 			]});
 	})
@@ -70,8 +74,8 @@ function dummyoptionscreater(can_unfriend: boolean, username: string) {
 export const load: PageLoad = (async ({ fetch, params }) => {
 	console.log("load: /profile/[username]");
 	try {
-		const profile: User = await get(fetch, `/user/${params.username}`);
-		const user: User = await get(fetch, `/user/me`);
+		const profile: User = await get(`/user/${params.username}`);
+		const user: User = await get(`/user/me`);
 		let can_unfriend = false;
 		//just for debug
 		if (!profile.achievements) {
@@ -83,13 +87,13 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 		let dummy_friends: simpleuser[] | null  = friends;
 		//getting friends
 		try {
-			let friend_list: User[] = await get(fetch, `/user/${params.username}/friends`);
+			let friend_list: User[] = await get(`/user/${params.username}/friends`);
 			if (friend_list !== undefined) {
 				friend_list.forEach((value) => {
 					let newUser: simpleuser = { 
 						username: value.username, 
 						avatar: value.avatar, 
-						online: value.online, 
+						status: value.status, 
 						in_game: false, 
 						id: value.id };
 					dummy_friends?.push(newUser);
@@ -98,8 +102,8 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 							title: newUser.username,
 							data: [
 							{text: "view profile", fn: null, show: true, redir: "/profile/" + newUser.username},
-							{text: "spectate", fn: null, show: user.in_game, redir: null}, 
-							{text: "invite game", fn: null, show: user.online && !newUser.in_game, redir: null}, 
+							{text: "spectate", fn: null, show: newUser.in_game, redir: null}, 
+							{text: "invite game", fn: null, show: newUser.status !== "offline" && !newUser.in_game, redir: null}, 
 							{text: "unfriend", fn: null, show: true, redir: null}
 						]});
 					
@@ -111,6 +115,7 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 			dummy_friends = null;
 		}
 		const friendlist = dummy_friends;
+
 		console.log("load return: ", { fetch, user, friendlist, options, profile });
 		return { fetch, user, friendlist, options, profile };
 	}

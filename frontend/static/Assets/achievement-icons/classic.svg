@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<svg viewBox="0 0 64 64" xmlns="http://www.w3.org/2000/svg">
+  <rect x="4.082" y="3.588" width="5.328" height="27.544" style="stroke: rgb(0, 0, 0);"/>
+  <rect x="52.827" y="26.095" width="5.903" height="27.237" style="stroke: rgb(0, 0, 0);"/>
+  <rect x="42.612" y="43.518" width="4.685" height="4.685" style="stroke: rgb(0, 0, 0);"/>
+  <path style="stroke: rgb(0, 0, 0); stroke-dasharray: 5px; stroke-width: 3px;" d="M 30.693 0.474 L 30.652 63.76"/>
+</svg>

@@ -18,7 +18,7 @@ export type User = {
 	auth_req?: number,
 	username: string,
 	avatar: string,
-	online: boolean,
+	status: string,
 	in_game: boolean,
 	achievements?: Achievement[],
 };
@@ -31,6 +31,7 @@ export type Message = {
 export type Room = {
     id: number,
     name: string,
+	access: Access,
 	is_private: boolean,
     members: Member[],
     invites: Invite[],
@@ -50,4 +51,10 @@ export enum Role {
 	OWNER = "owner",
 	ADMIN = "admin",
 	MEMBER = "member",
+}
+
+export enum Access {
+	PUBLIC = "public",
+	PROTECTED = "protected",
+	PRIVATE = "private",
 }

@@ -33,7 +33,7 @@
 	}
 
 	async function changeUserName() {		
-		let res = await unwrap(put(data.fetch, "/user/me/username", {username}, true));
+		let res = await unwrap(put("/user/me/username", {username}, true));
 		const links = document.getElementsByTagName("a");
 		for (let i = 0; i < links.length; i+=1) {
 			if (links[i].href === FRONTEND + "/profile/" + data.user?.username) {

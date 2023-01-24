@@ -1,7 +1,5 @@
 <script lang="ts">
-	import type { PageData } from "./$types";
 	import { page } from "$app/stores";
-	export let data: PageData;
 	import Avatar from "./avatar.svelte";
 	import Achievements from "./achievements.svelte";
 
@@ -42,20 +40,65 @@
 				</div>
 			</div>
 		</div>
-		<Avatar data={data}/>
+		<Avatar/>
 	</div>
 	<div class="block_hor">
 		<div class="block_cell">
-			<Achievements data={data}/>
+			<Achievements/>
 		</div>
 	</div>
-	{#if !data.user.in_game}
-	<!-- //TODO check if the user is in_game and do the socket thing to get current data -->
-	<p>in game block need to check if user is in-game or not</p>
+	<div class="block_hor">
+		<div class="block_cell">
+			<h3>Last game played</h3>
+			<div class="block_hor" id="legend">
+				<div class="block_cell table-cell" id="no-grow">opponent</div>
+				<div class="block_cell table-cell">me</div>
+				<!-- <div class="block_cell">other stats</div> -->
+			</div>
+			<div class="block_hor" id="content">
+				<div class="block_cell table-cell" id="no-grow">5</div>
+				<div class="block_cell table-cell">3</div>
+				<!-- <div class="block_cell table-cell">nope</div> -->
+			</div>
+		</div>
+	</div>
+	{#if !$page.data.user.in_game}
+	<div class="block_hor">
+		<div class="block_cell">
+			<p>Current game stats</p>
+		</div>
+	</div>
 	{/if}
 </div>
 
 <style>
+
+	.table-cell {
+		/* border: 1px solid var(--border-color);
+		border-radius: 6px; */
+		/* box-shadow: 1px 1px 1px 1px var(--hover-color); */
+		min-height: 25px;
+	}
+
+	#content {
+		border-radius: 6px;
+		height: 30px;
+		max-width: 250px;
+	}
+
+	#legend {
+        background: rgb(51, 55, 67);
+		border-radius: 6px;
+		height: 30px;
+        /* box-shadow: 0 0 0 var(--box-color); */
+		box-shadow: 2px 3px 5px 2px rgba(0, 0, 0, 0.4);
+		margin-bottom: 5px;
+		max-width: 250px;
+    }
+
+	#no-grow {
+		flex-grow: 0;
+	}
 
 	#user-block {
 		width: -moz-available;

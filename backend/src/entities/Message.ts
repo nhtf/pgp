@@ -20,10 +20,10 @@ export class Message {
 	@Column()
 	content: string;
 
-	@ManyToOne(() => User)
+	@ManyToOne(() => User, { onDelete: "CASCADE" })
 	user: Promise<User>;
 
-	@ManyToOne(() => ChatRoom, (room) => room.messages)
+	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
 	room: Promise<ChatRoom>;
 
 	async serialize() {

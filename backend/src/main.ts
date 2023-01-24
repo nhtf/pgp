@@ -12,6 +12,8 @@ import {
 import { join } from 'path';
 import { sessionMiddleware } from './app.module';
 import { IoAdapter } from '@nestjs/platform-socket.io';
+import * as compression from 'compression';
+import { UserMiddleware } from "src/middleware/UserMiddleware";
 
 //https://docs.nestjs.com/websockets/adapter
 //https://socket.io/get-started/chat
@@ -22,6 +24,13 @@ class BetterAdapter extends IoAdapter {
 		const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 		server.use(wrap(sessionMiddleware));
 		server.of('/room').use(wrap(sessionMiddleware));
+		server.of('/game').use(wrap(sessionMiddleware));
+		server.of('/room').on("connection", (socket) => {
+			socket.on("disconnect", () => {
+				console.log("disconnect");
+			});
+			console.log("connect");
+		});
 		return server;
 	}
 }
@@ -29,25 +38,8 @@ class BetterAdapter extends IoAdapter {
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
-        app.use(sessionMiddleware);
-        /*
-	app.use(
-		session({
-			store: new (require('connect-pg-simple')(session))({
-				//TODO this is probably not the right way to connect to the database for sessions
-				conString: 'postgres://postgres:postgres@localhost:5432/dev',
-				createTableIfMissing: true,
-			}),
-			secret: SESSION_SECRET,
-			resave: true,
-			saveUninitialized: false,
-			cookie: {
-				maxAge: 72000000, //TODO set the right maxAge
-				sameSite: 'strict',
-			},
-		}),
-	);
-       */
+	//app.use(compression());
+	app.use(sessionMiddleware);
 	app.enableCors({
 		origin: FRONTEND_ADDRESS,
 		credentials: true,
@@ -57,7 +49,6 @@ async function bootstrap() {
 			transform: true,
 		}),
 	);
-
 	const betterAdapter = new BetterAdapter(app);
 	app.useWebSocketAdapter(betterAdapter);
 

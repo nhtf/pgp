@@ -1,19 +1,26 @@
 <script lang="ts">
     import Dropdownmenu from '$lib/dropdownmenu.svelte';
+    import { get, post } from '$lib/Web';
     import { io } from 'socket.io-client';
-    import type { PageData } from './$types';
+    import type { User } from "$lib/types";
+    import Swal from "sweetalert2";
+    import { page } from '$app/stores';
 
-    export let data: PageData;
-    let friends = data.friendlist;
+    //TODO check the store thing so it properly updates the page
+    // const friends = writable($page.data.friendlist);
+    //might need to change it back again to the export data thing
     let score = new Map();
+    const friend_icon = "/Assets/icons/add-friend.png";
+    let showFriendWindow = false;
+    let username = "";
 
     function checkGameScores() {
 		let socket = io("ws://localhost:3000/game", {withCredentials: true});
 		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
 		socket.on("status", (status) => {
-            if (!data.friendlist)
+            if (!$page.data.friendlist)
                 return;
-			data.friendlist.forEach((user) => {
+                $page.data.friendlist.forEach((user: User) => {
 				if (status.players.length > 1 && status.teams.length > 1) {
 					for (let i = 0; i < status.players.length; i+=1) {
                         if (status.players[i].user === user.id) {
@@ -28,20 +35,113 @@
 	}
 
 	checkGameScores();
+
+    function toggleAddfriend() {
+        showFriendWindow = !showFriendWindow;
+    }
+
+    async function addFriend() {
+        let id: User;
+        try {
+            id = await get(`/user/${username}`);
+        }
+        catch (e) {
+            const Toast = Swal.mixin({
+				toast: true,
+				showConfirmButton: false,
+				timer: 3000,
+				timerProgressBar: false,
+				didOpen: (toast) => {
+					toast.addEventListener("mouseenter", Swal.stopTimer);
+					toast.addEventListener("mouseleave", Swal.resumeTimer);
+				},
+			});
+			Toast.fire({
+				icon: "error",
+				title: "User does not exist",
+			});
+            return;
+        }
+        try {
+            const id_obj = {"id" : id.id};
+            const result = await post("/user/me/friends/requests", id_obj);
+        }
+        catch (e: any) {
+            const message: string = e.message;
+            const error = message.substring(9);
+            const Toast = Swal.mixin({
+				toast: true,
+				showConfirmButton: false,
+				timer: 3000,
+				timerProgressBar: false,
+				didOpen: (toast) => {
+					toast.addEventListener("mouseenter", Swal.stopTimer);
+					toast.addEventListener("mouseleave", Swal.resumeTimer);
+				},
+			});
+			Toast.fire({
+				icon: "error",
+				title: error,
+			});
+            console.log(e);
+        }
+    }
+
+    function checkFriendsUpdate() {
+        let socket = io("ws://localhost:3000/update", {withCredentials: true});
+		socket.on("update", (status) => {
+            $page.data.friendlist?.forEach((friend: User) => {
+                if (friend.id === status.id) {
+                    console.log("status: ", status);
+                    friend.status = status.status;
+                    console.log("friend: ", friend);
+                }
+            })
+		});
+    }
+
+    checkFriendsUpdate();
 </script>
 
+{#if showFriendWindow}
+<div class="add-friend-window">
+    <div class="close-button">
+        <svg fill="currentColor" width="24" height="24"
+            on:click={toggleAddfriend}
+            on:keypress={toggleAddfriend}	
+        >
+            <path d="M13.42 12L20 18.58 18.58 20 12 13.42
+                    5.42 20 4 18.58 10.58 12 4 5.42 5.42
+                    4 12 10.58 18.58 4 20 5.42z"/>
+        </svg>
+    </div>
+    <div class="image-selector">
+        <input name="username" id="friend-selector" class="input-field" type="text" bind:value={username}/>
+        <label for="image-selector_file_upload"></label>
+    </div>
+    <div class="image-selector" on:click={addFriend} on:keypress={addFriend}>add friend</div>
+</div>
+{/if}
 
 <div class="block_vert">
-    <h1 >Friends</h1>
-    {#if friends}
-        {#each friends as { username, avatar, online, in_game }}
+    <div class="block_hor">
+        <div class="block_cell">
+            <h1 >Friends</h1>
+        </div>
+        <div class="block_cell" on:click={toggleAddfriend} on:keypress={toggleAddfriend}>
+            <img class="small-avatars" src={friend_icon} alt="friend-icon" title="add friend">
+            add friend
+        </div>
+    </div>
+    
+    
+    {#if $page.data.friendlist}
+        {#each $page.data.friendlist as { username, avatar, status, in_game }}
             <div class="block_hor" id="friend-hor">
                 <div class="block_cell">
-                    <Dropdownmenu drop={{options: data.options.get(username), img: null}}/>
-                    {#if online && !in_game}
-                        <div class="block_hor" id="online">online</div>
-                    {:else if !in_game}
-                        <div class="block_hor" id="offline">offline</div>
+                    <Dropdownmenu drop={{options: $page.data.options.get(username), img: null}}/>
+                    {#if !in_game}
+                        <div class="block_hor" id={status}>{status}</div>
                     {:else}
                         <div class="block_hor" id="in_game">playing</div>
                         {#if score.has(username)}
@@ -50,7 +150,7 @@
                     {/if}
                 </div>
                 <div class="block_cell avatar-cell">
-                    <Dropdownmenu drop={{options: data.options.get(username), img: avatar}}/>
+                    <Dropdownmenu drop={{options: $page.data.options.get(username), img: avatar}}/>
                 </div>				
             </div>
         {/each}
@@ -58,6 +158,73 @@
 </div>
 
 <style>
+
+    .input-field {
+        border-radius: 6px;
+		width: 300px;
+		font-size: 35px;
+		background: var(--bkg-color);
+		color: var(--text-color);
+		border-color: var(--border-color);
+    }
+
+    .add-friend-window {
+        display: flex;
+        position: fixed;
+        flex-direction: column;
+        z-index: 25;
+		top: calc(50% - 201px);
+		left: calc(50% - 176px);
+        background: var(--box-color);
+		border-radius: 6px;
+		border-width: 1px;
+		border-color: var(--border-color);
+		border-style: solid;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+		width: 400px;
+		height: 350px;
+		justify-content: space-between;
+		align-items: center;
+		text-align: center;
+		align-self: flex-end;
+    }
+
+    .close-button {
+		display: flex;
+		position: relative;
+		align-self: flex-end;
+		align-items: center;
+		justify-content: center;
+		top: 10px;
+		right: 10px;
+		cursor: pointer;
+	}
+
+	.close-button:hover {
+		box-shadow: 0 0 3px 2px var(--shadow-color);
+		border-radius: 6px;
+	}
+
+    .image-selector {
+		display: flex;
+		position: relative;
+		height: 30px;
+		width: 100px;
+		align-self: center;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		border-width: 1px;
+		border-color: var(--scrollbar-thumb);
+		border-style: solid;
+		bottom: 20px;
+		cursor: pointer;
+	}
+
+	.image-selector:hover {
+		background: var(--tab-active-color);
+	}
+
     .block_vert {flex-grow: 0.1;}
 
 .block_hor {width: 90%;}
@@ -74,6 +241,11 @@
     text-align: center;
 }
 
+.small-avatars {
+    -webkit-filter: var(--invert);
+    filter: var(--invert);
+}
+
 .avatar-cell {flex-grow: 1;}
 
 #online,
@@ -83,6 +255,7 @@
     font-size: small;
     cursor:default;
     padding: 0;
+    /* top: -15px; */
 }
 
 #online{color: #5193af;}
@@ -98,4 +271,17 @@
     min-height: 55px;
     border: 2px solid var(--border-color);
 }
+
+@media (max-width: 750px) {
+        .add-friend-window {
+            width: 250px;
+            height: 250px;
+            top: calc(50% - 125px);
+            left: calc(50% - 125px);
+        }
+
+        .input-field {
+            width: 150px;
+        }
+    }
 </style>

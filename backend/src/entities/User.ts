@@ -1,8 +1,6 @@
 import { FriendRequest } from './FriendRequest';
-import { RoomInvite } from './RoomInvite';
-import { GameRequest } from './GameRequest';
 import { Member } from './Member';
-import { AuthLevel } from '../Enums/AuthLevel';
+import { AuthLevel } from '../enums/AuthLevel';
 import {
 	Entity,
 	PrimaryGeneratedColumn,
@@ -11,11 +9,15 @@ import {
 	JoinTable,
 	OneToMany,
 } from 'typeorm';
-import { Exclude, Expose, instanceToPlain } from 'class-transformer';
+import { Exclude, Expose } from 'class-transformer';
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from '../vars';
 import { join } from 'path';
 import { Room } from './Room';
-import { Role } from 'src/Enums/Role';
+import { Role } from 'src/enums/Role';
+import { Status } from '../enums/Status';
+import { IDLE_TIME } from '../vars';
+import { ActivityGateway } from '../gateways/activity.gateway';
+import { Invite } from './Invite';
 
 @Entity()
 export class User {
@@ -57,26 +59,15 @@ export class User {
 	@OneToMany(() => FriendRequest, (request) => request.to)
 	incoming_friend_requests: Promise<FriendRequest[]>;
 
-	@OneToMany(() => GameRequest, (request) => request.from)
-	sent_game_invite: Promise<GameRequest[]>;
+	@OneToMany(() => Invite, (invite) => invite.from)
+	sent_invites: Promise<Invite[]>;
 
-	@OneToMany(() => GameRequest, (request) => request.to)
-	incoming_game_invite: Promise<GameRequest[]>;
-
-	@OneToMany(() => RoomInvite, (invite) => invite.from)
-	sent_room_invites: Promise<RoomInvite[]>;
-
-	@OneToMany(() => RoomInvite, (invite) => invite.to)
-	incoming_room_invites: Promise<RoomInvite[]>;
+	@OneToMany(() => Invite, (invite) => invite.to)
+	received_invites: Promise<Invite[]>;
 
 	@ManyToMany(() => User)
 	@JoinTable()
 	friends: Promise<User[]>;
-
-	@Column({
-		nullable: true,
-	})
-	online: boolean;
 
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
@@ -85,6 +76,11 @@ export class User {
 	@Expose()
 	get avatar(): string {
 		return BACKEND_ADDRESS + '/' + this.avatar_path;
+	}
+
+	@Expose()
+	get status(): Status {
+		return ActivityGateway.get_status(this);
 	}
 
 	get avatar_basename(): string {

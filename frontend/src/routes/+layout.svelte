@@ -4,6 +4,7 @@
     import type { LayoutData } from "./$types";
     import { logout } from "./layout_log_functions";
     import Dropdownmenu from "$lib/dropdownmenu.svelte";
+	import { io } from "socket.io-client";
 
     export let data: LayoutData;
 
@@ -14,6 +15,11 @@
         DARK: "dark",
         LIGHT: "light",
     };
+
+	const socket = io("ws://localhost:3000/update", { withCredentials: true });
+	socket.on("update", message => {
+		console.log(message);
+	});
 
     const STORAGE_KEY = "theme";
     const DARK_PREFERENCE = "(prefers-color-scheme: dark)";

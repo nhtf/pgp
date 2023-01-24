@@ -404,8 +404,18 @@ export class World extends Net {
 		return obj;
 	}
 
+	public removeAmmoObject<T>(obj: T) {
+		this.ammoObjects.splice(this.ammoObjects.indexOf(obj), 1);
+		Ammo.destroy(obj);
+	}
+
 	public addThreeObject<T extends ThreeObject>(obj: T): T {
 		this.threeObjects.push(obj);
 		return obj;
+	}
+
+	public removeThreeObject<T extends ThreeObject>(obj: T) {
+		this.threeObjects.splice(this.threeObjects.indexOf(obj), 1);
+		obj.dispose();
 	}
 }

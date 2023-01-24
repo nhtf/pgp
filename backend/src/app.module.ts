@@ -9,17 +9,22 @@ import { AccountController } from './controllers/account.controller';
 import { UserIDController, UserUsernameController, UserMeController, } from './controllers/user.controller';
 import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
-import { GameController } from './controllers/game.controller';
 import { AuthGuard } from './auth/auth.guard';
 import * as session from 'express-session';
-import { SESSION_SECRET } from './vars';
+import { SESSION_SECRET, PURGE_INTERVAL, OFFLINE_TIME } from './vars';
 
 import { TestController } from './RoomService';
-import { UserMiddleware } from './Middleware/UserMiddleware';
-import { RoomMiddleware } from './Middleware/RoomMiddleware';
+import { UserMiddleware } from './middleware/UserMiddleware';
+import { RoomMiddleware } from './middleware/RoomMiddleware';
 import { ChatRoomController } from './controllers/chatroom.controller';
 import { RoomGateway } from './gateways/room.gateway';
-import { MemberMiddleware } from './Middleware/MemberMiddleware';
+import { MemberMiddleware } from './middleware/MemberMiddleware';
+import { ActivityMiddleware } from './middleware/ActivityMiddleware';
+import { ActivityGateway } from "./gateways/activity.gateway";
+import { UpdateGateway } from "./gateways/update.gateway";
+
+import { User} from "./entities/User";
+import { GameController } from './controllers/game.controller';
 
 const entityFiles = [
 	'./entities/User',
@@ -94,6 +99,32 @@ const entityProviders = entityFiles.map<{
 	};
 });
 
+export const activity_map = new Map<number, number>();
+
+export async function set_offline(user: User | number) {
+	if (typeof user === "number")
+		user = await dataSource.getRepository(User).findOneBy({ id: user });
+	//TODO send message to users informing user has gone offline
+	activity_map.delete(user.id);
+}
+
+export async function user_heartbeat(user: User | number) {
+	if (typeof user === "number")
+		user = await dataSource.getRepository(User).findOneBy({ id: user });
+	//TODO send message to users if the user switched state
+	activity_map.set(user.id, Date.now());
+}
+
+setInterval(() => {
+	const now = Date.now();
+
+	for (const [id, access] of activity_map.entries()) {
+		if (now - access > OFFLINE_TIME)
+			set_offline(id);
+	}
+}, PURGE_INTERVAL);
+
+
 @Module({
 	imports: [
 		/*TypeOrmModule.forRoot({ type: 'postgres', username: 'postgres', password: 'postgres', host: '172.19.0.2' }),*/
@@ -105,8 +136,8 @@ const entityProviders = entityFiles.map<{
 		AccountController,
 		DebugController,
 		GameController,
-		UserIDController,
 		UserMeController,
+		UserIDController,
 		UserUsernameController,
 		ChatRoomController,
 		TestController, //TODO remove
@@ -114,6 +145,8 @@ const entityProviders = entityFiles.map<{
 	providers: [
 		GameGateway,
 		RoomGateway,
+		UpdateGateway,
+		ActivityGateway,
 		SessionUtils,
 		AuthGuard,
 		...databaseProviders,
@@ -128,5 +161,9 @@ export class AppModule implements NestModule {
 			{ path: "debug(.*)", method: RequestMethod.ALL 
 		}).forRoutes("*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
+		consumer.apply(ActivityMiddleware).exclude(
+			{ path: "oauth(.*)", method: RequestMethod.ALL },
+			{ path: "debug(.*)", method: RequestMethod.ALL 
+		}).forRoutes("*");
 	}
 }

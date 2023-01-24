@@ -15,12 +15,14 @@ import {
 	IsEnum,
 } from 'class-validator';
 import { User } from '../entities/User';
-import { AuthLevel } from '../Enums/AuthLevel';
+import { AuthLevel } from '../enums/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { SessionUtils } from '../SessionUtils';
 import { GetUserQuery } from '../util';
 import { Room } from 'src/entities/Room';
+import { Member } from 'src/entities/Member';
+import { Invite } from 'src/entities/Invite';
 
 class UserDto {
 	@IsString()
@@ -49,9 +51,11 @@ class UserDto {
 @Controller('debug')
 export class DebugController {
 	constructor(
-		@Inject('USER_REPO') private readonly userRepo: Repository<User>,
 		private readonly sessionUtils: SessionUtils,
+		@Inject('USER_REPO') private readonly userRepo: Repository<User>,
 		@Inject("ROOM_REPO") private readonly roomRepo: Repository<Room>,
+		@Inject("MEMBER_REPO") private readonly memberRepo: Repository<Member>,
+		@Inject("INVITE_REPO") private readonly inviteRepo: Repository<Invite>,
 	) {}
 
 	@Get('useradd')
@@ -70,7 +74,6 @@ export class DebugController {
 		user.secret = dto.secret;
 		user.avatar_base = dto.avatar_base ?? null;
 		user.auth_req = dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth;
-		user.online = true;
 		await this.userRepo.save(user);
 		return user;
 	}
@@ -127,4 +130,25 @@ export class DebugController {
 	
 		return await Promise.all(rooms.map((room) => room.serialize()));
 	}
+
+	@Get("room/delete")
+	async deleteRoom(@Query("id") id: string) {
+		return await this.roomRepo.delete(Number(id));
+	}
+
+	@Get("members")
+	async members() {
+		return await Promise.all((await this.memberRepo.find()).map((member) => member.serialize()));
+	}
+
+	@Get("invites")
+	async invites() {
+		return await Promise.all((await this.inviteRepo.find()).map((invite) => invite.serialize()));
+	}
+
+	@Get("invite/delete")
+	async deleteInvite(@Query("id") id: string) {
+		return await this.inviteRepo.delete(Number(id));
+	}
+
 }

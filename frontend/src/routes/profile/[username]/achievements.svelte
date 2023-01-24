@@ -1,6 +1,5 @@
 <script lang="ts">
-    import type { PageData } from "./$types";
-    export let data: PageData;
+    import { page } from "$app/stores";
 
     function showAchievementBlock(name: string) {
         console.log("clicker-noise");
@@ -22,8 +21,8 @@
 
 <div class="block_hor"><h3>Achievements</h3></div>
 <div class="block_hor" id="wrap">
-    {#if data.profile.achievements}
-    {#each data.profile.achievements as { name, have, icon, level, progress, level_cost, text }}
+    {#if $page.data.profile.achievements}
+    {#each $page.data.profile.achievements as { name, have, icon, level, progress, level_cost, text }}
     {#if have}
     <div class="achievement_cell" id="achievement-icon"
         on:click={() => showAchievementBlock(name)}

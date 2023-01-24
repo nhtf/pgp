@@ -111,7 +111,6 @@ export class AccountController {
 			throw new HttpException('username already taken', HttpStatus.BAD_REQUEST);
 		user.username = username_dto.username;
 		user.friends = Promise.resolve([]);
-		user.online = true;
 		await this.userRepo.save(user);
 	}
 

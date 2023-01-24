@@ -9,7 +9,7 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
 	try {
-		const user: User = await get(window.fetch, "/user/me");
+		const user: User = await get("/user/me");
 
 		return { fetch, user };
 	} catch (err) {

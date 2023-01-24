@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
 	import type { PageData } from './$types';
 	import Friends from "./friends.svelte";
 	import Info from "./info.svelte";
@@ -8,8 +7,8 @@
 </script>
 
 <div class="block_container">
-	<Info data={data}/>
+	<Info/>
 		{#if data.friendlist}
-			<Friends data={data}></Friends>
+			<Friends/>
 		{/if}
 </div>

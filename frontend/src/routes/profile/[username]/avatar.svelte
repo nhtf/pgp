@@ -1,14 +1,13 @@
 <script lang="ts">
 
-    import type { PageData } from "./$types";
-    export let data: PageData;
+	import { page } from "$app/stores";
     import { _default_profile_image as profile_image } from "../../+layout";
     import Swal from "sweetalert2";
     import { put } from "$lib/Web";
 
     const edit_icon = "/Assets/icons/pen.png";
 	let show_edit = false;
-	let avatar = data.user.avatar;
+	let avatar = $page.data.user.avatar;
 	let src: string | null;
 	let filevar: FileList;
 
@@ -46,9 +45,10 @@
 			});
 			return;
 		}
-		const result = await put(data.fetch, `/user/me/avatar`, formData, false);
-		data.user.avatar = result.avatar;
-		data.profile.avatar = result.avatar;
+		const result = await put(`/user/me/avatar`, formData, false);
+		$page.data.user.avatar = result.avatar;
+		$page.data.profile.avatar = result.avatar;
+		//TODO do this properly so it won't change the avatar of friends if they have the same default avatar
 		const avatar_el = document.getElementById("small-avatar");
 		if (avatar_el)
 			avatar_el.setAttribute("src", result.avatar);
@@ -67,12 +67,12 @@
 </script>
 
 <div class="block_cell" id="avatar-block">
-    {#if data.profile.avatar}
-        <img id="avatar" src={data.profile.avatar} alt="avatar" />
+    {#if $page.data.profile.avatar}
+        <img id="avatar" src={$page.data.profile.avatar} alt="avatar" />
     {:else}
         <img id="avatar" src={profile_image} alt="avatar" />
     {/if}
-    {#if data.user.username === data.profile.username}
+    {#if $page.data.user.username === $page.data.profile.username}
         <img src={edit_icon} alt="edit icon" id="edit-icon"
             on:click={toggleEdit}
             on:keypress={toggleEdit}
@@ -91,7 +91,7 @@
             </div>
             {#if !src}
                 <div class="avatar-preview-container">
-                    <img class="current-avatar" src={data.profile.avatar} alt="avatar"/>
+                    <img class="current-avatar" src={$page.data.profile.avatar} alt="avatar"/>
                 </div>
                 <div class="image-selector">
                     <input name="file" class="hidden" id="image-selector_file_upload"
@@ -129,7 +129,7 @@
 		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
 		width: 400px;
 		height: 350px;
-		justify-content: center;
+		justify-content: space-between;
 		align-items: center;
 		text-align: center;
 		align-self: flex-end;
@@ -141,7 +141,7 @@
 		align-self: flex-end;
 		align-items: center;
 		justify-content: center;
-		bottom: 30px;
+		top: 10px;
 		right: 10px;
 		cursor: pointer;
 	}
@@ -163,7 +163,7 @@
 		border-width: 1px;
 		border-color: var(--scrollbar-thumb);
 		border-style: solid;
-		top: 20px;
+		bottom: 20px;
 		cursor: pointer;
 	}
 
@@ -232,4 +232,22 @@
 		min-height: 40px;
 		padding: 5px;
 	}
+
+	@media (max-width: 750px) {
+        .edit-avatar-window {
+            width: 250px;
+            height: 250px;
+            top: calc(50% - 125px);
+            left: calc(50% - 125px);
+        }
+
+		.image-selector {
+			bottom: 5px;
+		}
+
+		.avatar-preview-container {
+			width: 150px;
+			height: 150px;
+		}
+    }
 </style>

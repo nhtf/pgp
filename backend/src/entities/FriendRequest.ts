@@ -1,5 +1,5 @@
 import { User } from './User';
-import { Entity, PrimaryGeneratedColumn, Column, ManyToOne, CreateDateColumn } from 'typeorm';
+import { Entity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
 import { classToPlain } from 'class-transformer';
 
 @Entity()
@@ -10,10 +10,10 @@ export class FriendRequest {
 	@CreateDateColumn()
 	date: Date;
 
-	@ManyToOne(() => User, (user) => user.sent_friend_requests)
+	@ManyToOne(() => User, (user) => user.sent_friend_requests, { onDelete: "CASCADE" })
 	from: Promise<User>;
 
-	@ManyToOne(() => User, (user) => user.incoming_friend_requests)
+	@ManyToOne(() => User, (user) => user.incoming_friend_requests, { onDelete: "CASCADE" })
 	to: Promise<User>;
 
 	async serialize() {
