@@ -33,17 +33,21 @@ export class SetupGuard implements CanActivate {
 		const http = context.switchToHttp();
 		const request = http.getRequest();
 		const response = http.getResponse();
+	
 		if (request.session.user_id == undefined) {
 			response.status(400).json('bad request');
 			return false;
 		}
+	
 		const user = await dataSource.getRepository(User).findOneBy({
 			id: request.session.user_id
 		});
+	
 		if (user.username == null) {
 			response.status(403).json('no username set');
 			return false;
 		}
+	
 		return true;
 	}
 }
@@ -70,7 +74,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		@UseGuards(SetupGuard)
 		async get_user(
 			@Me() me: User,
-			@Param(options.param, options.pipe) user: User) {
+			@Param(options.param, options.pipe) user?: User) {
 			user = user || me;
 			return this.user_repo.findOneBy({ id: user.id });
 		}
@@ -270,7 +274,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		async invites(@Me() user: User) {
 			const invites = await user.received_invites;
 
-			console.log("Invites:", invites);
+			console.log(await Promise.all(invites.map((invite) => invite.serialize())));
 		
 			return Promise.all(invites.map((invite) => invite.serialize()));
 		}

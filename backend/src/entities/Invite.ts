@@ -6,7 +6,7 @@ import {
 	ManyToOne,
 	TableInheritance,
 } from 'typeorm';
-import { instanceToPlain } from 'class-transformer';
+import { Exclude, instanceToPlain } from 'class-transformer';
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
@@ -17,9 +17,11 @@ export class Invite {
 	@CreateDateColumn()
 	date: Date;
 
+	@Exclude()
 	@ManyToOne(() => User, (user) => user.sent_invites, { onDelete: "CASCADE" })
 	from: Promise<User>;
 
+	@Exclude()
 	@ManyToOne(() => User, (user) => user.received_invites, { onDelete: "CASCADE" })
 	to: Promise<User>;
 

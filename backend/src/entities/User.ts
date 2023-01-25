@@ -16,7 +16,7 @@ import { Room } from './Room';
 import { Role } from 'src/enums/Role';
 import { Status } from '../enums/Status';
 import { IDLE_TIME } from '../vars';
-import { ActivityGateway } from '../gateways/activity.gateway';
+import { get_status } from "../services/activity.service";
 import { Invite } from './Invite';
 
 @Entity()
@@ -73,6 +73,11 @@ export class User {
 	@OneToMany(() => Member, (member) => member.user)
 	members: Promise<Member[]>;
 
+	@Column({
+	       nullable: true
+	})
+	last_activity: Date;
+
 	@Expose()
 	get avatar(): string {
 		return BACKEND_ADDRESS + '/' + this.avatar_path;
@@ -80,7 +85,7 @@ export class User {
 
 	@Expose()
 	get status(): Status {
-		return ActivityGateway.get_status(this);
+		return get_status(this.last_activity?.getTime());
 	}
 
 	get avatar_basename(): string {

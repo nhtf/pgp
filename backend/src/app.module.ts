@@ -12,19 +12,31 @@ import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
 import { AuthGuard } from './auth/auth.guard';
 import * as session from 'express-session';
 import { SESSION_SECRET, PURGE_INTERVAL, OFFLINE_TIME } from './vars';
-
-import { TestController } from './RoomService';
+import { TestController } from './services/room.service';
 import { UserMiddleware } from './middleware/UserMiddleware';
 import { RoomMiddleware } from './middleware/RoomMiddleware';
 import { ChatRoomController } from './controllers/chatroom.controller';
 import { RoomGateway } from './gateways/room.gateway';
 import { MemberMiddleware } from './middleware/MemberMiddleware';
 import { ActivityMiddleware } from './middleware/ActivityMiddleware';
-import { ActivityGateway } from "./gateways/activity.gateway";
 import { UpdateGateway } from "./gateways/update.gateway";
-
+import { ActivityService } from "./services/activity.service";
 import { User} from "./entities/User";
 import { GameController } from './controllers/game.controller';
+import { InviteService } from './services/invite.service';
+import * as Pool from "pg-pool";
+
+export const db_pool = new Pool({
+	database: "dev", //TODO make this not hardcoded
+	user: DB_USER,
+	password: DB_PASS,
+	port: DB_PORT,
+	ssl: false, //TODO set to true
+	max: 20,
+	idleTimeoutMilles: 1000,
+	connectionTimoutMillis: 1000,
+	maxUses: 7500,
+});
 
 const entityFiles = [
 	'./entities/User',
@@ -146,9 +158,10 @@ setInterval(() => {
 		GameGateway,
 		RoomGateway,
 		UpdateGateway,
-		ActivityGateway,
 		SessionUtils,
 		AuthGuard,
+		ActivityService,
+		InviteService,
 		...databaseProviders,
 		...entityProviders,
 	],

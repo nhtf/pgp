@@ -1,21 +1,30 @@
-import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { Server } from "socket.io";
-import { FRONTEND_ADDRESS } from "../vars";
+import { Server, Socket } from "socket.io";
 import { User } from "../entities/User";
 import { instanceToPlain } from "class-transformer";
+import { ProtectedGateway } from "./protected.gateway";
 
-@WebSocketGateway({
-	namespace: "update",
-	cors: { origin: FRONTEND_ADDRESS, credentials: true }
-})
-export class UpdateGateway {
-	@WebSocketServer()
-	server: Server;
+//TODO handle session expiration
 
+//TODO this class also handles session expiry, it should probably be renamed
+export class UpdateGateway extends ProtectedGateway("update") {
 	static instance: UpdateGateway;
 
+	//TODO purge inactive sockets?
+	private readonly sockets = new Map<number, Socket>();
+
 	constructor() {
+		super();
+		if (UpdateGateway.instance)
+			throw new Error("multiple instances of singleton UpdateGateway");
 		UpdateGateway.instance = this;
+	}
+
+	async onConnect(client: Socket) {
+		this.sockets.set(client.request.session.user_id, client);
+	}
+
+	async onDisonnect(client: Socket) {
+		this.sockets.delete(client.request.session.user_id);
 	}
 
 	static async update_user(user: User) {

@@ -22,6 +22,7 @@ import { SessionUtils } from '../SessionUtils';
 import { GetUserQuery } from '../util';
 import { Room } from 'src/entities/Room';
 import { Member } from 'src/entities/Member';
+import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from 'src/entities/Invite';
 
 class UserDto {
@@ -72,7 +73,7 @@ export class DebugController {
 		user.username = dto.username;
 		user.oauth_id = dto.oauth_id ?? -1;
 		user.secret = dto.secret;
-		user.avatar_base = dto.avatar_base ?? null;
+		user.avatar_base = dto.avatar_base ?? DEFAULT_AVATAR;
 		user.auth_req = dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth;
 		await this.userRepo.save(user);
 		return user;

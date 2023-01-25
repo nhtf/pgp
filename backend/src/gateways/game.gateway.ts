@@ -1,10 +1,10 @@
 import { dataSource } from "src/app.module";
 import { User } from "src/entities/User";
-import { Repository } from "typeorm";
-import { MessageBody, SubscribeMessage, WebSocketGateway, ConnectedSocket, WsException } from "@nestjs/websockets";
+import { MessageBody, SubscribeMessage, WebSocketGateway, ConnectedSocket } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 import { parseId } from "src/util";
 import { Room } from "src/entities/Room";
+import { FRONTEND_ADDRESS } from "src/vars";
 
 declare module "socket.io" {
 	export interface Socket {
@@ -14,7 +14,7 @@ declare module "socket.io" {
 
 @WebSocketGateway({
 	namespace: "game", 
-	cors: { origin: "http://localhost:5173", credentials: true },
+	cors: { origin: FRONTEND_ADDRESS, credentials: true },
 })
 export class GameGateway {
 	async handleConnection(@ConnectedSocket() client: Socket) {

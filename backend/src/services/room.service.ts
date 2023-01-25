@@ -1,17 +1,18 @@
-import { Room } from "./entities/Room";
-import { User } from "./entities/User";
-import { Member } from "./entities/Member";
+import { Room } from "../entities/Room";
+import { User } from "../entities/User";
+import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere } from "typeorm";
-import { Access } from "./enums/Access";
-import { GameRoom } from "./entities/GameRoom";
+import { Access } from "../enums/Access";
+import { GameRoom } from "../entities/GameRoom";
 import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put } from "@nestjs/common";
 import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
-import { Role } from "./enums/Role";
-import { Me, ParseIDPipe, ParseUsernamePipe } from "./util";
-import { AuthGuard } from "./auth/auth.guard";
+import { Role } from "../enums/Role";
+import { Me, ParseUsernamePipe } from "../util";
+import { AuthGuard } from "../auth/auth.guard";
 import { Observable } from "rxjs";
-import { RoomInvite } from "./entities/RoomInvite";
+import { RoomInvite } from "../entities/RoomInvite";
 import * as argon2 from "argon2";
+import { InviteService } from "./invite.service";
 
 class CreateRoomDTO {
 	@Length(3, 20)
@@ -48,15 +49,6 @@ export const GetRoom = createParamDecorator(
 	}
 );
 
-@Injectable()
-export class VisibleGuard implements CanActivate {
-	canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
-		const request = context.switchToHttp().getRequest();
-
-		return request.room.access === Access.PUBLIC || request.member;
-	}
-}
-
 export const RoleGuard = (role: Role) => {
 	class RoleGuardMixin implements CanActivate {
 		canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
@@ -75,7 +67,10 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 	class RoomControllerFactory {
 		constructor(
 			@Inject(type.name.toString().toUpperCase() + "_REPO") readonly room_repo: Repository<T>,
-			@Inject("MEMBER_REPO") readonly member_repo: Repository<Member>) {}
+			@Inject("MEMBER_REPO") readonly member_repo: Repository<Member>,
+			@Inject("ROOMINVITE_REPO") readonly invite_repo: Repository<RoomInvite>,
+			readonly inviteService: InviteService,
+		) {}
 
 		async get_member(user: User, room: Room): Promise<Member | null> {
 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } });
@@ -130,7 +125,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			
 			room.name = name;
 			room.is_private = dto.is_private;
-			if (!room.is_private) {
+			if (!room.is_private && dto.password) {
 				try {
 					room.password = await argon2.hash(dto.password);
 				} catch (err) {
@@ -145,7 +140,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			return {};
 		}
 
-		@UseGuards(VisibleGuard)
+		@UseGuards(RoleGuard(Role.MEMBER))
 		@Get("id/:id")
 		async get_room(@GetRoom() room: T) {
 			return room.serialize();
@@ -153,6 +148,10 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 
 		@Post("id/:id/join")
 		async join(@Me() me: User, @GetRoom() room: T, @Body("password") password?: string) {
+			if (room.access == Access.PRIVATE) {
+				throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+			}
+		
 			if (room.access == Access.PROTECTED) {
 				if (!password) {
 					throw new HttpException("Missing password", HttpStatus.FORBIDDEN);
@@ -200,10 +199,13 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			@Body("owner", ParseUsernamePipe) new_owner: User
 		) {
 			const target_member = await this.get_member(new_owner, room);
+		
 			if (!target_member)
 				throw new HttpException("user not a member of this room", HttpStatus.FORBIDDEN);
+			
 			member.role = Role.ADMIN;
 			target_member.role = Role.OWNER;
+		
 			await this.member_repo.save([member, target_member]);
 
 			return {};
@@ -262,12 +264,12 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		@Get("id/:id/invite(s)?")
 		async room_invites(@GetRoom() room: T) {
 			const invites = await room.invites;
-		
+
 			return Promise.all(invites.map((invite) => invite.serialize()));
 		}
 
 		@UseGuards(RoleGuard(Role.ADMIN))
-		@Post("id/:id/invite(s)?")
+		@Post("id/:id/invite")
 		async create_invite(
 			@GetMember() member: Member,
 			@GetRoom() room: T,
@@ -276,18 +278,33 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			if (await this.get_member(target, room))
 				throw new HttpException("user already member of this room", HttpStatus.FORBIDDEN);
 
-			const invites = await room.invites;
 			const invite = new RoomInvite;
 
 			invite.from = member.user;
 			invite.to = Promise.resolve(target);
 			invite.room = Promise.resolve(room);
 
-			invites.push(invite);
-	
-			await this.room_repo.save(room);
+			await this.invite_repo.save(invite);
 
 			return {}
+		}
+
+		@Post("id/:id/accept")
+		async accept_invite(@Me() me: User,	@GetRoom() room: T) {
+			const invites = await room.invites;
+			const index = invites.findIndex(async (invite) => (await invite.to).id == me.id);
+
+			if (index < 0) {
+				throw new HttpException("Not invited", HttpStatus.NOT_FOUND);
+			}
+
+			room.add_member(me);
+
+			invites.splice(index, 1);
+
+			await this.room_repo.save(room);
+
+			return {};
 		}
 
 		async my_rooms(me: User) {

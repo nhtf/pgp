@@ -2,7 +2,7 @@ import * as dotenv from 'dotenv';
 dotenv.config();
 import 'reflect-metadata';
 import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { HttpException, HttpStatus, ValidationPipe } from '@nestjs/common';
 import { AppModule } from './app.module';
 import { NestExpressApplication } from '@nestjs/platform-express';
 import {
@@ -25,6 +25,7 @@ class BetterAdapter extends IoAdapter {
 		server.use(wrap(sessionMiddleware));
 		server.of('/room').use(wrap(sessionMiddleware));
 		server.of('/game').use(wrap(sessionMiddleware));
+		server.of('/update').use(wrap(sessionMiddleware));
 		server.of('/room').on("connection", (socket) => {
 			socket.on("disconnect", () => {
 				console.log("disconnect");
@@ -47,6 +48,11 @@ async function bootstrap() {
 	app.useGlobalPipes(
 		new ValidationPipe({
 			transform: true,
+			forbidUnknownValues: false, // TODO: true
+			exceptionFactory: (e) => {
+				console.error(e);
+				throw new HttpException("ValidationPipe error", HttpStatus.INTERNAL_SERVER_ERROR);
+			}
 		}),
 	);
 	const betterAdapter = new BetterAdapter(app);

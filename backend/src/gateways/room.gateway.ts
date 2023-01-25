@@ -2,42 +2,23 @@ import { HttpException, HttpStatus, Inject } from '@nestjs/common';
 import {
 	MessageBody,
 	SubscribeMessage,
-	WebSocketGateway,
-	WebSocketServer,
 	ConnectedSocket,
 } from '@nestjs/websockets';
-import { Server, Socket } from 'socket.io';
-import { authorize } from 'src/auth/auth.guard';
+import { Socket } from 'socket.io';
 import { ChatRoom } from 'src/entities/ChatRoom';
 import { Message } from 'src/entities/Message';
 import { User } from 'src/entities/User';
-import { FRONTEND_ADDRESS } from 'src/vars';
 import { Repository } from 'typeorm';
+import { ProtectedGateway } from './protected.gateway';
 
-@WebSocketGateway({
-	namespace: "room",
-	cors: { origin: FRONTEND_ADDRESS, credentials: true },
-})
-export class RoomGateway {
-	@WebSocketServer()
-	server: Server;
-
+export class RoomGateway extends ProtectedGateway("room") {
 	constructor(
-		@Inject('CHATROOM_REPO')
-		private readonly roomRepo: Repository<ChatRoom>,
 		@Inject('USER_REPO')
 		private readonly userRepo: Repository<User>,
 		@Inject('MESSAGE_REPO')
 		private readonly messageRepo: Repository<Message>
-	) {}
-
-	async handleConnection(client: Socket) {
-		const request: any = client.request;
-	
-		if (!request.session || !authorize(request.session)) {
-			client.emit('exception', { errorMessage: 'unauthorized' });
-			client.disconnect();
-		}
+	) {
+		super();
 	}
 
 	@SubscribeMessage('join')
@@ -57,18 +38,17 @@ export class RoomGateway {
 		}
 
 		this.server.in(client.room).emit("message", {
+			content,
 			user: {
 				id: user.id,
 				avatar: user.avatar,
 			},
-			content,
 		});
 
-		const room = await this.roomRepo.findOneBy({ id: Number(client.room) });
 		const message = new Message;
 	
 		message.user = Promise.resolve(user);
-		message.room = Promise.resolve(room);
+		message.room = Promise.resolve({ id: Number(client.room)} as ChatRoom);
 		message.content = content;
 		// TODO check if number, private room
 
