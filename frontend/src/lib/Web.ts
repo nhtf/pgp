@@ -1,4 +1,3 @@
-import { is_empty } from "svelte/internal";
 import { BACKEND } from "./constants";
 
 export async function json(

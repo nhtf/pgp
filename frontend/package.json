@@ -11,15 +11,15 @@
 		"lint": "eslint ."
 	},
 	"devDependencies": {
-		"@sveltejs/adapter-auto": "next",
-		"@sveltejs/kit": "next",
+		"@sveltejs/adapter-auto": "1.0.2",
+		"@sveltejs/kit": "1.2.9",
 		"@types/three": "^0.148.0",
 		"@types/validator": "^13.7.10",
 		"@typescript-eslint/eslint-plugin": "^5.27.0",
 		"@typescript-eslint/parser": "^5.27.0",
 		"eslint": "^8.16.0",
 		"eslint-plugin-svelte3": "^4.0.0",
-		"prettier": "2.8.2",
+		"prettier": "2.8.3",
 		"prettier-plugin-svelte": "^2.9.0",
 		"sass": "^1.57.1",
 		"svelte": "^3.44.0",

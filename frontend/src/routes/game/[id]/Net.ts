@@ -1,3 +1,4 @@
+import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
 
@@ -215,7 +216,7 @@ export class Net {
 	public async start(options: Options) {
 		this.snapshots.push(this.save());
 
-		this.socket = io(options.address ?? "ws://localhost:3000/game", { withCredentials: true });
+		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
 		this.socket?.on("connect", () => {
 			this.socket?.emit("join", { "scope": "game", "room": options.room });
 		});

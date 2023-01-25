@@ -1,24 +1,9 @@
 import { Injectable } from "@nestjs/common";
 import { AuthLevel } from "src/enums/AuthLevel";
 import * as session from "express-session";
-import { db_pool } from "src/app.module";
+import { session_store } from "src/app.module";
 import { HOST, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET } from 'src/vars';
 
-export const session_store = new (require("connect-pg-simple")(session))({
-	pool: db_pool
-});
-
-export const session_middleware = session({
-	store: session_store,
-	secret: SESSION_SECRET,
-	resave: true,
-	saveUninitialized: false,
-	cookie: {
-		maxAge: 72000000, //TODO set the right maxAge
-		sameSite: 'strict',
-		secure: false, //TODO set to true
-	},
-});
 
 declare module 'express-session' {
 	export interface SessionData {
@@ -39,11 +24,22 @@ export class SessionService {
 	constructor() {
 		setInterval(async () => {
 			await this.purge();
-		}, 15000); //TODO make PURGE_INTEVAL an env variable
+		}, 1000); //TODO make this not hard coded
 	}
 
 	async purge() {
 		const now = Date.now();
+		/*
+		session_store.all((err, data) => {
+			if (err) {
+				console.error(err);
+			} else {
+				console.log(data);
+			}
+
+		});
+	       */
+		/*
 		for (const session of session_store.all()) {
 			if (now - session.last_activity.getTime() >= 10000) {
 				try {
@@ -53,6 +49,22 @@ export class SessionService {
 				}
 			}
 		}
+	       */
+	}
+
+	async all() {
+		/*
+		const promsie = new Promise(
+			(resolve: (session) => void, reject (err) => void) => {
+				session_store.all((error, data) => {
+					if (error) {
+						reject(error);
+					} else {
+						resolve(data);
+					}
+				});
+		});
+	       */
 	}
 
 	async regenerate_session(session: session.Session): Promise<boolean> {

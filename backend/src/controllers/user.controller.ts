@@ -274,8 +274,6 @@ export function GenericUserController(route: string, options: { param: string, c
 		async invites(@Me() user: User) {
 			const invites = await user.received_invites;
 
-			console.log(await Promise.all(invites.map((invite) => invite.serialize())));
-		
 			return Promise.all(invites.map((invite) => invite.serialize()));
 		}
 

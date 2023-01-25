@@ -21,7 +21,7 @@
 
 <div class="block_hor"><h3>Achievements</h3></div>
 <div class="block_hor" id="wrap">
-    {#if $page.data.profile.achievements}
+    {#if $page.data.profile?.achievements}
     {#each $page.data.profile.achievements as { name, have, icon, level, progress, level_cost, text }}
     {#if have}
     <div class="achievement_cell" id="achievement-icon"

@@ -103,15 +103,16 @@ export class AccountController {
 		if (user.username !== null)
 			throw new HttpException('already setup user', HttpStatus.FORBIDDEN);
 
-		const other_user = await this.userRepo.findOneBy({
-			username:
-				username_dto.username,
-		});
-		if (other_user)
-			throw new HttpException('username already taken', HttpStatus.BAD_REQUEST);
 		user.username = username_dto.username;
 		user.friends = Promise.resolve([]);
-		await this.userRepo.save(user);
+	
+		try {
+			await this.userRepo.save(user);
+		} catch (err) {
+			throw new HttpException("A user with this name already exists", HttpStatus.CONFLICT);
+		}
+		
+		return {};
 	}
 
 	@Patch('rename')

@@ -62,7 +62,7 @@
 			</div>
 		</div>
 	</div>
-	{#if !$page.data.user.in_game}
+	{#if !$page.data.user?.in_game}
 	<div class="block_hor">
 		<div class="block_cell">
 			<p>Current game stats</p>

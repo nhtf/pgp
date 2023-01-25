@@ -6,6 +6,7 @@
     import type { PageData } from "./$types";
     import { error } from "@sveltejs/kit";
     import Swal from "sweetalert2";
+    import { onMount } from "svelte/internal";
 
     const lock = "/Assets/icons/lock.svg";
 
@@ -23,12 +24,10 @@
     };
 
     let room_password = "";
-    let rooms: Room[] = data.rooms;
+    let my_rooms: Room[] = data.my_rooms;
 
-    console.log(data.rooms);
-
-    async function fetchRooms(): Promise<Room[]> {
-        return await unwrap(get("/room"));
+    async function fetchMyRooms(): Promise<Room[]> {
+        return await unwrap(get("/room/mine"));
     }
 
     async function createRoom() {
@@ -40,7 +39,7 @@
 
         await unwrap(post("/room", room_dto));
 
-        rooms = await fetchRooms();
+        my_rooms = await fetchMyRooms();
     }
 
     function enter(id: number) {
@@ -77,8 +76,12 @@
             text: "Joined room",
         });
     
-        rooms = await fetchRooms();
+        my_rooms = await fetchMyRooms();
     }
+
+    onMount(() => {
+        window.fetch = data.fetch;
+    });
 
 </script>
 
@@ -89,30 +92,56 @@
         <input type="text" bind:value={room_password} placeholder="password..."/>
         <input type="submit" value="Create"/>
     </form>
-{#each rooms as room}
-    {#if data.user && isMember(data.user, room)}
-        <button class="room" on:click={() => enter(room.id)}>
-            <img id="small-avatar" src={room.owner.avatar} alt=""/>
-            <div style="width: 4em;">{room.owner.username}</div>
-            <div>{room.members.length}</div>
-            <div>{room.name}</div>
-            {#if room.access == Access.PROTECTED}
-                <svg>
-                    <circle cx="25" cy="25"></circle>
-                    <div style="mask-image: url({lock});"></div>
-                </svg>
+    <h1>Mine</h1>
+        {#each my_rooms as room}
+            {#if data.user && isMember(data.user, room)}
+                <button class="room" on:click={() => enter(room.id)}>
+                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
+                    <div style="width: 4em;">{room.owner.username}</div>
+                    <div>{room.members.length}</div>
+                    <div>{room.name}</div>
+                    {#if room.access == Access.PROTECTED}
+                        <img src={lock} alt="lock" style="max-width: 1em;">
+                    {/if}
+                </button>
+            {:else}
+                <div class="room">
+                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
+                    <div style="width: 4em;">{room.owner.username}</div>
+                    <div>{room.members.length}</div>
+                    <div>{room.name}</div>
+                    {#if room.access == Access.PROTECTED}
+                        <img src={lock} alt="lock" style="max-width: 1em;">
+                    {/if}
+                    <button on:click={() => join(room)}>Join</button>
+                </div>
             {/if}
-        </button>
-    {:else}
-        <div class="room">
-            <img id="small-avatar" src={room.owner.avatar} alt=""/>
-            <div style="width: 4em;">{room.owner.username}</div>
-            <div>{room.members.length}</div>
-            <div>{room.name}</div>
-            <button on:click={() => join(room)}>Join</button>
-        </div>
-    {/if}
-{/each}
+        {/each}
+    <h1>Visible</h1>
+        {#each data.visible_rooms as room}
+            {#if data.user && isMember(data.user, room)}
+                <button class="room" on:click={() => enter(room.id)}>
+                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
+                    <div style="width: 4em;">{room.owner.username}</div>
+                    <div>{room.members.length}</div>
+                    <div>{room.name}</div>
+                    {#if room.access == Access.PROTECTED}
+                        <img src={lock} alt="lock" style="max-width: 1em;">
+                    {/if}
+                </button>
+            {:else}
+                <div class="room">
+                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
+                    <div style="width: 4em;">{room.owner.username}</div>
+                    <div>{room.members.length}</div>
+                    <div>{room.name}</div>
+                    {#if room.access == Access.PROTECTED}
+                        <img src={lock} alt="lock" style="max-width: 1em;">
+                    {/if}
+                    <button on:click={() => join(room)}>Join</button>
+                </div>
+            {/if}
+        {/each}
 </div>
 
 <style>
@@ -124,6 +153,7 @@
     list-style: none;
     margin: 1em;
     gap: 1em;
+    overflow: scroll;
 }
 
 .room {

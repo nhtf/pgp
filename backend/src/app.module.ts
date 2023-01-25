@@ -24,6 +24,7 @@ import { ActivityService } from "./services/activity.service";
 import { User} from "./entities/User";
 import { GameController } from './controllers/game.controller';
 import { InviteService } from './services/invite.service';
+import { SessionService } from 'src/services/session.service';
 import * as Pool from "pg-pool";
 
 export const db_pool = new Pool({
@@ -51,12 +52,13 @@ const entityFiles = [
 	"./entities/GameRoom",
 ];
 
+export const session_store = new (require('pg-session-store')(session))({
+	pool: db_pool,
+	createTableIfMissing: true,
+});
+
 export const sessionMiddleware = session({
-	store: new (require('connect-pg-simple')(session))({
-		//TODO this is probably not the right way to connect to the database for sessions
-		conString: 'postgres://postgres:postgres@localhost:5432/dev',
-		createTableIfMissing: true,
-	}),
+	store: session_store,
 	secret: SESSION_SECRET,
 	resave: true,
 	saveUninitialized: false,
@@ -162,6 +164,7 @@ setInterval(() => {
 		AuthGuard,
 		ActivityService,
 		InviteService,
+		SessionService,
 		...databaseProviders,
 		...entityProviders,
 	],

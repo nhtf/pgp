@@ -3,12 +3,15 @@ import type { PageLoad } from "./$types"
 import type { User, Achievement, Invite } from "$lib/types"
 import { get, remove } from '$lib/Web';
 import { unwrap } from '$lib/Alert';
+import { BACKEND_ADDRESS } from '$lib/constants';
+import { io } from 'socket.io-client';
+import { readable, writable } from 'svelte/store';
 
 export const ssr = false;
 
 let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
-type simpleuser = {id: number; username: string; avatar: string; status: string; in_game: boolean;}
+export type simpleuser = {id: number; username: string; avatar: string; status: string; in_game: boolean;}
 
 const friends: simpleuser[] = [
 	{ username: "dummy1", avatar: profile_image, status: "online", in_game: false, id: 0 },
@@ -45,8 +48,8 @@ let dummyachievements: Achievement[] = [
 	{name: "Classic Pong", icon: classic, have: true, text: ["played classic pong for the first time", "played 5 classic pong games", "played 10 classic pong games", "played 15 classic pong games"], level: 1, progress: 6, level_cost: [5, 10, 15]},
 ];
 
-function dummyoptionscreater(can_unfriend: boolean, username: string) {
-	let options = new Map();
+function dummydropcreater(can_unfriend: boolean, username: string) {
+	let drop = new Map();
 
 	//debug stuff
 	friends?.forEach((user) => {
@@ -57,17 +60,49 @@ function dummyoptionscreater(can_unfriend: boolean, username: string) {
 				return response;
 			};
 		}
-		options.set(user.username, 
+		drop.set(user.username, 
 			{
 				title: user.username,
+				options: {
 				data: [
 				{text: "view profile", fn: null, show: true, redir: "/profile/" + user.username},
 				{text: "spectate", fn: null, show: user.in_game, redir: null}, 
 				{text: "invite game", fn: null, show: user.status !== "offline" && !user.in_game, redir: null}, 
 				{text: "unfriend", fn: fn, show: true, redir: null}
-			]});
+				]},
+			});
 	})
-	return options;
+	return drop;
+}
+
+async function getFriendList(username: string, options: Map<any, any>) {
+	let dummy_friends: simpleuser[] | null = null;
+	dummy_friends = [];
+	dummy_friends = dummy_friends.concat(friends);
+	let friend_list: User[] = await get(`/user/me/friends`);
+	if (friend_list !== undefined) {
+		friend_list.forEach((value) => {
+			let newUser: simpleuser = { 
+				username: value.username, 
+				avatar: value.avatar, 
+				status: value.status, 
+				in_game: false, 
+				id: value.id };
+			dummy_friends?.push(newUser);
+			options.set(newUser.username, 
+				{
+					title: newUser.username,
+					options: {
+					data: [
+					{text: "view profile", fn: null, show: true, redir: "/profile/" + newUser.username},
+					{text: "spectate", fn: null, show: newUser.in_game, redir: null}, 
+					{text: "invite game", fn: null, show: newUser.status !== "offline" && !newUser.in_game, redir: null}, 
+					{text: "unfriend", fn: null, show: true, redir: null}
+				]}});
+			
+		});
+	}
+	return dummy_friends;
 }
 
 
@@ -82,51 +117,38 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 			profile.achievements = dummyachievements}
 		if (profile.username === params.username)
 			can_unfriend = true;
-		let options = dummyoptionscreater(can_unfriend, profile.username);
+		let drop = dummydropcreater(can_unfriend, profile.username);
 
-		let dummy_friends: simpleuser[] | null  = friends;
-		//getting friends
-		try {
-			let friend_list: User[] = await get(`/user/${params.username}/friends`);
-			if (friend_list !== undefined) {
-				friend_list.forEach((value) => {
-					let newUser: simpleuser = { 
-						username: value.username, 
-						avatar: value.avatar, 
-						status: value.status, 
-						in_game: false, 
-						id: value.id };
-					dummy_friends?.push(newUser);
-					options.set(newUser.username, 
-						{
-							title: newUser.username,
-							data: [
-							{text: "view profile", fn: null, show: true, redir: "/profile/" + newUser.username},
-							{text: "spectate", fn: null, show: newUser.in_game, redir: null}, 
-							{text: "invite game", fn: null, show: newUser.status !== "offline" && !newUser.in_game, redir: null}, 
-							{text: "unfriend", fn: null, show: true, redir: null}
-						]});
-					
+		let dummy_friends: simpleuser[] | null = null;
+		
+		if (user.username === profile.username) {
+			//getting friends
+			try {
+				
+				let friendlist = await getFriendList(user.username, drop);
+				let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
+				socket.on("update", async (status) => {
+					friendlist.forEach((friend: simpleuser) => {
+						if (friend.id === status.id)
+							friend.status = status.status;
+					});
+					friendlist = friendlist;
 				});
+				
+				console.log("load return: ", { fetch, user, friendlist, drop, profile });
+				return { fetch, user, friendlist, drop, profile };
+			}
+			catch (err:any) {
+				console.log("error gettting friends: ", err);
 			}
 		}
-		catch (err:any) {
-			console.log("error gettting friends: ", err);
-			dummy_friends = null;
-		}
 		const friendlist = dummy_friends;
-
-		console.log("load return: ", { fetch, user, friendlist, options, profile });
-		return { fetch, user, friendlist, options, profile };
+		console.log("load return: ", { fetch, user, friendlist, drop, profile });
+		return { fetch, user, friendlist, drop, profile };
 	}
 	catch (err: any) {
 		console.log("error in /profile/[username] load: ", err);
-		if (err.status === 403) {
-			throw error(403, "You need to be logged in to view profiles");
-		}
-		if (err.status === 404) {
-			throw error(404, "user not found");
-		}
-		console.log("throw?");
+		const message = err.message.substr(9);
+		throw error(err.status, message);
 	}
 }) satisfies PageLoad;

@@ -41,20 +41,20 @@ export type Room = {
 
 export type Invite = {
 	id: number,
-	data: Date,
+	date: Date,
 	from: User,
 	to: User,
 	room: Room,
 }
 
 export enum Role {
-	OWNER = "owner",
-	ADMIN = "admin",
-	MEMBER = "member",
+	MEMBER,
+	ADMIN,
+	OWNER,
 }
 
 export enum Access {
-	PUBLIC = "public",
-	PROTECTED = "protected",
-	PRIVATE = "private",
+	PUBLIC,
+	PROTECTED,
+	PRIVATE,
 }

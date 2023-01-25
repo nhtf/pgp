@@ -28,7 +28,6 @@
 	});
 
 	socket.on("message", (data: Message) => {
-		console.log(data);
 		messages = [...messages, data];
 	})
 
@@ -42,8 +41,6 @@
 		}
 	
 		socket.emit("message", content);
-
-		content = "";
 	}
 
     async function invite() {
@@ -61,8 +58,6 @@
 			icon: "success",
 			timer: 1000,
 		});
-
-		invitee = "";
     }
 
 	async function leave() {

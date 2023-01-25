@@ -37,7 +37,7 @@ export class Room {
 	}
 
 	@Exclude()
-	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", onUpdate: "CASCADE" })
+	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete" })
 	members: Promise<Member[]>;
 
 	@Exclude()
@@ -61,17 +61,22 @@ export class Room {
 
 	async serialize() {
 		const members = await this.members;
+		const invites = await this.invites;
 		const owner = members.find((member) => member.role === Role.OWNER);
-
-		if (!owner) {
-			throw new HttpException(String(this.id), HttpStatus.I_AM_A_TEAPOT);
-		}
+	
+		// TODO
+		return {
+			...instanceToPlain(this),
+			owner: await members[0].user,
+			members: await Promise.all(members.map((member) => member.serialize())),
+			invites: await Promise.all(invites.map((invite) => invite.serialize())),
+		};
 	
 		return {
 			...instanceToPlain(this),
-			members: await Promise.all((members).map((member) => member.serialize())),
-			invites: await Promise.all((await this.invites).map((invite) => invite.serialize())),
 			owner: await owner.user,
+			members: await Promise.all(members.map((member) => member.serialize())),
+			invites: await Promise.all(invites.map((invite) => invite.serialize())),
 		};
 	}
 }

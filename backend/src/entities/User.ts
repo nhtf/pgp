@@ -41,6 +41,7 @@ export class User {
 	secret: string | null;
 
 	@Column({
+		unique: true,
 		nullable: true,
 	})
 	username: string | null;

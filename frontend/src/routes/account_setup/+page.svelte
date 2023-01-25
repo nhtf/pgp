@@ -1,9 +1,10 @@
 <script src="sweetalert2.min.js">
+    import { BACKEND, FRONTEND } from '$lib/constants';
 	import Swal from 'sweetalert2';
 	let username = '';
 
 	async function verify_code() {
-		const response = await fetch('http://localhost:3000/account/setup',
+		const response = await fetch(`${BACKEND}/account/setup`,
 			{
 				method: 'POST',
 				credentials: 'include',
@@ -14,7 +15,7 @@
 				body: `username=${username}`
 			});
 		if (response.ok) {
-			window.location.href = 'http://localhost:5173/profile/' + username;
+			window.location.href = `${FRONTEND}/profile/${username}`;
 		} else {
 			const info = await response.json();
 			const Toast = Swal.mixin({

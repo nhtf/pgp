@@ -1,3 +1,4 @@
+import { BACKEND } from "$lib/constants";
 import type { PageLoad } from "./$types"
 
 export const ssr = false;
@@ -7,7 +8,7 @@ let dummy_data = [
     data: [
         {
             username: "user1",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 10,
             losses: 0,
             draws: 0,
@@ -15,7 +16,7 @@ let dummy_data = [
         },
         {
             username: "user5",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 7,
             losses: 1,
             draws: 3,
@@ -23,7 +24,7 @@ let dummy_data = [
         },
         {
             username: "user2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 6,
             losses: 3,
             draws: 1,
@@ -31,7 +32,7 @@ let dummy_data = [
         },
         {
             username: "user3",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 6,
             losses: 2,
             draws: 0,
@@ -39,7 +40,7 @@ let dummy_data = [
         },
         {
             username: "user4",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 3,
             losses: 7,
             draws: 7,
@@ -47,7 +48,7 @@ let dummy_data = [
         },
         {
             username: "user6",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 2,
             losses: 2,
             draws: 2,
@@ -55,7 +56,7 @@ let dummy_data = [
         },
         {
             username: "user8",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 1,
             losses: 4,
             draws: 3,
@@ -66,7 +67,7 @@ let dummy_data = [
     data:[
         {
             username: "user1d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 10,
             losses: 0,
             draws: 0,
@@ -74,7 +75,7 @@ let dummy_data = [
         },
         {
             username: "user5d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 7,
             losses: 1,
             draws: 3,
@@ -82,7 +83,7 @@ let dummy_data = [
         },
         {
             username: "user2d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 6,
             losses: 3,
             draws: 1,
@@ -90,7 +91,7 @@ let dummy_data = [
         },
         {
             username: "user3d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 6,
             losses: 2,
             draws: 0,
@@ -98,7 +99,7 @@ let dummy_data = [
         },
         {
             username: "user4d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 3,
             losses: 7,
             draws: 7,
@@ -106,7 +107,7 @@ let dummy_data = [
         },
         {
             username: "user6d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 2,
             losses: 2,
             draws: 2,
@@ -114,7 +115,7 @@ let dummy_data = [
         },
         {
             username: "user8d2",
-            avatar: "http://localhost:3000/avatar/image.jpg",
+            avatar: `${BACKEND}/avatar/image.jpg`,
             wins: 1,
             losses: 4,
             draws: 3,

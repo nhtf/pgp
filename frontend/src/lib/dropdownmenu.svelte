@@ -1,7 +1,17 @@
 <script lang="ts">
-    import { redirect } from "@sveltejs/kit";
-
-    export let drop: any;
+    type data = {text: string; fn: any; show: boolean; redir: string | null;};
+    type thing = 
+    {
+        title: string;
+        options: {
+            data: data[];
+            offsetx: number;
+            offsety: number;
+        };
+        img: string | undefined | null;
+    };
+    export let drop: thing;
+    
 
     function toggleDropOut(event: Event | undefined,username: string) {
 		if (document.getElementById(username)) {
@@ -11,6 +21,7 @@
 				resetToggles();
 				if (temp === "none" || temp === "") {
 					elem.style.display = "flex";
+                    
 					const mouse = event as MouseEvent;
                     if (drop.options.offsety) {
                         elem.style.marginTop = drop.options.offsety + 'px';
@@ -41,20 +52,20 @@
 </script>
 
 <div class="block_cell" 
-    on:click={() => toggleDropOut(event, drop.options.title)}
-    on:keypress={() => toggleDropOut(event, drop.options.title)}>
+    on:click={() => toggleDropOut(event, drop.title)}
+    on:keypress={() => toggleDropOut(event, drop.title)}>
     {#if !drop.img}
-    <div id="dropbtn">{drop.options.title}</div>
+    <div id="dropbtn">{drop.title}</div>
     {:else}
-    <img class="small-avatars" id="dropbtn" src={drop.img} alt="avatar" />
+    <img class="small-avatars {drop.title}" id="dropbtn" src={drop.img} alt="avatar" />
     {/if}
-    <div id={drop.options.title} class="dropdown-content">
+    <div id={drop.title} class="dropdown-content">
         {#each drop.options.data as {text, fn, show, redir}}
             {#if show}
                 {#if fn}
-                    <div class="block_hor" id="drop-cell" 
-                        on:click={() => fn()}
-                        on:keypress={() => fn()}>
+                    <div class="block_hor drop-hor" id="drop-cell" 
+                        on:click={() => fn(text)}
+                        on:keypress={() => fn(text)}>
                         {text}
                     </div>
                 {:else if redir}

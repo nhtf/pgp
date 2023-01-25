@@ -1,13 +1,12 @@
 <script lang="ts">
 
 	import { page } from "$app/stores";
-    import { _default_profile_image as profile_image } from "../../+layout";
     import Swal from "sweetalert2";
     import { put } from "$lib/Web";
 
     const edit_icon = "/Assets/icons/pen.png";
 	let show_edit = false;
-	let avatar = $page.data.user.avatar;
+	let avatar = $page.data?.user?.avatar;
 	let src: string | null;
 	let filevar: FileList;
 
@@ -46,18 +45,15 @@
 			return;
 		}
 		const result = await put(`/user/me/avatar`, formData, false);
-		$page.data.user.avatar = result.avatar;
-		$page.data.profile.avatar = result.avatar;
-		//TODO do this properly so it won't change the avatar of friends if they have the same default avatar
-		const avatar_el = document.getElementById("small-avatar");
-		if (avatar_el)
-			avatar_el.setAttribute("src", result.avatar);
-		const avatars = document.querySelectorAll("*");
+		const avatars = document.getElementsByClassName("layout-avatar");
 		for (let i = 0; i < avatars.length; i += 1) {
-			const imgsrc = avatars[i].getAttribute("src");
-			if (imgsrc === avatar) {
-				avatars[i].setAttribute("src", result.avatar);
-			}
+			const thing = avatars[i] as HTMLImageElement;
+			thing.src = result.avatar;
+		}
+		const avatars1 = document.getElementsByClassName("layout-avatar1");
+		for (let i = 0; i < avatars1.length; i += 1) {
+			const thing = avatars1[i] as HTMLImageElement;
+			thing.src = result.avatar;
 		}
 		avatar = result.avatar;		
 		src = null;
@@ -67,12 +63,8 @@
 </script>
 
 <div class="block_cell" id="avatar-block">
-    {#if $page.data.profile.avatar}
-        <img id="avatar" src={$page.data.profile.avatar} alt="avatar" />
-    {:else}
-        <img id="avatar" src={profile_image} alt="avatar" />
-    {/if}
-    {#if $page.data.user.username === $page.data.profile.username}
+	<img id="avatar" src={avatar} alt="avatar" />
+    {#if $page.data.user?.username === $page.data.profile?.username}
         <img src={edit_icon} alt="edit icon" id="edit-icon"
             on:click={toggleEdit}
             on:keypress={toggleEdit}

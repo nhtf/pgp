@@ -4,8 +4,9 @@ import { get } from "$lib/Web";
 import type { PageLoad } from "./$types"
 
 export const load: PageLoad = (async ({ fetch }) => {
-    const rooms: Room[] = await unwrap(get("/room"));
+    const my_rooms: Room[] = await unwrap(get("/room/mine"));
+    const visible_rooms: Room[] = await unwrap(get("/room"));
 
-    return { fetch, rooms };
+    return { fetch, my_rooms, visible_rooms };
 }) satisfies PageLoad;
 

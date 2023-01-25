@@ -61,13 +61,13 @@ export class DebugController {
 
 	@Get('useradd')
 	async useradd(@Query() dto: UserDto) {
-		const exists = dto.username ?
-			(await this.userRepo.findOneBy({ username: dto.username })) !== null : false;
-		if (exists)
-			throw new HttpException(
-				'an user with that username already exists',
-				HttpStatus.BAD_REQUEST,
-			);
+		// const exists = dto.username ?
+		// 	(await this.userRepo.findOneBy({ username: dto.username })) !== null : false;
+		// if (exists)
+		// 	throw new HttpException(
+		// 		'an user with that username already exists',
+		// 		HttpStatus.BAD_REQUEST,
+		// 	);
 
 		const user = new User();
 		user.username = dto.username;
@@ -75,7 +75,15 @@ export class DebugController {
 		user.secret = dto.secret;
 		user.avatar_base = dto.avatar_base ?? DEFAULT_AVATAR;
 		user.auth_req = dto.secret ? AuthLevel.TWOFA : AuthLevel.OAuth;
-		await this.userRepo.save(user);
+	
+		try {
+			await this.userRepo.save(user);
+		} catch (err) {
+			if (err.code == 23505) {
+				throw new HttpException("A user with this name already exists", HttpStatus.FORBIDDEN);
+			}
+			throw new HttpException(err.message, HttpStatus.BAD_GATEWAY);
+		}
 		return user;
 	}
 

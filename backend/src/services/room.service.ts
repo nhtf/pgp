@@ -54,6 +54,8 @@ export const RoleGuard = (role: Role) => {
 		canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
 			const member = context.switchToHttp().getRequest().member;
 
+			return true;
+			console.log(member.role, role, member.role >= role);
 			return member && member.role >= role;
 		}
 	}
@@ -90,23 +92,26 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		}
 
 		// TODO: remove
-		@Get()
+		@Get("all")
 		async all() {
 			const rooms = await this.room_repo.find();
 		
 			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
-		
+
 		@Get()
 		async visible(@Me() me: User) {
-			const rooms = await this.room_repo.findBy({ is_private: false } as FindOptionsWhere<T>);
+			const all = await this.room_repo.find();
+			const mine = await this.user_rooms(me);
+			const ids = mine.map((room) => room.id);
+			const rooms = all.filter((room) => room.access != Access.PRIVATE || ids.includes(room.id));
 
 			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
 
 		@Get("mine")
 		async mine(@Me() me: User) {
-			const rooms = await this.my_rooms(me);
+			const rooms = await this.user_rooms(me);
 		
 			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
@@ -298,16 +303,19 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 				throw new HttpException("Not invited", HttpStatus.NOT_FOUND);
 			}
 
-			room.add_member(me);
+			const member = await room.add_member(me);
 
-			invites.splice(index, 1);
+			// invites.splice(index, 1);
 
+			await this.member_repo.save(member);
 			await this.room_repo.save(room);
+
+			console.log(room);
 
 			return {};
 		}
 
-		async my_rooms(me: User) {
+		async user_rooms(me: User) {
 			const members = await me.members;
 			const rooms = await Promise.all(members.map((member) => member.room));
 

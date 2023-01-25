@@ -1,8 +1,9 @@
 import Swal from "sweetalert2";
 import "@sweetalert2/theme-dark/dark.scss";
+import { BACKEND_ADDRESS } from "$lib/constants";
 
 export async function logout() {
-    const response = await fetch("http://localhost:3000/oauth/logout", {
+    const response = await fetch(`http://${BACKEND_ADDRESS}/oauth/logout`, {
         method: "POST",
         credentials: "include",
     });

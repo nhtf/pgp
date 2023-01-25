@@ -1,10 +1,11 @@
 <script lang="ts" src="sweetalert2.min.js">
+    import { BACKEND, FRONTEND } from '$lib/constants';
 	import { onMount } from 'svelte';
 	import Swal from 'sweetalert2';
 	let code: string = "";
 
 	async function verify_code() {
-		const response = await fetch('http://localhost:3000/otp/verify',
+		const response = await fetch(`${BACKEND}/otp/verify`,
 			{
 				method: 'POST',
 				credentials: 'include',
@@ -15,7 +16,7 @@
 				body: `otp=${code}`
 			});
 		if (response.ok) {
-			window.location.href = 'http://localhost:5173/profile';
+			window.location.href = `${FRONTEND}/profile`;
 		} else {
 			const Toast = Swal.mixin({
 				toast: true,
@@ -33,7 +34,7 @@
 	}
 
 	onMount(async() => {
-		const response = await fetch('http://localhost:3000/user/me',
+		const response = await fetch(`${BACKEND}/user/me`,
 			{
 				method: 'GET',
 				credentials: 'include',
@@ -43,7 +44,7 @@
 				},
 			});
 		if (response.ok) {
-			window.location.href = 'http://localhost:5173/profile';
+			window.location.href = `${FRONTEND}/profile`;
 		}
 	});
 </script>

@@ -14,7 +14,7 @@ export class RoomInvite extends Invite {
 
 	async serialize() {
 		return {
-			...(await super.serialize()),
+			...await super.serialize(),
 			...instanceToPlain(this),
 			room: await this.room,
 		}

@@ -1,9 +1,10 @@
 import Swal from "sweetalert2";
 import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
+import { BACKEND } from "$lib/constants";
 
 export async function enable_2fa() {
-    const response = await fetch("http://localhost:3000/otp/setup", {
+    const response = await fetch(`${BACKEND}/otp/setup`, {
         method: "POST",
         credentials: "include",
     });
@@ -36,7 +37,7 @@ export async function enable_2fa() {
                     return "OTP consist of only numbers";
             },
             preConfirm: (code) => {
-                return fetch("http://localhost:3000/otp/setup_verify", {
+                return fetch(`${BACKEND}/otp/setup_verify`, {
                     method: "POST",
                     credentials: "include",
                     headers: {
@@ -83,7 +84,7 @@ export async function disable_2fa() {
         allowOutsideClick: () => !Swal.isLoading(),
         focusCancel: true,
         preConfirm: () => {
-            return fetch("http://localhost:3000/otp/disable", {
+            return fetch(`${BACKEND}/otp/disable`, {
                 method: "POST",
                 credentials: "include",
             })

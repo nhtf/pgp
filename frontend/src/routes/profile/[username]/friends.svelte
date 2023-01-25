@@ -5,6 +5,9 @@
     import type { User } from "$lib/types";
     import Swal from "sweetalert2";
     import { page } from '$app/stores';
+    import { BACKEND_ADDRESS } from '$lib/constants';
+    import { onMount } from 'svelte/internal';
+    import type {simpleuser} from "./+page";
 
     //TODO check the store thing so it properly updates the page
     // const friends = writable($page.data.friendlist);
@@ -13,9 +16,10 @@
     const friend_icon = "/Assets/icons/add-friend.png";
     let showFriendWindow = false;
     let username = "";
+    let friends: simpleuser[];
 
     function checkGameScores() {
-		let socket = io("ws://localhost:3000/game", {withCredentials: true});
+		let socket = io(`ws://${BACKEND_ADDRESS}/game`, {withCredentials: true});
 		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
 		socket.on("status", (status) => {
             if (!$page.data.friendlist)
@@ -32,6 +36,7 @@
 			})
 			score = score;
 		});
+        console.log("friendlist: ", $page.data.friendlist);
 	}
 
 	checkGameScores();
@@ -65,6 +70,22 @@
         try {
             const id_obj = {"id" : id.id};
             const result = await post("/user/me/friends/requests", id_obj);
+            const Toast = Swal.mixin({
+				toast: true,
+				showConfirmButton: false,
+				timer: 3000,
+				timerProgressBar: false,
+				didOpen: (toast) => {
+					toast.addEventListener("mouseenter", Swal.stopTimer);
+					toast.addEventListener("mouseleave", Swal.resumeTimer);
+				},
+			});
+			Toast.fire({
+				icon: "success",
+				title: "Friend request sent",
+			});
+            showFriendWindow = false;
+            return;
         }
         catch (e: any) {
             const message: string = e.message;
@@ -87,20 +108,21 @@
         }
     }
 
-    function checkFriendsUpdate() {
-        let socket = io("ws://localhost:3000/update", {withCredentials: true});
-		socket.on("update", (status) => {
-            $page.data.friendlist?.forEach((friend: User) => {
+    onMount(() => {
+        friends = $page.data.friendlist;
+        let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
+        socket.on("update", async (status) => {
+            friends.forEach((friend: simpleuser) => {
                 if (friend.id === status.id) {
                     console.log("status: ", status);
+                    console.log("friend status before: ", friend.status);
                     friend.status = status.status;
-                    console.log("friend: ", friend);
+                    console.log("friend status after: ", friend.status);
                 }
-            })
-		});
-    }
-
-    checkFriendsUpdate();
+            });
+            friends = friends;
+        });
+    });
 </script>
 
 {#if showFriendWindow}
@@ -135,11 +157,11 @@
     </div>
     
     
-    {#if $page.data.friendlist}
-        {#each $page.data.friendlist as { username, avatar, status, in_game }}
+    {#if friends}
+        {#each friends as { username, avatar, status, in_game }}
             <div class="block_hor" id="friend-hor">
                 <div class="block_cell">
-                    <Dropdownmenu drop={{options: $page.data.options.get(username), img: null}}/>
+                    <Dropdownmenu drop={{options: $page.data.drop.get(username).options, img: null, title: $page.data.drop.get(username).title}}/>
                     {#if !in_game}
                         <div class="block_hor" id={status}>{status}</div>
                     {:else}
@@ -150,7 +172,7 @@
                     {/if}
                 </div>
                 <div class="block_cell avatar-cell">
-                    <Dropdownmenu drop={{options: $page.data.options.get(username), img: avatar}}/>
+                    <Dropdownmenu drop={{options: $page.data.drop.get(username).options, img: avatar, title: $page.data.drop.get(username).title}}/>
                 </div>				
             </div>
         {/each}
@@ -250,7 +272,7 @@
 
 #online,
 #offline,
-#in_game, #scoredv {
+#in_game, #scoredv, #active, #idle {
     position: relative;
     font-size: small;
     cursor:default;
@@ -258,8 +280,9 @@
     /* top: -15px; */
 }
 
-#online{color: #5193af;}
+#online, #active{color: #5193af;}
 #offline {color: rgb(250, 93, 93);}
+#idle {color: yellow;}
 #in_game, #scoredv {color: #88c5a4;}
 
 #scoredv {
