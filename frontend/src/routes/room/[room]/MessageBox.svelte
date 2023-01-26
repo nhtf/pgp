@@ -9,7 +9,8 @@
 	export let member: Member;
 	export let message: Message;
 
-	const actions = [ [ "profile" ], [	"ban", "kick", "mute" ], [ "demote", "promote"] ];
+	const admin_actions = [	"ban", "kick", "mute" ];
+	const owner_actions = [ "demote", "promote" ];
 
 	const flex_direction = member.id == message.member.id ? "row-reverse" : "row";
 	const user = member.user;

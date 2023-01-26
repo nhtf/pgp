@@ -160,8 +160,8 @@
     
     
     {#if friends}
-        {#each friends as { username, avatar, status, in_game, id }}
-            <Button color="light" id="avatar_with_name{id}">
+        {#each friends as { username, avatar, status, in_game, id }, index}
+            <Button color="light" id="avatar_with_name{index}">
                 <Avatar src={avatar} class="mr-2"/>
                 <div class="block_cell">
                     <div class="block_hor">{username}</div>
@@ -176,7 +176,7 @@
                 </div>
             </Button>
             <div class="spacing"></div>
-            <Dropdown inline triggeredBy="#avatar_with_name{id}">
+            <Dropdown inline triggeredBy="#avatar_with_name{index}">
             <DropdownItem href="/profile/{username}">view profile</DropdownItem>
             {#if in_game}
                 <DropdownItem>spectate</DropdownItem>
