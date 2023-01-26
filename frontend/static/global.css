@@ -43,7 +43,7 @@ body {
 	body:not(.light) {
 		--text-color: rgb(255, 255, 255);
 		--bkg-color: rgb(63, 63, 63);
-		--box-color: rgb(41, 45, 57);
+		--box-color: #1f2937;
 		--ham-color: #dee4e7;
 		--confirm-color: rgb(15, 16, 20);
 		--cancel-color: rgb(26, 60, 163);
@@ -62,14 +62,15 @@ body {
 		--progress-color: turquoise;
 		--radius: 30;
 		--circumference: 207.3451151369;
+		--old-box-color: rgb(41, 45, 57);
 	}
 }
 
-/* Need for if the os theme not dark mode is */
+/* Need for if the os theme is not dark mode */
 body.dark {
 	--text-color: rgb(255, 255, 255);
 	--bkg-color: rgb(63, 63, 63);
-	--box-color: rgb(41, 45, 57);
+	--box-color: #1f2937;
 	--ham-color: #dee4e7;
 	--confirm-color: rgb(15, 16, 20);
 	--cancel-color: rgb(26, 60, 163);
@@ -88,10 +89,18 @@ body.dark {
 	--progress-color: turquoise;
 	--radius: 30;
 	--circumference: 207.3451151369;
+	--new-box-color: #1f2937;
+	--old-box-color: rgb(41, 45, 57);
+}
+
+*{
+	color: var(--text-color);
+	text-decoration: none;
 }
 
 body {
 	background: var(--bkg-color);
+	color: var(--text-color);
 }
 
 .swal2-title {
@@ -125,6 +134,7 @@ body {
 	justify-content: center;
 	position: relative;
 	top: 0;
+	background-color: var(--bkg-color);
 }
 
 .block_vert {
@@ -190,8 +200,20 @@ body {
 
 .small-avatars:hover {
 	box-shadow: 2px 2px 5px 5px var(--shadow-color);
+	
 }
 
 a {
 	text-decoration: none;
 }
+
+.dark .dark\:bg-gray-700 {
+	background: var(--box-color);
+	background-color: var(--box-color);
+}
+
+.dark .dark\:bg-gray-800 {
+	background: var(--box-color);
+	background-color: var(--box-color);
+}
+

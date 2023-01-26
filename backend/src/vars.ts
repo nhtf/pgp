@@ -16,3 +16,6 @@ export const PGP_DEBUG: boolean = process.env.PGP_DEBUG === "true";
 export const PURGE_INTERVAL: number = Number(process.env.PURGE_INTERVAL);
 export const IDLE_TIME: number = Number(process.env.IDLE_TIME);
 export const OFFLINE_TIME: number = Number(process.env.OFFLINE_TIME);
+export const SESSION_PURGE_TIME: number = Number(process.env.SESSION_PURGE_TIME || 90000);
+export const SESSION_IDLE_TIME: number = Number(process.env.SESSION_IDLE_TIME || 1800000);
+export const SESSION_REGENERATE_TIME: number = Number(process.env.SESSION_REGENERATE_TIME || SESSION_IDLE_TIME / 3);

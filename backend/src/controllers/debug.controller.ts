@@ -18,12 +18,13 @@ import { User } from '../entities/User';
 import { AuthLevel } from '../enums/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
-import { SessionUtils } from '../SessionUtils';
+import { SessionService } from 'src/services/session.service'
 import { GetUserQuery } from '../util';
 import { Room } from 'src/entities/Room';
 import { Member } from 'src/entities/Member';
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from 'src/entities/Invite';
+import { Role } from 'src/enums/Role';
 
 class UserDto {
 	@IsString()
@@ -52,7 +53,7 @@ class UserDto {
 @Controller('debug')
 export class DebugController {
 	constructor(
-		private readonly sessionUtils: SessionUtils,
+		private readonly sessionUtils: SessionService,
 		@Inject('USER_REPO') private readonly userRepo: Repository<User>,
 		@Inject("ROOM_REPO") private readonly roomRepo: Repository<Room>,
 		@Inject("MEMBER_REPO") private readonly memberRepo: Repository<Member>,
@@ -160,4 +161,14 @@ export class DebugController {
 		return await this.inviteRepo.delete(Number(id));
 	}
 
+	@Get("room/setOwner")
+	async setOwner(@Query("id") id: string) {
+		const member = await this.memberRepo.findOneBy({ id: Number(id) });
+	
+		member.role = Role.OWNER;
+
+		await this.memberRepo.save(member);
+
+		return {};
+	}
 }

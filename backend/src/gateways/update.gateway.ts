@@ -2,6 +2,7 @@ import { Server, Socket } from "socket.io";
 import { User } from "../entities/User";
 import { instanceToPlain } from "class-transformer";
 import { ProtectedGateway } from "./protected.gateway";
+import { ActivityService } from "src/services/activity.service";
 
 //TODO handle session expiration
 
@@ -10,9 +11,9 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	static instance: UpdateGateway;
 
 	//TODO purge inactive sockets?
-	private readonly sockets = new Map<number, Socket>();
+	private readonly sockets = new Map<number, Socket[]>();
 
-	constructor() {
+	constructor(private readonly activity_service: ActivityService) {
 		super();
 		if (UpdateGateway.instance)
 			throw new Error("multiple instances of singleton UpdateGateway");
@@ -20,11 +21,29 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	async onConnect(client: Socket) {
-		this.sockets.set(client.request.session.user_id, client);
+		console.log("connect");
+		const id = client.request.session.user_id;
+		if (!this.sockets.has(id))
+			this.sockets.set(id, []);
+		this.sockets.get(id).push(client);
 	}
 
 	async onDisonnect(client: Socket) {
-		this.sockets.delete(client.request.session.user_id);
+		console.log("hi");
+		const id = client.request.session.user_id;
+		const sockets = this.sockets.get(id);
+		const idx = sockets.findIndex(socket => socket.request.session.id === socket.request.session.id);
+		if (idx < 0)
+			console.error("could not find socket");
+		else {
+			sockets.splice(idx, 1);
+			//todo also make sure that retrieving the user with the databases returns offline 
+			console.log(sockets.length);
+			if (sockets.length === 1) {
+				console.log("last socket");
+				this.activity_service.expire(id);
+			}
+		}
 	}
 
 	static async update_user(user: User) {

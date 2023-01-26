@@ -3,7 +3,7 @@ import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
 
 export const load: PageLoad = (async ({ fetch }) => {
-	const response = await fetch(`${BACKEND}/account/auth_req`, {
+	const response = await fetch(`${BACKEND}/user/me/auth_req`, {
 		credentials: 'include'
 	});
 

@@ -1,4 +1,3 @@
-import { User } from './User';
 import {
 	Entity,
 	PrimaryGeneratedColumn,
@@ -6,11 +5,13 @@ import {
 	ManyToOne,
 	Column,
 } from 'typeorm';
-import { instanceToPlain } from 'class-transformer';
+import { Exclude, instanceToPlain } from 'class-transformer';
 import { ChatRoom } from './ChatRoom';
+import { Member } from './Member';
 
 @Entity()
 export class Message {
+	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -20,16 +21,20 @@ export class Message {
 	@Column()
 	content: string;
 
-	@ManyToOne(() => User, { onDelete: "CASCADE" })
-	user: Promise<User>;
+	@Exclude()
+	@ManyToOne(() => Member, { onDelete: "CASCADE" })
+	member: Promise<Member>;
 
+	@Exclude()
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
 	room: Promise<ChatRoom>;
 
 	async serialize() {
+		const member = await this.member;
+	
 		return {
 			...instanceToPlain(this),
-			user: await this.user,
+			member: await member.serialize(),
 		};
 	}
 }

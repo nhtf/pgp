@@ -1,6 +1,6 @@
 import { User } from './User';
 import { Entity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
-import { classToPlain } from 'class-transformer';
+import { instanceToPlain } from 'class-transformer';
 
 @Entity()
 export class FriendRequest {
@@ -18,7 +18,7 @@ export class FriendRequest {
 
 	async serialize() {
 		return {
-			...classToPlain(this),
+			...instanceToPlain(this),
 			from: await this.from,
 			to: await this.to,
 		};

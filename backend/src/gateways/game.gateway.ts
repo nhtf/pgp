@@ -53,6 +53,7 @@ export class GameGateway {
 
 			// TODO: internal server error when not in room
 			
+/*
 			const request = client.request as any;
 			const room = await parseId(Room, data.room);
 			const members = await room.members;
@@ -62,6 +63,7 @@ export class GameGateway {
 			if (index < 0) {
 				return;
 			}
+*/
 
 			client.room = data.room;
 		}

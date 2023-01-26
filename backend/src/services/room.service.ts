@@ -1,7 +1,7 @@
 import { Room } from "../entities/Room";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere } from "typeorm";
+import { Repository, FindOptionsWhere, Not } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
 import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put } from "@nestjs/common";
@@ -12,7 +12,6 @@ import { AuthGuard } from "../auth/auth.guard";
 import { Observable } from "rxjs";
 import { RoomInvite } from "../entities/RoomInvite";
 import * as argon2 from "argon2";
-import { InviteService } from "./invite.service";
 
 class CreateRoomDTO {
 	@Length(3, 20)
@@ -54,8 +53,6 @@ export const RoleGuard = (role: Role) => {
 		canActivate(context: ExecutionContext): boolean | Promise<boolean> | Observable<boolean> {
 			const member = context.switchToHttp().getRequest().member;
 
-			return true;
-			console.log(member.role, role, member.role >= role);
 			return member && member.role >= role;
 		}
 	}
@@ -71,7 +68,6 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			@Inject(type.name.toString().toUpperCase() + "_REPO") readonly room_repo: Repository<T>,
 			@Inject("MEMBER_REPO") readonly member_repo: Repository<Member>,
 			@Inject("ROOMINVITE_REPO") readonly invite_repo: Repository<RoomInvite>,
-			readonly inviteService: InviteService,
 		) {}
 
 		async get_member(user: User, room: Room): Promise<Member | null> {
@@ -99,20 +95,20 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
 
-		@Get()
-		async visible(@Me() me: User) {
-			const all = await this.room_repo.find();
+		@Get("joinable")
+		async joinable(@Me() me: User) {
+			const visible = await this.room_repo.findBy({ is_private: false } as FindOptionsWhere<T>);
 			const mine = await this.user_rooms(me);
 			const ids = mine.map((room) => room.id);
-			const rooms = all.filter((room) => room.access != Access.PRIVATE || ids.includes(room.id));
+			const rooms = visible.filter((room) => !ids.includes(room.id));
 
 			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
 
-		@Get("mine")
+		@Get("mine") 
 		async mine(@Me() me: User) {
 			const rooms = await this.user_rooms(me);
-		
+
 			return await Promise.all(rooms.map((room) => room.serialize()));
 		}
 
@@ -139,6 +135,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 				}
 			}
 			const member = await room.add_member(user, Role.OWNER);
+		
 			await this.room_repo.save(room);
 			await this.member_repo.save(member);
 			
@@ -148,7 +145,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		@UseGuards(RoleGuard(Role.MEMBER))
 		@Get("id/:id")
 		async get_room(@GetRoom() room: T) {
-			return room.serialize();
+			return await room.serialize();
 		}
 
 		@Post("id/:id/join")
@@ -197,8 +194,8 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		}
 
 		@UseGuards(RoleGuard(Role.OWNER))
-		@Patch("id/:id")
-		async make_owner(
+		@Post("id/:id/owner")
+		async giveOwnership(
 			@GetMember() member: Member,
 			@GetRoom() room: T,
 			@Body("owner", ParseUsernamePipe) new_owner: User
@@ -208,6 +205,10 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			if (!target_member)
 				throw new HttpException("user not a member of this room", HttpStatus.FORBIDDEN);
 			
+			if (target_member.id == member.id) {
+				throw new HttpException("already owner", HttpStatus.UNPROCESSABLE_ENTITY);
+			}
+		
 			member.role = Role.ADMIN;
 			target_member.role = Role.OWNER;
 		

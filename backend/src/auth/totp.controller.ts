@@ -14,11 +14,11 @@ import {
 } from '@nestjs/common';
 import { Request } from 'express';
 import { authenticator } from 'otplib';
-import { SessionUtils } from '../SessionUtils';
+import { SessionService } from 'src/services/session.service';
 import { AuthLevel } from '../enums/AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
-import { SetupGuard } from '../controllers/account.controller';
+import { SetupGuard } from 'src/controllers/user.controller';
 import * as qrcode from 'qrcode';
 import { Me, InjectUser } from '../util';
 import { User } from '../entities/User';
@@ -50,7 +50,7 @@ class OtpDTO {
 @UseGuards(InjectUser)
 export class TotpController {
 	constructor(
-		private readonly session_utils: SessionUtils,
+		private readonly session_utils: SessionService,
 		@Inject('USER_REPO')
 		private readonly userRepo: Repository<User>
 	) {}

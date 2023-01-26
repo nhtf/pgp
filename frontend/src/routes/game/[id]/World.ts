@@ -50,6 +50,7 @@ export class World extends Net {
 	public cameraGroup: THREE.Group;
 	public world: Ammo.btDiscreteDynamicsWorld;
 	public entities: Entity[];
+	public removedEntities: Entity[];
 	private blueprints: Map<string, { (entity: EntityObject): Entity; }>;
 	private collisionConfiguration: Ammo.btDefaultCollisionConfiguration;
 	private collisionDispatcher: Ammo.btCollisionDispatcher;
@@ -79,6 +80,7 @@ export class World extends Net {
 		this.world.setGravity(this.addAmmoObject(new Ammo.btVector3(0, -9.81, 0)));
 		this.world.getSolverInfo().set_m_solverMode(0);
 		this.entities = [];
+		this.removedEntities = [];
 		this.collisions = new Map2();
 		this.blueprints = new Map();
 		
@@ -117,6 +119,16 @@ export class World extends Net {
 		let entity = this.get(object.uuid);
 
 		if (entity === null) {
+			entity = this.removedEntities.find(entity => entity.uuid == object.uuid) ?? null;
+
+			if (entity !== null) {
+				this.removedEntities.splice(this.removedEntities.indexOf(entity), 1);
+				this.add(entity);
+				entity.removed = false;
+			}
+		}
+
+		if (entity === null) {
 			const blueprint = this.blueprints.get(object.name);
 
 			if (blueprint !== undefined) {
@@ -140,7 +152,6 @@ export class World extends Net {
 
 		if (entity !== null) {
 			this.remove(entity);
-			entity.destroy();
 		}
 	}
 
@@ -155,6 +166,7 @@ export class World extends Net {
 		this.scene.remove(entity.renderObject);
 		this.world.removeRigidBody(entity.physicsObject);
 		this.entities.splice(this.entities.indexOf(entity), 1);
+		this.removedEntities.push(entity);
 	}
 
 	public sendCreate(object: EntityObject) {
@@ -192,13 +204,7 @@ export class World extends Net {
 	}
 
 	public get(uuid: string): Entity | null {
-		for (let entity of this.entities) {
-			if (entity.uuid === uuid) {
-				return entity;
-			}
-		}
-
-		return null;
+		return this.entities.find(entity => entity.uuid == uuid) ?? null;
 	}
 
 	public earlyTick() {
@@ -207,7 +213,6 @@ export class World extends Net {
 
 			if (entity.removed) {
 				this.remove(entity);
-				entity.destroy();
 			}
 		}
 
@@ -218,10 +223,7 @@ export class World extends Net {
 		for (let entity of this.entities) {
 			this.world.removeRigidBody(entity.physicsObject);
 			entity.physicsObject.forceActivationState(1);
-			entity.position = Vector.fromObject(entity.position.intoObject());
-			entity.rotation = Quaternion.fromObject(entity.rotation.intoObject());
-			entity.linearVelocity = Vector.fromObject(entity.linearVelocity.intoObject());
-			entity.angularVelocity = Vector.fromObject(entity.angularVelocity.intoObject());
+			entity.motionStateFromObject(entity.motionStateIntoObject());
 		}
 
 		const sortedEntities = this.entities;
@@ -276,7 +278,6 @@ export class World extends Net {
 
 			if (entity.removed) {
 				this.remove(entity);
-				entity.destroy();
 			}
 		}
 

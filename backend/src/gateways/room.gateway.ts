@@ -45,12 +45,18 @@ export class RoomGateway extends ProtectedGateway("room") {
 			},
 		});
 
+		const members = await user.members;
+		const rooms = await Promise.all(members.map((member) => member.room));
+		const index = rooms.findIndex((room) => room.id === Number(client.room));
+		const member = members[index];
+
+		console.log(member);
+
 		const message = new Message;
 	
-		message.user = Promise.resolve(user);
-		message.room = Promise.resolve({ id: Number(client.room)} as ChatRoom);
 		message.content = content;
-		// TODO check if number, private room
+		message.member = Promise.resolve(member);
+		message.room = Promise.resolve({ id: Number(client.room)} as ChatRoom);
 
 		await this.messageRepo.save(message);
 	}

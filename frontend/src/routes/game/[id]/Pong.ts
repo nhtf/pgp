@@ -115,7 +115,8 @@ async function createScoreboard(world: Pong) {
 }
 
 export class Table extends Entity {
-	static readonly UUID = "table";
+	public static readonly UUID = "table";
+	public static readonly RESTITUTION = 0.7;
 
 	public name = "table";
 	public dynamic = false;
@@ -124,7 +125,7 @@ export class Table extends Entity {
 		const shape = createShape(world.tableModel!);
 		const physicsObject = createPhysicsObject(shape, 0);
 
-		physicsObject.setRestitution(0.7);
+		physicsObject.setRestitution(Table.RESTITUTION);
 		super(world, uuid, world.tableModel!.clone(), physicsObject);
 	}
 }
@@ -133,7 +134,7 @@ export class Ball extends Entity {
 	public static readonly UUID = "ball";
 	public static readonly RADIUS = 0.02;
 	public static readonly MASS = 0.0027;
-	public static readonly RESTITUTION = 0.9;
+	public static readonly RESTITUTION = 0.8;
 
 	public name = "ball";
 	public dynamic = true;
@@ -234,6 +235,7 @@ export class Pong extends World {
 	public paddleModel?: THREE.Object3D;
 	public userID?: number;
 	public state: State;
+	private mainControllerIndex: number = 0;
 
 	public constructor() {
 		super();
@@ -288,6 +290,14 @@ export class Pong extends World {
 		this.register("paddle", object => new Paddle(this, object.uuid, (object as PaddleObject).userID));
 	}
 
+	public get mainController() {
+		if (this.mainControllerIndex == 0) {
+			return this.rightController;
+		} else {
+			return this.leftController;
+		}
+	}
+
 	public earlyTick() {
 		if (this.time >= this.maxTime) {
 			this.sendCreateOrUpdate({
@@ -295,8 +305,8 @@ export class Pong extends World {
 				userID: this.userID!,
 			}, {
 				uuid: this.paddleUUID,
-				tp: Vector.fromThree(this.rightController.getWorldPosition(this.rightController.position)).intoObject(),
-				tr: Quaternion.fromThree(this.rightController.getWorldQuaternion(this.rightController.quaternion)).intoObject(),
+				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),
+				tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
 			});
 		}
 
@@ -345,6 +355,12 @@ export class Pong extends World {
 
 		this.add(new Table(this, Table.UUID));
 
+		this.leftController.addEventListener("selectstart", () => {
+			this.send("ball", {
+				paddle: this.paddleUUID,
+			});
+		});
+
 		this.rightController.addEventListener("selectstart", () => {
 			this.send("ball", {
 				paddle: this.paddleUUID,
@@ -375,6 +391,8 @@ export class Pong extends World {
 				this.cameraGroup.position.add(new THREE.Vector3(0, 1 / 8, 0));
 			} else if (event.key == "x") {
 				this.cameraGroup.position.add(new THREE.Vector3(0, -1 / 8, 0));
+			} else if (event.key == " ") {
+				this.mainControllerIndex = 1 - this.mainControllerIndex;
 			}
 		};
 	}

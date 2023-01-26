@@ -49,6 +49,8 @@
 			dropDown.style.display = "none";
 		}
 	}
+
+    console.log(drop);
 </script>
 
 <div class="block_cell" 

@@ -9,6 +9,7 @@ export type Achievement = {
 }
 
 export type Member = {
+	id: number,
 	user: User,
 	role: Role,
 }
@@ -25,10 +26,10 @@ export type User = {
 
 export type Message = {
 	content: string,
-	user: User,
+	member: Member,
 };
 
-export type Room = {
+export type ChatRoom = {
     id: number,
     name: string,
 	access: Access,
@@ -44,7 +45,7 @@ export type Invite = {
 	date: Date,
 	from: User,
 	to: User,
-	room: Room,
+	Chatroom: ChatRoom,
 }
 
 export enum Role {

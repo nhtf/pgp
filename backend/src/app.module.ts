@@ -4,8 +4,6 @@ import { GameGateway } from './gateways/game.gateway';
 import { AuthController } from './auth/auth.controller';
 import { TotpController } from './auth/totp.controller';
 import { DebugController } from './controllers/debug.controller';
-import { SessionUtils } from './SessionUtils';
-import { AccountController } from './controllers/account.controller';
 import { UserIDController, UserUsernameController, UserMeController, } from './controllers/user.controller';
 import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
@@ -23,9 +21,9 @@ import { UpdateGateway } from "./gateways/update.gateway";
 import { ActivityService } from "./services/activity.service";
 import { User} from "./entities/User";
 import { GameController } from './controllers/game.controller';
-import { InviteService } from './services/invite.service';
 import { SessionService } from 'src/services/session.service';
 import * as Pool from "pg-pool";
+import { SessionExpiryMiddlware } from './middleware/session.expire.middleware';
 
 export const db_pool = new Pool({
 	database: "dev", //TODO make this not hardcoded
@@ -147,7 +145,6 @@ setInterval(() => {
 		AppController,
 		AuthController,
 		TotpController,
-		AccountController,
 		DebugController,
 		GameController,
 		UserMeController,
@@ -160,10 +157,8 @@ setInterval(() => {
 		GameGateway,
 		RoomGateway,
 		UpdateGateway,
-		SessionUtils,
 		AuthGuard,
 		ActivityService,
-		InviteService,
 		SessionService,
 		...databaseProviders,
 		...entityProviders,
@@ -172,6 +167,9 @@ setInterval(() => {
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
+		consumer.apply(SessionExpiryMiddlware).exclude(
+			{ path: "debug(.*)", method: RequestMethod.ALL 
+		}).forRoutes("*");
 		consumer.apply(UserMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
 			{ path: "debug(.*)", method: RequestMethod.ALL 

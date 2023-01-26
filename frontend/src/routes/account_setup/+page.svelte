@@ -1,36 +1,22 @@
 <script src="sweetalert2.min.js">
     import { BACKEND, FRONTEND } from '$lib/constants';
+	import { unwrap } from "$lib/Alert";
+	import { put } from "$lib/Web";
 	import Swal from 'sweetalert2';
 	let username = '';
 
-	async function verify_code() {
-		const response = await fetch(`${BACKEND}/account/setup`,
-			{
-				method: 'POST',
-				credentials: 'include',
-				mode: 'cors',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded'
-				},
-				body: `username=${username}`
-			});
-		if (response.ok) {
-			window.location.href = `${FRONTEND}/profile/${username}`;
-		} else {
-			const info = await response.json();
-			const Toast = Swal.mixin({
-				toast: true,
-				position: 'center',
-				showConfirmButton: false,
-				timer: 3000,
-				timerProgressBar: true,
-			});
-
-			Toast.fire({
-				icon: 'error',
-				title: info.message
-			});
+	async function set_username() {
+		try {
+			await put('/user/me/username', { username: username }, true);
+			window.location = `/profile/${username}`
+		} catch (err) {
+			console.error(err);
 		}
+	}
+
+	async function key_event(event) {
+		if (event.key == "Enter")
+			set_username();
 	}
 </script>
 
@@ -41,10 +27,10 @@
 	</div>
 		<div class="block_hor">
 			<input class='center' id='input' type='text' bind:value={username}
-		   		placeholder='username' required minlength='1' maxlength='20'>
+				   placeholder='username' required minlength='1' maxlength='20' on:keypress={key_event}>
 		</div>
 		<div class="block_hor">
-	<button class='center' id='setup' on:click={verify_code}>setup</button>
+	<button class='center' id='setup' on:click={set_username}>setup</button>
 </div>
 </div>
 </div>

@@ -1,5 +1,5 @@
 import { Ammo } from "./Ammo";
-import { Vector, Quaternion } from "./Math";
+import { Vector, Quaternion, serialize, deserialize } from "./Math";
 import type { VectorObject, QuaternionObject } from "./Math";
 import type { World } from "./World";
 import type * as THREE from "three";
@@ -30,6 +30,11 @@ export abstract class Entity {
 	public world: World;
 	public removed: boolean;
 	public interpolation: number;
+	private ammoTransform: Ammo.btTransform;
+	private ammoPosition: Ammo.btVector3;
+	private ammoRotation: Ammo.btQuaternion;
+	private ammoLinearVelocity: Ammo.btVector3;
+	private ammoAngularVelocity: Ammo.btVector3;
 
 	public constructor(world: World, uuid: string, renderObject: THREE.Object3D, physicsObject: Ammo.btRigidBody) {
 		this.world = world;
@@ -41,20 +46,19 @@ export abstract class Entity {
 		this.lastUpdate = 0;
 		this.removed = false;
 		this.interpolation = 1;
+		this.ammoTransform = physicsObject.getWorldTransform();
+		this.ammoPosition = this.ammoTransform.getOrigin();
+		this.ammoRotation = this.ammoTransform.getRotation();
+		this.ammoLinearVelocity = this.physicsObject.getLinearVelocity();
+		this.ammoAngularVelocity = this.physicsObject.getAngularVelocity();
 	}
 
 	public get position(): Vector {
-		const transform = this.physicsObject.getWorldTransform();
-		const vector = Vector.moveFromAmmo(transform.getOrigin());
-		Ammo.destroy(transform);
-		return vector;
+		return Vector.moveFromAmmo(this.ammoTransform.getOrigin());
 	}
 
 	public get rotation(): Quaternion {
-		const transform = this.physicsObject.getWorldTransform();
-		const quaternion = Quaternion.moveFromAmmo(transform.getRotation());
-		Ammo.destroy(transform);
-		return quaternion;
+		return Quaternion.moveFromAmmo(this.ammoTransform.getRotation());
 	}
 
 	public get linearVelocity(): Vector {
@@ -66,36 +70,55 @@ export abstract class Entity {
 	}
 
 	public set position(vector: Vector) {
-		const transform = this.physicsObject.getWorldTransform();
-		const ammoVector = vector.intoAmmo();
-		transform.setOrigin(ammoVector);
-		this.physicsObject.setWorldTransform(transform);
-		Ammo.destroy(transform);
-		Ammo.destroy(ammoVector);
+		this.ammoPosition.setValue(vector.x, vector.y, vector.z);
+		this.ammoTransform.setOrigin(this.ammoPosition);
 	}
 
 	public set rotation(quaternion: Quaternion) {
-		const transform = this.physicsObject.getWorldTransform();
-		const ammoQuaternion = quaternion.intoAmmo();
-		transform.setRotation(ammoQuaternion);
-		this.physicsObject.setWorldTransform(transform);
-		Ammo.destroy(transform);
-		Ammo.destroy(ammoQuaternion);
+		this.ammoRotation.setValue(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+		this.ammoTransform.setRotation(this.ammoRotation);
 	}
 
 	public set linearVelocity(vector: Vector) {
-		const ammoVector = vector.intoAmmo();
-		this.physicsObject.setLinearVelocity(ammoVector);
-		Ammo.destroy(ammoVector);
+		this.ammoLinearVelocity.setValue(vector.x, vector.y, vector.z);
+		this.physicsObject.setLinearVelocity(this.ammoLinearVelocity);
 	}
 
 	public set angularVelocity(vector: Vector) {
-		const ammoVector = vector.intoAmmo();
-		this.physicsObject.setAngularVelocity(ammoVector);
-		Ammo.destroy(ammoVector);
+		this.ammoAngularVelocity.setValue(vector.x, vector.y, vector.z);
+		this.physicsObject.setAngularVelocity(this.ammoAngularVelocity);
 	}
 
-	public earlyTick() {
+	public motionStateIntoObject(): string {
+		const buffer = new Float32Array(13);
+		const position = this.position;
+		const rotation = this.rotation;
+		const linearVelocity = this.linearVelocity;
+		const angularVelocity = this.angularVelocity;
+
+		buffer[0] = position.x;
+		buffer[1] = position.y;
+		buffer[2] = position.z;
+		buffer[3] = rotation.x;
+		buffer[4] = rotation.y;
+		buffer[5] = rotation.z;
+		buffer[6] = rotation.w;
+		buffer[7] = linearVelocity.x;
+		buffer[8] = linearVelocity.y;
+		buffer[9] = linearVelocity.z;
+		buffer[10] = angularVelocity.x;
+		buffer[11] = angularVelocity.y;
+		buffer[12] = angularVelocity.z;
+
+		return serialize(buffer.buffer);
+	}
+
+	public motionStateFromObject(obj: string) {
+		const buffer = new Float32Array(deserialize(obj));
+		this.position = new Vector(buffer[0], buffer[1], buffer[2]);
+		this.rotation = new Quaternion(buffer[3], buffer[4], buffer[5], buffer[6]);
+		this.linearVelocity = new Vector(buffer[7], buffer[8], buffer[9]);
+		this.angularVelocity = new Vector(buffer[10], buffer[11], buffer[12]);
 	}
 
 	public physicsTick() {
@@ -108,6 +131,9 @@ export abstract class Entity {
 			let rotation = this.targetRotation;
 			this.angularVelocity = rotation.mul(this.rotation.inverse()).euler().scale(50);
 		}
+	}
+
+	public earlyTick() {
 	}
 
 	public lateTick() {
@@ -153,6 +179,11 @@ export abstract class Entity {
 		Ammo.destroy(this.physicsObject.getCollisionShape());
 		Ammo.destroy(this.physicsObject.getMotionState());
 		Ammo.destroy(this.physicsObject);
+		Ammo.destroy(this.ammoTransform);
+		Ammo.destroy(this.ammoPosition);
+		Ammo.destroy(this.ammoRotation);
+		Ammo.destroy(this.ammoLinearVelocity);
+		Ammo.destroy(this.ammoAngularVelocity);
 	}
 
 	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {

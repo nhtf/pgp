@@ -8,6 +8,7 @@
     import { BACKEND_ADDRESS } from '$lib/constants';
     import { onMount } from 'svelte/internal';
     import type {simpleuser} from "./+page";
+    import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
 
     //TODO check the store thing so it properly updates the page
     // const friends = writable($page.data.friendlist);
@@ -123,6 +124,7 @@
             friends = friends;
         });
     });
+    console.log($page.data.friendlist);
 </script>
 
 {#if showFriendWindow}
@@ -158,28 +160,41 @@
     
     
     {#if friends}
-        {#each friends as { username, avatar, status, in_game }}
-            <div class="block_hor" id="friend-hor">
+        {#each friends as { username, avatar, status, in_game, id }}
+            <Button color="light" id="avatar_with_name{id}">
+                <Avatar src={avatar} class="mr-2"/>
                 <div class="block_cell">
-                    <Dropdownmenu drop={{options: $page.data.drop.get(username).options, img: null, title: $page.data.drop.get(username).title}}/>
+                    <div class="block_hor">{username}</div>
                     {#if !in_game}
                         <div class="block_hor" id={status}>{status}</div>
                     {:else}
                         <div class="block_hor" id="in_game">playing</div>
                         {#if score.has(username)}
-                        <div class="block_hor" id="scoredv">{score.get(username)}</div>
+                            <div class="block_hor" id="scoredv">{score.get(username)}</div>
                         {/if}
                     {/if}
                 </div>
-                <div class="block_cell avatar-cell">
-                    <Dropdownmenu drop={{options: $page.data.drop.get(username).options, img: avatar, title: $page.data.drop.get(username).title}}/>
-                </div>				
-            </div>
+            </Button>
+            <div class="spacing"></div>
+            <Dropdown inline triggeredBy="#avatar_with_name{id}">
+            <DropdownItem href="/profile/{username}">view profile</DropdownItem>
+            {#if in_game}
+                <DropdownItem>spectate</DropdownItem>
+            {:else if status !== "offline"}
+                <DropdownItem>invite game</DropdownItem>
+            {/if}
+            <DropdownItem slot="footer">unfriend</DropdownItem>
+            </Dropdown>
         {/each}
     {/if}
 </div>
 
 <style>
+
+    .spacing {
+        padding-top: 5px;
+
+    }
 
     .input-field {
         border-radius: 6px;
@@ -247,7 +262,11 @@
 		background: var(--tab-active-color);
 	}
 
-    .block_vert {flex-grow: 0.1;}
+    .block_vert {
+        flex-grow: 0.1;
+        padding-left: 0;
+        padding-right: 0;
+    }
 
 .block_hor {width: 90%;}
 

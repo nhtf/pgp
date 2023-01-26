@@ -7,12 +7,15 @@ export const ssr = false;
 export const load: LayoutLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
+	const ret: any = { fetch };
+
 	try {
 		const user: User | null = await get("/user/me");
 
-		return { fetch, user };
+		ret.user = user;
 	} catch (err) {
 		console.log("error in layout.ts: ", err);
-		return { fetch };
 	}
+
+	return ret;
 }) satisfies LayoutLoad;

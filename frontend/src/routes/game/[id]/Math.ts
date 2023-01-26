@@ -3,11 +3,11 @@ import * as THREE from "three";
 
 export type VectorObject = string;
 
-function serialize(value: ArrayBufferLike): string {
+export function serialize(value: ArrayBufferLike): string {
 	return btoa(String.fromCharCode(...new Uint8Array(value)));
 }
 
-function deserialize(value: string): ArrayBufferLike {
+export function deserialize(value: string): ArrayBufferLike {
 	value = atob(value);
 	const bytes = new Uint8Array(value.length);
 

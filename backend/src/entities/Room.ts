@@ -5,8 +5,8 @@ import { Access } from "../enums/Access";
 import { Role } from "../enums/Role";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
-
-import { HttpException, HttpStatus } from "@nestjs/common"; // TODO
+import { HttpException, HttpStatus } from "@nestjs/common";
+import { BACKEND_ADDRESS } from "src/vars";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
@@ -64,13 +64,11 @@ export class Room {
 		const invites = await this.invites;
 		const owner = members.find((member) => member.role === Role.OWNER);
 	
-		// TODO
-		return {
-			...instanceToPlain(this),
-			owner: await members[0].user,
-			members: await Promise.all(members.map((member) => member.serialize())),
-			invites: await Promise.all(invites.map((invite) => invite.serialize())),
-		};
+		if (!owner) {
+			console.log("Missing owner", this);
+			await fetch(`${BACKEND_ADDRESS}/debug/room/delete?id=${this.id}`);
+			return {};
+		}
 	
 		return {
 			...instanceToPlain(this),

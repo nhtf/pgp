@@ -1,12 +1,14 @@
 import { unwrap } from "$lib/Alert";
-import type { Room } from "$lib/types";
+import type { ChatRoom } from "$lib/types";
 import { get } from "$lib/Web";
 import type { PageLoad } from "./$types"
 
 export const load: PageLoad = (async ({ fetch }) => {
-    const my_rooms: Room[] = await unwrap(get("/room/mine"));
-    const visible_rooms: Room[] = await unwrap(get("/room"));
+    window.fetch = fetch;
 
-    return { fetch, my_rooms, visible_rooms };
+    const mine: ChatRoom[] = await unwrap(get("/room/mine"));
+    const joinable: ChatRoom[] = await unwrap(get("/room/joinable"));
+
+    return { fetch, mine, joinable };
 }) satisfies PageLoad;
 

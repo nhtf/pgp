@@ -2,13 +2,12 @@
     import { FRONTEND } from "$lib/constants";
     import { unwrap } from '$lib/Alert';
     import { get, post } from '$lib/Web';
-    import { Access, type Room, type User } from "$lib/types";
+    import { Access, type ChatRoom } from "$lib/types";
     import type { PageData } from "./$types";
     import { error } from "@sveltejs/kit";
     import Swal from "sweetalert2";
     import { onMount } from "svelte/internal";
-
-    const lock = "/Assets/icons/lock.svg";
+    import Room from "./Room.svelte";
 
     export let data: PageData;
 
@@ -16,45 +15,36 @@
 		throw error(401, "Unauthorized");
 	}
 
-    const user = data.user;
-
     let room_dto: any = {
         name: "",
         is_private: false,
     };
 
     let room_password = "";
-    let my_rooms: Room[] = data.my_rooms;
+    let mine = data.mine;
+    let joinable = data.joinable;
 
-    async function fetchMyRooms(): Promise<Room[]> {
-        return await unwrap(get("/room/mine"));
+    async function fetchChatRooms() {
+        mine = await unwrap(get("/room/mine"));
+        joinable = await unwrap(get("/room/joinable"));
+
     }
 
-    async function createRoom() {
+    async function createChatRoom() {
         if (room_password.length) {
             room_dto.password = room_password;
         }
 
-        console.log(room_dto);
-
         await unwrap(post("/room", room_dto));
 
-        my_rooms = await fetchMyRooms();
+        await fetchChatRooms();
     }
 
-    function enter(id: number) {
-        window.location.assign(`${FRONTEND}/room/${id}`);
+    function enter(room: ChatRoom) {
+        window.location.assign(`${FRONTEND}/room/${room.id}`);
     }
 
-    function isMember(me: User, room: Room) {
-        const members = room.members;
-        const users = members.map((member) => member.user);
-        const index = users.findIndex((user) => user.id === me.id);
-
-        return index >= 0;
-    }
-
-    async function join(room: Room) {
+    async function join(room: ChatRoom) {
         if (room.access == Access.PROTECTED) {
             const { value: password, isDismissed } = await Swal.fire({
                 text: "password",
@@ -76,7 +66,7 @@
             text: "Joined room",
         });
     
-        my_rooms = await fetchMyRooms();
+       await fetchChatRooms();
     }
 
     onMount(() => {
@@ -85,66 +75,32 @@
 
 </script>
 
-<div class="room_list">
-    <form class="room" on:submit|preventDefault={createRoom}>
-        <input type="text" bind:value={room_dto.name} placeholder="Room name..."/>
-        <input type="checkbox" bind:checked={room_dto.is_private}/>Private
-        <input type="text" bind:value={room_password} placeholder="password..."/>
-        <input type="submit" value="Create"/>
-    </form>
-    <h1>Mine</h1>
-        {#each my_rooms as room}
-            {#if data.user && isMember(data.user, room)}
-                <button class="room" on:click={() => enter(room.id)}>
-                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
-                    <div style="width: 4em;">{room.owner.username}</div>
-                    <div>{room.members.length}</div>
-                    <div>{room.name}</div>
-                    {#if room.access == Access.PROTECTED}
-                        <img src={lock} alt="lock" style="max-width: 1em;">
-                    {/if}
-                </button>
-            {:else}
-                <div class="room">
-                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
-                    <div style="width: 4em;">{room.owner.username}</div>
-                    <div>{room.members.length}</div>
-                    <div>{room.name}</div>
-                    {#if room.access == Access.PROTECTED}
-                        <img src={lock} alt="lock" style="max-width: 1em;">
-                    {/if}
-                    <button on:click={() => join(room)}>Join</button>
-                </div>
-            {/if}
+<form class="room" style="margin: 1em;" on:submit|preventDefault={createChatRoom}>
+    <input type="text" bind:value={room_dto.name} placeholder="Room name..."/>
+    <input type="checkbox" bind:checked={room_dto.is_private}/>Private
+    <input type="text" bind:value={room_password} placeholder="password..."/>
+    <input type="submit" value="Create"/>
+</form>
+<div class="tab">
+    <div class="room_list">
+        {#each mine as chatroom}
+            <Room room={chatroom} click={enter}/>
         {/each}
-    <h1>Visible</h1>
-        {#each data.visible_rooms as room}
-            {#if data.user && isMember(data.user, room)}
-                <button class="room" on:click={() => enter(room.id)}>
-                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
-                    <div style="width: 4em;">{room.owner.username}</div>
-                    <div>{room.members.length}</div>
-                    <div>{room.name}</div>
-                    {#if room.access == Access.PROTECTED}
-                        <img src={lock} alt="lock" style="max-width: 1em;">
-                    {/if}
-                </button>
-            {:else}
-                <div class="room">
-                    <img id="small-avatar" src={room.owner.avatar} alt=""/>
-                    <div style="width: 4em;">{room.owner.username}</div>
-                    <div>{room.members.length}</div>
-                    <div>{room.name}</div>
-                    {#if room.access == Access.PROTECTED}
-                        <img src={lock} alt="lock" style="max-width: 1em;">
-                    {/if}
-                    <button on:click={() => join(room)}>Join</button>
-                </div>
-            {/if}
+    </div>
+    <div style="flex-grow: 1" ></div>
+    <div class="room_list">
+        {#each joinable as chatroom}
+            <Room room={chatroom} click={join}/>
         {/each}
+    </div>
 </div>
 
 <style>
+
+.tab {
+    display: flex;
+    flex-direction: row;
+}
 
 .room_list {
     border-radius: 1em;
@@ -153,7 +109,7 @@
     list-style: none;
     margin: 1em;
     gap: 1em;
-    overflow: scroll;
+    overflow: auto;
 }
 
 .room {
@@ -161,23 +117,13 @@
     border-radius: 1em;
     display: flex;
     flex-direction: row;
-    font-size: 2em;
+    font-size: 1em;
     gap: 1em;
     padding: 1em;
 }
 
 .room input {
     border-radius: 1em;
-}
-
-.room button {
-    border-radius: 1em;
-}
-
-#small-avatar {
-    border-radius: 1em;
-    max-width: 1em;
-    max-height: 1em;
 }
 
 </style>

@@ -15,7 +15,6 @@ import { join } from 'path';
 import { Room } from './Room';
 import { Role } from 'src/enums/Role';
 import { Status } from '../enums/Status';
-import { IDLE_TIME } from '../vars';
 import { get_status } from "../services/activity.service";
 import { Invite } from './Invite';
 

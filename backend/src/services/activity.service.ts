@@ -23,7 +23,6 @@ export class ActivityService {
 	private readonly activity_map
 	= new Map<number, { last_status: Status, last_activity: number}>();
 
-
 	constructor(
 		@Inject("USER_REPO") private readonly user_repo: Repository<User>,
 	) {
@@ -38,9 +37,10 @@ export class ActivityService {
 			const { last_status, last_activity } = this.activity_map.get(id);
 			const new_status = get_status(last_activity, now);
 			if (new_status !== last_status) {
-				await this.send_update(id);
 				if (new_status == Status.OFFLINE)
 					this.expire(id);
+				else
+					await this.send_update(id);
 			}
 		}
 	}
@@ -48,6 +48,7 @@ export class ActivityService {
 	async expire(user: User | number) {
 		const id = typeof user === "number" ? user : user.id;
 		this.activity_map.delete(id);
+		await this.send_update(id);
 	}
 
 	async send_update(...users: User[] | number[]) {

@@ -3,11 +3,12 @@
     import Swal from "sweetalert2";
     import socket from "../websocket";
     import { unwrap } from "$lib/Alert";
-    import type { Message } from "$lib/types";
+    import type { Member, Message } from "$lib/types";
     import type { PageData } from "./$types";
     import { FRONTEND } from "$lib/constants";
     import { post, remove } from "$lib/Web";
     import { error } from "@sveltejs/kit";
+    import MessageBox from "./MessageBox.svelte";
 
 	export let data: PageData;
 
@@ -17,6 +18,7 @@
 
 	const room = data.room;
 	const user = data.user;
+	const member = room.members.find((member) => member.user.id === user.id) as Member;
 
 	let messages = room.messages;
 
@@ -66,7 +68,7 @@
 		window.location.assign(`${FRONTEND}/room`);
 	}
 
-    async function deleteRoom() {
+    async function deleteChatRoom() {
         await unwrap(remove(`/room/id/${room.id}`));
 	
 		Swal.fire({
@@ -79,85 +81,39 @@
 
 </script>
 
-<ul class="option">
-	<li>
-		<form on:submit|preventDefault={sendMessage}>
-			<input bind:value={content} type="text" placeholder="message...">
-			<input type="submit" value="Send"/>
-		</form>
-	</li>
-	<li>
-		<form on:submit|preventDefault={invite}>
-			<input bind:value={invitee} type="text" placeholder="username...">
-			<input type="submit" value="Invite">
-		</form>
-	</li>
-	<li>
-		<button on:click={leave}>Leave</button>
-	</li>
-	<li>
-		<button on:click={deleteRoom}>Delete</button>
-	</li>
-</ul>
-
 <h1 style="margin: 1em">{room.name}</h1>
 {#each messages as message}
-	{#if message.user.id == user.id}
-		<div class="message" style="flex-direction: row-reverse">
-			<img src={message.user.avatar} alt="">
-			<div>{message.content}</div>
-		</div>
-	{:else}
-		<div class="message">
-			<img src={message.user.avatar} alt="">
-			<div>{message.content}</div>
-		</div>
-	{/if}
+	<MessageBox id={room.id} {message} {member}/>
 {/each}
 
+<div class="option">
+	<button on:click={leave}>Leave</button>
+	<button on:click={deleteChatRoom}>Delete</button>
+	<form on:submit|preventDefault={sendMessage}>
+		<input bind:value={content} type="text" placeholder="message...">
+		<input type="submit" value="Send"/>
+	</form>
+	<form on:submit|preventDefault={invite}>
+		<input bind:value={invitee} type="text" placeholder="username...">
+		<input type="submit" value="Invite">
+	</form>
+</div>
+	
 <style>
+	h1 {
+		background-color: steelblue;
+		border-radius: 1em;
+		padding: 1em;
+	}
 
-h1 {
-	background-color: steelblue;
-	border-radius: 1em;
-	padding: 1em;
-}
-
-.option {
-	position: fixed;
-	bottom: 1em;
-}
-
-.option li {
-	list-style: none;
-	margin: 1em
-}
-
-.message {
-	display: flex;
-	flex-direction: row;
-	font-size: 2em;
-	gap: 1em;
-	margin: 1em;
-}
-
-.message div {
-	background-color: steelblue;
-	border-radius: 1em;
-	padding: 0em 1em;
-}
-
-.message img {
-	width: 1em;
-	height: 1em;
-	border-radius: 1em;
-}
-
-.join {
-	background-color: steelblue;
-	padding: 1em 4em;
-	margin: 1em;
-	border-radius: 1em;
-}
-
+	.option {
+		display: flex;
+		flex-direction: column-reverse;
+		gap: 1em;
+		position: fixed;
+		bottom: 1em;
+		left: 1em;
+		margin: 1em;
+		align-items: baseline;
+	}
 </style>

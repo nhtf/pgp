@@ -4,6 +4,8 @@
     import { put } from "$lib/Web";
 	import type { PageData } from "./$types";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
+	import { fly } from 'svelte/transition';
+	import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
 
 	export let data: PageData;
 
@@ -45,25 +47,18 @@
 	}
 
 	function changeSettingsTab(tab: string) {
-		const profile = document.getElementById("profile-information");
-		const security = document.getElementById("security");
-		if (!profile || !security)
-			return;
 		if (tab === "profile-information") {
-			if (profile.style.display === "" || profile.style.display === "none")
-				profile.style.display = "flex";
-			else
-				profile.style.display = "none";
-			security.style.display = "none";
+			profile_visible = !profile_visible;
+			security_visible = false;
 		}
-		else {
-			if (security.style.display === "" || security.style.display === "none")
-				security.style.display = "flex";
-			else
-				security.style.display = "none";
-			profile.style.display = "none";
+		else if (tab === "security") {
+			security_visible = !security_visible;
+			profile_visible = false;
 		}
+		console.log(profile_visible, security_visible);
 	}
+	let profile_visible = false;
+	let security_visible = false;
 </script>
 
 <div class="block_container">
@@ -88,8 +83,8 @@
 			</div>
 		</div>
 	</div>
-
-	<div class="block_vert" id="profile-information">
+	{#if profile_visible}
+	<div class="block_vert" id="profile-information" transition:fly="{{ x: -100, duration: 500 }}">
 		<div class="block_hor">
 			<h2>Profile Information</h2>
 		</div>
@@ -104,7 +99,9 @@
 			<label id="save-button" for="username-change" on:click={changeUserName}>Save</label>
 		</div>
 	</div>
-	<div class="block_vert" id="security">
+	{/if}
+	{#if security_visible}
+	<div class="block_vert" id="security" transition:fly="{{ x: -100, duration: 500 }}">
 		<div class="block_hor">
 			<h2>Security</h2>
 		</div>
@@ -119,6 +116,7 @@
 			{/if}
 		</div>
 	</div>
+	{/if}
 </div>
 
 <style>
@@ -158,11 +156,11 @@
 	}
 
 	#profile-information {
-		display: none;
+		display: flex;
 	}
 
 	#security {
-		display: none;
+		display: flex;
 	}
 
 	#selector {
@@ -180,6 +178,7 @@
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
 		padding-right: 15px;
+		display: flex;
 	}
 
 	.block_cell {
@@ -193,4 +192,8 @@
 	.block_container {
 		justify-content: flex-start;
 	}
+
+	*, ::before, ::after {
+	box-sizing: unset;	
+}
 </style>

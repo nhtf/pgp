@@ -165,6 +165,18 @@ export function GenericUserController(route: string, options: { param: string, c
 			}
 		}
 
+		@Get(options.cparam + '/auth_req')
+		@UseGuards(SetupGuard)
+		async get_auth_req(
+			@Me() me: User,
+			@Param(options.param, options.pipe) user: User
+		) {
+			user = user || me;
+			if (user.id !== me.id)
+				throw new HttpException('forbidden', HttpStatus.FORBIDDEN);
+			return { auth_req: user.auth_req };
+		}
+
 		@Get(options.cparam + '/friend(s)?')
 		@UseGuards(SetupGuard)
 		async list_friends(
@@ -276,7 +288,6 @@ export function GenericUserController(route: string, options: { param: string, c
 
 			return Promise.all(invites.map((invite) => invite.serialize()));
 		}
-
 	}
 	return UserControllerFactory;
 }

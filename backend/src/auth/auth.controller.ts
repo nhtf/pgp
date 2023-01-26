@@ -14,7 +14,7 @@ import { Request, Response } from 'express';
 import { AuthorizationCode, AccessToken } from 'simple-oauth2';
 import * as rm from 'typed-rest-client/RestClient';
 import { BearerCredentialHandler } from 'typed-rest-client/handlers/bearertoken';
-import { SessionUtils, SessionObject } from '../SessionUtils';
+import { SessionService, SessionObject } from '../services/session.service';
 import { User } from '../entities/User';
 import { AuthLevel } from '../enums/AuthLevel';
 import { IsAlphanumeric } from 'class-validator';
@@ -45,7 +45,7 @@ export class AuthController {
 	});
 
 	constructor(
-		private readonly session_utils: SessionUtils,
+		private readonly session_utils: SessionService,
 		@Inject('USER_REPO')
 		private readonly userRepo: Repository<User>,
 	) {}
