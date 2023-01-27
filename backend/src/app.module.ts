@@ -9,14 +9,14 @@ import { DataSource } from "typeorm";
 import { HOST, DB_PORT, DB_USER, DB_PASS } from "./vars";
 import { HttpAuthGuard } from "./auth/auth.guard";
 import * as session from "express-session";
-import { SESSION_SECRET, PURGE_INTERVAL, OFFLINE_TIME } from "./vars";
+import { SESSION_SECRET, PURGE_INTERVAL, OFFLINE_TIME, SESSION_ABSOLUTE_TIMEOUT } from "./vars";
 import { TestController } from "./services/room.service";
-import { UserMiddleware } from "./middleware/UserMiddleware";
-import { RoomMiddleware } from "./middleware/RoomMiddleware";
+import { UserMiddleware } from "src/middleware/user.middleware";
+import { RoomMiddleware } from "./middleware/room.middleware";
 import { ChatRoomController } from "./controllers/chatroom.controller";
 import { RoomGateway } from "./gateways/room.gateway";
-import { MemberMiddleware } from "./middleware/MemberMiddleware";
-import { ActivityMiddleware } from "./middleware/ActivityMiddleware";
+import { MemberMiddleware } from "./middleware/member.middleware";
+import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
 import { ActivityService } from "./services/activity.service";
 import { User} from "./entities/User";
@@ -33,7 +33,7 @@ export const db_pool = new Pool({
 	port: DB_PORT,
 	ssl: false, //TODO set to true
 	max: 20,
-	idleTimeoutMilles: 1000,
+	idleTimeoutMillis: 1000,
 	connectionTimoutMillis: 1000,
 	maxUses: 7500,
 });
@@ -62,7 +62,7 @@ export const sessionMiddleware = session({
 	resave: true,
 	saveUninitialized: false,
 	cookie: {
-		maxAge: 72000000, //TODO set the right maxAge
+		maxAge: SESSION_ABSOLUTE_TIMEOUT,
 		sameSite: "strict",
 		//TODO set secure attribute
 	},
@@ -83,8 +83,9 @@ export const dataSource = new DataSource({
 			return clazz;
 		},
 	),
-	synchronize: true,
+	synchronize: true, //TODO disable and test before turning in
 	// logging: true,
+	// TODO enable cache? (cache: true)
 });
 
 const databaseProviders = [

@@ -3,6 +3,17 @@
     import type { PageData } from './$types';
     import { onMount } from "svelte";
     export let data: PageData;
+    import { 
+        Avatar, 
+        TableBody, 
+        TableBodyCell, 
+        TableBodyRow,
+        TableHead, 
+        TableHeadCell, 
+        TableSearch,
+        Tabs, 
+        TabItem
+     } from "flowbite-svelte";
     let width: number;
     let height: number;
 
@@ -27,8 +38,6 @@
     }
     
     function checkwindow() {
-        console.log(width, height);
-        console.log(LEADERBOARDS);
         if (width > 1350) {
             for (let i = 0; i < LEADERBOARDS.length; i+=1) {
                 const el = document.getElementById(LEADERBOARDS[i].id);
@@ -52,62 +61,88 @@
     onMount(() => {
         checkwindow();
     });
+
+    let searchTerm = ["", ""];
+
+    $: filteredItems = [data.lb[0].data.filter(
+    (item) => item.username.toLowerCase().indexOf(searchTerm[0].toLowerCase()) !== -1
+    ) ,
+    data.lb[1].data.filter(
+    (item) => item.username.toLowerCase().indexOf(searchTerm[1].toLowerCase()) !== -1
+    )
+    ];
 </script>
 
 <svelte:window on:resize={checkwindow} bind:innerWidth={width} bind:innerHeight={height}/>
 
-<div class="block_container">
-    <div class="tabs">
-        {#each LEADERBOARDS as { title, id, active }, index}
-        {#if active}
-        <div class="tab_cell" id="active-tab">{title}</div>
-        {:else}
-        <div class="tab_cell" id="inactive-tab" 
-            on:click={() => changeActive(id, index)}
-            on:keypress={() => changeActive(id, index)}
-        >
-            {title}
-        </div>
-        {/if}
+
+
+<div class="contain">
+    <Tabs style="underline" 
+    divider
+    defaultClass="flex flex-wrap space-x-2 background-color-custom"
+    contentClass="tab-content-background">
+        {#each LEADERBOARDS as {title, active}, index}
+        <TabItem open={active} class="background-color-custom"  title={title}>
+            <TableSearch
+            divClass="relative overflow-x-auto rounded-lg overflow-y-auto"
+            class="bordered"
+            placeholder="Search by username" hoverable={true} bind:inputValue={searchTerm[index]}>
+            <TableHead class="table-head">
+              <TableHeadCell class="table-cell-s">rank</TableHeadCell>
+              <TableHeadCell class="table-cell-s">user</TableHeadCell>
+              <TableHeadCell class="table-cell-s">wins</TableHeadCell>
+              <TableHeadCell class="table-cell-s">lose</TableHeadCell>
+              <TableHeadCell class="table-cell-s">draw</TableHeadCell>
+            </TableHead>
+            <TableBody>
+              {#each filteredItems[index] as item}
+                <TableBodyRow color="custom" class="leaderboard-row rank{item.rank}">
+                  <TableBodyCell tdClass="table-cell-s">{item.rank}</TableBodyCell>
+                  <TableBodyCell tdClass="table-cell-s">
+                    <div class="flex items-center space-x-8 justify-center">
+                    {#if item.avatar}
+                    <Avatar src={item.avatar} size="sm"/>
+                    {:else}
+                    <Avatar src="/avatar-default.png" size="sm"/>
+                    {/if}
+                    <div class="space-y-1 font-medium dark:text-white space-x-2 padding-left">
+                        <div>{item.username}</div>
+                    </div>
+                </div></TableBodyCell>
+                  <TableBodyCell tdClass="table-cell-s">{item.wins}</TableBodyCell>
+                  <TableBodyCell tdClass="table-cell-s">{item.losses}</TableBodyCell>
+                  <TableBodyCell tdClass="table-cell-s">{item.draws}</TableBodyCell>
+                </TableBodyRow>
+              {/each}
+            </TableBody>
+          </TableSearch>
+        </TabItem>
         {/each}
-    </div>
-    {#each LEADERBOARDS as { title, id, sorter }, index}
-        <div class="block_vert" id={id}>
-            <h1>{title}</h1>
-            {#if data}
-                <div class="block_hor" id="legend">
-                    {#each sorter as { type, active, ascending }, index_sorter}
-                    <div class="block_cell" id={active}>
-                        {type}
-                        <div class="block_cell" id="arrow-icon"
-                            on:click={() => {sort(sorter, index_sorter, index);}}
-                            on:keypress={() => {sort(sorter, index_sorter, index);}}
-                        >
-                            {#if !ascending}
-                                <i class="arrow down" />
-                            {:else}
-                                <i class="arrow up" />
-                            {/if}
-                        </div>
-                    </div>
-                    {/each}
-                </div>
-                {#each data.lb[index].data as { username, avatar, wins, losses, draws, rank }}
-                    <div class="block_hor" id="rank{rank}">
-                        <div class="block_cell">{rank}</div>
-                        <div class="block_cell"><img class="small-avatars" src={avatar} alt="avatar"/>{username}</div>
-                        <div class="block_cell">{wins}</div>
-                        <div class="block_cell">{losses}</div>
-                        <div class="block_cell">{draws}</div>
-                    </div>
-                {/each}
-            {/if}
-        </div>
-    {/each}
+      </Tabs>
+    
 </div>
 
 <style>
-    :global(body) {
+
+    .contain {
+        display: flex;
+        padding-top: 25px;
+        padding-bottom: 25px;
+        flex-direction: column;
+        justify-content: center;
+        position: relative;
+        margin: 0 auto;
+        width: 80%;
+    }
+
+    @media (max-width: 500px) {
+        .contain {
+            width: 100%;
+
+        }
+    }
+    /* :global(body) {
         font-family: "Open Sans", -apple-system, BlinkMacSystemFont, "Segoe UI",
             Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
             Arial, sans-serif;
@@ -147,6 +182,11 @@
 
     .down:hover {
         box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+    }
+
+    .rank1{
+        background: rgba(230, 188, 0, 0.7);
+        box-shadow: 0 0  5px #faeba8;
     }
 
     #rank1 {
@@ -195,8 +235,6 @@
         border-color: var(--border-color);
         border-radius: 6px;
         padding: 0;
-        /* border-width: 2px;
-        border-style: solid; */
     }
 
     .tab_cell {
@@ -216,11 +254,9 @@
         position: relative;
         border-radius: 6px;
         background: var(--tab-inactive-color);
-        /* box-shadow: 1px 1px 1px 1px var(--shadow-color); */
         border-style: solid;
         border-color: var(--border-color);
         border-width: 2px;
-        /* border-style: solid; */
     }
 
     .tab_cell:hover {
@@ -261,18 +297,13 @@
     }
 
     .block_cell:first-child {
-        /* align-self: flex-start; */
         width: 50px;
         align-self: center;
-        /* justify-content: flex-start; */
     }
 
     .block_cell:nth-child(2) {
         flex-grow: 1;
-        text-align: center;
-        min-width: 100px;
-        max-width: 200px;
-        /* padding-left: 10px; */
+        max-width: 150px;
     }
 
     .small-avatars {
@@ -358,5 +389,5 @@
         #orpong {
             display: flex;
         }
-    }
+    } */
 </style>

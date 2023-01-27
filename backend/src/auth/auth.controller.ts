@@ -63,7 +63,7 @@ export class AuthController {
 	@Post("logout")
 	async logout(@Session() session: SessionObject) {
 		session.auth_level = AuthLevel.None;
-		if (!this.session_utils.destroy_session(session))
+		if (!await this.session_utils.destroy_session(session))
 			throw new HttpException(
 				"could not logout",
 				HttpStatus.INTERNAL_SERVER_ERROR,
@@ -135,7 +135,7 @@ export class AuthController {
 		request.session.user_id = user.id;
 		request.session.auth_level = AuthLevel.OAuth;
 
-		this.session_utils.save_session(request.session);
+		await this.session_utils.save_session(request.session);
 		if (request.session.auth_level != user.auth_req)
 			response.redirect(FRONTEND_ADDRESS + "/otp_verify");
 		else response.redirect(FRONTEND_ADDRESS + "/profile");

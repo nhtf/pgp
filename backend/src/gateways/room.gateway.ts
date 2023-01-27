@@ -9,17 +9,12 @@ import {
 import type { Socket, Server } from "socket.io";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
-import { User } from "src/entities/User";
+import type { User } from "src/entities/User";
 import { Repository } from "typeorm";
 import { FRONTEND_ADDRESS } from "src/vars";
-import { WsAuthGuard } from "src/auth/auth.guard";
+import { ProtectedGateway } from "src/gateways/protected.gateway";
 
-@WebSocketGateway({
-	namespace: "room",
-	cors: { origin: FRONTEND_ADDRESS, credentials: true }
-})
-@UseGuards(WsAuthGuard)
-export class RoomGateway {
+export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
 	server: Server;
 
@@ -29,6 +24,7 @@ export class RoomGateway {
 		@Inject("MESSAGE_REPO")
 		private readonly messageRepo: Repository<Message>
 	) {
+		super(userRepo);
 	}
 
 	@SubscribeMessage("join")

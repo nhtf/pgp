@@ -6,8 +6,18 @@
   import { page } from "$app/stores";
 
   import { io } from "socket.io-client";
-  import { BACKEND_ADDRESS } from "$lib/constants";
-  import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider, ToolbarButton, Navbar, NavBrand, NavHamburger, NavLi, NavUl, Chevron } from 'flowbite-svelte'
+  import { BACKEND_ADDRESS, BACKEND } from "$lib/constants";
+  import {
+    Dropdown,
+    DropdownItem,
+    Avatar,
+    DropdownHeader,
+    Navbar,
+    NavBrand,
+    NavHamburger,
+    NavLi,
+    NavUl,
+  } from "flowbite-svelte";
 
   export let data: LayoutData;
 
@@ -71,179 +81,73 @@
     window.matchMedia(DARK_PREFERENCE).addEventListener("change", applyTheme);
   });
 
-  function resetToggles() {
-    var dropdowns = document.getElementsByClassName("dropdown-content");
-    for (let i = 0; i < dropdowns.length; i++) {
-      const dropDown = dropdowns[i] as HTMLElement;
-      dropDown.style.display = "none";
-    }
-  }
-
-  function clickfunction(event: MouseEvent) {
-    if (!event || !event.target) return;
-    const element = event.target as Element;
-    if (!element.matches("#dropbtn")) resetToggles();
-  }
-
-  function activepage() {
-    console.log($page.params);
-  }
-  console.log($page.url.pathname);
+  console.log("$page: ", $page);
+  const links = [
+    { url: "/room", name: "Chat Rooms" },
+    { url: "/game", name: "Game Rooms" },
+    { url: "/leaderboard", name: "Leaderboard" },
+    { url: "/invite", name: "Invites" },
+  ];
 </script>
 
-
-<Navbar let:hidden let:toggle rounded color="default">
+<Navbar let:hidden let:toggle rounded color="none" class="navbar-bg">
   <NavBrand href="/">
-    <img src="/favicon.png" class="mr-3 h-6 sm:h-9" alt="pgp logo"/>
+    <img src="/favicon.png" class="mr-3 h-6 sm:h-9" alt="pgp logo" />
     <span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white">PGP</span>
   </NavBrand>
-    
-    <NavUl {hidden} >
-      <NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
-      <NavLi href="/room" active={$page.url.pathname === "/room"}>Room</NavLi>
-      <NavLi href="/game" active={$page.url.pathname === "/game"}>PongVR</NavLi>
-      <NavLi href="/leaderboard" active={$page.url.pathname === "/leaderboard"}>Leaderboard</NavLi>
-      <NavLi href="/invite" active={$page.url.pathname === "/invite"}>Invite</NavLi>
-      {#if !user?.username}
-        <NavLi active={true} href={`http://${BACKEND_ADDRESS}/oauth/login`}>login</NavLi>
-      {/if}
-      </NavUl>
-      {#if user?.username}
-      <div class="flex items-center md:order-2">
-        <Avatar id="avatar-menu"  src={data.user.avatar} />
-        <NavHamburger on:click={toggle} class1="w-full md:flex md:w-auto md:order-1"/>
-      </div>
-      <Dropdown triggeredBy="#avatar-menu" placement="bottom">
-        <DropdownHeader>
-          <span class="block text-sm"> {data.user.username} </span>
-        </DropdownHeader>
-        <DropdownItem href="/profile/{data.user.username}">profile</DropdownItem>
-        <DropdownItem href="/settings">settings</DropdownItem>
-        <DropdownItem on:click={toggleTheme}>{currentTheme}</DropdownItem>
-        <DropdownItem on:click={logoutfn} slot="footer">Sign out</DropdownItem>
-      </Dropdown>
+  <div class="flex items-center md:order-2">
+    <NavHamburger
+      on:click={toggle}
+      class1="w-full md:flex md:w-auto md:order-1"
+    />
+    {#if user?.username}
+    <Avatar id="avatar-menu" src={data.user.avatar} />
     {/if}
-      <!-- {#if !user?.username} -->
-      <!-- <div class="flex md:order-2"> -->
-        <!-- <Button size="sm"> -->
-          <!-- <NavLi href={`http://${BACKEND_ADDRESS}/oauth/login`}>login</NavLi> -->
-        <!-- </Button> -->
-      <!-- </div> -->
-      <!-- {/if} -->
-</Navbar>
-
-<!-- <nav>
-  <div class="menu">
-    <ul id="nav-menu">
-      <li><a href="/">Home</a></li>
-      <li><a href="/room">Room</a></li>
-      <li><a href="/game">PongVR</a></li>
-      <li><a href="/leaderboard">Leaderboard</a></li>
-      <li><a href="/invite">Invite</a></li>
-      <div class="fill" />
-      {#if !user?.username}
-        <li><a href={`http://${BACKEND_ADDRESS}/oauth/login`}>login</a></li>
-      {:else}
-      <Avatar class="acs" src={data.user.avatar} dot={{color:'bg-green-400'}} />
-      <Dropdown triggeredBy=".acs">
-        <div slot="header" class="px-4 py-2">
-          <span class="block text-sm text-gray-900 dark:text-white"> {data.user.username} </span>
-        </div>
-        <DropdownItem href="/profile/{data.user.username}">profile</DropdownItem>
-        <DropdownItem href="/settings">settings</DropdownItem>
-        <DropdownItem on:click={toggleTheme}>{currentTheme}</DropdownItem>
-        <DropdownItem on:click={logoutfn} slot="footer">Sign out</DropdownItem>
-      </Dropdown>
-      {/if}
-    </ul>
-    <ul id="mobile">
-      <ul id="nav-menu-mobile">
-        <ToolbarButton class="dots-menu text-gray-900 bg-white dark:text-white dark:bg-gray-800">
-          <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
-        </ToolbarButton>
-        <Dropdown triggeredBy=".dots-menu">
-          <DropdownItem href="/">Home</DropdownItem>
-          <DropdownItem href="/room">Room</DropdownItem>
-          <DropdownItem href="/game">PongVR</DropdownItem>
-          <DropdownItem href="/leaderboard">Leaderboard</DropdownItem>
-          <DropdownItem href="/invite">Invite</DropdownItem>
-        </Dropdown> -->
-        <!-- <div
-          class="hamburger"
-          on:click={changeHamburger}
-          on:keypress={changeHamburger}
-        >
-          {#if !hamburger}
-            <div class="bar1" />
-            <div class="bar2" />
-            <div class="bar3" />
-          {:else}
-            <div class="bar1" id="change0" />
-            <div class="bar2" id="change1" />
-            <div class="bar3" id="change2" />
-          {/if}
-        </div>
-        {#if hamburger}
-          <li>
-            <ul id="ham-drop">
-              <li><a href="/">Home</a></li>
-              <li><a href="/room">Room</a></li>
-              <li><a href="/game">PongVR</a></li>
-              <li><a href="/leaderboard">Leaderboard</a></li>
-              <li><a href="/invite">Invite</a></li>
-            </ul>
-          </li>
-        {/if} -->
-      <!-- </ul>
-      <div class="fill" />
-      <ul id="nav-menu-mobile">
-        {#if !user?.username}
-          <li>
-            <a href={`http://${BACKEND_ADDRESS}/oauth/login`}>login</a>
-          </li>
-        {:else}
-        <Avatar class="acs" src={data.user.avatar} dot={{color:'bg-green-400'}} />
-        <Dropdown triggeredBy=".acs">
-          <div slot="header" class="px-4 py-2">
-            <span class="block text-sm text-gray-900 dark:text-white"> {data.user.username} </span>
-          </div>
-          <DropdownItem href="/profile/{data.user.username}">profile</DropdownItem>
-          <DropdownItem href="/settings">settings</DropdownItem>
-          <DropdownItem on:click={toggleTheme}>{currentTheme}</DropdownItem>
-          <DropdownItem on:click={logoutfn} slot="footer">Sign out</DropdownItem>
-        </Dropdown>
-        {/if}
-      </ul>
-    </ul>
   </div>
-</nav> -->
+  {#if user?.username}
+    <Dropdown triggeredBy="#avatar-menu" placement="bottom" class="background-color-custom border-color-custom">
+      <DropdownHeader>
+        <span class="block text-sm"> {data.user.username} </span>
+      </DropdownHeader>
+      <DropdownItem href="/profile/{data.user.username}">profile</DropdownItem>
+      <DropdownItem href="/settings">settings</DropdownItem>
+      <DropdownItem on:click={toggleTheme}>{currentTheme}</DropdownItem>
+      <DropdownItem on:click={logoutfn}>Sign out</DropdownItem>
+    </Dropdown>
+  {/if}
+  <NavUl {hidden} class="navbar-bg">
+    <NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
+    {#each links as { url, name }}
+      <NavLi href={url} active={$page.url.pathname.includes(url)}>{name}</NavLi>
+    {/each}
+    {#if !user?.username}
+      <NavLi active={true} href={`${BACKEND}/oauth/login`} activeClass="login-button" nonActiveClass="login-button">login</NavLi>
+    {/if}
+  </NavUl>
+</Navbar>
 
 <slot />
 
-<svelte:window on:click={clickfunction} />
-
 <style>
-  .fill {
-    flex: auto;
-  }
 
-  * {
+
+
+  /* * {
     margin: 0;
     padding: 4px;
     box-sizing: border-box;
     font-family: "Poppins", sans-serif;
     color: var(--text-color);
     text-decoration: none;
-  }
+  } */
 
-  nav {
+  /* nav {
     position: sticky;
     top: 0;
     z-index: 100000;
   }
 
   .menu {
-    /* display: flex; */
     background: var(--box-color);
     position: sticky;
     top: 0;
@@ -253,14 +157,12 @@
     border-style: solid;
   }
 
-  /* parent */
   .menu ul {
     display: flex;
     justify-content: space-evenly;
     align-items: center;
   }
 
-  /* children */
   .menu ul li {
     list-style: none;
     padding: 4px;
@@ -273,7 +175,6 @@
   }
 
   .menu ul li a:hover {
-    /* background: var(--hover-color); */
     border-radius: 6px;
     box-shadow: 0 0 3px 2px var(--shadow-color);
   }
@@ -353,7 +254,7 @@
   }
 
   .dark .dark\:bg-gray-700 {
-	background: var(--box-color);
-	background-color: var(--box-color);
-}
+    background: var(--box-color);
+    background-color: var(--box-color);
+  } */
 </style>

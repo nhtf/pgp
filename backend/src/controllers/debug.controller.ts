@@ -6,6 +6,7 @@ import {
 	Req,
 	Get,
 	Query,
+	UseGuards,
 } from "@nestjs/common";
 import {
 	Length,
@@ -25,6 +26,8 @@ import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
 import { Role } from "src/enums/Role";
+
+import { HttpAuthGuard } from "src/auth/auth.guard";
 
 class UserDTO {
 	@IsString()
@@ -170,5 +173,11 @@ export class DebugController {
 		await this.memberRepo.save(member);
 
 		return {};
+	}
+
+	@Get("test")
+	@UseGuards(HttpAuthGuard)
+	async test() {
+		return "Test";
 	}
 }
