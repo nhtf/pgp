@@ -1,7 +1,7 @@
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Inject, UseGuards } from "@nestjs/common";
-import { Server, Socket } from "socket.io";
-import { User } from "../entities/User";
+import type { Server, Socket } from "socket.io";
+import type { User } from "../entities/User";
 import { Repository } from "typeorm"
 import { instanceToPlain } from "class-transformer";
 import { WsAuthGuard } from "src/auth/auth.guard";
@@ -55,7 +55,6 @@ export class UpdateGateway {
 		else {
 			sockets.splice(idx, 1);
 			//todo also make sure that retrieving the user with the databases returns offline 
-			console.log(sockets.length);
 			if (sockets.length === 0) {
 				console.log("last socket");
 				const user = await this.user_repo.findOneBy({ id: id });

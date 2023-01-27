@@ -91,7 +91,13 @@ const databaseProviders = [
 	{
 		provide: 'DATA_SOURCE',
 		useFactory: async () => {
-			return dataSource.initialize();
+			return await dataSource.initialize();
+		},
+	},
+	{
+		provide: 'SESSION_SOURCE',
+		useFactory: () => {
+			return session_store;
 		},
 	},
 ];

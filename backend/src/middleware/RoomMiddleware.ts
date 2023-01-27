@@ -18,7 +18,7 @@ export class RoomMiddleware implements NestMiddleware {
 		try {
 			id = validate_id(req.params.id);
 		} catch (error) {
-			throw new HttpException(error, HttpStatus.BAD_REQUEST);
+			throw new HttpException(error.message, HttpStatus.BAD_REQUEST, { cause: error });
 		}
 
 		const room = await this.repo.findOneBy({ id: id });

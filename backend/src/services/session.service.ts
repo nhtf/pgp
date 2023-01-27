@@ -1,8 +1,9 @@
 import { Injectable } from "@nestjs/common";
+import { Inject } from "@nestjs/common";
 import { AuthLevel } from "src/enums/AuthLevel";
 import * as session from "express-session";
 import { Request } from "express";
-import { session_store } from "src/app.module";
+import type { ExpressSessionStore } from "pg-session-store";
 import { HOST, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET, SESSION_IDLE_TIME, SESSION_REGENERATE_TIME, SESSION_PURGE_TIME } from 'src/vars';
 
 declare module 'express-session' {
@@ -20,7 +21,10 @@ export type SessionObject = session.Session & Partial<session.SessionData>;
 @Injectable()
 export class SessionService {
 
-	constructor() {
+	constructor(
+		@Inject("SESSION_SOURCE")
+		private readonly session_store: ExpressSessionStore,
+	) {
 		setInterval(async () => {
 			await this.purge();
 		}, SESSION_PURGE_TIME);
@@ -51,7 +55,7 @@ export class SessionService {
 	async all() {
 		const promise = new Promise(
 			(resolve: (data) => void, reject: (err) => void) => {
-				session_store.all((error, data) => {
+				this.session_store.all((error, data) => {
 					if (error) {
 						reject(error);
 					} else {
@@ -114,7 +118,7 @@ export class SessionService {
 		const promise = new Promise(
 			(resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
 				if (typeof session === "string") {
-					session_store.destroy(session, (error) => {
+					this.session_store.destroy(session, (error) => {
 						if (error) {
 							console.error("could not destroy session");
 							reject(false);

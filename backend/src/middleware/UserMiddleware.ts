@@ -18,7 +18,6 @@ export class UserMiddleware implements NestMiddleware {
 		req.user = await this.user_repo.findOneBy({
 			id: req.session.user_id
 		});
-
 		next();
 	}
 }
