@@ -1,12 +1,12 @@
-import { User } from './User';
+import { User } from "./User";
 import {
 	Entity,
 	PrimaryGeneratedColumn,
 	CreateDateColumn,
 	ManyToOne,
 	TableInheritance,
-} from 'typeorm';
-import { Exclude, instanceToPlain } from 'class-transformer';
+} from "typeorm";
+import { Exclude, instanceToPlain } from "class-transformer";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })

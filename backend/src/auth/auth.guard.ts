@@ -1,6 +1,6 @@
-import { Inject, Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Inject, Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
 import { Repository } from "typeorm";
-import type { User } from '../entities/User';
+import type { User } from "../entities/User";
 import type { Request } from "express";
 
 function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {

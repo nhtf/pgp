@@ -4,9 +4,9 @@ import { AuthLevel } from "src/enums/AuthLevel";
 import * as session from "express-session";
 import { Request } from "express";
 import type { ExpressSessionStore } from "pg-session-store";
-import { HOST, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET, SESSION_IDLE_TIME, SESSION_REGENERATE_TIME, SESSION_PURGE_TIME } from 'src/vars';
+import { HOST, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET, SESSION_IDLE_TIME, SESSION_REGENERATE_TIME, SESSION_PURGE_TIME } from "src/vars";
 
-declare module 'express-session' {
+declare module "express-session" {
 	export interface SessionData {
 		access_token: string;
 		secret: string | undefined;
@@ -88,7 +88,7 @@ export class SessionService {
 			(resolve: (value: boolean) => void, reject: (value: boolean) => void) => {
 				session.regenerate((error) => {
 					if (error) {
-						console.error('could not regenerate session: ' + error);
+						console.error("could not regenerate session: " + error);
 						reject(false);
 					} else {
 						resolve(true);
@@ -109,7 +109,7 @@ export class SessionService {
 		try {
 			return await promise;
 		} catch (error) {
-			console.error('unable to save session: ' + error);
+			console.error("unable to save session: " + error);
 			return false;
 		}
 	}
@@ -129,7 +129,7 @@ export class SessionService {
 				} else {
 					session.destroy((error) => {
 						if (error) {
-							console.error('could not destroy session');
+							console.error("could not destroy session");
 							reject(false);
 						} else {
 							resolve(true);

@@ -1,6 +1,6 @@
-import { User } from './User';
-import { Entity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from 'typeorm';
-import { instanceToPlain } from 'class-transformer';
+import { User } from "./User";
+import { Entity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from "typeorm";
+import { instanceToPlain } from "class-transformer";
 
 @Entity()
 export class FriendRequest {

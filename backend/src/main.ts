@@ -1,18 +1,18 @@
-import * as dotenv from 'dotenv';
+import * as dotenv from "dotenv";
 dotenv.config();
-import 'reflect-metadata';
-import { NestFactory } from '@nestjs/core';
-import { HttpException, HttpStatus, ValidationPipe } from '@nestjs/common';
-import { AppModule } from './app.module';
-import { NestExpressApplication } from '@nestjs/platform-express';
+import "reflect-metadata";
+import { NestFactory } from "@nestjs/core";
+import { HttpException, HttpStatus, ValidationPipe } from "@nestjs/common";
+import { AppModule } from "./app.module";
+import { NestExpressApplication } from "@nestjs/platform-express";
 import {
 	FRONTEND_ADDRESS,
 	BACKEND_PORT,
-} from './vars';
-import { join } from 'path';
-import { sessionMiddleware } from './app.module';
-import { IoAdapter } from '@nestjs/platform-socket.io';
-import * as compression from 'compression';
+} from "./vars";
+import { join } from "path";
+import { sessionMiddleware } from "./app.module";
+import { IoAdapter } from "@nestjs/platform-socket.io";
+import * as compression from "compression";
 import { UserMiddleware } from "src/middleware/UserMiddleware";
 
 //https://docs.nestjs.com/websockets/adapter
@@ -23,11 +23,11 @@ class BetterAdapter extends IoAdapter {
 		const server = super.createIOServer(port, options);
 		const wrap = middleware => (socket, next) => middleware(socket.request, {}, next);
 		server.use(wrap(sessionMiddleware));
-		server.of('/room').use(wrap(sessionMiddleware));
-		server.of('/game').use(wrap(sessionMiddleware));
-		server.of('/update').use(wrap(sessionMiddleware));
+		server.of("/room").use(wrap(sessionMiddleware));
+		server.of("/game").use(wrap(sessionMiddleware));
+		server.of("/update").use(wrap(sessionMiddleware));
 		/*
-		server.of('/room').on("connection", (socket) => {
+		server.of("/room").on("connection", (socket) => {
 			socket.on("disconnect", () => {
 				console.log("disconnect");
 			});
@@ -59,7 +59,7 @@ async function bootstrap() {
 	const betterAdapter = new BetterAdapter(app);
 	app.useWebSocketAdapter(betterAdapter);
 
-	app.useStaticAssets(join(__dirname, '..', 'avatar'), { prefix: '/avatar/' });
+	app.useStaticAssets(join(__dirname, "..", "avatar"), { prefix: "/avatar/" });
 	//TODO use nestjs way of setting up the data sourcd
 	app.listen(BACKEND_PORT);
 }

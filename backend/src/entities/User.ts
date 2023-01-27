@@ -1,6 +1,6 @@
-import { FriendRequest } from './FriendRequest';
-import { Member } from './Member';
-import { AuthLevel } from '../enums/AuthLevel';
+import { FriendRequest } from "./FriendRequest";
+import { Member } from "./Member";
+import { AuthLevel } from "../enums/AuthLevel";
 import {
 	Entity,
 	PrimaryGeneratedColumn,
@@ -8,15 +8,15 @@ import {
 	ManyToMany,
 	JoinTable,
 	OneToMany,
-} from 'typeorm';
-import { Exclude, Expose } from 'class-transformer';
-import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from '../vars';
-import { join } from 'path';
-import { Room } from './Room';
-import { Role } from 'src/enums/Role';
-import { Status } from '../enums/Status';
+} from "typeorm";
+import { Exclude, Expose } from "class-transformer";
+import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from "../vars";
+import { join } from "path";
+import { Room } from "./Room";
+import { Role } from "src/enums/Role";
+import { Status } from "../enums/Status";
 import { get_status } from "../services/activity.service";
-import { Invite } from './Invite';
+import { Invite } from "./Invite";
 
 @Entity()
 export class User {
@@ -85,7 +85,7 @@ export class User {
 
 	@Expose()
 	get avatar(): string {
-		return BACKEND_ADDRESS + '/' + this.avatar_path;
+		return BACKEND_ADDRESS + "/" + this.avatar_path;
 	}
 
 	@Expose()
@@ -97,7 +97,7 @@ export class User {
 	}
 
 	get avatar_basename(): string {
-		return this.avatar_base + '.jpg';
+		return this.avatar_base + ".jpg";
 	}
 
 	get avatar_path(): string {

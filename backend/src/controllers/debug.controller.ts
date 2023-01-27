@@ -6,25 +6,25 @@ import {
 	Req,
 	Get,
 	Query,
-} from '@nestjs/common';
+} from "@nestjs/common";
 import {
 	Length,
 	IsString,
 	IsOptional,
 	IsInt,
 	IsEnum,
-} from 'class-validator';
-import { User } from '../entities/User';
-import { AuthLevel } from '../enums/AuthLevel';
-import { Repository } from 'typeorm';
-import { Request } from 'express';
-import { SessionService } from 'src/services/session.service'
-import { ParseIDPipe } from '../util';
-import { Room } from 'src/entities/Room';
-import { Member } from 'src/entities/Member';
+} from "class-validator";
+import { User } from "../entities/User";
+import { AuthLevel } from "../enums/AuthLevel";
+import { Repository } from "typeorm";
+import { Request } from "express";
+import { SessionService } from "src/services/session.service"
+import { ParseIDPipe } from "../util";
+import { Room } from "src/entities/Room";
+import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
-import { Invite } from 'src/entities/Invite';
-import { Role } from 'src/enums/Role';
+import { Invite } from "src/entities/Invite";
+import { Role } from "src/enums/Role";
 
 class UserDTO {
 	@IsString()
@@ -50,23 +50,23 @@ class UserDTO {
 }
 
 // TODO THIS MUST BE DISABLED BEFORE TURNING IN!
-@Controller('debug')
+@Controller("debug")
 export class DebugController {
 	constructor(
 		private readonly sessionUtils: SessionService,
-		@Inject('USER_REPO') private readonly userRepo: Repository<User>,
+		@Inject("USER_REPO") private readonly userRepo: Repository<User>,
 		@Inject("ROOM_REPO") private readonly roomRepo: Repository<Room>,
 		@Inject("MEMBER_REPO") private readonly memberRepo: Repository<Member>,
 		@Inject("INVITE_REPO") private readonly inviteRepo: Repository<Invite>,
 	) {}
 
-	@Get('useradd')
+	@Get("useradd")
 	async useradd(@Query() dto: UserDTO) {
 		// const exists = dto.username ?
 		// 	(await this.userRepo.findOneBy({ username: dto.username })) !== null : false;
 		// if (exists)
 		// 	throw new HttpException(
-		// 		'an user with that username already exists',
+		// 		"an user with that username already exists",
 		// 		HttpStatus.BAD_REQUEST,
 		// 	);
 
@@ -88,11 +88,11 @@ export class DebugController {
 		return user;
 	}
 
-	@Get('usermod')
+	@Get("usermod")
 	async usermod(@Query() dto: UserDTO) {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
-			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
+			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
 		user.oauth_id = dto.oauth_id ?? user.oauth_id;
 		user.secret = dto.secret ?? user.secret;
 		user.avatar_base = dto.avatar_base ?? user.avatar_base;
@@ -101,16 +101,16 @@ export class DebugController {
 		return user;
 	}
 
-	@Get('userdel')
+	@Get("userdel")
 	async userdel(@Query() dto: UserDTO) {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
-			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
+			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
 		await this.userRepo.remove(user);
-		return 'deleted user';
+		return "deleted user";
 	}
 
-	@Get('su')
+	@Get("su")
 	async su(
 		@Query("id", ParseIDPipe(User)) user: User,
 		@Req() request: Request,
@@ -121,15 +121,15 @@ export class DebugController {
 		return user;
 	}
 
-	@Get('id')
+	@Get("id")
 	async id(@Query() dto: UserDTO) {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
-			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
+			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
 		return user;
 	}
 
-	@Get('lsuser')
+	@Get("lsuser")
 	async lsuser() {
 		return this.userRepo.find();
 	}

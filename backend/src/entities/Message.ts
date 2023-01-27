@@ -4,10 +4,10 @@ import {
 	CreateDateColumn,
 	ManyToOne,
 	Column,
-} from 'typeorm';
-import { Exclude, instanceToPlain } from 'class-transformer';
-import { ChatRoom } from './ChatRoom';
-import { Member } from './Member';
+} from "typeorm";
+import { Exclude, instanceToPlain } from "class-transformer";
+import { ChatRoom } from "./ChatRoom";
+import { Member } from "./Member";
 
 @Entity()
 export class Message {
