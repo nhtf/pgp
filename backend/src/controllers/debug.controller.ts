@@ -19,14 +19,14 @@ import { AuthLevel } from '../enums/AuthLevel';
 import { Repository } from 'typeorm';
 import { Request } from 'express';
 import { SessionService } from 'src/services/session.service'
-import { GetUserQuery } from '../util';
+import { ParseIDPipe } from '../util';
 import { Room } from 'src/entities/Room';
 import { Member } from 'src/entities/Member';
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from 'src/entities/Invite';
 import { Role } from 'src/enums/Role';
 
-class UserDto {
+class UserDTO {
 	@IsString()
 	@Length(1, 20)
 	@IsOptional()
@@ -61,7 +61,7 @@ export class DebugController {
 	) {}
 
 	@Get('useradd')
-	async useradd(@Query() dto: UserDto) {
+	async useradd(@Query() dto: UserDTO) {
 		// const exists = dto.username ?
 		// 	(await this.userRepo.findOneBy({ username: dto.username })) !== null : false;
 		// if (exists)
@@ -89,7 +89,7 @@ export class DebugController {
 	}
 
 	@Get('usermod')
-	async usermod(@Query() dto: UserDto) {
+	async usermod(@Query() dto: UserDTO) {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
 			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
@@ -102,7 +102,7 @@ export class DebugController {
 	}
 
 	@Get('userdel')
-	async userdel(@Query() dto: UserDto) {
+	async userdel(@Query() dto: UserDTO) {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
 			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);
@@ -112,7 +112,7 @@ export class DebugController {
 
 	@Get('su')
 	async su(
-		@GetUserQuery() user: User,
+		@Query("id", ParseIDPipe(User)) user: User,
 		@Req() request: Request,
 	) {
 		this.sessionUtils.regenerate_session(request.session);
@@ -122,7 +122,7 @@ export class DebugController {
 	}
 
 	@Get('id')
-	async id(@Query() dto: UserDto) {
+	async id(@Query() dto: UserDTO) {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
 			throw new HttpException('user does not exist', HttpStatus.NOT_FOUND);

@@ -74,6 +74,11 @@ export class User {
 	members: Promise<Member[]>;
 
 	@Column({
+		default: false
+	})
+	has_session: boolean;
+
+	@Column({
 	       nullable: true
 	})
 	last_activity: Date;
@@ -85,7 +90,10 @@ export class User {
 
 	@Expose()
 	get status(): Status {
-		return get_status(this.last_activity?.getTime());
+		if (this.has_session)
+			return get_status(this.last_activity?.getTime());
+		else
+			return Status.OFFLINE;
 	}
 
 	get avatar_basename(): string {

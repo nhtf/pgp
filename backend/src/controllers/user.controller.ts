@@ -6,14 +6,14 @@ import { FriendRequest } from '../entities/FriendRequest';
 import { Repository } from 'typeorm';
 import { IsString, Length } from 'class-validator';
 import { AuthGuard } from '../auth/auth.guard';
-import { InjectUser, Me, ParseIDPipe, ParseUsernamePipe } from '../util';
-import { dataSource } from '../app.module';
+import { Me, ParseIDPipe, ParseUsernamePipe } from '../util';
 import { randomBytes } from 'node:crypto';
 import { open, rm } from 'node:fs/promises';
 import { finished, Readable } from 'node:stream';
 import { join } from 'path';
 import { AVATAR_DIR, DEFAULT_AVATAR } from '../vars';
 import * as sharp from 'sharp';
+import { SetupGuard } from "src/guards/setup.guard";
 
 declare module 'express' {
 	export interface Request {
@@ -27,34 +27,9 @@ class UsernameDTO {
 	username: string;
 }
 
-@Injectable()
-export class SetupGuard implements CanActivate {
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const http = context.switchToHttp();
-		const request = http.getRequest();
-		const response = http.getResponse();
-	
-		if (request.session.user_id == undefined) {
-			response.status(400).json('bad request');
-			return false;
-		}
-	
-		const user = await dataSource.getRepository(User).findOneBy({
-			id: request.session.user_id
-		});
-	
-		if (user.username == null) {
-			response.status(403).json('no username set');
-			return false;
-		}
-	
-		return true;
-	}
-}
-
 export function GenericUserController(route: string, options: { param: string, cparam: string, pipe: any }) {
 	@Controller(route)
-	@UseGuards(AuthGuard, InjectUser)
+	@UseGuards(AuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	class UserControllerFactory {
 		constructor(

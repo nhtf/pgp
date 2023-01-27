@@ -1,7 +1,8 @@
-import { dataSource } from "src/app.module";
+import { Inject } from "@nestjs/common";
 import { User } from "src/entities/User";
 import { MessageBody, SubscribeMessage, WebSocketGateway, ConnectedSocket } from "@nestjs/websockets";
 import { Socket } from "socket.io";
+import { Repository } from "typeorm"
 import { parseId } from "src/util";
 import { Room } from "src/entities/Room";
 import { FRONTEND_ADDRESS } from "src/vars";
@@ -17,6 +18,12 @@ declare module "socket.io" {
 	cors: { origin: FRONTEND_ADDRESS, credentials: true },
 })
 export class GameGateway {
+
+	constructor(
+		@Inject("USER_REPO")
+		private readonly user_repo: Repository<User>,
+	) {}
+
 	async handleConnection(@ConnectedSocket() client: Socket) {
 		const req = client.request as any;
 
@@ -25,7 +32,7 @@ export class GameGateway {
 			return;
 		}
 	
-		req.user = await dataSource.getRepository(User).findOneBy({
+		req.user = await this.user_repo.findOneBy({
 			id: req.session.user_id
 		});
 	}

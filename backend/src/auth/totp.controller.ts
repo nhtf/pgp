@@ -18,9 +18,9 @@ import { SessionService } from 'src/services/session.service';
 import { AuthLevel } from '../enums/AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
 import { AuthGuard } from './auth.guard';
-import { SetupGuard } from 'src/controllers/user.controller';
+import { SetupGuard } from 'src/guards/setup.guard';
 import * as qrcode from 'qrcode';
-import { Me, InjectUser } from '../util';
+import { Me } from '../util';
 import { User } from '../entities/User';
 import { Repository } from 'typeorm';
 
@@ -47,7 +47,6 @@ class OtpDTO {
 }
 
 @Controller('otp')
-@UseGuards(InjectUser)
 export class TotpController {
 	constructor(
 		private readonly session_utils: SessionService,

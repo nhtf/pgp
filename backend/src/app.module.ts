@@ -24,6 +24,7 @@ import { GameController } from './controllers/game.controller';
 import { SessionService } from 'src/services/session.service';
 import * as Pool from "pg-pool";
 import { SessionExpiryMiddlware } from './middleware/session.expire.middleware';
+import { SetupGuard } from "src/guards/setup.guard";
 
 export const db_pool = new Pool({
 	database: "dev", //TODO make this not hardcoded
@@ -160,6 +161,7 @@ setInterval(() => {
 		AuthGuard,
 		ActivityService,
 		SessionService,
+		SetupGuard,
 		...databaseProviders,
 		...entityProviders,
 	],

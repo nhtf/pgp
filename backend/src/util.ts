@@ -6,106 +6,14 @@ import {
 	PipeTransform,
 	ArgumentMetadata,
 	Injectable,
-	CanActivate
+	CanActivate,
+	Inject,
 } from '@nestjs/common';
 import { User } from './entities/User';
-import { dataSource } from './app.module';
 import { EntityTarget, ObjectLiteral } from 'typeorm';
-import { validate } from 'class-validator';
-import { Length, IsString, IsOptional, IsNumberString } from 'class-validator';
+import { Repository, FindOptionsWhere } from "typeorm";
 import isNumeric from 'validator/lib/isNumeric';
 import isLength from 'validator/lib/isLength';
-
-class UserDTO {
-	@IsString()
-	@Length(1, 20)
-	@IsOptional()
-	username?: string;
-
-	@IsNumberString()
-	@IsOptional()
-	id?: number;
-}
-
-@Injectable()
-export class InjectUser implements CanActivate {
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const http = context.switchToHttp();
-		const request = http.getRequest();
-		const response = http.getResponse();
-	
-		if (request.session.user_id == undefined) {
-			response.status(HttpStatus.UNAUTHORIZED).json("Unauthorized");
-			return false;
-		}
-	
-		const user = await dataSource.getRepository(User).findOneBy({
-			id: request.session.user_id
-		});
-	
-		request.user = user;
-		return true;
-	}
-}
-
-export async function GetUserByDTO(dto: UserDTO) {
-	const result = await validate(dto);
-
-	if (result.length !== 0) {
-		throw new HttpException(result[0].constraints, HttpStatus.BAD_REQUEST);
-	}
-
-	if (!dto.username && !dto.id) {
-		throw new HttpException(
-			'either username or id has to be set',
-			HttpStatus.BAD_REQUEST,
-		);
-	}
-
-	const user = await dataSource.getRepository(User).findOneBy(dto);
-	if (!user) {
-		throw new HttpException('user not found', HttpStatus.NOT_FOUND);
-	}
-
-	return user;
-}
-
-export const Repo = createParamDecorator(
-	async (where: EntityTarget<ObjectLiteral>, ctx: ExecutionContext) => {
-		return dataSource.getRepository(where);
-	},
-);
-
-export const GetUserQuery = createParamDecorator(
-	async (data: unknown, ctx: ExecutionContext) => {
-		const request = ctx.switchToHttp().getRequest();
-		const dto = new UserDTO();
-
-		if (request.query.username) {
-			dto.username = request.query.username
-		}
-		if (request.query.id) {
-			dto.id = request.query.id
-		}
-
-		return GetUserByDTO(dto);
-	},
-);
-
-export const GetUser = createParamDecorator(
-	async (where: undefined, ctx: ExecutionContext) => {
-		const request = ctx.switchToHttp().getRequest();
-		const user = await dataSource
-			.getRepository(User)
-			.findOneBy({ id: request.session.user_id });
-
-		if (!user) {
-			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
-		}
-
-		return user;
-	},
-);
 
 export const Me = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
@@ -118,7 +26,23 @@ export const Me = createParamDecorator(
 	}
 );
 
-export async function parseId(type: any, value: any) {
+export function validate_id(value: any) {
+	if (!value || value === null)
+		throw new Error("id not undefined");
+	if (!['string', 'number'].includes(typeof value))
+		throw new Error("id must be either a string or a number");
+	if (typeof value === "string" && !isNumeric(value, { no_symbols: true }))
+		throw new Error("id must consist of only digits");
+	const id = Number(value);
+	if (!isFinite(id))
+		throw new Error("id must be finite");
+	if (id > Number.MAX_SAFE_INTEGER)
+		throw new Error(`id may not be larger than ${Number.MAX_SAFE_INTEGER}`);
+	return id;
+}
+
+//@deprecated
+export async function parseId<T>(type: (new () => T), value: any, repo: Repository<T>) {
 	if (!value || value === null)
 		throw new HttpException('id not specified', HttpStatus.BAD_REQUEST);
 	if (!['string', 'number'].includes(typeof value))
@@ -132,23 +56,43 @@ export async function parseId(type: any, value: any) {
 		throw new HttpException('id must be finite', HttpStatus.UNPROCESSABLE_ENTITY);
 	if (id > Number.MAX_SAFE_INTEGER)
 		throw new HttpException(`id may not be larger that ${Number.MAX_SAFE_INTEGER}`, HttpStatus.UNPROCESSABLE_ENTITY);
-	const entity = await dataSource.getRepository(type).findOneBy({ id: Number(value) });
+	const entity = await repo.findOneBy({ id: Number(value) } as unknown as FindOptionsWhere<T>);
 	if (!entity)
 		throw new HttpException('not found', HttpStatus.NOT_FOUND);
 	return entity;
 }
 
-export function ParseIDPipe(type: any) {
-	return class ParseIDPipe implements PipeTransform {
+export function ParseIDPipe<T>(type: (new () => T)) {
+	@Injectable()
+	class ParseIDPipe implements PipeTransform {
+		constructor(
+			@Inject(type.name.toString().toUpperCase() + "_REPO")
+			readonly repo: Repository<T>
+		) {}
+
 		async transform(value: any, metadata: ArgumentMetadata) {
-			return parseId(type, value);
+			try {
+				const id = validate_id(value);
+				const entity = await this.repo.findOneBy({ id: id } as unknown as FindOptionsWhere<T>);
+				if (!entity)
+					throw new HttpException("not found", HttpStatus.NOT_FOUND);
+				return entity;
+			} catch (error) {
+				throw new HttpException(error, HttpStatus.BAD_REQUEST);
+			}
 		}
 	};
+	return ParseIDPipe;
 }
 
-
-//TODO do not allow whitespaces in username
+//TODO do not allow whitespaces in username=
+@Injectable()
 export class ParseUsernamePipe implements PipeTransform {
+	constructor(
+		@Inject("USER_REPO")
+		private readonly user_repo: Repository<User>
+	) {}
+
 	async transform(value: any, metadata: ArgumentMetadata) {
 		if (!value || value === null)
 			throw new HttpException('username not specified', HttpStatus.BAD_REQUEST);
@@ -156,7 +100,7 @@ export class ParseUsernamePipe implements PipeTransform {
 			throw new HttpException('username must be a string', HttpStatus.BAD_REQUEST);
 		if (!isLength(value, { min: 3, max: 20 }))
 			throw new HttpException('username must be 3 to 20 characters long', HttpStatus.BAD_REQUEST);
-		const entity = await dataSource.getRepository(User).findOneBy({ username: value });
+		const entity = await this.user_repo.findOneBy({ username: value });
 		if (!entity)
 			throw new HttpException('user not found', HttpStatus.NOT_FOUND);
 		return entity;

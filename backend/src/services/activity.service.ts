@@ -24,6 +24,7 @@ export class ActivityService {
 	= new Map<number, { last_status: Status, last_activity: number}>();
 
 	constructor(
+		private readonly update_gateway: UpdateGateway,
 		@Inject("USER_REPO") private readonly user_repo: Repository<User>,
 	) {
 		setInterval(async () => {
@@ -54,7 +55,7 @@ export class ActivityService {
 	async send_update(...users: User[] | number[]) {
 		for (const user of users) {
 			const id = typeof user === "number" ? user : user.id;
-			await UpdateGateway.update_user_partial(id, { status: this.get_status(id) });
+			await this.update_gateway.update_user_partial(id, { status: this.get_status(id) });
 		}
 	}
 
