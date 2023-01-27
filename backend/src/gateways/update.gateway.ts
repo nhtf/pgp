@@ -1,34 +1,52 @@
-import { Inject } from "@nestjs/common";
+import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
+import { Inject, UseGuards } from "@nestjs/common";
 import { Server, Socket } from "socket.io";
 import { User } from "../entities/User";
 import { Repository } from "typeorm"
 import { instanceToPlain } from "class-transformer";
-import { ProtectedGateway } from "./protected.gateway";
+import { WsAuthGuard } from "src/auth/auth.guard";
+import { FRONTEND_ADDRESS } from "../vars";
+import type { SessionObject } from "src/services/session.service";
 
-export class UpdateGateway extends ProtectedGateway("update") {
+declare module "http" {
+	export interface IncomingMessage {
+		session: SessionObject;
+	}
+
+}
+
+@WebSocketGateway({
+	namespace: "update",
+	cors: { origin: FRONTEND_ADDRESS, credentials: true },
+})
+@UseGuards(WsAuthGuard)
+export class UpdateGateway {
+
+	@WebSocketServer()
+	private readonly server: Server;
 
 	//TODO purge inactive sockets?
 	private readonly sockets = new Map<number, Socket[]>();
 
-	constructor() {
-		super();
+	constructor(
+		@Inject("USER_REPO")
+		private readonly user_repo: Repository<User>,
+	) {
 	}
 
-	async onConnect(client: Socket) {
-		console.log("connect");
+	async handleConnection(client: Socket) {
 		const id = client.request.session.user_id;
 		if (!this.sockets.has(id))
 			this.sockets.set(id, []);
 		if (this.sockets.get(id).length === 0) {
-			//const user = await this.user_repo.findOneBy({ id: id });
-			//user.has_session = true;
-			//await this.user_repo.save(user);
+			const user = await this.user_repo.findOneBy({ id: id });
+			user.has_session = true;
+			await this.user_repo.save(user);
 		}
 		this.sockets.get(id).push(client);
 	}
 
-	async onDisonnect(client: Socket) {
-		console.log("hi");
+	async handleDisconnect(client: Socket) {
 		const id = client.request.session.user_id;
 		const sockets = this.sockets.get(id);
 		const idx = sockets.findIndex(socket => socket.request.session.id === socket.request.session.id);
@@ -40,9 +58,9 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			console.log(sockets.length);
 			if (sockets.length === 0) {
 				console.log("last socket");
-				//const user = await this.user_repo.findOneBy({ id: id });
-				//user.has_session = false;
-				//await this.user_repo.save(user);
+				const user = await this.user_repo.findOneBy({ id: id });
+				user.has_session = false;
+				await this.user_repo.save(user);
 			}
 		}
 	}

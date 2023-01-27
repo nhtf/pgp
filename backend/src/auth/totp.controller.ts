@@ -17,7 +17,7 @@ import { authenticator } from 'otplib';
 import { SessionService } from 'src/services/session.service';
 import { AuthLevel } from '../enums/AuthLevel';
 import { Length, IsNumberString } from 'class-validator';
-import { AuthGuard } from './auth.guard';
+import { HttpAuthGuard } from './auth.guard';
 import { SetupGuard } from 'src/guards/setup.guard';
 import * as qrcode from 'qrcode';
 import { Me } from '../util';
@@ -56,7 +56,7 @@ export class TotpController {
 
 	@Post('setup')
 	@HttpCode(HttpStatus.ACCEPTED)
-    @UseGuards(AuthGuard, SetupGuard)
+    @UseGuards(HttpAuthGuard, SetupGuard)
 	async setup(@Me() user: User, @Req() request: Request) {
 		let session = request.session;
 		if (user.auth_req === AuthLevel.TWOFA)
@@ -90,7 +90,7 @@ export class TotpController {
 	}
 
 	@Post('disable')
-	@UseGuards(AuthGuard, SetupGuard)
+	@UseGuards(HttpAuthGuard, SetupGuard)
 	async disable(@Me() user: User, @Req() request: Request) {
 		if (request.session.auth_level != AuthLevel.TWOFA)
 			throw new HttpException('no totp has been set up', HttpStatus.FORBIDDEN);
@@ -137,7 +137,7 @@ export class TotpController {
 
 	@Post('setup_verify')
 	@HttpCode(HttpStatus.CREATED)
-	@UseGuards(AuthGuard, SetupGuard)
+	@UseGuards(HttpAuthGuard, SetupGuard)
 	async setup_verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
 		if (!request.session.secret)
 			throw new HttpException('forbidden', HttpStatus.FORBIDDEN);

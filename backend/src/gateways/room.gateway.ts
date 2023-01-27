@@ -1,24 +1,34 @@
-import { HttpException, HttpStatus, Inject } from '@nestjs/common';
+import { HttpException, HttpStatus, Inject, UseGuards } from '@nestjs/common';
 import {
 	MessageBody,
 	SubscribeMessage,
 	ConnectedSocket,
+	WebSocketGateway,
+	WebSocketServer,
 } from '@nestjs/websockets';
-import { Socket } from 'socket.io';
+import type { Socket, Server } from 'socket.io';
 import { ChatRoom } from 'src/entities/ChatRoom';
 import { Message } from 'src/entities/Message';
 import { User } from 'src/entities/User';
 import { Repository } from 'typeorm';
-import { ProtectedGateway } from './protected.gateway';
+import { FRONTEND_ADDRESS } from "src/vars";
+import { WsAuthGuard } from "src/auth/auth.guard";
 
-export class RoomGateway extends ProtectedGateway("room") {
+@WebSocketGateway({
+	namespace: "room",
+	cors: { origin: FRONTEND_ADDRESS, credentials: true }
+})
+@UseGuards(WsAuthGuard)
+export class RoomGateway {
+	@WebSocketServer()
+	server: Server;
+
 	constructor(
 		@Inject('USER_REPO')
 		private readonly userRepo: Repository<User>,
 		@Inject('MESSAGE_REPO')
 		private readonly messageRepo: Repository<Message>
 	) {
-		super();
 	}
 
 	@SubscribeMessage('join')

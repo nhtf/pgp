@@ -5,7 +5,7 @@ import { User } from '../entities/User';
 import { FriendRequest } from '../entities/FriendRequest';
 import { Repository } from 'typeorm';
 import { IsString, Length } from 'class-validator';
-import { AuthGuard } from '../auth/auth.guard';
+import { HttpAuthGuard } from '../auth/auth.guard';
 import { Me, ParseIDPipe, ParseUsernamePipe } from '../util';
 import { randomBytes } from 'node:crypto';
 import { open, rm } from 'node:fs/promises';
@@ -29,7 +29,7 @@ class UsernameDTO {
 
 export function GenericUserController(route: string, options: { param: string, cparam: string, pipe: any }) {
 	@Controller(route)
-	@UseGuards(AuthGuard)
+	@UseGuards(HttpAuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	class UserControllerFactory {
 		constructor(

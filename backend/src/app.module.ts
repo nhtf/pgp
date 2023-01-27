@@ -7,7 +7,7 @@ import { DebugController } from './controllers/debug.controller';
 import { UserIDController, UserUsernameController, UserMeController, } from './controllers/user.controller';
 import { DataSource } from 'typeorm';
 import { HOST, DB_PORT, DB_USER, DB_PASS } from './vars';
-import { AuthGuard } from './auth/auth.guard';
+import { HttpAuthGuard } from './auth/auth.guard';
 import * as session from 'express-session';
 import { SESSION_SECRET, PURGE_INTERVAL, OFFLINE_TIME } from './vars';
 import { TestController } from './services/room.service';
@@ -112,32 +112,6 @@ const entityProviders = entityFiles.map<{
 	};
 });
 
-export const activity_map = new Map<number, number>();
-
-export async function set_offline(user: User | number) {
-	if (typeof user === "number")
-		user = await dataSource.getRepository(User).findOneBy({ id: user });
-	//TODO send message to users informing user has gone offline
-	activity_map.delete(user.id);
-}
-
-export async function user_heartbeat(user: User | number) {
-	if (typeof user === "number")
-		user = await dataSource.getRepository(User).findOneBy({ id: user });
-	//TODO send message to users if the user switched state
-	activity_map.set(user.id, Date.now());
-}
-
-setInterval(() => {
-	const now = Date.now();
-
-	for (const [id, access] of activity_map.entries()) {
-		if (now - access > OFFLINE_TIME)
-			set_offline(id);
-	}
-}, PURGE_INTERVAL);
-
-
 @Module({
 	imports: [
 		/*TypeOrmModule.forRoot({ type: 'postgres', username: 'postgres', password: 'postgres', host: '172.19.0.2' }),*/
@@ -158,7 +132,7 @@ setInterval(() => {
 		GameGateway,
 		RoomGateway,
 		UpdateGateway,
-		AuthGuard,
+		HttpAuthGuard,
 		ActivityService,
 		SessionService,
 		SetupGuard,

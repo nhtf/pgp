@@ -8,7 +8,7 @@ import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, 
 import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
 import { Role } from "../enums/Role";
 import { Me, ParseUsernamePipe } from "../util";
-import { AuthGuard } from "../auth/auth.guard";
+import { HttpAuthGuard } from "../auth/auth.guard";
 import { Observable } from "rxjs";
 import { RoomInvite } from "../entities/RoomInvite";
 import * as argon2 from "argon2";
@@ -60,7 +60,7 @@ export const RoleGuard = (role: Role) => {
 }
 
 export function GenericRoomController<T extends Room>(type: (new () => T), route?: string) {
-	@UseGuards(AuthGuard)
+	@UseGuards(HttpAuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Controller(route || type.name.toString().toLowerCase())
 	class RoomControllerFactory {

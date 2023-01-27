@@ -1,29 +1,31 @@
-import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Inject, Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Repository } from "typeorm";
 import { dataSource } from '../app.module';
-import { User } from '../entities/User';
+import { User } from '../entities/User'; //TODO import as type
+import type { Request } from "express";
 
-export async function authorize(session: any): Promise<boolean> {
-	if (!session) return false;
-	if (session.user_id === undefined) return false;
-	const user = await dataSource
-		.getRepository(User)
-		.findOneBy({ id: session.user_id });
-	if (!user) return false;
-	return user.auth_req === session.auth_level;
-}
+function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
+	@Injectable()
+	class GenericAuthGuardFactory implements CanActivate {
+		constructor(
+			@Inject("USER_REPO")
+			readonly user_repo: Repository<User>,
+		) {}
 
-@Injectable()
-export class AuthGuard implements CanActivate {
-	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const request = context.switchToHttp().getRequest();
-		return authorize(request.session);
-		/*
-		if (request.session.user_id == undefined) return false;
-		const user = await dataSource
-			.getRepository(User)
-			.findOneBy({ id: request.session.user_id });
-		if (!user) return false;
-		return user.auth_req === request.session.auth_level;
-		*/
+		async canActivate(context: ExecutionContext): Promise<boolean> {
+			const session = get_request(context)?.session;
+			const id = session?.user_id;
+			
+			if (!id)
+				return false;
+			const user = await this.user_repo.findOneBy({ id });
+			if (!user)
+				return false;
+			return user.auth_req === session.auth_level;
+		}
 	}
+	return GenericAuthGuardFactory;
 }
+
+export class HttpAuthGuard extends GenericAuthGuard(context => context.switchToHttp().getRequest()) {}
+export class WsAuthGuard extends GenericAuthGuard(context => context.switchToWs().getClient().getRequest()) {}
