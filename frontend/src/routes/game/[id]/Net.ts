@@ -1,6 +1,7 @@
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
+import Swal from "sweetalert2";
 
 export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
@@ -217,10 +218,18 @@ export class Net {
 		this.snapshots.push(this.save());
 
 		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
+
 		this.socket?.on("connect", () => {
 			this.socket?.emit("join", { "scope": "game", "room": options.room });
 		});
-		this.socket.on("exception", console.error);
+
+		this.socket.on("exception", (err) => {
+			Swal.fire({
+				icon: "error",
+				text: `${err.message}`,
+			});
+		});
+
 		this.socket.on("broadcast", message => {
 			this.bandwidthDownload.add(JSON.stringify(message).length);
 

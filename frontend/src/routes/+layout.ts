@@ -1,5 +1,5 @@
 import { get } from "$lib/Web";
-import type { User } from "$lib/types";
+import type { User, Invite } from "$lib/types";
 import type { LayoutLoad } from "./$types";
 
 export const ssr = false;
@@ -11,8 +11,11 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 
 	try {
 		const user: User | null = await get("/user/me");
-
+		const invites: Invite[] = await get("/user/me/invites");
+		const friend_requests = await get("/user/me/friends/requests")
 		ret.user = user;
+		ret.invites = invites;
+		ret.friend_requests = friend_requests;
 	} catch (err) {
 		console.log("error in layout.ts: ", err);
 	}

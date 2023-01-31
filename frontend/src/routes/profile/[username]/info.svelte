@@ -21,7 +21,7 @@
 
 <div class="block_vert" id="info">
 	<div class="block_hor" id="user-block">
-		<div class="block_cell">
+		<div class="block_cell" id="user-name-block">
 			<div class="block_hor">
 				<h1>{$page.params.username}</h1>
 			</div>
@@ -73,6 +73,11 @@
 
 <style>
 
+	#user-name-block {
+		padding: 0;
+		padding-right: 3px;
+	}
+
 	.table-cell {
 		/* border: 1px solid var(--border-color);
 		border-radius: 6px; */
@@ -87,7 +92,7 @@
 	}
 
 	#legend {
-        background: rgb(51, 55, 67);
+        background: var(--box-color);
 		border-radius: 6px;
 		height: 30px;
         /* box-shadow: 0 0 0 var(--box-color); */
@@ -103,6 +108,9 @@
 	#user-block {
 		width: -moz-available;
 		width: -webkit-fill-available;
+		padding-left: 0;
+		padding-right: 0;
+		padding-top: 15px;
 	}
 
 	#level-block {
@@ -129,6 +137,10 @@
 		justify-content: flex-end;
 	}
 
+	#level-text {
+		padding: 0;
+	}
+
 	.bar {
 		background: var(--bar-prog-color);
 		border-radius: 10px;
@@ -144,6 +156,9 @@
 	#info {
 		flex-grow: 3;
 		max-width: 600px;
+		height: 100%;
+		padding-left: 5px;
+		padding-right: 5px;
 	}
 
 	.block_vert {

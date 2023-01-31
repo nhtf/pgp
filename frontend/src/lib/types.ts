@@ -22,6 +22,7 @@ export type User = {
 	status: string,
 	in_game: boolean,
 	achievements?: Achievement[],
+	invites?: any[],
 };
 
 export type Message = {

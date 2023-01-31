@@ -41,7 +41,7 @@ export function validate_id(value: any) {
 	return id;
 }
 
-//@deprecated
+// TODO: daan moet hiernaar kijken
 export async function parseId<T>(type: (new () => T), value: any, repo: Repository<T>) {
 	if (!value || value === null)
 		throw new HttpException("id not specified", HttpStatus.BAD_REQUEST);
@@ -78,7 +78,7 @@ export function ParseIDPipe<T>(type: (new () => T)) {
 					throw new HttpException("not found", HttpStatus.NOT_FOUND);
 				return entity;
 			} catch (error) {
-				throw new HttpException(error, HttpStatus.BAD_REQUEST);
+				throw new HttpException(error + "thingy", HttpStatus.BAD_REQUEST);
 			}
 		}
 	};

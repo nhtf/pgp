@@ -25,6 +25,11 @@ import { SessionService } from "src/services/session.service";
 import * as Pool from "pg-pool";
 import { SessionExpiryMiddlware } from "./middleware/session.expire.middleware";
 import { SetupGuard } from "src/guards/setup.guard";
+import { Room } from "./entities/Room";
+import { getRoomService } from "./services/room.service";
+import { Repository } from "typeorm";
+import { Member } from "./entities/Member";
+import { RoomInvite } from "./entities/RoomInvite";
 
 export const db_pool = new Pool({
 	database: "dev", //TODO make this not hardcoded
@@ -103,6 +108,11 @@ const databaseProviders = [
 	},
 ];
 
+const entityClasses = entityFiles.map<Function>(value => {
+	const entity = require(value);
+	return Object.values(entity)[0] as Function
+});
+
 const entityProviders = entityFiles.map<{
 	provide: any;
 	useFactory: any;
@@ -116,6 +126,18 @@ const entityProviders = entityFiles.map<{
 		provide: name,
 		useFactory: (dataSource: DataSource) => dataSource.getRepository(clazz),
 		inject: ["DATA_SOURCE"],
+	};
+});
+
+const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room).map(value => {
+	const name = value.name.toUpperCase();
+	console.log(name + "_SERVICE");
+	return {
+		provide: name + "_SERVICE",
+		useFactory: (room_repo: any, member_repo: Repository<Member>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
+			return getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any);
+		},
+		inject: [name + "_REPO", "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
 	};
 });
 
@@ -145,6 +167,7 @@ const entityProviders = entityFiles.map<{
 		SetupGuard,
 		...databaseProviders,
 		...entityProviders,
+		...roomServices,
 	],
 	exports: [...databaseProviders],
 })
@@ -158,6 +181,7 @@ export class AppModule implements NestModule {
 			{ path: "debug(.*)", method: RequestMethod.ALL 
 		}).forRoutes("*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
 		consumer.apply(ActivityMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
 			{ path: "debug(.*)", method: RequestMethod.ALL 

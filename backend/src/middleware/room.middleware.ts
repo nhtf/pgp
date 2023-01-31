@@ -17,15 +17,12 @@ export class RoomMiddleware implements NestMiddleware {
 	       
 		try {
 			id = validate_id(req.params.id);
+			const room = await this.repo.findOneBy({ id: id });
+			if (!room)
+				throw new HttpException("room not found", HttpStatus.NOT_FOUND);
+			req.room = room;
 		} catch (error) {
-			throw new HttpException(error.message, HttpStatus.BAD_REQUEST, { cause: error });
 		}
-
-		const room = await this.repo.findOneBy({ id: id });
-		if (!room)
-			throw new HttpException("room not found", HttpStatus.NOT_FOUND);
-		req.room = room;
-
 		next();
 	}
 }

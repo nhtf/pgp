@@ -4,7 +4,7 @@
   import type { LayoutData } from "./$types";
   import { logout } from "./layout_log_functions";
   import { page } from "$app/stores";
-
+  import Notifications from "./notifications.svelte";
   import { io } from "socket.io-client";
   import { BACKEND_ADDRESS, BACKEND } from "$lib/constants";
   import {
@@ -102,6 +102,7 @@
     />
     {#if user?.username}
     <Avatar id="avatar-menu" src={data.user.avatar} />
+    <Notifications/>
     {/if}
   </div>
   {#if user?.username}

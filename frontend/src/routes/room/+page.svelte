@@ -8,6 +8,7 @@
     import Swal from "sweetalert2";
     import { onMount } from "svelte/internal";
     import Room from "./Room.svelte";
+    import {Checkbox} from "flowbite-svelte";
 
     export let data: PageData;
 
@@ -15,28 +16,26 @@
 		throw error(401, "Unauthorized");
 	}
 
-    let room_dto: any = {
+    const room_dto: any = {
         name: "",
         is_private: false,
     };
 
-    let room_password = "";
+    let password = "";
+
     let mine = data.mine;
     let joinable = data.joinable;
 
     async function fetchChatRooms() {
-        mine = await unwrap(get("/room/mine"));
-        joinable = await unwrap(get("/room/joinable"));
+        mine = await unwrap(get("/room/all"));
+        // joinable = await unwrap(get("/room/joinable"));
 
     }
 
     async function createChatRoom() {
-        if (room_password.length) {
-            room_dto.password = room_password;
-        }
-
+        if (password.length)
+            room_dto.password = password;
         await unwrap(post("/room", room_dto));
-
         await fetchChatRooms();
     }
 
@@ -75,55 +74,64 @@
 
 </script>
 
-<form class="room" style="margin: 1em;" on:submit|preventDefault={createChatRoom}>
-    <input type="text" bind:value={room_dto.name} placeholder="Room name..."/>
-    <input type="checkbox" bind:checked={room_dto.is_private}/>Private
-    <input type="text" bind:value={room_password} placeholder="password..."/>
-    <input type="submit" value="Create"/>
-</form>
-<div class="tab">
-    <div class="room_list">
-        {#each mine as chatroom}
-            <Room room={chatroom} click={enter}/>
-        {/each}
-    </div>
-    <div style="flex-grow: 1" ></div>
-    <div class="room_list">
-        {#each joinable as chatroom}
-            <Room room={chatroom} click={join}/>
-        {/each}
-    </div>
+<div class="room-container">
+	<div class="room room-create shadow">
+		<div>
+			<input class="input" placeholder="Room name" bind:value={room_dto.name}>
+            {#if room_dto.is_private}
+            <input class="input" placeholder="password" bind:value={password}>
+            {/if}
+            <br>
+            <Checkbox bind:checked={room_dto.is_private}>Private</Checkbox>
+		</div>
+		<button class="button button-create" on:click={createChatRoom}>Create</button>
+	</div>
+	{#each mine as chatroom}
+        <Room room={chatroom} click={enter}/>
+    {/each}
+    {#each joinable as chatroom}
+        <Room room={chatroom} click={join}/>
+    {/each}
 </div>
 
 <style>
+.room-container {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		padding: 25px 10px;
+	}
 
-.tab {
-    display: flex;
-    flex-direction: row;
-}
+	.room {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 10px;
+		background: var(--box-color);
+		border: 2px var(--border-color);
+		border-radius: 6px;
+		padding: 15px;
+	}
 
-.room_list {
-    border-radius: 1em;
-    display: flex;
-    flex-direction: column;
-    list-style: none;
-    margin: 1em;
-    gap: 1em;
-    overflow: auto;
-}
+	.button, .input {
+		display: inline-block;
+        color: var(--text-color);
+		background-color: var(--input-bkg-color);
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 2px 8px;
+	}
 
-.room {
-    background-color:steelblue;
-    border-radius: 1em;
-    display: flex;
-    flex-direction: row;
-    font-size: 1em;
-    gap: 1em;
-    padding: 1em;
-}
+	.button {
+		width: 80px;
+		text-align: center;
+	}
 
-.room input {
-    border-radius: 1em;
-}
+	.button-create {
+		border-color: var(--green);
+	}
 
+	br {
+		margin-bottom: 10px;
+	}
 </style>

@@ -55,5 +55,10 @@
 		font-size: 2em;
 		gap: 1em;
 		margin: 1em;
+		color: var(--text-color);
+	}
+
+	input {
+		color: var(--text-color);
 	}
 </style>

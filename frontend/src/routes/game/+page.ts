@@ -5,7 +5,8 @@ import { get } from "$lib/Web";
 export async function load({ fetch }: any) {
 	window.fetch = fetch;
 
-	const rooms = await unwrap(get("/game/mine"));
+	const mine = await unwrap(get("/game?member=true"));
+	const joinable = await unwrap(get("/game?member=false"));
 
-	return { rooms };
+	return { mine, joinable };
 };

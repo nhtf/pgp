@@ -1,10 +1,10 @@
 import { Inject } from "@nestjs/common";
 import { User } from "src/entities/User";
-import { MessageBody, SubscribeMessage, WebSocketGateway, ConnectedSocket } from "@nestjs/websockets";
+import { MessageBody, SubscribeMessage, WebSocketGateway, ConnectedSocket, WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 import { Repository } from "typeorm"
-import { parseId } from "src/util";
-import { Room } from "src/entities/Room";
+import { validate_id } from "src/util";
+import { GameRoom } from "src/entities/GameRoom";
 import { FRONTEND_ADDRESS } from "src/vars";
 
 declare module "socket.io" {
@@ -22,6 +22,8 @@ export class GameGateway {
 	constructor(
 		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>,
+		@Inject("GAMEROOM_REPO")
+		private readonly gameroom_repo: Repository<GameRoom>,
 	) {}
 
 	async handleConnection(@ConnectedSocket() client: Socket) {
@@ -46,7 +48,7 @@ export class GameGateway {
 		client.to("game-" + client.room).emit("broadcast", data);
 
 		if (data.name === "synchronize") {
-			// TODO: only if room owner?
+			// TODO: don't send too many updates, maybe only once every few seconds
 			client.to("stat-" + client.room).emit("status", data.snapshot.state);
 		}
 	}
@@ -58,19 +60,21 @@ export class GameGateway {
 				return;
 			}
 
-			// TODO: internal server error when not in room
-			
-/*
 			const request = client.request as any;
-			const room = await parseId(Room, data.room);
+			const roomId = validate_id(data.room);
+			const room = await this.gameroom_repo.findOneBy({ id: roomId });
+
+			if (room === null) {
+				throw new WsException("Invalid room id");
+			}
+
 			const members = await room.members;
 			const users = await Promise.all(members.map(member => member.user));
 			const index = users.findIndex(user => user.id === request.user.id);
 
 			if (index < 0) {
-				return;
+				throw new WsException("Invalid room id");
 			}
-*/
 
 			client.room = data.room;
 		}

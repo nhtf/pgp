@@ -147,7 +147,7 @@
 </div>
 {/if}
 
-<div class="block_vert">
+<div class="block_cell self-flex-start background-color-custom bordered" id="friend-block">
     <div class="block_hor">
         <div class="block_cell">
             <h1 >Friends</h1>
@@ -157,42 +157,52 @@
             add friend
         </div>
     </div>
-    
-    
-    {#if friends}
-        {#each friends as { username, avatar, status, in_game, id }, index}
-            <Button color="light" id="avatar_with_name{index}">
-                <Avatar src={avatar} class="mr-2"/>
-                <div class="block_cell">
-                    <div class="block_hor">{username}</div>
-                    {#if !in_game}
-                        <div class="block_hor" id={status}>{status}</div>
-                    {:else}
-                        <div class="block_hor" id="in_game">playing</div>
-                        {#if score.has(username)}
-                            <div class="block_hor" id="scoredv">{score.get(username)}</div>
+    <div class="block_vert width-available">
+        {#if friends}
+            {#each friends as { username, avatar, status, in_game, id }, index}
+                <Button color="alternative" id="avatar_with_name{index}">
+                    <Avatar src={avatar} class="mr-2"/>
+                    <div class="block_cell">
+                        <div class="block_hor">{username}</div>
+                        {#if !in_game}
+                            <div class="block_hor" id={status}>{status}</div>
+                        {:else}
+                            <div class="block_hor" id="in_game">playing</div>
+                            {#if score.has(username)}
+                                <div class="block_hor" id="scoredv">{score.get(username)}</div>
+                            {/if}
                         {/if}
-                    {/if}
-                </div>
-            </Button>
-            <div class="spacing"></div>
-            <Dropdown inline triggeredBy="#avatar_with_name{index}">
-            <DropdownItem href="/profile/{username}">view profile</DropdownItem>
-            {#if in_game}
-                <DropdownItem>spectate</DropdownItem>
-            {:else if status !== "offline"}
-                <DropdownItem>invite game</DropdownItem>
-            {/if}
-            <DropdownItem slot="footer">unfriend</DropdownItem>
-            </Dropdown>
-        {/each}
-    {/if}
+                    </div>
+                </Button>
+                <div class="spacing"></div>
+                <Dropdown inline triggeredBy="#avatar_with_name{index}" class="border-color-custom background-color-custom"
+                frameClass="border-color-custom background-color-custom">
+                <DropdownItem href="/profile/{username}">view profile</DropdownItem>
+                {#if in_game}
+                    <DropdownItem>spectate</DropdownItem>
+                {:else if status !== "offline"}
+                    <DropdownItem>invite game</DropdownItem>
+                {/if}
+                <DropdownItem slot="footer">unfriend</DropdownItem>
+                </Dropdown>
+            {/each}
+        {/if}
+    </div>
 </div>
 
 <style>
 
+    .width-available {
+        width: -moz-available;
+        width: -webkit-fill-available;
+    }
+
+    #friend-block {
+        height: 100%;
+    }
+
     .spacing {
-        padding-top: 5px;
+        padding-top: 1px;
 
     }
 
@@ -264,11 +274,10 @@
 
     .block_vert {
         flex-grow: 0.1;
-        padding-left: 0;
-        padding-right: 0;
+        padding: 0;
+        border: 0;
+        height: 100%;
     }
-
-.block_hor {width: 90%;}
 
 .block_cell {
     flex-direction: column;
@@ -299,10 +308,10 @@
     /* top: -15px; */
 }
 
-#online, #active{color: #5193af;}
-#offline {color: rgb(250, 93, 93);}
+#online, #active{color: var(--blue);}
+#offline {color: var(--red);}
 #idle {color: yellow;}
-#in_game, #scoredv {color: #88c5a4;}
+#in_game, #scoredv {color: var(--green);}
 
 #scoredv {
     font-size: 10px;
@@ -312,6 +321,10 @@
 #friend-hor {
     min-height: 55px;
     border: 2px solid var(--border-color);
+}
+
+.self-flex-start {
+    align-self: flex-start;
 }
 
 @media (max-width: 750px) {

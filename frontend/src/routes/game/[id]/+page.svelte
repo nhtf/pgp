@@ -63,10 +63,10 @@
 
 </script>
 
-<div bind:this="{container}" class="container"></div>
+<div bind:this="{container}" class="game-container"></div>
 
 <style>
-	.container {
+	.game-container {
 		margin-left: 5px;
 		margin-right: 5px;
 		margin-bottom: 5px;

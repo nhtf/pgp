@@ -15,8 +15,9 @@ export class Member {
 	user: Promise<User>;
 
 	@Exclude()
-	@ManyToOne(() => Room, { onDelete: "CASCADE" })
+	@ManyToOne(() => Room, { onDelete: "CASCADE", cascade: [ "insert", "update" ]})
 	room: Promise<Room>;
+//	room: Room;
 
 	@Column({
 		type: "enum",
@@ -31,7 +32,7 @@ export class Member {
 
 	async serialize() {
 		return {
-			...instanceToPlain(this),
+			role: this.role,
 			user: await this.user,
 		};
 	}

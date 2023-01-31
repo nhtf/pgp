@@ -15,7 +15,7 @@
         }
     }
 
-    const radius = 33;
+    const radius = 30;
     const cirmum = radius * 2 * Math.PI;
 </script>
 
@@ -51,11 +51,11 @@
                                     <svg class="prog-ring">
                                         <circle
                                             class="normal-circle"
-                                            r={radius} cx="25" cy="25"
+                                            r={radius} cx="29" cy="21"
                                         />
                                         <circle
                                             class="prog-ring__circle"
-                                            r={radius} cx="25" cy="25"
+                                            r={radius} cx="29" cy="21"
                                             style:stroke-dashoffset={cirmum -
                                             (progress / level_cost[level]) * cirmum}
                                         />
@@ -64,7 +64,7 @@
                                         class="icon move" id="ach-level{level}"
                                         title={name}
                                         style="mask-image: url({icon});
-                                        -webkit-mask-image: url({icon}) top: -50px;"
+                                        -webkit-mask-image: url({icon});"
                                     />
                                 </div>
                             </div>
@@ -101,7 +101,8 @@
         width: 100%;
     }
     .move {
-        top: -52px;
+        top: -53px;
+        right: 4px;
     }
 
     .prog-ring {
@@ -186,7 +187,7 @@
 
     #ach-bar {
         position: relative;
-        right: 1px;
+        right: 2px;
         width: 110%;
     }
 
@@ -196,8 +197,8 @@
 
     .icon-block {
         padding: 0;
-        height: 50px;
-        width: 50px;
+        /* height: 50px;
+        width: 50px; */
         border: 4px solid gold;
         border-radius: 50%;
         outline: 2px solid silver;
@@ -242,7 +243,7 @@
         background-color: #967444;
         width: 50px;
         height: 50px;
-        scale: 0.7;
+        scale: 0.65;
         display: flex;
         position: relative;
     }

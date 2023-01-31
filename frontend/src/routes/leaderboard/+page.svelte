@@ -16,26 +16,6 @@
      } from "flowbite-svelte";
     let width: number;
     let height: number;
-
-    function sort(sorter: any, index_sorter: number, index: number) {
-        changeSort(sorter, index_sorter, index, data.lb);
-        data.lb = data.lb;
-    }
-
-    function changeActive(id: string, index: number) {
-        console.log(id);
-        for (let i = 0; i < LEADERBOARDS.length; i+=1) {
-            LEADERBOARDS[i].active = false;
-            const el = document.getElementById(LEADERBOARDS[i].id);
-            if (el)
-                el.style.display = "none";
-        }
-        LEADERBOARDS[index].active = true;
-        const el = document.getElementById(id);
-        if (el) {
-            el.style.display = "flex";
-        }
-    }
     
     function checkwindow() {
         if (width > 1350) {
@@ -60,6 +40,7 @@
 
     onMount(() => {
         checkwindow();
+        checkDiv();
     });
 
     let searchTerm = ["", ""];
@@ -71,19 +52,30 @@
     (item) => item.username.toLowerCase().indexOf(searchTerm[1].toLowerCase()) !== -1
     )
     ];
+
+    function checkDiv() {
+        const elements = document.getElementsByClassName("relative overflow-x-auto rounded-lg overflow-y-auto");
+        for (let i = 0; i < elements.length; i+=1) {
+            for (let j = 0; j < elements[i].childNodes.length; j+=1) {
+                const el = elements[i].childNodes[j] as HTMLElement;
+                if (el.className === "p-4")
+                    el.style.padding = "0";
+            }
+        }
+    }
 </script>
 
-<svelte:window on:resize={checkwindow} bind:innerWidth={width} bind:innerHeight={height}/>
+<svelte:window on:resize={checkwindow} bind:innerWidth={width} bind:innerHeight={height} on:click={checkDiv}/>
 
 
 
 <div class="contain">
     <Tabs style="underline" 
     divider
-    defaultClass="flex flex-wrap space-x-2 background-color-custom"
+    defaultClass="flex flex-wrap space-x-2 background-color-custom rounded"
     contentClass="tab-content-background">
         {#each LEADERBOARDS as {title, active}, index}
-        <TabItem open={active} class="background-color-custom"  title={title}>
+        <TabItem open={active} class="background-color-custom rounded" defaultClass="rounded"  title={title}>
             <TableSearch
             divClass="relative overflow-x-auto rounded-lg overflow-y-auto"
             class="bordered"
@@ -127,13 +119,13 @@
 
     .contain {
         display: flex;
-        padding-top: 25px;
-        padding-bottom: 25px;
+        padding-top: 20px;
         flex-direction: column;
-        justify-content: center;
+        justify-content: flex-start;
         position: relative;
         margin: 0 auto;
         width: 80%;
+        height: calc(100vh - 80px);
     }
 
     @media (max-width: 500px) {

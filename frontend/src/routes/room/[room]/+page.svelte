@@ -5,10 +5,11 @@
     import { unwrap } from "$lib/Alert";
     import type { Member, Message } from "$lib/types";
     import type { PageData } from "./$types";
-    import { FRONTEND } from "$lib/constants";
+    import { FRONTEND, BACKEND } from "$lib/constants";
     import { post, remove } from "$lib/Web";
     import { error } from "@sveltejs/kit";
     import MessageBox from "./MessageBox.svelte";
+
 
 	export let data: PageData;
 
@@ -54,8 +55,17 @@
             });
 		}
 
-		await unwrap(post(`/room/id/${room.id}/invite`, { username: invitee }));
+		// const formData = new FormData();
+		// formData.append("username", invitee);
 
+		// const res = await window.fetch(`${BACKEND}/room/id/${room.id}/invite`, {
+		// credentials: "include",
+		// method: "POST",
+		// body: formData,
+		// });
+		// console.log(res);
+		await unwrap(post(`/room/id/${room.id}/invite`, {username: invitee} ));
+		// if (res.ok){
 		Swal.fire({
 			icon: "success",
 			timer: 1000,
@@ -116,4 +126,10 @@
 		margin: 1em;
 		align-items: baseline;
 	}
+
+	input {
+    color: var(--text-color);
+	background-color: var(--input-bkg-color);
+	border-radius: 0.5rem;
+}
 </style>

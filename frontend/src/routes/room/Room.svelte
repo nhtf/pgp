@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Access, type ChatRoom } from "$lib/types";
+    import type { ChatRoom } from "$lib/types";
 
     const lock = "/Assets/icons/lock.svg";
 
@@ -9,31 +9,37 @@
 </script>
 
 <button class="room" on:click={() => click(room)}>
-	<img id="small-avatar" src={room.owner.avatar} alt=""/>
-	<div style="width: 4em;">{room.owner.username}</div>
-	<div>{room.members.length}</div>
-	<div>{room.name}</div>
-	{#if room.access == Access.PROTECTED}
-		<img src={lock} alt="lock">
-	{/if}
+	<img class="small-avatars" src={room.owner?.avatar} alt=""/>
+	<div class="flex flex-col">
+		<div class="text-xl">{room.name}</div>
+		<div class="text-sm" style="width: 4em;">{room.owner?.username}</div>
+	</div>	
+	<!-- <div ></div> -->
+	<!-- {#if room.access == Access.PROTECTED} -->
+		<img class="icon" src={lock} alt="lock">
+	<!-- {/if} -->
 </button>
 
 <style>
 
 	.room {
-		background-color:steelblue;
-		border-radius: 1em;
+		display: flex;
+		background-color:var(--box-color);
+		border-radius: 6px;
 		display: flex;
 		font-size: 1.5em;
 		gap: 1em;
 		padding: 1em;
+		align-items: center;
+		flex-direction: row;
+		justify-content: space-between;
 	}
 
-	.room img {
-		display: flex;
-		width: 1.5em;
-		height: 1.5em;
-		border-radius: 1em;
+	.icon {
+		width: 30px;
+		height: 30px;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
+		position: relative;
 	}
-
 </style>

@@ -8,7 +8,7 @@
 
 <div class="block_container">
 	<Info/>
-		{#if data.friendlist}
-			<Friends/>
-		{/if}
+	{#if data.friendlist}
+		<Friends/>
+	{/if}
 </div>

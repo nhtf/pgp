@@ -73,6 +73,10 @@ export class User {
 	@OneToMany(() => Member, (member) => member.user)
 	members: Promise<Member[]>;
 
+	@Exclude()
+	@ManyToMany(() => Room, (room) => room.banned_users)
+	banned_rooms: Promise<Room[]>;
+
 	@Column({
 		default: false
 	})

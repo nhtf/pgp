@@ -1,4 +1,4 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../enums/Access";
@@ -37,8 +37,13 @@ export class Room {
 	}
 
 	@Exclude()
-	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete" })
+	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
 	members: Promise<Member[]>;
+
+	@Exclude()
+	@ManyToMany(() => User, (user) => user.banned_rooms)
+	@JoinTable()
+	banned_users: Promise<User[]>;
 
 	@Exclude()
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
@@ -71,10 +76,13 @@ export class Room {
 		}
 	
 		return {
-			...instanceToPlain(this),
+			id: this.id,
+			name: this.name,
+			private: this.is_private,
 			owner: await owner.user,
 			members: await Promise.all(members.map((member) => member.serialize())),
 			invites: await Promise.all(invites.map((invite) => invite.serialize())),
+			banned_users: await this.banned_users,
 		};
 	}
 }
