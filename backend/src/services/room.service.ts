@@ -2,7 +2,7 @@ import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, Not, In, ArrayContains } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions, Not, In, ArrayContains } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
 import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query } from "@nestjs/common";
@@ -236,15 +236,18 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 					    .setParameter("user_id", user.id)
 					    .getMany();
 			}  else {
-				rooms = await this.room_repo.findBy([
-					{ members: { user: { id: user.id } } },
-					{ is_private: false },
-				] as FindOptionsWhere<T>[]);
+				rooms = await this.room_repo.find({
+					relations: {
+						members: true
+					} as FindOptionsRelations<T>,
+					where: [
+						{ members: { user: { id: user.id } } },
+						{ is_private: false }
+					] as FindOptionsWhere<T>[],
+				});
 			} 
 
-			const tmp = await Promise.all(rooms.map(async room => await room.serialize()));
-			console.log(tmp);
-			return tmp;
+			return rooms;
 		}
 
 		// TODO: remove
@@ -446,6 +449,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			return {}
 		}
 
+		//TODO remove verbs from API endpoints
 		@Post("id/:id/accept")
 		async accept_invite(@Me() me: User,	@GetRoom() room: T) {
 			const invites = await room.invites;
@@ -455,12 +459,12 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 				throw new HttpException("Not invited", HttpStatus.NOT_FOUND);
 			}
 
-			const member = await room.add_member(me);
+			await this.service.add_member(room, me);
 
 			const invite = invites.splice(index, 1);
 			this.invite_repo.remove(invite);
 
-			await this.member_repo.save(member);
+			//TODO can probably be removed, since cascade on insert is turned on, and honestly the RoomService should handle this
 			await this.room_repo.save(room);
 
 			console.log(room);
@@ -468,6 +472,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			return {ok: true};
 		}
 
+		//TODO remove verbs from API endpoints
 		@Post("id/:id/deny")
 		async deny_invite(@Me() me: User,	@GetRoom() room: T) {
 			const invites = await room.invites;

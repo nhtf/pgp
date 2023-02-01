@@ -36,34 +36,20 @@ export class Room {
 			return Access.PUBLIC;
 	}
 
-	@Exclude()
 	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
-	members: Promise<Member[]>;
+	members: Member[];
 
-	@Exclude()
 	@ManyToMany(() => User)
 	@JoinTable()
-	banned_users: Promise<User[]>;
+	banned_users: User[];
 
-	@Exclude()
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
-	invites: Promise<RoomInvite[]>;
+	invites: RoomInvite[];
 
-	async add_member(user: User, role?: Role) {
-		const member = new Member();
-	
-		member.user = Promise.resolve(user);
-		member.room = Promise.resolve(this);
-		member.role = role || Role.MEMBER;
-
-		const members = await this.members;
-		if (members)
-			members.push(member);
-		else
-			this.members = Promise.resolve([member]);
-		return member;
-	}
-
+	/*
+	 * @deprecated this function was meant for loading all the lazy relations, but it turns out that
+	 * lazy relations are experimental and honestly a pain in the ass
+	 */
 	async serialize() {
 		const members = await Promise.all((await this.members).map(member => member.serialize()));
 		const invites = await Promise.all((await this.invites).map(invite => invite.serialize()));
