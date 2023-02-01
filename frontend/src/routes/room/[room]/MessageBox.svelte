@@ -12,7 +12,7 @@
 	const admin_actions = [	"ban", "kick", "mute" ];
 	const owner_actions = [ "demote", "promote" ];
 
-	const flex_direction = member.id == message.member.id ? "row-reverse" : "row";
+	const flex_direction = member?.id == message.member?.id ? "row-reverse" : "row";
 	const user = member.user;
 
 	async function doAction(route: string) {
@@ -42,23 +42,20 @@
 				{/each}
 			{/if}
 	</Dropdown>
-	<div>{message.content}</div>
+	<div class="max-w-full">{message.content}</div>
 </div>
-
-<!-- <div class="message" style={`flex-direction: ${flex_direction}`}>
-	<img src={message.user.avatar} alt="">
-</div> -->
 
 <style>
 	.message {
 		display: flex;
-		font-size: 2em;
+		font-size: 1.5rem;
 		gap: 1em;
-		margin: 1em;
+		background-color: var(--box-color);
+		width: max-content;
 		color: var(--text-color);
-	}
-
-	input {
-		color: var(--text-color);
+		border-radius: 6px;
+		padding: 0.5rem;
+		align-self: flex-end;
+		margin-top: 0.125rem;
 	}
 </style>

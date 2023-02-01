@@ -40,6 +40,7 @@ body {
 		Roboto, Oxygen-Sans, Ubuntu, Cantarell, "Helvetica Neue", Helvetica,
 		Arial, sans-serif;
 	--input-bkg-color: #f9fafb;
+	--button-hover-color: #f3f4f6;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -69,6 +70,7 @@ body {
 		--radius: 30;
 		--circumference: 188.4955592154;
 		--input-bkg-color: #374151;
+		--button-hover-color: #374151;
 	}
 }
 
@@ -97,6 +99,7 @@ body.dark {
 	--radius: 30;
 	--circumference: 188.4955592154;
 	--input-bkg-color: #374151;
+	--button-hover-color: #374151;
 }
 
 *{
@@ -126,7 +129,7 @@ body {
 	color: var(--text-color);
 }
 
-.block_container {
+.block-container {
 	display: flex;
 	height: calc(100vh - 80px);
 	gap: 10px;
@@ -141,7 +144,7 @@ body {
 	background-color: var(--bkg-color);
 }
 
-.block_vert {
+.block-vert {
 	display: flex;
 	height: calc(100vh - 200px);
 	background: var(--box-color);
@@ -160,7 +163,7 @@ body {
 }
 
 /* horizontal blocks */
-.block_hor {
+.block-hor {
 	display: flex;
 	flex-direction: row;
 	padding: 3px;
@@ -169,7 +172,7 @@ body {
 
 }
 
-.block_cell {
+.block-cell {
 	display: flex;
 	align-items: center;
 	text-align: center;
@@ -285,11 +288,11 @@ a {
 	background-color: var(--box-color)!important;
 }
 
-.background-color-custom {
+.bg-c {
 	background-color: var(--box-color)!important;
 }
 
-.border-color-custom {
+.bor-c {
 	border: 1px solid var(--border-color)!important;
 	border-radius: 0.25rem;
 }
@@ -316,8 +319,60 @@ table {
 	width: 100%;
 }
 
-/* input {
-	color: var(--text-color)!important;
+.drawer-custom {
+	top: 4.75rem;
+	height: 100vh;
+	left: 0;
+	border-radius: 6px;
+}
+
+.close-button {
+	position: relative;
+	margin-bottom: auto;
+	left: 0.25rem;
+}
+
+.drawer-button {
+	position: relative;
+	width: 50px;
+	height: 20px;
 	background-color: var(--box-color)!important;
-	border-radius: 6px!important;
-} */
+	border-radius: 6px;
+}
+
+.dots-menu {
+	background-color: var(--box-color);
+	position: relative;
+	/* top: 0.375rem; */
+	align-items: center;
+	display: flex;
+	justify-content: center;
+	box-shadow: unset!important;
+	width: 50px;
+	height: 50px;
+}
+
+.dots-menu:hover {
+	background-color: var(--box-hover-color)!important;
+}
+
+.chatroom-menu {
+	background-color: var(--box-color);
+	position: relative;
+	align-self: center;
+	align-items: center;
+	display: flex;
+	right: 0.375rem;
+	height: 35px;
+	width: 35px;
+	outline: unset!important;
+	box-shadow: unset!important;
+}
+
+.chatroom-menu:hover {
+	background-color: var(--box-hover-color)!important;
+}
+
+.br-6 {
+	border-radius: 6px;
+}

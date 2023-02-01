@@ -1,5 +1,6 @@
 <script lang="ts">
     import type { ChatRoom } from "$lib/types";
+	import {Access} from "$lib/types";
 
     const lock = "/Assets/icons/lock.svg";
 
@@ -9,15 +10,15 @@
 </script>
 
 <button class="room" on:click={() => click(room)}>
-	<img class="small-avatars" src={room.owner?.avatar} alt=""/>
-	<div class="flex flex-col">
-		<div class="text-xl">{room.name}</div>
-		<div class="text-sm" style="width: 4em;">{room.owner?.username}</div>
-	</div>	
+	<img class="room-icon" src={room.owner?.avatar} alt=""/>
+	<div class="text-xl">{room.name}</div>
+	<!-- <div class="flex flex-col"> -->
+		<!-- <div class="text-sm" style="width: 4em;">{room.owner?.username}</div> -->
+	<!-- </div>	 -->
 	<!-- <div ></div> -->
-	<!-- {#if room.access == Access.PROTECTED} -->
-		<img class="icon" src={lock} alt="lock">
-	<!-- {/if} -->
+	{#if room.access == Access.PROTECTED}
+		<img class="lock-icon" src={lock} alt="lock">
+	{/if}
 </button>
 
 <style>
@@ -32,14 +33,27 @@
 		padding: 1em;
 		align-items: center;
 		flex-direction: row;
-		justify-content: space-between;
+		width: 100%;
+		border-bottom: 2px solid var(--border-color);
+		border-bottom-left-radius: 0;
+		border-bottom-right-radius: 0;
 	}
 
-	.icon {
+	.room:hover {
+		background-color: var(--box-hover-color);
+	}
+
+	.lock-icon {
 		width: 30px;
 		height: 30px;
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
 		position: relative;
+	}
+
+	.room-icon {
+		width: 50px;
+		height: 50px;
+		border-radius: 50%;
 	}
 </style>

@@ -9,6 +9,9 @@
     import { post, remove } from "$lib/Web";
     import { error } from "@sveltejs/kit";
     import MessageBox from "./MessageBox.svelte";
+	import {ToolbarButton, Dropdown, DropdownItem} from "flowbite-svelte";
+    import ChatroomDrawer from "../ChatroomDrawer.svelte";
+	import { beforeUpdate, afterUpdate } from 'svelte';
 
 
 	export let data: PageData;
@@ -16,6 +19,9 @@
 	if (!data.user) {
 		throw error(401, "Unauthorized");
 	}
+
+	let div: HTMLElement;
+	let autoscroll: boolean;
 
 	const room = data.room;
 	const user = data.user;
@@ -30,11 +36,20 @@
 		socket.emit("join", String(room.id));
 	});
 
+	beforeUpdate(() => {
+		autoscroll = div && (div.offsetHeight + div.scrollTop) > (div.scrollHeight - 20);
+	});
+
+	afterUpdate(() => {
+		if (autoscroll) div.scrollTo(0, div.scrollHeight);
+	});
+
 	socket.on("message", (data: Message) => {
 		messages = [...messages, data];
 	})
 
 	function sendMessage() {
+		console.log("content: ", content);
 		if (!content.length) {
            return Swal.fire({
                 icon: "warning",
@@ -44,6 +59,7 @@
 		}
 	
 		socket.emit("message", content);
+		content="";
 	}
 
     async function invite() {
@@ -91,45 +107,138 @@
 
 </script>
 
-<h1 style="margin: 1em">{room.name}</h1>
-{#each messages as message}
-	<MessageBox id={room.id} {message} {member}/>
-{/each}
+<div class="chat-room-container">
+	<div class="room-title">
+		<ChatroomDrawer/>
+		<h1 id="room-name">{room.name}</h1>
+		<ToolbarButton class="chatroom-menu" id="title-button">
+			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
+		</ToolbarButton>
+	</div>
+	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
+		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
+		{#if data.user.username === data.room.owner.username}
+		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
+		<DropdownItem class="flex items-center text-base font-semibold gap-2">
+		<form on:submit|preventDefault={invite}>
+			<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
+			<input class="invite-button" type="submit" value="Invite">
+		</form>
+	</DropdownItem>
+		{/if}
+	</Dropdown>
 
-<div class="option">
-	<button on:click={leave}>Leave</button>
-	<button on:click={deleteChatRoom}>Delete</button>
-	<form on:submit|preventDefault={sendMessage}>
-		<input bind:value={content} type="text" placeholder="message...">
-		<input type="submit" value="Send"/>
-	</form>
-	<form on:submit|preventDefault={invite}>
-		<input bind:value={invitee} type="text" placeholder="username...">
-		<input type="submit" value="Invite">
-	</form>
+<div class="messages" bind:this={div}>
+	{#each messages as message}
+		<MessageBox id={room.id} {message} {member}/>
+	{/each}
+</div>
+
+<div class="message-input">
+	<div class="message-box">
+		<input class="w-full space-x-4" bind:value={content} type="text" placeholder="message...">
+	</div>
+	<div class="send-button"
+		on:click|preventDefault={sendMessage}
+		on:keypress={sendMessage}>
+		<img src="/Assets/icons/send.svg" alt="chat" class="icon">
+	</div>
+</div>
 </div>
 	
 <style>
-	h1 {
-		background-color: steelblue;
-		border-radius: 1em;
-		padding: 1em;
+
+	.user-invite {
+		width: 7.5rem;
+		height: 40px;
+		font-size: 0.75rem;
 	}
 
-	.option {
+	.invite-button {
+		width: 2.5rem;
+		height: 40px;
+		font-size: 0.75rem;
+	}
+
+	.invite-button:hover {
+		background-color: var(--box-hover-color);
+	}
+	
+	#room-name {
+		font-size: 1.5rem;
+		padding: 3px;
+		position: relative;
+		margin: 0 auto;
+	}
+
+	.message-input {
 		display: flex;
-		flex-direction: column-reverse;
-		gap: 1em;
-		position: fixed;
-		bottom: 1em;
-		left: 1em;
-		margin: 1em;
-		align-items: baseline;
+		position: relative;
+		align-items: center;
+		height: 50px;
 	}
 
 	input {
-    color: var(--text-color);
-	background-color: var(--input-bkg-color);
-	border-radius: 0.5rem;
-}
+		color: var(--text-color);
+		background-color: var(--input-bkg-color);
+		border-radius: 6px;
+	}
+
+	.message-box {
+		width: 100%;
+		margin-left: 0.375rem;
+	}
+
+	.icon {
+        width: 30px;
+        height: 30px;
+        -webkit-filter: var(--invert);
+		filter: var(--invert);
+    }
+
+	.room-title {
+		background-color: var(--box-color);
+		top: 0.25rem;
+		position: relative;
+		display: flex;
+		width: 100%;
+		flex-direction: row;
+		border-radius: 6px;
+		justify-content: space-between;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+	}
+
+	.messages {
+		display: flex;
+		height: 100%;
+		flex-direction: column;
+		position: relative;
+		/* top: 1.25rem; */
+		overflow-y: auto;
+	}
+
+	.send-button {
+		display: flex;
+		background-color: var(--box-color);
+		height: 100%;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		width: 50px;
+		cursor: pointer;
+		margin-left: 0.375rem;
+		margin-right: 0.375rem;
+	}
+
+	.send-button:hover {
+		background-color: var(--box-hover-color);
+	}
+
+	.chat-room-container {
+		display: flex;
+		flex-direction: column;
+		height: calc(100vh - 80px);
+		gap: 1.25rem;
+	}
+
 </style>

@@ -6,7 +6,7 @@
 	export let data: PageData;
 </script>
 
-<div class="block_container">
+<div class="block-container">
 	<Info/>
 	{#if data.friendlist}
 		<Friends/>

@@ -53,7 +53,7 @@
     console.log(drop);
 </script>
 
-<div class="block_cell" 
+<div class="block-cell" 
     on:click={() => toggleDropOut(event, drop.title)}
     on:keypress={() => toggleDropOut(event, drop.title)}>
     {#if !drop.img}
@@ -65,15 +65,15 @@
         {#each drop.options.data as {text, fn, show, redir}}
             {#if show}
                 {#if fn}
-                    <div class="block_hor drop-hor" id="drop-cell" 
+                    <div class="block-hor drop-hor" id="drop-cell" 
                         on:click={() => fn(text)}
                         on:keypress={() => fn(text)}>
                         {text}
                     </div>
                 {:else if redir}
-                    <a href={redir}><div class="block_hor" id="drop-cell">{text}</div></a>
+                    <a href={redir}><div class="block-hor" id="drop-cell">{text}</div></a>
                 {:else}
-                    <div class="block_hor" id="drop-cell">{text}</div>
+                    <div class="block-hor" id="drop-cell">{text}</div>
                 {/if}
             {/if}
         {/each}
@@ -125,7 +125,7 @@
         margin-right: 2em;
     }
 
-    .block_hor {
+    .block-hor {
 	display: flex;
 	flex-direction: row;
 	padding: 3px;

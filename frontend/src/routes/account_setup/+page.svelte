@@ -20,16 +20,16 @@
 	}
 </script>
 
-<div class='block_container'>
-	<div class="block_vert">
-		<div class="block_hor">
+<div class='block-container'>
+	<div class="block-vert">
+		<div class="block-hor">
 		<h1>New User</h1>
 	</div>
-		<div class="block_hor">
+		<div class="block-hor">
 			<input class='center' id='input' type='text' bind:value={username}
 				   placeholder='username' required minlength='1' maxlength='20' on:keypress={key_event}>
 		</div>
-		<div class="block_hor">
+		<div class="block-hor">
 	<button class='center' id='setup' on:click={set_username}>setup</button>
 </div>
 </div>
@@ -64,7 +64,7 @@
 		cursor: pointer;
 	}
 
-	.block_vert {
+	.block-vert {
 		flex-grow: 0.1;
 		padding: 25px;
 		align-items: center;

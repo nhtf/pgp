@@ -106,7 +106,7 @@
     {/if}
   </div>
   {#if user?.username}
-    <Dropdown triggeredBy="#avatar-menu" placement="bottom" class="background-color-custom border-color-custom">
+    <Dropdown triggeredBy="#avatar-menu" placement="bottom" class="bg-c bor-c">
       <DropdownHeader>
         <span class="block text-sm"> {data.user.username} </span>
       </DropdownHeader>

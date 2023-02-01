@@ -147,36 +147,36 @@
 </div>
 {/if}
 
-<div class="block_cell self-flex-start background-color-custom bordered" id="friend-block">
-    <div class="block_hor">
-        <div class="block_cell">
+<div class="block-cell self-flex-start bg-c bordered" id="friend-block">
+    <div class="block-hor">
+        <div class="block-cell">
             <h1 >Friends</h1>
         </div>
-        <div class="block_cell" on:click={toggleAddfriend} on:keypress={toggleAddfriend}>
+        <div class="block-cell" on:click={toggleAddfriend} on:keypress={toggleAddfriend}>
             <img class="small-avatars" src={friend_icon} alt="friend-icon" title="add friend">
             add friend
         </div>
     </div>
-    <div class="block_vert width-available">
+    <div class="block-vert width-available">
         {#if friends}
             {#each friends as { username, avatar, status, in_game, id }, index}
                 <Button color="alternative" id="avatar_with_name{index}">
                     <Avatar src={avatar} class="mr-2"/>
-                    <div class="block_cell">
-                        <div class="block_hor">{username}</div>
+                    <div class="block-cell">
+                        <div class="block-hor">{username}</div>
                         {#if !in_game}
-                            <div class="block_hor" id={status}>{status}</div>
+                            <div class="block-hor" id={status}>{status}</div>
                         {:else}
-                            <div class="block_hor" id="in_game">playing</div>
+                            <div class="block-hor" id="in_game">playing</div>
                             {#if score.has(username)}
-                                <div class="block_hor" id="scoredv">{score.get(username)}</div>
+                                <div class="block-hor" id="scoredv">{score.get(username)}</div>
                             {/if}
                         {/if}
                     </div>
                 </Button>
                 <div class="spacing"></div>
-                <Dropdown inline triggeredBy="#avatar_with_name{index}" class="border-color-custom background-color-custom"
-                frameClass="border-color-custom background-color-custom">
+                <Dropdown inline triggeredBy="#avatar_with_name{index}" class="bor-c bg-c"
+                frameClass="bor-c bg-c">
                 <DropdownItem href="/profile/{username}">view profile</DropdownItem>
                 {#if in_game}
                     <DropdownItem>spectate</DropdownItem>
@@ -272,21 +272,21 @@
 		background: var(--tab-active-color);
 	}
 
-    .block_vert {
+    .block-vert {
         flex-grow: 0.1;
         padding: 0;
         border: 0;
         height: 100%;
     }
 
-.block_cell {
+.block-cell {
     flex-direction: column;
     min-width: 100px;
     min-height: 40px;
     padding: 5px;
 }
 
-.block_cell:first-child {
+.block-cell:first-child {
     flex-grow: 1;
     text-align: center;
 }

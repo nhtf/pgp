@@ -63,8 +63,8 @@
       <div class="new-notifications"></div>
     </div>
   </div>
-  <Dropdown triggeredBy="#bell" class="w-full max-w-sm rounded divide-y border-color-custom shadow background-color-custom border-color-custom"
-    frameClass="border-color-custom"
+  <Dropdown triggeredBy="#bell" class="w-full max-w-sm rounded divide-y bor-c shadow bg-c bor-c"
+    frameClass="bor-c"
     placement="bottom">
     <div slot="header" class="text-center py-2 font-bold text-center ">Notifications</div>
     {#each notifications as {from, type}, index}
@@ -88,7 +88,7 @@
       </div>
       </DropdownItem>
     {/each}
-    <a slot="footer" href="/invite" class="block py-2 -my-1 text-sm font-medium text-center text-gray-900 background-color-custom dark:text-white">
+    <a slot="footer" href="/invite" class="block py-2 -my-1 text-sm font-medium text-center text-gray-900 bg-c dark:text-white">
       <div class="inline-flex items-center">
         <svg class="mr-2 w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path></svg>
           View all

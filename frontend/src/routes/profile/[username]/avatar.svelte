@@ -62,7 +62,7 @@
 
 </script>
 
-<div class="block_cell" id="avatar-block">
+<div class="block-cell" id="avatar-block">
 	<img id="avatar" src={avatar} alt="avatar" />
     {#if $page.data.user?.username === $page.data.profile?.username}
         <img src={edit_icon} alt="edit icon" id="edit-icon"
@@ -217,7 +217,7 @@
 		box-shadow: 1px 1px 1px 1px var(--shadow-color);
 	}
 
-	.block_cell {
+	.block-cell {
 		flex-direction: column;
 		min-width: 100px;
 		min-height: 40px;

@@ -19,52 +19,52 @@
 
 <svelte:window on:click={clickfunction}/>
 
-<div class="block_vert" id="info">
-	<div class="block_hor" id="user-block">
-		<div class="block_cell" id="user-name-block">
-			<div class="block_hor">
+<div class="block-vert" id="info">
+	<div class="block-hor" id="user-block">
+		<div class="block-cell" id="user-name-block">
+			<div class="block-hor">
 				<h1>{$page.params.username}</h1>
 			</div>
-			<div class="block_hor" id="level-hor">
-				<div class="block_cell" id="level-block">
-					<div class="block_hor" id="level-text">33</div>
-					<div class="block_hor" id="level-text">Level</div>
+			<div class="block-hor" id="level-hor">
+				<div class="block-cell" id="level-block">
+					<div class="block-hor" id="level-text">33</div>
+					<div class="block-hor" id="level-text">Level</div>
 				</div>
-				<div class="block_cell" id="level-block-bar">
-					<div class="block_hor" id="level-bar">
+				<div class="block-cell" id="level-block-bar">
+					<div class="block-hor" id="level-bar">
 						<div class="border">
 							<div class="bar" style="height:18px;width:20%" />
 						</div>
 					</div>
-					<div class="block_hor" id="level-exp">123/12345 exp</div>
+					<div class="block-hor" id="level-exp">123/12345 exp</div>
 				</div>
 			</div>
 		</div>
 		<Avatar/>
 	</div>
-	<div class="block_hor">
-		<div class="block_cell">
+	<div class="block-hor">
+		<div class="block-cell">
 			<Achievements/>
 		</div>
 	</div>
-	<div class="block_hor">
-		<div class="block_cell">
+	<div class="block-hor">
+		<div class="block-cell">
 			<h3>Last game played</h3>
-			<div class="block_hor" id="legend">
-				<div class="block_cell table-cell" id="no-grow">opponent</div>
-				<div class="block_cell table-cell">me</div>
-				<!-- <div class="block_cell">other stats</div> -->
+			<div class="block-hor" id="legend">
+				<div class="block-cell table-cell" id="no-grow">opponent</div>
+				<div class="block-cell table-cell">me</div>
+				<!-- <div class="block-cell">other stats</div> -->
 			</div>
-			<div class="block_hor" id="content">
-				<div class="block_cell table-cell" id="no-grow">5</div>
-				<div class="block_cell table-cell">3</div>
-				<!-- <div class="block_cell table-cell">nope</div> -->
+			<div class="block-hor" id="content">
+				<div class="block-cell table-cell" id="no-grow">5</div>
+				<div class="block-cell table-cell">3</div>
+				<!-- <div class="block-cell table-cell">nope</div> -->
 			</div>
 		</div>
 	</div>
 	{#if !$page.data.user?.in_game}
-	<div class="block_hor">
-		<div class="block_cell">
+	<div class="block-hor">
+		<div class="block-cell">
 			<p>Current game stats</p>
 		</div>
 	</div>
@@ -161,23 +161,23 @@
 		padding-right: 5px;
 	}
 
-	.block_vert {
+	.block-vert {
 		flex-grow: 0.1;
 	}
 
-	.block_hor {
+	.block-hor {
 		width: -moz-available;
 		width: -webkit-fill-available;
 	}
 
-	.block_cell {
+	.block-cell {
 		flex-direction: column;
 		min-width: 100px;
 		min-height: 40px;
 		padding: 5px;
 	}
 
-	.block_cell:first-child {
+	.block-cell:first-child {
 		flex-grow: 1;
 		text-align: center;
 	}

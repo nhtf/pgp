@@ -72,10 +72,10 @@
 <div class="contain">
     <Tabs style="underline" 
     divider
-    defaultClass="flex flex-wrap space-x-2 background-color-custom rounded"
+    defaultClass="flex flex-wrap space-x-2 bg-c rounded"
     contentClass="tab-content-background">
         {#each LEADERBOARDS as {title, active}, index}
-        <TabItem open={active} class="background-color-custom rounded" defaultClass="rounded"  title={title}>
+        <TabItem open={active} class="bg-c rounded" defaultClass="rounded"  title={title}>
             <TableSearch
             divClass="relative overflow-x-auto rounded-lg overflow-y-auto"
             class="bordered"
@@ -255,11 +255,11 @@
         box-shadow: 2px 2px 2px 2px var(--shadow-color);
     }
 
-    .block_container {
+    .block-container {
         flex-direction: row;
     }
 
-    .block_vert {
+    .block-vert {
         flex-grow: 1;
         width: 600px;
         max-width: 600px;
@@ -270,7 +270,7 @@
         align-self: stretch;
     }
 
-    .block_hor {
+    .block-hor {
         min-width: 80%;
         margin: 5px;
         border-radius: 6px;
@@ -278,7 +278,7 @@
         box-shadow: 0 0  5px #9ecaed;
     }
 
-    .block_cell {
+    .block-cell {
         margin-left: 2px;
         margin-right: 2px;
         min-width: 45px;
@@ -288,12 +288,12 @@
         overflow: hidden;
     }
 
-    .block_cell:first-child {
+    .block-cell:first-child {
         width: 50px;
         align-self: center;
     }
 
-    .block_cell:nth-child(2) {
+    .block-cell:nth-child(2) {
         flex-grow: 1;
         max-width: 150px;
     }
@@ -315,7 +315,7 @@
             display: none;
         }
 
-        .block_container {
+        .block-container {
             flex-direction: column;
         }
     }
@@ -333,13 +333,13 @@
             display: none;
         }
 
-        .block_container {
+        .block-container {
             flex-direction: column;
             padding-left: 2px;
             padding-right: 2px;
         }
 
-        .block_vert {
+        .block-vert {
             padding-left: 5px;
             padding-right: 5px;
             min-width: 80%;
@@ -348,26 +348,26 @@
     }
 
     @media (max-width: 500px) {
-        .block_vert {
+        .block-vert {
             width: 400px;
         }
     }
 
     @media (max-width: 400px) {
-        .block_vert {
+        .block-vert {
             width: 350px;
         }
     }
 
     @media (max-height: 900px) {
-        .block_vert {
+        .block-vert {
             height: 600px;
             padding-bottom: 0;
         }
     }
 
     @media (max-height: 400px) {
-        .block_vert {
+        .block-vert {
             height: 100%;
             padding-bottom: 0;
         }

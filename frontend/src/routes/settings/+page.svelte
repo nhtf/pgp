@@ -61,58 +61,58 @@
 	let security_visible = false;
 </script>
 
-<div class="block_container">
-	<div class="block_vert">
-		<div class="block_hor">
+<div class="block-container">
+	<div class="block-vert">
+		<div class="block-hor">
 			<h1>Settings</h1>
 		</div>
-		<div class="block_hor" id="left-alligned">
-			<div class="block_cell" >
+		<div class="block-hor" id="left-alligned">
+			<div class="block-cell" >
 				<img id="icon" src={user_icon} alt="user-icon">
 			</div>
-			<div class="block_cell">
+			<div class="block-cell">
 				<h3 id="selector" on:click={() => {changeSettingsTab("profile-information")}}>Profile information</h3>
 			</div>
 		</div>
-		<div class="block_hor" id="left-alligned">
-			<div class="block_cell" >
+		<div class="block-hor" id="left-alligned">
+			<div class="block-cell" >
 				<img id="icon"  src={security_icon} alt="lock-icon">
 			</div>
-			<div class="block_cell">
+			<div class="block-cell">
 				<h3 id="selector" on:click={() => {changeSettingsTab("security")}}>Security</h3>
 			</div>
 		</div>
 	</div>
 	{#if profile_visible}
-	<div class="block_vert" id="profile-information" transition:fly="{{ x: -100, duration: 500 }}">
-		<div class="block_hor">
+	<div class="block-vert" id="profile-information" transition:fly="{{ x: -100, duration: 500 }}">
+		<div class="block-hor">
 			<h2>Profile Information</h2>
 		</div>
-		<div class="block_hor">
-			<div class="block_cell">username</div>
+		<div class="block-hor">
+			<div class="block-cell">username</div>
 		</div>
-		<div class="block_hor">
+		<div class="block-hor">
 			<input name="username" id="username-change" type="text" bind:value={username} minlength="3">
 		</div>
-		<div class="block_hor end"></div>
-		<div class="block_hor right">
+		<div class="block-hor end"></div>
+		<div class="block-hor right">
 			<label id="save-button" for="username-change" on:click={changeUserName}>Save</label>
 		</div>
 	</div>
 	{/if}
 	{#if security_visible}
-	<div class="block_vert" id="security" transition:fly="{{ x: -100, duration: 500 }}">
-		<div class="block_hor">
+	<div class="block-vert" id="security" transition:fly="{{ x: -100, duration: 500 }}">
+		<div class="block-hor">
 			<h2>Security</h2>
 		</div>
-		<div class="block_hor">
-			<div class="block_cell">two step verification is {two_fa}</div>
+		<div class="block-hor">
+			<div class="block-cell">two step verification is {two_fa}</div>
 		</div>
-		<div class="block_hor">
+		<div class="block-hor">
 			{#if enabled_2fa}
-				<div id="save-button" class="block_cell" on:click={disable} on:keypress={disable}>disable</div>
+				<div id="save-button" class="block-cell" on:click={disable} on:keypress={disable}>disable</div>
 			{:else}
-				<div id="save-button" class="block_cell" on:click={enable} on:keypress={enable}>Set up</div>
+				<div id="save-button" class="block-cell" on:click={enable} on:keypress={enable}>Set up</div>
 			{/if}
 		</div>
 	</div>
@@ -181,7 +181,7 @@
 		display: flex;
 	}
 
-	.block_cell {
+	.block-cell {
 		flex-grow: 1;
 	}
 
@@ -189,7 +189,7 @@
 		align-self: flex-start;
 	}
 
-	.block_container {
+	.block-container {
 		justify-content: flex-start;
 	}
 

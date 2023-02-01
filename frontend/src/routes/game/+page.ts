@@ -1,12 +1,17 @@
 import type { PageLoad } from "./$types"
-import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
+import { error } from "@sveltejs/kit";
 
-export async function load({ fetch }: any) {
+export const load: PageLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	const mine = await unwrap(get("/game?member=true"));
-	const joinable = await unwrap(get("/game?member=false"));
+	try {
+		const mine = await get("/game?member=true");
+		const joinable = await get("/game?member=false");
 
-	return { mine, joinable };
-};
+		return { mine, joinable };
+	}
+	catch (err: any) {
+		throw error(401, err.message);
+	}
+}) satisfies PageLoad;

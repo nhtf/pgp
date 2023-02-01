@@ -19,8 +19,8 @@
     const cirmum = radius * 2 * Math.PI;
 </script>
 
-<div class="block_hor"><h3>Achievements</h3></div>
-<div class="block_hor" id="wrap">
+<div class="block-hor"><h3>Achievements</h3></div>
+<div class="block-hor" id="wrap">
     {#if $page.data.profile?.achievements}
     {#each $page.data.profile.achievements as { name, have, icon, level, progress, level_cost, text }}
     {#if have}
@@ -28,12 +28,12 @@
         on:click={() => showAchievementBlock(name)}
         on:keypress={() => showAchievementBlock(name)}
     >
-        <div class="block_hor icon-block" id="icon-block{level}">
+        <div class="block-hor icon-block" id="icon-block{level}">
             <div class="icon" id="ach-level{level}" 
                 title={name} 
                 style="mask-image: url({icon});-webkit-mask-image: url({icon})"/>
         </div>
-        <div class="block_hor">
+        <div class="block-hor">
             <div class="border" id="ach-border">
             {#if level < 3}
                 <div class="bar" id="ach-bar" 
@@ -45,8 +45,8 @@
                 <div class="test">
                     <div class="achievement-display" id={name}>
                         <div class="achievement_cell" id="fit">
-                            <div class="block_hor"><b>{name}</b></div>
-                            <div class="block_hor" id="big">
+                            <div class="block-hor"><b>{name}</b></div>
+                            <div class="block-hor" id="big">
                                 <div class="icon-block-big" id="icon-block{level}">
                                     <svg class="prog-ring">
                                         <circle
@@ -69,9 +69,9 @@
                                 </div>
                             </div>
                             {#if level < 3}
-                                <div class="block_hor">{progress}/{level_cost[level]}</div>
+                                <div class="block-hor">{progress}/{level_cost[level]}</div>
                             {/if}
-                            <div class="block_hor">{text[level]}</div>
+                            <div class="block-hor">{text[level]}</div>
                         </div>
                     </div>
                 </div>
@@ -84,7 +84,7 @@
 </div>
 
 <style>
-    .block_hor {
+    .block-hor {
         width: -moz-available;
         width: -webkit-fill-available;
     }
