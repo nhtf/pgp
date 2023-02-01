@@ -4,6 +4,7 @@
     import { post } from "$lib/Web";
     import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
     import Swal from "sweetalert2";
+	import {page} from "$app/stores";
 
 	export let id: number;
 	export let member: Member;
@@ -26,23 +27,33 @@
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}`}>
-	<Avatar class="acs" src={user.avatar}/>
+	<div class="avatar">
+	<Avatar class="acs" src={user.avatar} title={user.username}/>
+	</div>
+	{#if member.user.username !== $page.data.user.username}
 	<Dropdown triggeredBy=".acs">
 		<DropdownItem on:click={() => { window.location.assign(`/profile/${user.username}`)}}>Profile</DropdownItem>
+		{#if member.role >= Role.ADMIN}
 		<DropdownDivider/>
-			{#if member.role >= Role.ADMIN}
 				{#each admin_actions as action}
 					<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
 				{/each}
 			{/if}
-		<DropdownDivider/>
 			{#if member.role >= Role.OWNER}
+		<DropdownDivider/>
 				{#each owner_actions as action}
 					<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
 				{/each}
 			{/if}
 	</Dropdown>
-	<div class="max-w-full">{message.content}</div>
+	{/if}
+	<div class="chicken">
+		<div class="text-xs">{user.username}
+		</div>
+		<div>
+		{message.content}
+		</div>
+	</div>
 </div>
 
 <style>
@@ -57,5 +68,18 @@
 		padding: 0.5rem;
 		align-self: flex-end;
 		margin-top: 0.125rem;
+		max-width: 100%;
+		overflow-wrap: break-word;
+	}
+
+	.avatar {
+		width: 40px;
+		height: 40px;
+		align-self: center;
+		font-size: smaller;
+	}
+
+	.chicken {
+		max-width: calc(100% - 50px - 1rem);
 	}
 </style>

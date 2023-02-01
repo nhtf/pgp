@@ -242,6 +242,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 				] as FindOptionsWhere<T>[]);
 			} 
 
+			//Promise.all inserts the __members__ "hidden" promise fields?
 			const tmp = await Promise.all(rooms.map(async room => await room.serialize()));
 			console.log(tmp);
 			return tmp;
