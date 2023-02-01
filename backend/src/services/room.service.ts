@@ -162,7 +162,10 @@ export const GetMember = createParamDecorator(
 
 export const GetRoom = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
-		return ctx.switchToHttp().getRequest().room;
+		const room = ctx.switchToHttp().getRequest().room;
+		if (!room)
+			throw new HttpException("room not found", HttpStatus.NOT_FOUND);
+		return room;
 	}
 );
 
@@ -207,28 +210,41 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			return member;
 		}
 
+		//.andWhere("NOT EXISTS (SELECT \"member\".\"roomId\", \"member\".\"userId\" FROM \"member\" WHERE \"member\".\"roomId\" = \"room\".\"id\" AND \"member\".\"userId\" = :user_id)", { user_id: user.id })
 		@Get("")
 		async get_visible(@Me() user: User, @Query("member") member?: string) {
 			const options: FindOptionsWhere<T>[] = [];
-			//const options = [{ members: { user: { id: Not(user.id) } } } as FindOptionsWhere<T>];
+			let rooms: T[];
 
-			console.log(member);
-			if (member === undefined) {
-				console.log("a");
-				options.push({ members: { user: { id: user.id } } } as FindOptionsWhere<T>);
-				options.push({ is_private: false } as FindOptionsWhere<T>);
-			} else if (member === "true") {
-				console.log("b");
-				options.push({ members: { user: { id: user.id } } } as FindOptionsWhere<T>);
+			if (member === "true") {
+				rooms = await this.room_repo.findBy({ members: { user: { id: user.id } } } as FindOptionsWhere<T>);
 			} else if (member === "false") {
 				//TODO use inner join
-				console.log("c");
-				//options.push({ members: Not(ArrayContains({ user: { id: user.id } })), is_private: false } as FindOptionsWhere<T>);
-			}
-			console.log(options);
+				rooms = await this.room_repo.createQueryBuilder("room")
+					    .where("\"room\".\"is_private\" = false")
+					    .andWhere((qb) => {
+					   	 const subQuery = qb
+							.subQuery()
+							.select("\"member\".\"roomId\"")
+							.select("\"member\".\"userId\"")
+							.from(Member, "member")
+							.where("\"member\".\"roomId\" = \"room\".\"id\"")
+							.andWhere("\"member\".\"userId\" = :user_id")
+							.getQuery();
+						return "NOT EXISTS (" + subQuery + ")";
+					    })
+					    .setParameter("user_id", user.id)
+					    .getMany();
+			}  else {
+				rooms = await this.room_repo.findBy([
+					{ members: { user: { id: user.id } } },
+					{ is_private: false },
+				] as FindOptionsWhere<T>[]);
+			} 
 
-			const rooms = await this.room_repo.findBy(options);
-			return Promise.all(rooms.map((room) => room.serialize()));
+			const tmp = await Promise.all(rooms.map(async room => await room.serialize()));
+			console.log(tmp);
+			return tmp;
 		}
 
 		// TODO: remove
@@ -259,9 +275,11 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 				throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 			}
 
+			/*
 			const banned_rooms = await me.banned_rooms;
 			if (banned_rooms?.find(current => current.id === room.id))
 				throw new HttpException("You have been banned from this channel", HttpStatus.FORBIDDEN); //TODO should this give "not found" for private rooms?
+			       */
 		
 			if (room.access == Access.PROTECTED) {
 				if (!password) {
@@ -272,14 +290,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 					throw new HttpException("Incorrect password", HttpStatus.FORBIDDEN);
 				}
 			}
-
-			const member = new Member;
-
-			member.role = Role.MEMBER;
-			member.room = Promise.resolve(room);
-			member.user = Promise.resolve(me);
-
-			await this.member_repo.save(member);
+			await this.service.add_member(room, me);
 
 			return {};
 		}

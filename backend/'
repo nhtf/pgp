@@ -65,8 +65,8 @@ export class Room {
 	}
 
 	async serialize() {
-		const members = await Promise.all((await this.members).map(member => member.serialize()));
-		const invites = await Promise.all((await this.invites).map(invite => invite.serialize()));
+		const members = await Promise.all((await members).map(member => member.serialize()));
+		const invites = await Promise.all((await invites).map(invite => invite.serialize()));
 		const owner = members.find((member) => member.role === Role.OWNER);
 	
 		if (!owner) {
@@ -75,7 +75,7 @@ export class Room {
 			return {};
 		}
 	
-		const ret = {
+		return {
 			id: this.id,
 			name: this.name,
 			private: this.is_private,
@@ -84,7 +84,5 @@ export class Room {
 			invites: invites,
 			banned_users: await this.banned_users,
 		};
-		console.log(ret);
-		return ret;
 	}
 }

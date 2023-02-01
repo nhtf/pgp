@@ -43,7 +43,6 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		const id = client.request.session.user_id;
 		const sockets = this.sockets.get(id);
 		const idx = sockets.findIndex(socket => socket.request.session.id === socket.request.session.id);
-		console.log(id);
 		if (idx < 0)
 			console.error("could not find socket");
 		else {
