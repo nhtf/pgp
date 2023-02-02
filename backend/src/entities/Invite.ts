@@ -14,22 +14,14 @@ export class Invite {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@CreateDateColumn()
+	@CreateDateColumn({ type: 'timestamptz' })
 	date: Date;
 
 	@Exclude()
 	@ManyToOne(() => User, (user) => user.sent_invites, { onDelete: "CASCADE" })
-	from: Promise<User>;
+	from: User;
 
 	@Exclude()
 	@ManyToOne(() => User, (user) => user.received_invites, { onDelete: "CASCADE" })
-	to: Promise<User>;
-
-	async serialize() {
-		return {
-			...instanceToPlain(this),
-			from: await this.from,
-			to: await this.to,
-		}
-	}
+	to: User;
 }

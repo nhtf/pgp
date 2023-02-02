@@ -45,32 +45,4 @@ export class Room {
 
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
 	invites: RoomInvite[];
-
-	/*
-	 * @deprecated this function was meant for loading all the lazy relations, but it turns out that
-	 * lazy relations are experimental and honestly a pain in the ass
-	 */
-	async serialize() {
-		const members = await Promise.all((await this.members).map(member => member.serialize()));
-		const invites = await Promise.all((await this.invites).map(invite => invite.serialize()));
-		const owner = members.find((member) => member.role === Role.OWNER);
-	
-		if (!owner) {
-			console.log("Missing owner", this);
-			await fetch(`${BACKEND_ADDRESS}/debug/room/delete?id=${this.id}`);
-			return {};
-		}
-	
-		const ret = {
-			id: this.id,
-			name: this.name,
-			private: this.is_private,
-			owner: await owner.user,
-			members: members,
-			invites: invites,
-			banned_users: await this.banned_users,
-		};
-		console.log(ret);
-		return ret;
-	}
 }

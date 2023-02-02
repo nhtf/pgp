@@ -7,20 +7,12 @@ export class FriendRequest {
 	@PrimaryGeneratedColumn()
 	id!: number;
 
-	@CreateDateColumn()
+	@CreateDateColumn({ type: 'timestamptz' })
 	date: Date;
 
 	@ManyToOne(() => User, (user) => user.sent_friend_requests, { onDelete: "CASCADE" })
-	from: Promise<User>;
+	from: User;
 
 	@ManyToOne(() => User, (user) => user.incoming_friend_requests, { onDelete: "CASCADE" })
-	to: Promise<User>;
-
-	async serialize() {
-		return {
-			...instanceToPlain(this),
-			from: await this.from,
-			to: await this.to,
-		};
-	}
+	to: User;
 }

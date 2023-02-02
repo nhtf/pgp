@@ -48,7 +48,6 @@ const entityFiles = [
 	"./entities/FriendRequest",
 	"./entities/Message",
 	"./entities/ChatRoom",
-	"./entities/GameRequest",
 	"./entities/RoomInvite",
 	"./entities/Invite",
 	"./entities/Room",

@@ -10,13 +10,5 @@ import { Invite } from "./Invite";
 export class RoomInvite extends Invite {
 	@Exclude()
 	@ManyToOne(() => Room, (room) => room.invites, { onDelete: "CASCADE" })
-	room: Promise<Room>;
-
-	async serialize() {
-		return {
-			...await super.serialize(),
-			...instanceToPlain(this),
-			room: await this.room,
-		}
-	}
+	room: Room;
 }

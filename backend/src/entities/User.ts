@@ -54,28 +54,28 @@ export class User {
 	avatar_base: string; 
 
 	@OneToMany(() => FriendRequest, (request) => request.from)
-	sent_friend_requests: Promise<FriendRequest[]>;
+	sent_friend_requests: FriendRequest[];
 
 	@OneToMany(() => FriendRequest, (request) => request.to)
-	incoming_friend_requests: Promise<FriendRequest[]>;
+	incoming_friend_requests: FriendRequest[];
 
 	@OneToMany(() => Invite, (invite) => invite.from)
-	sent_invites: Promise<Invite[]>;
+	sent_invites: Invite[];
 
 	@OneToMany(() => Invite, (invite) => invite.to)
-	received_invites: Promise<Invite[]>;
+	received_invites: Invite[];
 
 	@ManyToMany(() => User)
 	@JoinTable()
-	friends: Promise<User[]>;
+	friends: User[];
 
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
-	members: Promise<Member[]>;
+	members: Member[];
 
 	@Exclude()
 	@ManyToMany(() => Room)
-	banned_rooms: Promise<Room[]>;
+	banned_rooms: Room[];
 
 	@Column({
 		default: false
@@ -111,9 +111,10 @@ export class User {
 	async add_friend(target: User) {
 		const user_friends = await this.friends;
 		if (user_friends) user_friends.push(target);
-		else this.friends = Promise.resolve([target]);
+		else this.friends = [target];
 	}
 
+	/*
 	toMember(room: Room, role?: Role): Member {
 		const member = new Member;
 
@@ -122,5 +123,5 @@ export class User {
 		member.role = role ? role : Role.MEMBER;
 
 		return member;
-	}
+	}*/
 }

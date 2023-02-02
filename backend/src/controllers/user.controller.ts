@@ -2,6 +2,7 @@ import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInt
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express, Response} from "express";
 import { User } from "../entities/User";
+import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
 import { Repository } from "typeorm";
 import { IsString, Length } from "class-validator";
@@ -36,7 +37,9 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Inject("USER_REPO")
 			readonly user_repo: Repository<User>,
 			@Inject("FRIENDREQUEST_REPO")
-			readonly request_repo: Repository<FriendRequest>
+			readonly request_repo: Repository<FriendRequest>,
+			@Inject("INVITE_REPO")
+			readonly invite_repo: Repository<Invite>,
 		) {}
 
 		@Get()
@@ -198,11 +201,16 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
-			return Promise.all(
-				(await this.request_repo.findBy([
+			return this.request_repo.find({
+				relations: {
+					from: true,
+					to: true,
+				},
+				where: [
 					{ from: { id: user.id } },
-					{ to: { id: user.id } } ])
-				).map(request => request.serialize()));
+					{ to: { id: user.id } },
+				],
+			});
 		}
 
 		@Post(options.cparam + "/friend(s)?/request(s)?")
@@ -235,8 +243,8 @@ export function GenericUserController(route: string, options: { param: string, c
 				await this.user_repo.save([user, target]);
 			} else {
 				const friend_request = new FriendRequest();
-				friend_request.from = Promise.resolve(user);
-				friend_request.to = Promise.resolve(target);
+				friend_request.from = user;
+				friend_request.to = target;
 				await this.request_repo.save(friend_request);
 			}
 			return {};
@@ -259,9 +267,16 @@ export function GenericUserController(route: string, options: { param: string, c
 
 		@Get(`${options.cparam}/invites`)
 		async invites(@Me() user: User) {
-			const invites = await user.received_invites;
-
-			return Promise.all(invites.map((invite) => invite.serialize()));
+			return this.invite_repo.find({
+				relations: {
+					from: true,
+					to: true
+				},
+				where: [
+					{ from: { id: user.id } },
+					{ to: { id: user.id } },
+				],
+			});
 		}
 	}
 	return UserControllerFactory;

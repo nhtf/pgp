@@ -61,8 +61,8 @@ export class RoomGateway extends ProtectedGateway("room") {
 		const message = new Message;
 	
 		message.content = content;
-		message.member = Promise.resolve(member);
-		message.room = Promise.resolve({ id: Number(client.room)} as ChatRoom);
+		message.member = member;
+		message.room = { id: Number(client.room)} as ChatRoom;
 
 		await this.messageRepo.save(message);
 	}
