@@ -17,11 +17,9 @@ export class Invite {
 	@CreateDateColumn({ type: 'timestamptz' })
 	date: Date;
 
-	@Exclude()
 	@ManyToOne(() => User, (user) => user.sent_invites, { onDelete: "CASCADE" })
 	from: User;
 
-	@Exclude()
 	@ManyToOne(() => User, (user) => user.received_invites, { onDelete: "CASCADE" })
 	to: User;
 }

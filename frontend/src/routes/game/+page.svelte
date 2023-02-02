@@ -7,13 +7,20 @@
 
 	export let data: PageData;
 
-	const room = {
-		name: "",
-		is_private: false,
-		password: "",
-	};
+	let name = "";
+	let is_private = false;
+	let password = "";
 
 	async function createGame() {
+		const room = {};
+
+		room.name = name;
+		room.is_private = is_private;
+
+		if (!is_private && password.length > 0) {
+			room.password = password;
+		}
+
 		await unwrap(post("/game", room));
 		await invalidate(`${BACKEND}/game?member=true`);
 	}
@@ -24,26 +31,28 @@
 	}
 
 	async function leaveGame(room) {
-		await unwrap(remove(`/game/id/${room.id}/leave`));
+		await unwrap(remove(`/game/id/${room.id}/member/${data.user.id}`));
 		await invalidate(`${BACKEND}/game?member=true`);
 		await invalidate(`${BACKEND}/game?member=false`);
 	}
 
 	async function joinGame(room) {
-		await unwrap(post(`/game/id/${room.id}/member`));
+		await unwrap(post(`/game/id/${room.id}/member`, { password: room.data_password }));
 		await invalidate(`${BACKEND}/game?member=true`);
 		await invalidate(`${BACKEND}/game?member=false`);
+	}
+
+	async function inviteUser(room) {
+		await unwrap(post(`/game/id/${room.id}/invite`, { username: room.data_username }));
 	}
 </script>
 
 <div class="room-container">
 	<div class="room room-create">
 		<div>
-			<input class="input" placeholder="Room name" bind:value={room.name}>
-			{#if room.is_private}
-				<input class="input" placeholder="Room password" bind:value={room.password}>
-			{/if}<br>
-			<input class="input" type="checkbox" bind:checked={room.is_private}>
+			<input class="input" placeholder="Room name" bind:value={name}>
+			<input class="input" placeholder="Room password" bind:value={password} disabled={is_private}>
+			<input class="input" type="checkbox" bind:checked={is_private}>
 			<span class="label">Private</span>
 		</div>
 		<button class="button button-create" on:click={createGame}>Create</button>
@@ -51,8 +60,12 @@
 	{#each data.mine as room}
 		<div class="room room-mine">
 			<span class="room-name">{room.name}</span>
+			{#if room.owner?.id === data.user.id}
+				<input class="input" placeholder="Username" bind:value={room.data_username}>
+				<button class="button button-invite" on:click={() => inviteUser(room)}>Invite</button>
+			{/if}
 			<a class="button button-enter" href=/game/{room.id}>Enter</a>
-			{#if room.owner.id == data.user.id}
+			{#if room.owner?.id === data.user.id}
 				<button class="button button-delete" on:click={() => deleteGame(room)}>Delete</button>
 			{:else}
 				<button class="button button-leave" on:click={() => leaveGame(room)}>Leave</button>
@@ -62,6 +75,9 @@
 	{#each data.joinable as room}
 		<div class="room room-joinable">
 			<span class="room-name">{room.name}</span>
+			{#if room.access === 1}
+				<input class="input" placeholder="Password" bind:value={room.data_password}>
+			{/if}
 			<button class="button button-join" on:click={() => joinGame(room)}>Join</button>
 		</div>
 	{/each}
@@ -118,7 +134,11 @@
 		vertical-align: top;
 	}
 
-	.button-create, .button-join {
+	.input:disabled {
+		opacity: 0.25;
+	}
+
+	.button-create, .button-join, .button-invite {
 		border-color: var(--green);
 	}
 

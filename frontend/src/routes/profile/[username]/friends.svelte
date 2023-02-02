@@ -1,5 +1,4 @@
 <script lang="ts">
-    import Dropdownmenu from '$lib/dropdownmenu.svelte';
     import { get, post } from '$lib/Web';
     import { io } from 'socket.io-client';
     import type { User } from "$lib/types";
@@ -113,6 +112,7 @@
         friends = $page.data.friendlist;
         let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
         socket.on("update", async (status) => {
+            if (friends) {
             friends.forEach((friend: simpleuser) => {
                 if (friend.id === status.id) {
                     console.log("status: ", status);
@@ -122,7 +122,7 @@
                 }
             });
             friends = friends;
-        });
+        }});
     });
     console.log($page.data.friendlist);
 </script>
@@ -140,7 +140,13 @@
         </svg>
     </div>
     <div class="image-selector">
-        <input name="username" id="friend-selector" class="input-field" type="text" bind:value={username}/>
+        <input 
+            name="username" 
+            id="friend-selector" 
+            class="input-field" 
+            type="text" 
+            placeholder="username..."
+            bind:value={username}/>
         <label for="image-selector_file_upload"></label>
     </div>
     <div class="image-selector" on:click={addFriend} on:keypress={addFriend}>add friend</div>
@@ -245,6 +251,8 @@
 		top: 10px;
 		right: 10px;
 		cursor: pointer;
+        margin-bottom: unset;
+        left: unset;
 	}
 
 	.close-button:hover {
@@ -295,8 +303,6 @@
     -webkit-filter: var(--invert);
     filter: var(--invert);
 }
-
-.avatar-cell {flex-grow: 1;}
 
 #online,
 #offline,

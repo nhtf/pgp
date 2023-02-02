@@ -18,7 +18,7 @@
         if (notifications[index].type === "chat") {
             res = await post(`/room/id/${notifications[index].room.id}/deny/`);
         }
-        if (res.ok) {
+        if (res && res.ok) {
                 notifications.splice(index, 1);
                 notifications = notifications;
             }
@@ -27,18 +27,20 @@
 
     async function acceptInvite(index: number) {
         let res;
-        if (notifications[index].type === "friend") {
-            console.log("sending: ", notifications[index].from.username);
-            res = await post("/user/me/friends/requests/", {username: notifications[index].from.username});
-        }
-        else if (notifications[index].type === "chat") {
-            res = await post(`/room/id/${notifications[index].room.id}/accept/`);
-        }
-        if (res.ok) {
-                notifications.splice(index, 1);
-                notifications = notifications;
+        try {
+            if (notifications[index].type === "friend") {
+                console.log("sending: ", notifications[index].from.username);
+                res = await post("/user/me/friends/requests/", {"id": notifications[index].from.id});
             }
-            console.log(res);
+            else if (notifications[index].type === "chat") {
+                res = await post(`/room/id/${notifications[index].room.id}/accept/`);
+            }
+            notifications.splice(index, 1);
+            notifications = notifications;
+        }
+        catch (err: any) {
+            console.log(err);
+        }
     }
 
     function fillNotifications() {
@@ -76,7 +78,7 @@
             <div class="text-gray-500 text-sm mb-1.5 dark:text-gray-400">New {type} invite from <span class="font-semibold text-gray-900 dark:text-white">{from.username}</span></div>
             <div class="text-xs text-blue-600 dark:text-blue-500">Click to accept invite</div>
         </div>
-        <div class="close-button">
+        <div class="close-button" title="Deny request">
           <svg fill="currentColor" width="20" height="20"
               on:click={() => removeNotification(index)}
               on:keypress={() => removeNotification(index)}

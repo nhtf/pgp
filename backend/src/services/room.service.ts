@@ -14,7 +14,7 @@ import { Observable } from "rxjs";
 import { RoomInvite } from "../entities/RoomInvite";
 import * as argon2 from "argon2";
 
-class CreateRoomDTO {
+export class CreateRoomDTO {
 	@Length(3, 20)
 	@IsString()
 	name: string;
@@ -180,7 +180,7 @@ export const RoleGuard = (role: Role) => {
 	return mixin(RoleGuardMixin);
 }
 
-export function GenericRoomController<T extends Room>(type: (new () => T), route?: string) {
+export function GenericRoomController<T extends Room, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), route?: string) {
 	@UseGuards(HttpAuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Controller(route || type.name.toString().toLowerCase())
@@ -216,22 +216,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			let rooms: T[];
 
 			if (member === "true") {
-				rooms = await this.room_repo.find({
-					relations: {
-						members: {
-							user: true,
-						},
-					} as FindOptionsRelations<T>,
-					where: {
-						members: {
-							user: {
-								id: user.id,
-							},
-						},
-					} as FindOptionsWhere<T>,
-				});
-			} else if (member === "false") {
-				//TODO use inner join
+				//TODO fix this
 				rooms = await this.room_repo.createQueryBuilder("room")
 					    .where("\"room\".\"is_private\" = false")
 					    .andWhere((qb) => {
@@ -240,11 +225,37 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 							.select("\"member\".\"roomId\"")
 							.select("\"member\".\"userId\"")
 							.from(Member, "member")
-							.where("\"member\".\"roomId\" = \"room\".\"id\"")
-							.andWhere("\"member\".\"userId\" = :user_id")
+							.where("\"roomId\" = \"room\".\"id\"")
+							.andWhere("\"userId\" = :user_id")
+							.getQuery();
+						return "EXISTS (" + subQuery + ")";
+					    })
+						.leftJoinAndSelect("room.members", "member")
+						.leftJoinAndSelect("member.user", "user")
+					    .setParameter("user_id", user.id)
+					    .getMany();
+			} else if (member === "false") {
+				/*
+				const tmp = await this.room_repo.createQueryBuilder("room")
+						.leftJoinAndSelect("room.members", "member", "\"userId\" = :user_id", { user_id: user.id })
+						.where("\"member\" IS NULL")
+						.leftJoinAndSelect("member.user", "user", "\"member\".\"userId\" = \"user\".\"id\"")
+						.getMany();*/
+				rooms = await this.room_repo.createQueryBuilder("room")
+					    .where("\"room\".\"is_private\" = false")
+					    .andWhere((qb) => {
+					   	 const subQuery = qb
+							.subQuery()
+							.select("\"member\".\"roomId\"")
+							.select("\"member\".\"userId\"")
+							.from(Member, "member")
+							.where("\"roomId\" = \"room\".\"id\"")
+							.andWhere("\"userId\" = :user_id")
 							.getQuery();
 						return "NOT EXISTS (" + subQuery + ")";
 					    })
+						.leftJoinAndSelect("room.members", "member")
+						.leftJoinAndSelect("member.user", "user")
 					    .setParameter("user_id", user.id)
 					    .getMany();
 			}  else {
@@ -277,11 +288,16 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		}
 
 		@Post()
-		async create_room(@Me() user: User, @Body() dto: CreateRoomDTO) {
+		async create_room(@Me() user: User, @Body() dto: C) {
 			const name = dto.name.trim();
 			const room = await this.service.create(name, dto.is_private, dto.password);
 			await this.service.add_member(room, user, Role.OWNER);
+			await this.setup_room(room, dto);
 			return {};
+		}
+
+		async setup_room(room: T, dto: C) {
+
 		}
 
 		@UseGuards(RoleGuard(Role.MEMBER))
@@ -297,6 +313,7 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 			if ((!invites || invites.length == 0) && room.access == Access.PRIVATE) {
 				throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 			}
+
 
 			/*
 			const banned_rooms = await me.banned_rooms;
@@ -320,17 +337,34 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 		}
 
 		@UseGuards(RoleGuard(Role.MEMBER))
+		@Get("id/:id/member(s)?")
+		async list_members(
+			@GetRoom() room: T
+		) {
+			return this.member_repo.find({
+				relations: {
+					user: true,
+				},
+				where: {
+					room: {
+						id: room.id,
+					},
+				},
+			});
+		}
+
+		@UseGuards(RoleGuard(Role.MEMBER))
 		@Delete("id/:id/member(s)?/:user_id")
 		async remove_member(
 			@Me() me: User,
 			@Param("user_id", ParseIDPipe(User)) target: User,
 			@GetMember() member: Member,
 			@GetRoom() room: T,
-			@Body("ban", ParseBoolPipe) ban?: boolean,
+			@Body("ban") ban: string,
 		) {
 			const target_member = target.id === me.id ? member : await this.get_member(target, room);
 
-			if (ban === true && member.role < Role.ADMIN)
+			if (ban === "true" && member.role < Role.ADMIN)
 				throw new HttpException("Insufficient permission", HttpStatus.FORBIDDEN);
 
 			if (!target_member)
@@ -344,8 +378,9 @@ export function GenericRoomController<T extends Room>(type: (new () => T), route
 					throw new HttpException("You must transfer ownership before leaving a room as owner", HttpStatus.FORBIDDEN);
 				await this.service.destroy(room);
 			} else {
-				await this.service.del_member(room, target_member, ban);
+				await this.service.del_member(room, target_member, ban === "true");
 			}
+			return {};
 		}
 
 		/*

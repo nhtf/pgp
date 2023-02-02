@@ -25,9 +25,9 @@
 
 	const room = data.room;
 	const user = data.user;
-	const member = room.members.find((member) => member.user.id === user.id) as Member;
+	// const member = room.members.find((member) => member.user.id === user.id) as Member;
 
-	let messages = room.messages;
+	let messages = data.messages;
 
 	let invitee: string = "";
 	let content: string = "";
@@ -45,19 +45,21 @@
 	});
 
 	socket.on("message", (data: Message) => {
+		console.log("data: ", data);
 		messages = [...messages, data];
 	})
 
+	function handleKeyPress(event) {
+		console.log(event);
+		if (event.key === "Enter" && !event.shiftKey)
+			sendMessage();
+	}
+
 	function sendMessage() {
 		console.log("content: ", content);
-		if (!content.length) {
-           return Swal.fire({
-                icon: "warning",
-                text: "Can't send empty messages",
-				timer: 3000,
-            });
-		}
-	
+		if (!content.length)
+           return;
+		console.log("user", user);
 		socket.emit("message", content);
 		content="";
 	}
@@ -117,7 +119,7 @@
 	</div>
 	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
 		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
-		{#if data.user.username === data.room.owner.username}
+		{#if data.user?.username === data.room.owner.username}
 		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
 		<DropdownItem class="flex items-center text-base font-semibold gap-2">
 		<form on:submit|preventDefault={invite}>
@@ -129,24 +131,38 @@
 	</Dropdown>
 
 <div class="messages" bind:this={div}>
+	{#if messages}
 	{#each messages as message}
-		<MessageBox id={room.id} {message} {member}/>
+		<MessageBox id={room.id} {message} {user}/>
 	{/each}
+	{/if}
 </div>
 
 <div class="message-input">
 	<div class="message-box">
-		<input class="w-full space-x-4" bind:value={content} type="text" placeholder="message...">
+		<textarea wrap="hard"
+		on:keypress={handleKeyPress}
+		bind:value={content}
+		class="w-full space-x-4"  placeholder="message..."/>
 	</div>
 	<div class="send-button"
 		on:click|preventDefault={sendMessage}
-		on:keypress={sendMessage}>
+		on:keypress|preventDefault={sendMessage}
+		>
 		<img src="/Assets/icons/send.svg" alt="chat" class="icon">
 	</div>
 </div>
 </div>
 	
 <style>
+
+	textarea {
+		height: 5rem;
+		color: var(--text-color);
+		background-color: var(--input-bkg-color);
+		border-radius: 6px;
+		height: fit-content;
+	}
 
 	.user-invite {
 		width: 7.5rem;
@@ -175,7 +191,7 @@
 		display: flex;
 		position: relative;
 		align-items: center;
-		height: 50px;
+		/* height: 50px; */
 	}
 
 	input {
@@ -198,7 +214,7 @@
 
 	.room-title {
 		background-color: var(--box-color);
-		top: 0.25rem;
+		top: 0.5rem;
 		position: relative;
 		display: flex;
 		width: 100%;

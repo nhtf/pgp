@@ -16,7 +16,6 @@
         duration: 200,
         easing: sineIn
     };
-    let activateClickOutside = false;
     let password = "";
 
     let mine = $page.data.mine;
@@ -88,7 +87,6 @@
   on:click={() => (hidden1 = !hidden1)}>
   <img src="/Assets/icons/chat.svg" alt="chat" class="icon">
 </ToolbarButton>
-<div class="room-container">
     <Drawer 
         
         leftOffset="drawer-custom"
@@ -115,12 +113,11 @@
         {/each}
         </div>
     </Drawer>
-</div>
 {#if createRoomShow}
 <div class="create-room">
     <div>
         <input class="input" placeholder="Room name" bind:value={room.name}>
-        {#if room.is_private}
+        {#if !room.is_private}
         <input class="input" placeholder="password" bind:value={password}>
         {/if}
         <br>
@@ -136,12 +133,6 @@
 {/if}
 
 <style>
-    .room-container {
-		display: flex;
-		flex-direction: column;
-		gap: 10px;
-		padding: 25px 10px;
-	}
 
 	.create-room {
 		display: flex;

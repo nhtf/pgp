@@ -80,6 +80,7 @@ async function getFriendList(username: string, options: Map<any, any>) {
 	dummy_friends = [];
 	dummy_friends = dummy_friends.concat(friends);
 	let friend_list: User[] = await get(`/user/me/friends`);
+	console.log("friend_list: ", friend_list);
 	if (friend_list !== undefined) {
 		friend_list.forEach((value) => {
 			let newUser: simpleuser = { 

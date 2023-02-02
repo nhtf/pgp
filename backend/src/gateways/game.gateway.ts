@@ -60,23 +60,19 @@ export class GameGateway {
 				return;
 			}
 
-			const request = client.request as any;
-			const roomId = validate_id(data.room);
-			const room = await this.gameroom_repo.findOneBy({ id: roomId });
+			try {
+				const request = client.request as any;
+				const roomId = validate_id(data.room);
+				const room = await this.gameroom_repo.findOneBy({ id: roomId, members: { user: { id: client.request.session.user_id } } });
 
-			if (room === null) {
-				throw new WsException("Invalid room id");
+				if (room === null) {
+					throw new WsException("Invalid room id");
+				}
+
+				client.room = data.room;
+			} catch (err) {
+				throw new WsException(err.message);
 			}
-
-			const members = await room.members;
-			const users = await Promise.all(members.map(member => member.user));
-			const index = users.findIndex(user => user.id === request.user.id);
-
-			if (index < 0) {
-				throw new WsException("Invalid room id");
-			}
-
-			client.room = data.room;
 		}
 
 		client.join(data.scope + "-" + data.room);

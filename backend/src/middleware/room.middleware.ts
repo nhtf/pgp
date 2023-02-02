@@ -23,6 +23,7 @@ export class RoomMiddleware implements NestMiddleware {
 						user: true
 					},
 					invites: true,
+					banned_users: true,
 				},
 				where: {
 					id: id,

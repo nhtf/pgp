@@ -1,70 +1,189 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
-    import type { Invite } from "$lib/types";
-    import { get, post } from "$lib/Web";
+    import type { Invite, FriendRequest } from "$lib/types";
+    import { get, post, remove } from "$lib/Web";
     import type { PageData } from "./$types";
-    import {page} from "$app/stores";
+    import {
+        Tabs, 
+        TabItem
+     } from "flowbite-svelte";
 
 	export let data: PageData;
-	
-	let chat_invites: any[] = $page.data.invites;
-    let friend_requests: any[] = $page.data.friend_requests;
-    let invites: any = [];
+
+    let send: Invite[] = [];
+    let received: Invite[] = [];
+
+    let invites = {send, received};
+
+    function isFromUser(element: Invite) {
+        return element.from.username === data.user?.username;
+    }
 
     async function fetchInvites() {
-        return await unwrap(get("/user/me/invites"));
+        const room_invites: Invite[] = await unwrap(get("/user/me/invites"));
+        const friend_requests: Invite[] = await get("/user/me/friends/requests");
+
+        const room_send = room_invites.filter(isFromUser);
+        const room_received = room_invites.filter((e) => !isFromUser(e));
+        const friend_send = friend_requests.filter(isFromUser);
+        const friend_received = friend_requests.filter((e) => !isFromUser(e));
+        let send: Invite[] = [];
+        let received: Invite[] = [];
+        room_send?.forEach((invite) => {
+            invite.type = "chat"
+            send.push(invite)
+        });
+        friend_send?.forEach((request) => {
+            request.type = "friend"
+            send.push(request)
+        });
+        room_received?.forEach((invite) => {
+            invite.type = "chat"
+            received.push(invite)
+        });
+        friend_received?.forEach((request) => {
+            request.type = "friend"
+            received.push(request)
+        });
+        return {send, received}; 
     }
 
     async function respond(invite: Invite, action: string) {
-        await unwrap(post(`/room/id/${invite.room.id}/${action}`));
+        //TODO friend request accept/deny is different from room invite system
+        if (action === "deny") {
+            await unwrap(remove(`/room/id/${invite.room?.id}/invite`))
+        }
+        if (action === "accept") {
+            await unwrap(post(`/room/id/${invite.room?.id}/invite`));
+        }
 
         invites = await fetchInvites();
         
     }
 
     function fillInvites() {
-        chat_invites.forEach((invite) => {
-            invites.push({from: invite.from, type: "chat", room: invite.room})
-        })
-        friend_requests.forEach((request) => {
-            invites.push({from: request.from, type: "friend"})
+        data.room_send?.forEach((invite) => {
+            invite.type = "chat"
+            send.push(invite)
         });
+        data.friend_send?.forEach((request) => {
+            request.type = "friend"
+            send.push(request)
+        });
+        data.room_received?.forEach((invite) => {
+            invite.type = "chat"
+            received.push(invite)
+        });
+        data.friend_received?.forEach((request) => {
+            request.type = "friend"
+            received.push(request)
+        });
+        invites = {send, received};
     }
     fillInvites();
 
-    console.log("invites: ", invites);
+    console.log("send: ", send, "received: ", received);
 </script>
 
+
+<!-- //TODO use the type string of the invite (Backend + database needs to have that) -->
 <div class="invite_list">
-	{#each invites as invite}
-		<div class="invite">
-			<img id="small-avatar" src={invite.from.avatar} alt="">
-			<div>{invite.type} request</div>
-            <button class="confirm" on:click={() => respond(invite, "accept")}>Accept</button>
-            <button class="deny" on:click={() => respond(invite, "deny")}>Deny</button>
+    <Tabs style="underline" 
+    divider
+    defaultClass="flex flex-wrap space-x-2 bg-c rounded"
+    contentClass="tab-content-background">
+
+    <TabItem open={true} class="bg-c rounded" defaultClass="rounded"  title="send">
+        <div>
+            {#if send}
+            {#each send as invite}
+                <div class="invite">
+                    <div>
+                        {#if invite.from && invite.from.avatar}
+                        <img class="avatar" src={invite.from.avatar} alt="">
+                        {:else}
+                            <img class="avatar" src="/avatar-default.png" alt="">
+                        {/if}
+                    </div>
+                    <div>{invite.type} request from {invite.from.username}</div>
+                    <div>
+                        <button class="deny" on:click={() => respond(invite, "deny")}>Cancel</button>
+                    </div>
+                </div>
+            {/each}
+            {/if}
         </div>
-	{/each}
-    </div>
+    </TabItem>
+
+    <TabItem open={true} class="bg-c rounded" defaultClass="rounded"  title="received">
+        <div>
+            {#if received}
+            {#each received as invite}
+                <div class="invite">
+                    <div>
+                        {#if invite.from && invite.from.avatar}
+                            <img class="avatar" src={invite.from.avatar} alt="">
+                        {:else}
+                            <img class="avatar" src="/avatar-default.png" alt="">
+                        {/if}
+                    </div>
+                    <div>{invite.type} request from {invite.from.username}</div>
+                    <div class="buttons">
+                        <button class="confirm" on:click={() => respond(invite, "join")}>Accept</button>
+                        <button class="deny" on:click={() => respond(invite, "deny")}>Deny</button>
+                    </div>
+                </div>
+            {/each}
+            {/if}
+        </div>
+    </TabItem>
+
+    </Tabs>
+    
+
+    
+</div>
 
 <style>
 
 .invite_list {
-    border-radius: 1em;
     display: flex;
     flex-direction: column;
-    list-style: none;
-    margin: 1em;
-    gap: 1em;
+    justify-content: flex-start;
+    position: relative;
+    margin: 0 auto;
+    width: 80%;
+    top: 0.5rem;
+    height: calc(100vh - 80px);
 }
 
 .invite {
-    background-color:steelblue;
-    border-radius: 1em;
+    background-color:var(--box-color);
+    /* border-radius: 6px; */
     display: flex;
     flex-direction: row;
-    font-size: 2em;
-    gap: 1em;
-    padding: 1em;
+    align-items: center;
+    padding: 0.875rem;
+    justify-content: space-evenly;
+    /* margin-top: 0.25rem; */
+    font-size: 1.5rem;
+    border-bottom-color: var(--border-color)!important;
+    border-bottom-width: 2px;
+}
+
+.invite:hover {
+    background-color: var(--box-hover-color);
+}
+
+.invite:first-child {
+    margin-top: 0.25rem;
+    border-top-left-radius: 6px;
+    border-top-right-radius: 6px;
+}
+
+.invite:last-child {
+    border-bottom-left-radius: 6px;
+    border-bottom-right-radius: 6px;
 }
 
 .invite button {
@@ -76,18 +195,48 @@
     font-size: 1rem;
 }
 
-#small-avatar {
-    border-radius: 1em;
-    max-width: 1em;
-    max-height: 1em;
+.avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 100%;
 }
 
 .confirm {
-    border-color: var(--confirm-color);
+    border: 1px solid var(--green)!important;
+}
+
+.confirm:hover, .deny:hover {
+    background-color: var(--box-hover-color);
 }
 
 .deny {
-    border-color: var(--cancel-color);
+    border: 1px solid var(--red)!important;
 }
+
+@media (max-width: 500px) {
+        .invite_list {
+            width: 100%;
+
+        }
+
+        .invite {
+            font-size: 1rem;
+        }
+
+        .invite button {
+            font-size: 0.875rem;
+        }
+
+        .avatar {
+            width: 35px;
+            height: 35px;
+        }
+
+        .buttons {
+            flex-direction: column;
+            display: flex;
+            row-gap: 0.25rem;
+        }
+    }
 
 </style>

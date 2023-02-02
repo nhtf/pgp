@@ -21,11 +21,9 @@ export class Message {
 	@Column()
 	content: string;
 
-	@Exclude()
 	@ManyToOne(() => Member, { onDelete: "CASCADE" })
 	member: Member;
 
-	@Exclude()
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
 	room: ChatRoom;
 }

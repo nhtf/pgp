@@ -62,6 +62,6 @@ async function bootstrap() {
 
 	app.useStaticAssets(join(__dirname, "..", "avatar"), { prefix: "/avatar/" });
 	//TODO use nestjs way of setting up the data sourcd
-	app.listen(8080);
+	app.listen(BACKEND_PORT);
 }
 bootstrap();

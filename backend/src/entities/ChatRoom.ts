@@ -8,4 +8,8 @@ export class ChatRoom extends Room {
 	@Exclude()
 	@OneToMany(() => Message, (message) => message.room)
 	messages: Message[];
+
+	get type(): string {
+		return "ChatRoom";
+	}
 }

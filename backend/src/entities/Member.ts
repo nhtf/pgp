@@ -7,6 +7,7 @@ import { Message } from "./Message";
 
 @Entity()
 export class Member {
+	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 

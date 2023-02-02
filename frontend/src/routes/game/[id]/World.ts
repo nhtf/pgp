@@ -331,7 +331,11 @@ export class World extends Net {
 		super.load(snapshot);
 	}
 
-	public render(deltaTime: number) {}
+	public clientTick() {
+	}
+
+	public render(deltaTime: number) {
+	}
 
 	public async start(options: Options) {
 		let previousRenderTime: number;
@@ -352,10 +356,11 @@ export class World extends Net {
 
 				for (let i = 0; i < stepDelta; i++) {
 					const start = performance.now() / 1000;
+					this.clientTick();
 					this.tick();
 
 					for (let entity of this.entities) {
-						entity.renderTick();
+						entity.clientTick();
 					}
 
 					this.frameTime.add(performance.now() / 1000 - start);

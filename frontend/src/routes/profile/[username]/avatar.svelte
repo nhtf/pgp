@@ -45,16 +45,8 @@
 			return;
 		}
 		const result = await put(`/user/me/avatar`, formData, false);
-		const avatars = document.getElementsByClassName("layout-avatar");
-		for (let i = 0; i < avatars.length; i += 1) {
-			const thing = avatars[i] as HTMLImageElement;
-			thing.src = result.avatar;
-		}
-		const avatars1 = document.getElementsByClassName("layout-avatar1");
-		for (let i = 0; i < avatars1.length; i += 1) {
-			const thing = avatars1[i] as HTMLImageElement;
-			thing.src = result.avatar;
-		}
+		const avatars = document.getElementById("avatar-menu") as HTMLImageElement;
+		avatars.src = result.avatar;
 		avatar = result.avatar;		
 		src = null;
 		show_edit = false;
@@ -136,6 +128,8 @@
 		top: 10px;
 		right: 10px;
 		cursor: pointer;
+		margin-bottom: unset;
+		left: unset;
 	}
 
 	.close-button:hover {

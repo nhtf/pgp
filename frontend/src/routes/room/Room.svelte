@@ -10,7 +10,11 @@
 </script>
 
 <button class="room" on:click={() => click(room)}>
+	{#if room.owner}
 	<img class="room-icon" src={room.owner?.avatar} alt=""/>
+	{:else}
+	<img class="room-icon" src="/avatar-default.png" alt=""/>
+	{/if}
 	<div class="text-xl">{room.name}</div>
 	<!-- <div class="flex flex-col"> -->
 		<!-- <div class="text-sm" style="width: 4em;">{room.owner?.username}</div> -->
@@ -34,9 +38,10 @@
 		align-items: center;
 		flex-direction: row;
 		width: 100%;
-		border-bottom: 2px solid var(--border-color);
 		border-bottom-left-radius: 0;
 		border-bottom-right-radius: 0;
+		border-bottom-color: var(--border-color)!important;
+		border-bottom-width: 2px;
 	}
 
 	.room:hover {

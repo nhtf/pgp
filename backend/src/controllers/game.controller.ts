@@ -1,4 +1,18 @@
-import { GenericRoomController } from "src/services/room.service";
+import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
+import { IsEnum } from "class-validator";
 
-export class GameController extends GenericRoomController(GameRoom, "game") {}
+enum GameMode {
+	VR,
+	REGULAR,
+}
+
+class CreateGameRoomDTO extends CreateRoomDTO {
+	@IsEnum(GameMode)
+	gamemode: GameMode;
+}
+
+//TODO add gamemode type
+export class GameController extends GenericRoomController(GameRoom, "game") {
+
+}

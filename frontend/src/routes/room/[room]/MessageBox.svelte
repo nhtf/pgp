@@ -7,13 +7,16 @@
 	import {page} from "$app/stores";
 
 	export let id: number;
-	export let member: Member;
+	// export let member: Member;
 	export let message: Message;
+
+	let member = message.member;
 
 	const admin_actions = [	"ban", "kick", "mute" ];
 	const owner_actions = [ "demote", "promote" ];
 
-	const flex_direction = member?.id == message.member?.id ? "row-reverse" : "row";
+	const flex_direction = $page.data.user?.id == message.user?.id ? "row-reverse" : "row";
+	const align_self = $page.data.user?.id == message.user?.id ? "left" : "right";
 	const user = member.user;
 
 	async function doAction(route: string) {
@@ -24,12 +27,10 @@
 			icon: "success",
 		})
 	}
+	console.log("message: ", message);
 </script>
 
-<div class="message" style={`flex-direction: ${flex_direction}`}>
-	<div class="avatar">
-	<Avatar class="acs" src={user.avatar} title={user.username}/>
-	</div>
+<div class="message" style={`flex-direction: ${flex_direction}; align_self: ${align_self}`}>
 	{#if member.user.username !== $page.data.user.username}
 	<Dropdown triggeredBy=".acs">
 		<DropdownItem on:click={() => { window.location.assign(`/profile/${user.username}`)}}>Profile</DropdownItem>
@@ -47,13 +48,13 @@
 			{/if}
 	</Dropdown>
 	{/if}
-	<div class="chicken">
-		<div class="text-xs">{user.username}
-		</div>
-		<div>
-		{message.content}
-		</div>
+	<div class="message-box">
+		<div class="text-sm underline text-right">{message.member.user.username} </div>
+		<div class="message-content">{message.content}</div>
 	</div>
+	<div class="avatar">
+		<Avatar class="acs" src={user.avatar} title={user.username}/>
+		</div>
 </div>
 
 <style>
@@ -75,11 +76,17 @@
 	.avatar {
 		width: 40px;
 		height: 40px;
-		align-self: center;
 		font-size: smaller;
+		position: relative;
+		top: 0.25rem;
 	}
 
-	.chicken {
-		max-width: calc(100% - 50px - 1rem);
+	.message-box {
+		max-width: calc(100vw - 150px);
+	}
+
+	.message-content {
+		white-space: pre-wrap;
+		font-size: 1.125rem;
 	}
 </style>

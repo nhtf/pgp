@@ -164,7 +164,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
-			return user.friends;
+			return this.user_repo.findBy({ friends: { id: user.id } });
 		}
 
 		@Delete(options.cparam + "/friend(s)?/:friend_id")
@@ -270,7 +270,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			return this.invite_repo.find({
 				relations: {
 					from: true,
-					to: true
+					to: true,
 				},
 				where: [
 					{ from: { id: user.id } },

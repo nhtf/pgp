@@ -139,7 +139,7 @@ export abstract class Entity {
 	public lateTick() {
 	}
 
-	public renderTick() {
+	public clientTick() {
 		this.renderObject.position.lerp(this.position.intoThree(), this.interpolation);
 		this.renderObject.quaternion.slerp(this.rotation.intoThree(), this.interpolation);
 	}

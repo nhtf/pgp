@@ -27,6 +27,16 @@ export class Room {
 	password: string | null;
 
 	@Expose()
+	get owner(): User {
+		return this.members?.find(member => member.role === Role.OWNER)?.user;
+	}
+
+	@Expose()
+	get type(): string {
+		return "Generic";
+	}
+
+	@Expose()
 	get access(): Access {
 		if (this.is_private)
 			return Access.PRIVATE;
@@ -36,6 +46,7 @@ export class Room {
 			return Access.PUBLIC;
 	}
 
+	@Exclude()
 	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
 	members: Member[];
 

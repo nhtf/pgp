@@ -152,6 +152,11 @@ export class Net {
 	}
 
 	private forward(target: number) {
+		if (target - this.time > HISTORY_LIFETIME) {
+			console.info("attempt to forward past history lifetime, reloading");
+			window.location.reload();
+		}
+
 		while (this.time < target) {
 			this.tick();
 		}

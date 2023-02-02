@@ -326,6 +326,12 @@ table {
 	border-radius: 6px;
 }
 
+@media (max-width: 500px) {
+	.drawer-custom {
+		top: 4rem;
+	}
+}
+
 .close-button {
 	position: relative;
 	margin-bottom: auto;

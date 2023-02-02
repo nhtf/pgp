@@ -1,13 +1,30 @@
 import { unwrap } from "$lib/Alert";
-import type { Invite } from "$lib/types";
+import type { Invite, User, FriendRequest } from "$lib/types";
 import { get } from "$lib/Web";
 import type { PageLoad } from "./$types"
 
+let user : User | null;
+
+function isFromUser(element: Invite) {
+    return element.from?.username === user?.username;
+}
+
+function isFromOther(element: Invite) {
+    return element.from && element.from.username !== user?.username
+}
+
 export const load: PageLoad = (async ({ fetch }) => {
     const invites: Invite[] = await unwrap(get("/user/me/invites"));
+    const friend_requests: Invite[] = await get("/user/me/friends/requests");
+    console.log("friends: ", friend_requests);
+    console.log("invites: ", invites);
+    user = await get("/user/me");
 
-    console.log("Invites", invites);
-
-    return { fetch, invites };
+    const room_send = invites.filter(isFromUser);
+    const room_received = invites.filter(isFromOther);
+    const friend_send = friend_requests.filter(isFromUser);
+    const friend_received = friend_requests.filter(isFromOther);
+    console.log("Invites", {room_send, room_received, friend_received, friend_send});
+    return { fetch, room_send, room_received, friend_received, friend_send };
 }) satisfies PageLoad;
 

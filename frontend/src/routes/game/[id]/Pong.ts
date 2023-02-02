@@ -2,7 +2,7 @@ import { loadModel, createShape } from "./Model";
 import { DynamicText } from "./Text";
 import { Entity, createPhysicsObject } from "./Entity";
 import type { EntityObject } from "./Entity";
-import { World } from "./World";
+import { World, TICKS_PER_SECOND } from "./World";
 import type { Options as WorldOptions, Snapshot as WorldSnapshot, CreateEvent } from "./World";
 import { State, Player } from "./State";
 import type { Snapshot as StateSnapshot } from "./State";
@@ -231,6 +231,8 @@ export class Pong extends World {
 	public paddleUUID: string;
 	public rightController: THREE.XRTargetRaySpace;
 	public leftController: THREE.XRTargetRaySpace;
+	public rightGamepad?: Gamepad;
+	public leftGamepad?: Gamepad;
 	public tableModel?: THREE.Object3D;
 	public paddleModel?: THREE.Object3D;
 	public userID?: number;
@@ -245,6 +247,8 @@ export class Pong extends World {
 
 		this.rightController = this.renderer.xr.getController(0);
 		this.leftController = this.renderer.xr.getController(1);
+		this.rightController.addEventListener("connected", e => this.controllerConnected(e));
+		this.leftController.addEventListener("connected", e => this.controllerConnected(e));
 		this.cameraGroup.add(this.rightController);
 		this.cameraGroup.add(this.leftController);
 
@@ -290,6 +294,16 @@ export class Pong extends World {
 		this.register("paddle", object => new Paddle(this, object.uuid, (object as PaddleObject).userID));
 	}
 
+	private controllerConnected(event: any) {
+		if (event.data.gamepad.hand === "left") {
+			this.leftController = event.target;
+			this.leftGamepad = event.data.gamepad;
+		} else if (event.data.gamepad.hand === "right") {
+			this.rightController = event.target;
+			this.rightGamepad = event.data.gamepad;
+		}
+	}
+
 	public get mainController() {
 		if (this.mainControllerIndex == 0) {
 			return this.rightController;
@@ -311,6 +325,29 @@ export class Pong extends World {
 		}
 
 		super.earlyTick();
+	}
+
+	public clientTick() {
+		const forward = new THREE.Vector3();
+		const cross = new THREE.Vector3();
+		this.cameraGroup.getWorldDirection(forward);
+		cross.crossVectors(forward, new THREE.Vector3(0, 1, 0));
+
+		if (this.rightGamepad) {
+			if (Math.abs(this.rightGamepad.axes[1]) > 0.1) {
+				this.cameraGroup.position.add(cross.multiplyScalar(-this.rightGamepad.axes[1] / TICKS_PER_SECOND));
+			} else if (Math.abs(this.rightGamepad.axes[0]) > 0.1) {
+				this.cameraGroup.position.add(forward.multiplyScalar(-this.rightGamepad.axes[0] / TICKS_PER_SECOND));
+			}
+		}
+
+		if (this.leftGamepad) {
+			if (Math.abs(this.leftGamepad.axes[0]) > 0.1) {
+				this.cameraGroup.rotateY(-this.leftGamepad.axes[0] * Math.PI / TICKS_PER_SECOND);
+			}
+		}
+
+		super.clientTick();
 	}
 
 	public render(deltaTime: number) {

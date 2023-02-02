@@ -25,20 +25,25 @@ export type User = {
 	invites?: any[],
 };
 
+export type FriendRequest = {
+	id: number,
+	date: Date,
+	from: User,
+	to: User
+}
+
 export type Message = {
 	content: string,
+	user: User,
 	member: Member,
 };
 
-export type ChatRoom = {
+export type Room = {
     id: number,
     name: string,
 	access: Access,
 	is_private: boolean,
-    members: Member[],
-    invites: Invite[],
-    messages: Message[],
-	owner : User,
+	type: string,
 }
 
 export type Invite = {
@@ -46,7 +51,8 @@ export type Invite = {
 	date: Date,
 	from: User,
 	to: User,
-	Chatroom: ChatRoom,
+	room: Room | undefined,
+	type: string
 }
 
 export enum Role {

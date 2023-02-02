@@ -5,11 +5,13 @@ import {
 	ConnectedSocket,
 	WebSocketGateway,
 	WebSocketServer,
+	WsException,
 } from "@nestjs/websockets";
 import type { Socket, Server } from "socket.io";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
 import type { User } from "src/entities/User";
+import type { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
 import { FRONTEND_ADDRESS } from "src/vars";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
@@ -22,7 +24,9 @@ export class RoomGateway extends ProtectedGateway("room") {
 		@Inject("USER_REPO")
 		private readonly userRepo: Repository<User>,
 		@Inject("MESSAGE_REPO")
-		private readonly messageRepo: Repository<Message>
+		private readonly messageRepo: Repository<Message>,
+		@Inject("MEMBER_REPO")
+		private readonly memberRepo: Repository<Member>,
 	) {
 		super(userRepo);
 	}
@@ -37,24 +41,29 @@ export class RoomGateway extends ProtectedGateway("room") {
 	@SubscribeMessage("message")
 	async message(@ConnectedSocket() client: Socket, @MessageBody() content: string) {
 		const request: any = client.request;
-		const user = await this.userRepo.findOneBy({ id: request.session.user_id });
+		const member = await this.memberRepo.findOne({
+			relations: {
+				user: true,
+			},
+			where: {
+				user: {
+					id: request.session.user_id,
+				},
+			},
+		});
 	
-		if (!user) {
-			throw new HttpException("user not found", HttpStatus.NOT_FOUND);
+		if (!member) {
+			throw new WsException("not found");
 		}
 
 		this.server.in(client.room).emit("message", {
 			content,
 			user: {
-				id: user.id,
-				avatar: user.avatar,
+				id: member.user.id,
+				avatar: member.user.avatar,
+				username: member.user.username,
 			},
 		});
-
-		const members = await user.members;
-		const rooms = await Promise.all(members.map((member) => member.room));
-		const index = rooms.findIndex((room) => room.id === Number(client.room));
-		const member = members[index];
 
 		console.log(member);
 
