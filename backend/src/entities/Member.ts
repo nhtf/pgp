@@ -10,14 +10,11 @@ export class Member {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@Exclude()
 	@ManyToOne(() => User, (user) => user.members, { onDelete: "CASCADE" })
-	user: Promise<User>;
+	user: User;
 
-	@Exclude()
 	@ManyToOne(() => Room, { onDelete: "CASCADE", cascade: [ "insert", "update" ]})
-	room: Promise<Room>;
-//	room: Room;
+	room: Room;
 
 	@Column({
 		type: "enum",
@@ -28,12 +25,5 @@ export class Member {
 
 	@Exclude()
 	@OneToMany(() => Message, (message) => message.member)
-	messages: Promise<Message[]>;
-
-	async serialize() {
-		return {
-			role: this.role,
-			user: await this.user,
-		};
-	}
+	messages: Message[];
 }

@@ -139,9 +139,13 @@ export class DebugController {
 
 	@Get("rooms")
 	async rooms() {
-		const rooms = await this.roomRepo.find();
-	
-		return await Promise.all(rooms.map((room) => room.serialize()));
+		return this.roomRepo.find({
+			relations: {
+				members: {
+					user: true,
+				},
+			}
+		});
 	}
 
 	@Get("room/delete")
@@ -151,12 +155,22 @@ export class DebugController {
 
 	@Get("members")
 	async members() {
-		return await Promise.all((await this.memberRepo.find()).map((member) => member.serialize()));
+		return this.memberRepo.find({
+			relations: {
+				user: true,
+				room: true,
+			},
+		});
 	}
 
 	@Get("invites")
 	async invites() {
-		return await Promise.all((await this.inviteRepo.find()).map((invite) => invite.serialize()));
+		return this.inviteRepo.find({
+			relations: {
+				from: true,
+				to: true,
+			},
+		});
 	}
 
 	@Get("invite/delete")

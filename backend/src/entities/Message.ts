@@ -15,7 +15,7 @@ export class Message {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@CreateDateColumn()
+	@CreateDateColumn({ type: 'timestamptz' })
 	time: Date;
 
 	@Column()
@@ -23,18 +23,9 @@ export class Message {
 
 	@Exclude()
 	@ManyToOne(() => Member, { onDelete: "CASCADE" })
-	member: Promise<Member>;
+	member: Member;
 
 	@Exclude()
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
-	room: Promise<ChatRoom>;
-
-	async serialize() {
-		const member = await this.member;
-	
-		return {
-			...instanceToPlain(this),
-			member: await member.serialize(),
-		};
-	}
+	room: ChatRoom;
 }

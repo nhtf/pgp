@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { User } from "./entities/User";
 import { EntityTarget, ObjectLiteral } from "typeorm";
-import { Repository, FindOptionsWhere } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
 import isNumeric from "validator/lib/isNumeric";
 import isLength from "validator/lib/isLength";
 
@@ -62,7 +62,7 @@ export async function parseId<T>(type: (new () => T), value: any, repo: Reposito
 	return entity;
 }
 
-export function ParseIDPipe<T>(type: (new () => T)) {
+export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelations<T>) {
 	@Injectable()
 	class ParseIDPipe implements PipeTransform {
 		constructor(
@@ -73,7 +73,12 @@ export function ParseIDPipe<T>(type: (new () => T)) {
 		async transform(value: any, metadata: ArgumentMetadata) {
 			try {
 				const id = validate_id(value);
-				const entity = await this.repo.findOneBy({ id: id } as unknown as FindOptionsWhere<T>);
+				const entity = await this.repo.findOne({
+					relations: relations,
+					where: {
+						id: id,
+					} as unknown as FindOptionsWhere<T>,
+				});
 				if (!entity)
 					throw new HttpException("not found", HttpStatus.NOT_FOUND);
 				return entity;

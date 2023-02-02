@@ -36,55 +36,13 @@ export class Room {
 			return Access.PUBLIC;
 	}
 
-	@Exclude()
 	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
-	members: Promise<Member[]>;
+	members: Member[];
 
-	@Exclude()
 	@ManyToMany(() => User)
 	@JoinTable()
-	banned_users: Promise<User[]>;
+	banned_users: User[];
 
-	@Exclude()
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
-	invites: Promise<RoomInvite[]>;
-
-	async add_member(user: User, role?: Role) {
-		const member = new Member();
-	
-		member.user = Promise.resolve(user);
-		member.room = Promise.resolve(this);
-		member.role = role || Role.MEMBER;
-
-		const members = await this.members;
-		if (members)
-			members.push(member);
-		else
-			this.members = Promise.resolve([member]);
-		return member;
-	}
-
-	async serialize() {
-		const members = await Promise.all((await this.members).map(member => member.serialize()));
-		const invites = await Promise.all((await this.invites).map(invite => invite.serialize()));
-		const owner = members.find((member) => member.role === Role.OWNER);
-	
-		if (!owner) {
-			console.log("Missing owner", this);
-			await fetch(`${BACKEND_ADDRESS}/debug/room/delete?id=${this.id}`);
-			return {};
-		}
-	
-		const ret = {
-			id: this.id,
-			name: this.name,
-			private: this.is_private,
-			owner: await owner.user,
-			members: members,
-			invites: invites,
-			banned_users: await this.banned_users,
-		};
-		console.log(ret);
-		return ret;
-	}
+	invites: RoomInvite[];
 }

@@ -17,7 +17,17 @@ export class RoomMiddleware implements NestMiddleware {
 	       
 		try {
 			id = validate_id(req.params.id);
-			const room = await this.repo.findOneBy({ id: id });
+			const room = await this.repo.findOne({
+				relations: {
+					members: {
+						user: true
+					},
+					invites: true,
+				},
+				where: {
+					id: id,
+				},
+			});
 			if (!room)
 				throw new HttpException("room not found", HttpStatus.NOT_FOUND);
 			req.room = room;

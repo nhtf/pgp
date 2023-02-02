@@ -7,13 +7,5 @@ import { Room } from "./Room";
 export class ChatRoom extends Room {
 	@Exclude()
 	@OneToMany(() => Message, (message) => message.room)
-	messages: Promise<Message[]>;
-
-	async serialize() {
-		return {
-			...await super.serialize(),
-			...instanceToPlain(this),
-			messages: await Promise.all((await this.messages).map((message) => message.serialize())),
-		}
-	}
+	messages: Message[];
 }
