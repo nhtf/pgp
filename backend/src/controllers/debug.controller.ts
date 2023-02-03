@@ -26,6 +26,7 @@ import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
 import { Role } from "src/enums/Role";
+import { InjectRepository } from "@nestjs/typeorm";
 
 import { HttpAuthGuard } from "src/auth/auth.guard";
 
@@ -57,10 +58,14 @@ class UserDTO {
 export class DebugController {
 	constructor(
 		private readonly sessionUtils: SessionService,
-		@Inject("USER_REPO") private readonly userRepo: Repository<User>,
-		@Inject("ROOM_REPO") private readonly roomRepo: Repository<Room>,
-		@Inject("MEMBER_REPO") private readonly memberRepo: Repository<Member>,
-		@Inject("INVITE_REPO") private readonly inviteRepo: Repository<Invite>,
+		@InjectRepository(User)
+		private readonly userRepo: Repository<User>,
+		@InjectRepository(Room)
+		private readonly roomRepo: Repository<Room>,
+		@InjectRepository(Member)
+		private readonly memberRepo: Repository<Member>,
+		@InjectRepository(Invite)
+		private readonly inviteRepo: Repository<Invite>,
 	) {}
 
 	@Get("useradd")

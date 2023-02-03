@@ -1,12 +1,12 @@
 import { Inject, HttpException, HttpStatus, Injectable, NestMiddleware } from "@nestjs/common";
 import { User } from "src/entities/User";
 import { Repository } from "typeorm"
-
+import { InjectRepository } from "@nestjs/typeorm";
 
 @Injectable()
 export class UserMiddleware implements NestMiddleware {
 	constructor(
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly user_repo: Repository<User>,
 	) {}
 

@@ -13,12 +13,13 @@
     let send: Invite[] = [];
     let received: Invite[] = [];
 
-    let invites = {send, received};
+    $: invites = {send, received};
 
     function isFromUser(element: Invite) {
         return element.from.username === data.user?.username;
     }
 
+    //TODO use the update socket for this stuff
     async function fetchInvites() {
         const room_invites: Invite[] = await unwrap(get("/user/me/invites"));
         const friend_requests: Invite[] = await get("/user/me/friends/requests");
@@ -29,18 +30,12 @@
         const friend_received = friend_requests.filter((e) => !isFromUser(e));
         let send: Invite[] = [];
         let received: Invite[] = [];
-        room_send?.forEach((invite) => {
-            invite.type = "chat"
-            send.push(invite)
-        });
+        room_send?.forEach((invite) => send.push(invite));
         friend_send?.forEach((request) => {
             request.type = "friend"
             send.push(request)
         });
-        room_received?.forEach((invite) => {
-            invite.type = "chat"
-            received.push(invite)
-        });
+        room_received?.forEach((invite) => received.push(invite));
         friend_received?.forEach((request) => {
             request.type = "friend"
             received.push(request)
@@ -49,31 +44,33 @@
     }
 
     async function respond(invite: Invite, action: string) {
-        //TODO friend request accept/deny is different from room invite system
-        if (action === "deny") {
-            await unwrap(remove(`/room/id/${invite.room?.id}/invite`))
+        //TODO what to do if invite is for a room with a password?
+        if (invite.type === "chat" || invite.type === "game") {
+            if (action === "deny")
+                await remove(`/room/id/${invite.room?.id}/invite/${invite.id}`);
+            else
+                await post(`/room/id/${invite.room?.id}/members`);
         }
-        if (action === "accept") {
-            await unwrap(post(`/room/id/${invite.room?.id}/invite`));
+        else if (invite.type === "friend") {
+            if (action === "deny")
+                await remove(`/user/me/friends/requests/${invite.id}`);
+            else
+                await post(`/user/me/friends/requests/`, {"id": invite.from.id}); 
         }
-
-        invites = await fetchInvites();
-        
+        const new_invites = await fetchInvites();
+        send = new_invites.send;
+        received = new_invites.received;
     }
 
+    //TODO do this in another way (stores or something)
+    //TODO friend-request maybe need to be invites?
     function fillInvites() {
-        data.room_send?.forEach((invite) => {
-            invite.type = "chat"
-            send.push(invite)
-        });
+        data.room_send?.forEach((invite) => send.push(invite));
         data.friend_send?.forEach((request) => {
             request.type = "friend"
             send.push(request)
         });
-        data.room_received?.forEach((invite) => {
-            invite.type = "chat"
-            received.push(invite)
-        });
+        data.room_received?.forEach((invite) => received.push(invite));
         data.friend_received?.forEach((request) => {
             request.type = "friend"
             received.push(request)
@@ -85,8 +82,6 @@
     console.log("send: ", send, "received: ", received);
 </script>
 
-
-<!-- //TODO use the type string of the invite (Backend + database needs to have that) -->
 <div class="invite_list">
     <Tabs style="underline" 
     divider
@@ -99,13 +94,13 @@
             {#each send as invite}
                 <div class="invite">
                     <div>
-                        {#if invite.from && invite.from.avatar}
-                        <img class="avatar" src={invite.from.avatar} alt="">
+                        {#if invite.to && invite.to.avatar}
+                        <img class="avatar" src={invite.to.avatar} alt="">
                         {:else}
                             <img class="avatar" src="/avatar-default.png" alt="">
                         {/if}
                     </div>
-                    <div>{invite.type} request from {invite.from.username}</div>
+                    <div>{invite.type} invitation to {invite.to.username}</div>
                     <div>
                         <button class="deny" on:click={() => respond(invite, "deny")}>Cancel</button>
                     </div>
@@ -115,7 +110,7 @@
         </div>
     </TabItem>
 
-    <TabItem open={true} class="bg-c rounded" defaultClass="rounded"  title="received">
+    <TabItem open={false} class="bg-c rounded" defaultClass="rounded"  title="received">
         <div>
             {#if received}
             {#each received as invite}
@@ -127,9 +122,9 @@
                             <img class="avatar" src="/avatar-default.png" alt="">
                         {/if}
                     </div>
-                    <div>{invite.type} request from {invite.from.username}</div>
+                    <div>{invite.type} invite from {invite.from.username}</div>
                     <div class="buttons">
-                        <button class="confirm" on:click={() => respond(invite, "join")}>Accept</button>
+                        <button class="confirm" on:click={() => respond(invite, "accept")}>Accept</button>
                         <button class="deny" on:click={() => respond(invite, "deny")}>Deny</button>
                     </div>
                 </div>
@@ -137,11 +132,7 @@
             {/if}
         </div>
     </TabItem>
-
     </Tabs>
-    
-
-    
 </div>
 
 <style>

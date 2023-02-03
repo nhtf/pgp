@@ -28,11 +28,15 @@ export class Counter {
 
 	public sum(): number {
 		this.clean();
-		return this.samples.map(s => s.value).reduce((p, c) => p + c);
+		return this.samples.map(s => s.value).reduce((p, c) => p + c, 0);
 	}
 
-	public average(): number {
+	public averageOverSamples(): number {
 		return this.sum() / this.samples.length;
+	}
+
+	public averageOverTime(): number {
+		return this.sum() / this.maxTime;
 	}
 }
 

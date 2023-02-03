@@ -15,8 +15,8 @@ import { join } from "path";
 import { Room } from "./Room";
 import { Role } from "src/enums/Role";
 import { Status } from "../enums/Status";
-import { get_status } from "../services/activity.service";
 import { Invite } from "./Invite";
+import { get_status } from "src/gateways/get_status";
 
 @Entity()
 export class User {

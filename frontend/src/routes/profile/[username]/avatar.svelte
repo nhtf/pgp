@@ -6,9 +6,11 @@
 
     const edit_icon = "/Assets/icons/pen.png";
 	let show_edit = false;
-	let avatar = $page.data?.user?.avatar;
+	$: avatar = $page.data?.profile?.avatar; //TODO this is how to do stores properly
 	let src: string | null;
 	let filevar: FileList;
+
+	console.log($page.data.profile.avatar);
 
 	function toggleEdit() {
 		show_edit = !show_edit;

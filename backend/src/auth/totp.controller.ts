@@ -12,6 +12,7 @@ import {
 	Inject,
 	HttpCode,
 } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
 import { Request } from "express";
 import { authenticator } from "otplib";
 import { SessionService } from "src/services/session.service";
@@ -50,7 +51,7 @@ class OtpDTO {
 export class TotpController {
 	constructor(
 		private readonly session_utils: SessionService,
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly userRepo: Repository<User>
 	) {}
 

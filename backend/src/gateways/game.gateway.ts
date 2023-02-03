@@ -6,6 +6,7 @@ import { Repository } from "typeorm"
 import { validate_id } from "src/util";
 import { GameRoom } from "src/entities/GameRoom";
 import { FRONTEND_ADDRESS } from "src/vars";
+import { InjectRepository } from "@nestjs/typeorm";
 
 declare module "socket.io" {
 	export interface Socket {
@@ -18,11 +19,10 @@ declare module "socket.io" {
 	cors: { origin: FRONTEND_ADDRESS, credentials: true },
 })
 export class GameGateway {
-
 	constructor(
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly user_repo: Repository<User>,
-		@Inject("GAMEROOM_REPO")
+		@InjectRepository(GameRoom)
 		private readonly gameroom_repo: Repository<GameRoom>,
 	) {}
 
@@ -51,6 +51,11 @@ export class GameGateway {
 			// TODO: don't send too many updates, maybe only once every few seconds
 			client.to("stat-" + client.room).emit("status", data.snapshot.state);
 		}
+	}
+
+	@SubscribeMessage("ping")
+	ping(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
+		client.emit("pong", data);
 	}
 
 	@SubscribeMessage("join")

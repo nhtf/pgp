@@ -9,9 +9,9 @@
     import type {simpleuser} from "./+page";
     import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
 
-    //TODO check the store thing so it properly updates the page
-    // const friends = writable($page.data.friendlist);
-    //might need to change it back again to the export data thing
+
+    //TODO update avatars of users
+    //TODO handle update of the users
     let score = new Map();
     const friend_icon = "/Assets/icons/add-friend.png";
     let showFriendWindow = false;
@@ -316,7 +316,7 @@
 
 #online, #active{color: var(--blue);}
 #offline {color: var(--red);}
-#idle {color: yellow;}
+#idle {color: var(--yellow);}
 #in_game, #scoredv {color: var(--green);}
 
 #scoredv {

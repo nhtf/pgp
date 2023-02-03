@@ -18,8 +18,11 @@
     NavLi,
     NavUl,
   } from "flowbite-svelte";
+    import { redirect } from "@sveltejs/kit";
 
   export let data: LayoutData;
+
+  //TODO make the user-avatar button hoverable and have a cursor-pointer
 
   const user = data.user;
 
@@ -33,8 +36,11 @@
     withCredentials: true,
   });
 
-  socket.on("update", (message) => {
-    console.log(message);
+  socket.on("update", (update) => {
+    console.log(update);
+    if (update.subject.INVITES || update.subject.REQUESTS) {
+      console.log("invite or friendrequest: ",update);
+    }
   });
 
   const STORAGE_KEY = "theme";
@@ -57,8 +63,9 @@
   async function logoutfn() {
     let res = await logout();
     if (res) {
-      if (data.user) data.user = null; // CHECK
-      window.location.href = "/";
+      if (data.user)
+        data.user = null; // CHECK
+      window.location.assign(`/`);
     }
   }
 
@@ -81,7 +88,7 @@
     window.matchMedia(DARK_PREFERENCE).addEventListener("change", applyTheme);
   });
 
-  console.log("$page: ", $page);
+  
   const links = [
     { url: "/room", name: "Chat Rooms" },
     { url: "/game", name: "Game Rooms" },
@@ -101,16 +108,16 @@
       class1="w-full md:flex md:w-auto md:order-1"
     />
     {#if user?.username}
-    <Avatar id="avatar-menu" src={data.user.avatar} />
+    <Avatar id="avatar-menu" src={data.user?.avatar} />
     <Notifications/>
     {/if}
   </div>
   {#if user?.username}
     <Dropdown triggeredBy="#avatar-menu" placement="bottom" class="bg-c bor-c">
       <DropdownHeader>
-        <span class="block text-sm"> {data.user.username} </span>
+        <span class="block text-sm"> {data.user?.username} </span>
       </DropdownHeader>
-      <DropdownItem href="/profile/{data.user.username}">profile</DropdownItem>
+      <DropdownItem href="/profile/{data.user?.username}">profile</DropdownItem>
       <DropdownItem href="/settings">settings</DropdownItem>
       <DropdownItem on:click={toggleTheme}>{currentTheme}</DropdownItem>
       <DropdownItem on:click={logoutfn}>Sign out</DropdownItem>

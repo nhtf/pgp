@@ -6,13 +6,13 @@ export type Achievement = {
 	level: number,
 	progress: number,
 	level_cost: number[],
-}
+};
 
 export type Member = {
 	id: number,
 	user: User,
 	role: Role,
-}
+};
 
 export type User = {
 	id: number,
@@ -30,7 +30,7 @@ export type FriendRequest = {
 	date: Date,
 	from: User,
 	to: User
-}
+};
 
 export type Message = {
 	content: string,
@@ -44,7 +44,12 @@ export type Room = {
 	access: Access,
 	is_private: boolean,
 	type: string,
-}
+	owner: User,
+};
+
+export type Gameroom = Room & {
+	gamemode: Gamemode;
+};
 
 export type Invite = {
 	id: number,
@@ -53,16 +58,43 @@ export type Invite = {
 	to: User,
 	room: Room | undefined,
 	type: string
+};
+
+export interface UpdatePacket {
+	subject: Subject;
+	identifier?: number;
+	action: Action;
+	value?: any;
 }
 
 export enum Role {
 	MEMBER,
 	ADMIN,
 	OWNER,
-}
+};
 
 export enum Access {
 	PUBLIC,
 	PROTECTED,
 	PRIVATE,
+};
+
+export enum Gamemode {
+	REGULAR,
+	VR,
+};
+
+export enum Subject {
+	USER,
+	INVITES,
+	REQUESTS,
+	FRIENDS,
+	STATUS,
+	AVATAR,
+}
+
+export enum Action {
+	SET,
+	ADD,
+	REMOVE,
 }

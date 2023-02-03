@@ -1,5 +1,5 @@
 import { unwrap } from "$lib/Alert";
-import type { Invite, User, FriendRequest } from "$lib/types";
+import type { Invite, User } from "$lib/types";
 import { get } from "$lib/Web";
 import type { PageLoad } from "./$types"
 
@@ -14,10 +14,9 @@ function isFromOther(element: Invite) {
 }
 
 export const load: PageLoad = (async ({ fetch }) => {
+    window.fetch = fetch;
     const invites: Invite[] = await unwrap(get("/user/me/invites"));
     const friend_requests: Invite[] = await get("/user/me/friends/requests");
-    console.log("friends: ", friend_requests);
-    console.log("invites: ", invites);
     user = await get("/user/me");
 
     const room_send = invites.filter(isFromUser);

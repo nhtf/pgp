@@ -1,25 +1,16 @@
 import { Inject, Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
 import { Repository } from "typeorm";
-import type { User } from "../entities/User";
+import { User } from "../entities/User";
 import type { Request } from "express";
 import type { SessionObject } from "src/services/session.service";
-
-export async function authenticate(session: SessionObject, user_repo: Repository<User>): Promise<boolean> {
-	const id = session?.user_id;
-
-	if (!id)
-		return false;
-	const user = await user_repo.findOneBy({ id });
-	if (!user)
-		return false;
-	return user.auth_req === session.auth_level;
-}
+import { authenticate } from "./authenticate";
+import { InjectRepository } from "@nestjs/typeorm";
 
 function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 	@Injectable()
 	class GenericAuthGuardFactory implements CanActivate {
 		constructor(
-			@Inject("USER_REPO")
+			@InjectRepository(User)
 			readonly user_repo: Repository<User>,
 		) {}
 

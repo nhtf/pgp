@@ -1,29 +1,37 @@
 import { get } from "$lib/Web";
 import type { User, Invite } from "$lib/types";
 import type { LayoutLoad } from "./$types";
+import { unwrap } from "$lib/Alert";
 
 export const ssr = false;
+
+//TODO handle the updates of the notifications/invites/requests
+
+let user : User | null;
+
+function isFromOther(element: Invite) {
+    return element.from && element.from.username !== user?.username
+}
 
 export const load: LayoutLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	type Ret = {fetch: any; user: User| null; invites: Invite[], friend_requests: any[]}
-	const ret: Ret = { fetch, invites: [], friend_requests: [], user: null };
+	type Ret = {fetch: any; user: User| null; invites: Invite[], friend_requests: Invite[]}
+	let ret: Ret;
 
 	try {
-		const user: User | null = await get("/user/me");
-		const invites: Invite[] = await get("/user/me/invites");
-		const friend_requests: any[] = await get("/user/me/friends/requests");
-		ret.user = user;
-		ret.invites = invites.filter((value) => {
-			value.from && value.from.username !== user?.username
-		});
-		ret.friend_requests = friend_requests.filter((value) => 
-			value.from.username !== user?.username
-		);
+		user = await get("/user/me");
+		const invites: Invite[] = await unwrap(get("/user/me/invites"));
+		const friend_requests: Invite[] = await get("/user/me/friends/requests");
+		ret = {
+			fetch: fetch,
+			user: user,
+			invites: invites.filter(isFromOther),
+			friend_requests: friend_requests.filter(isFromOther),
+		}
 	} catch (err) {
+		ret = {fetch: fetch, user: null, invites: [], friend_requests: []};
 		console.log("error in layout.ts: ", err);
 	}
-
 	return ret;
 }) satisfies LayoutLoad;

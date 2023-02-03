@@ -1,9 +1,9 @@
 import { Injectable, NestMiddleware } from "@nestjs/common";
-import { ActivityService } from "../services/activity.service";
+import { UpdateGateway } from "src/gateways/update.gateway";
 
 @Injectable()
 export class ActivityMiddleware implements NestMiddleware {
-	constructor(private readonly service: ActivityService) {}
+	constructor(private readonly service: UpdateGateway) {}
 
 	async use(req: any, res: any, next: (error?: any) => void) {
 		if (req.user) {

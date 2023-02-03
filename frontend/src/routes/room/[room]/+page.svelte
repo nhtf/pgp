@@ -6,12 +6,13 @@
     import type { Member, Message } from "$lib/types";
     import type { PageData } from "./$types";
     import { FRONTEND, BACKEND } from "$lib/constants";
-    import { post, remove } from "$lib/Web";
+    import { post, remove , get } from "$lib/Web";
     import { error } from "@sveltejs/kit";
     import MessageBox from "./MessageBox.svelte";
 	import {ToolbarButton, Dropdown, DropdownItem} from "flowbite-svelte";
     import ChatroomDrawer from "../ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
+	import {page} from "$app/stores";
 
 
 	export let data: PageData;
@@ -24,8 +25,6 @@
 	let autoscroll: boolean;
 
 	const room = data.room;
-	const user = data.user;
-	// const member = room.members.find((member) => member.user.id === user.id) as Member;
 
 	let messages = data.messages;
 
@@ -44,22 +43,18 @@
 		if (autoscroll) div.scrollTo(0, div.scrollHeight);
 	});
 
-	socket.on("message", (data: Message) => {
-		console.log("data: ", data);
-		messages = [...messages, data];
+	socket.on("message", async () => {
+		messages = await unwrap(get(`/room/${$page.params.room}/messages`));
 	})
 
-	function handleKeyPress(event) {
-		console.log(event);
+	function handleKeyPress(event: KeyboardEvent) {
 		if (event.key === "Enter" && !event.shiftKey)
 			sendMessage();
 	}
 
 	function sendMessage() {
-		console.log("content: ", content);
 		if (!content.length)
            return;
-		console.log("user", user);
 		socket.emit("message", content);
 		content="";
 	}
@@ -107,6 +102,14 @@
 		});
     }
 
+	let textarea = null;
+
+	function onResize(e: UIEvent) {
+		textarea = e.target;
+	}
+
+	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
+
 </script>
 
 <div class="chat-room-container">
@@ -133,7 +136,7 @@
 <div class="messages" bind:this={div}>
 	{#if messages}
 	{#each messages as message}
-		<MessageBox id={room.id} {message} {user}/>
+		<MessageBox id={room.id} {message}/>
 	{/each}
 	{/if}
 </div>
@@ -141,6 +144,9 @@
 <div class="message-input">
 	<div class="message-box">
 		<textarea wrap="hard"
+		rows="{rows}"
+		bind:this={textarea}
+		on:resize={onResize}
 		on:keypress={handleKeyPress}
 		bind:value={content}
 		class="w-full space-x-4"  placeholder="message..."/>
@@ -161,7 +167,8 @@
 		color: var(--text-color);
 		background-color: var(--input-bkg-color);
 		border-radius: 6px;
-		height: fit-content;
+		height: auto;
+		max-height: 75vh;
 	}
 
 	.user-invite {

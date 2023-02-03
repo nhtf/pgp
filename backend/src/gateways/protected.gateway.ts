@@ -3,9 +3,10 @@ import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import type { Server, Socket } from "socket.io";
 import type { SessionObject } from "src/services/session.service";
 import { FRONTEND_ADDRESS } from "../vars";
-import type { User } from "src/entities/User";
+import { User } from "src/entities/User";
 import { Repository } from "typeorm";
-import { authenticate } from "src/auth/auth.guard"; 
+import { authenticate } from "src/auth/authenticate"; 
+import { InjectRepository } from "@nestjs/typeorm";
 
 declare module "http" {
 	export interface IncomingMessage {
@@ -23,7 +24,7 @@ export function ProtectedGateway(namespace?: string) {
 		readonly server: Server;
 
 		constructor(
-			@Inject("USER_REPO")
+			@InjectRepository(User)
 			readonly users: Repository<User>,
 		) {}
 

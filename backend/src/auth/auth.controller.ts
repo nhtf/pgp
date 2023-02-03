@@ -20,6 +20,7 @@ import { AuthLevel } from "../enums/AuthLevel";
 import { IsAlphanumeric } from "class-validator";
 import { BACKEND_ADDRESS, FRONTEND_ADDRESS } from "../vars";
 import { Repository } from "typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
 
 interface result_dto {
 	id: number;
@@ -46,7 +47,7 @@ export class AuthController {
 
 	constructor(
 		private readonly session_utils: SessionService,
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly userRepo: Repository<User>,
 	) {}
 

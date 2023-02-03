@@ -8,7 +8,9 @@ import {
 	Injectable,
 	CanActivate,
 	Inject,
+	BadRequestException,
 } from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/User";
 import { EntityTarget, ObjectLiteral } from "typeorm";
 import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
@@ -66,7 +68,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 	@Injectable()
 	class ParseIDPipe implements PipeTransform {
 		constructor(
-			@Inject(type.name.toString().toUpperCase() + "_REPO")
+			@InjectRepository(type)
 			readonly repo: Repository<T>
 		) {}
 
@@ -83,7 +85,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 					throw new HttpException("not found", HttpStatus.NOT_FOUND);
 				return entity;
 			} catch (error) {
-				throw new HttpException(error + "thingy", HttpStatus.BAD_REQUEST);
+				throw new BadRequestException(error.message);
 			}
 		}
 	};
@@ -94,7 +96,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 @Injectable()
 export class ParseUsernamePipe implements PipeTransform {
 	constructor(
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly user_repo: Repository<User>
 	) {}
 

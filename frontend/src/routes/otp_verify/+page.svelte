@@ -16,7 +16,7 @@
 				body: `otp=${code}`
 			});
 		if (response.ok) {
-			window.location.href = `${FRONTEND}/profile`;
+			window.location.assign(`${FRONTEND}/profile`);
 		} else {
 			const Toast = Swal.mixin({
 				toast: true,
@@ -44,7 +44,7 @@
 				},
 			});
 		if (response.ok) {
-			window.location.href = `${FRONTEND}/profile`;
+			window.location.assign(`${FRONTEND}/profile`);
 		}
 	});
 </script>

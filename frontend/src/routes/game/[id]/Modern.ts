@@ -28,8 +28,8 @@ export interface Snapshot extends NetSnapshot {
 }
 
 export interface MouseEvent extends NetEvent {
-	u: number;
-	y: number;
+	userID: number;
+	mouse: VectorObject;
 }
 
 export interface Options extends NetOptions {
@@ -63,7 +63,7 @@ export class Ball {
 
 	public constructor() {
 		this.position = new Vector(WIDTH / 2, HEIGHT / 2);
-		this.velocity = new Vector(-1, 0);
+		this.velocity = new Vector(1, 1);
 	}
 
 	public render(context: CanvasRenderingContext2D) {
@@ -96,7 +96,7 @@ export class Paddle {
 			this.position = new Vector(WIDTH - 8, HEIGHT / 2);
 		}
 
-		this.height = 20;
+		this.height = 8;
 	}
 
 	public render(context: CanvasRenderingContext2D) {
@@ -129,13 +129,13 @@ export class Game extends Net {
 		this.ball = new Ball();
 		this.paddles = [new Paddle("left"), new Paddle("right")];
 
-		this.on("move", netEvent => {
+		this.on("mousemove", netEvent => {
 			const event = netEvent as MouseEvent;
-			let paddle = this.getPaddle(event.u) ?? this.getPaddle();
+			let paddle = this.getPaddle(event.userID) ?? this.getPaddle();
 
 			if (paddle !== null) {
-				paddle.userID = event.u;
-				paddle.position.y = event.y;
+				paddle.userID = event.userID;
+				paddle.position.y = event.mouse.y;
 			}
 		});
 	}
@@ -177,28 +177,20 @@ export class Game extends Net {
 		this.ball.position.y += this.ball.velocity.y;
 
 		if (this.ball.position.x < 8) {
+			this.ball.position.x = -this.ball.position.x + 16;
+			this.ball.velocity.x = -this.ball.velocity.x;
+			
 			if (Math.abs(this.ball.position.y - this.paddles[0].position.y) > this.paddles[0].height / 2) {
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
-				this.ball.velocity = new Vector(1, 0);
-			} else {
-				const angle = (this.ball.position.y - this.paddles[0].position.y) / this.paddles[0].height * Math.PI * 0.75;
-				const speed = Math.sqrt(Math.pow(this.ball.velocity.x, 2) + Math.pow(this.ball.velocity.y, 2)) * 1.1;
-				this.ball.position.x = -this.ball.position.x + 16;
-				this.ball.velocity.x = Math.cos(angle) * speed;
-				this.ball.velocity.y = Math.sin(angle) * speed;
 			}
 		}
 
 		if (this.ball.position.x > WIDTH - 8) {
+			this.ball.position.x = -this.ball.position.x + WIDTH * 2 - 16;
+			this.ball.velocity.x = -this.ball.velocity.x;
+
 			if (Math.abs(this.ball.position.y - this.paddles[1].position.y) > this.paddles[1].height / 2) {
-				this.ball.velocity = new Vector(-1, 0);
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
-			} else {
-				const angle = (this.ball.position.y - this.paddles[1].position.y) / this.paddles[1].height * Math.PI * 0.75;
-				const speed = Math.sqrt(Math.pow(this.ball.velocity.x, 2) + Math.pow(this.ball.velocity.y, 2)) * 1.1;
-				this.ball.position.x = -this.ball.position.x + WIDTH * 2 - 16;
-				this.ball.velocity.x = -Math.cos(angle) * speed;
-				this.ball.velocity.y = Math.sin(angle) * speed;
 			}
 		}
 
@@ -216,7 +208,7 @@ export class Game extends Net {
 	}
 }
 
-export class Classic {
+export class Modern {
 	private canvas: HTMLCanvasElement;
 	private context: CanvasRenderingContext2D;
 	private game: Game;
@@ -256,13 +248,6 @@ export class Classic {
 		this.context.scale(minScale, minScale);
 		this.game.render(this.context);
 		this.context.restore();
-
-		this.context.fillStyle = "red";
-		this.context.font = "16px Arial";
-		this.context.fillText(`ping: ${Math.floor(this.game.latencyNetwork.averageOverSamples())}ms`, 0, 16);
-		this.context.fillText(`down: ${Math.floor(this.game.bandwidthDownload.averageOverTime())}Bps`, 0, 32);
-		this.context.fillText(`up: ${Math.floor(this.game.bandwidthUpload.averageOverTime())}Bps`, 0, 48);
-		this.context.fillText(`tick: ${Math.floor(this.game.tickCounter.averageOverTime())}ps`, 0, 64);
 	}
 
 	public async start(options: Options) {
@@ -273,12 +258,12 @@ export class Classic {
 			const xOffset = Math.floor((this.canvas.width - WIDTH * minScale) / 2);
 			const yOffset = Math.floor((this.canvas.height - HEIGHT * minScale) / 2);
 
-			const x = Math.floor((ev.offsetX - xOffset) / minScale);
-			const y = Math.floor((ev.offsetY - yOffset) / minScale);
+			const x = (ev.offsetX - xOffset) / minScale;
+			const y = (ev.offsetY - yOffset) / minScale;
 
-			this.game.send("move", {
-				u: options.user.id,
-				y,
+			this.game.send("mousemove", {
+				userID: options.user.id,
+				mouse: { x, y },
 			});
 		});
 

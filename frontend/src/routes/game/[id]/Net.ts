@@ -3,6 +3,7 @@ import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
 import Swal from "sweetalert2";
 
+export const PING_INTERVAL = 20;
 export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
@@ -33,6 +34,8 @@ export class Net {
 	public minTime: number | null;
 	public bandwidthDownload: Counter;
 	public bandwidthUpload: Counter;
+	public latencyNetwork: Counter;
+	public tickCounter: Counter;
 	private snapshots: Snapshot[];
 	private allSnapshots: Snapshot[];
 	private allEvents: Event[];
@@ -47,6 +50,8 @@ export class Net {
 		this.minTime = null;
 		this.bandwidthDownload = new Counter(5);
 		this.bandwidthUpload = new Counter(5);
+		this.latencyNetwork = new Counter(5);
+		this.tickCounter = new Counter(5);
 		this.snapshots = [];
 		this.allSnapshots = [];
 		this.allEvents = [];
@@ -111,6 +116,10 @@ export class Net {
 		if (this.time > this.maxTime) {
 			this.maxTime = this.time;
 
+			if (this.time % PING_INTERVAL == 0) {
+				this.socket?.emit("ping", { time: new Date().getTime() });
+			}
+
 			if (this.time % MERGE_INTERVAL == 0) {
 				this.applyMerge();
 			}
@@ -147,12 +156,13 @@ export class Net {
 	}
 
 	public tick() {
+		this.tickCounter.add(1);
 		this.earlyTick();
 		this.lateTick();
 	}
 
 	private forward(target: number) {
-		if (target - this.time > HISTORY_LIFETIME) {
+		if (target - this.time > HISTORY_LIFETIME * 2) {
 			console.info("attempt to forward past history lifetime, reloading");
 			window.location.reload();
 		}
@@ -267,6 +277,10 @@ export class Net {
 					}
 				}
 			}
+		});
+
+		this.socket.on("pong", message => {
+			this.latencyNetwork.add(new Date().getTime() - message.time);
 		});
 	}
 

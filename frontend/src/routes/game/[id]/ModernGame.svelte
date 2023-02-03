@@ -1,19 +1,17 @@
 <script lang="ts">
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
-	import { Classic } from "./Classic";
+	import { Modern } from "./Modern";
 
 	let canvas: HTMLCanvasElement;
 
 	onMount(async () => {
-		const classic = new Classic(canvas);
+		const modern = new Modern(canvas);
 
-		console.log(classic);
-
-		await classic.start({ room: $page.data.params.id, user: $page.data.user });
+		await modern.start({ room: $page.data.params.id, user: $page.data.user });
 
 		window.requestAnimationFrame(function render(time) {
-			classic.update(time);
+			modern.update(time);
 			window.requestAnimationFrame(render);
 		});
 	});

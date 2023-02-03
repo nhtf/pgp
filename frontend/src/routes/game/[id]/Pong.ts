@@ -14,6 +14,7 @@ import * as THREE from "three";
 
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
+import type { User } from "$lib/types";
 
 export interface Snapshot extends WorldSnapshot {
 	state: StateSnapshot;
@@ -25,6 +26,10 @@ export interface PaddleObject extends EntityObject {
 
 export interface BallEvent extends NetEvent {
 	paddle: string;
+}
+
+export interface Options extends WorldOptions {
+	user: User;
 }
 
 export type PaddleUpdate = Partial<PaddleObject>;
@@ -373,16 +378,14 @@ export class Pong extends World {
 		super.load(snapshot);
 	}
 
-	public async start(options: WorldOptions) {
+	public async start(options: Options) {
 		const paddleTransform = {
 			scale: new Vector(0.048, 0.048, 0.048),
 			rotate: new Vector(Math.PI / 6 * 4, 0, 0),
 			translate: new Vector(0, 0.02, -0.04),
 		};
 
-		const response = await unwrap(get("/user/me"));
-		this.userID = response.id;
-
+		this.userID = options.user.id;
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
 

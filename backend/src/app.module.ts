@@ -4,7 +4,7 @@ import { GameGateway } from "./gateways/game.gateway";
 import { AuthController } from "./auth/auth.controller";
 import { TotpController } from "./auth/totp.controller";
 import { DebugController } from "./controllers/debug.controller";
-import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
+import { UserIDController, UserUsernameController, UserMeController, UserListener, } from "./controllers/user.controller";
 import { DataSource } from "typeorm";
 import { HOST, DB_PORT, DB_USER, DB_PASS } from "./vars";
 import { HttpAuthGuard } from "./auth/auth.guard";
@@ -18,7 +18,6 @@ import { RoomGateway } from "./gateways/room.gateway";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
-import { ActivityService } from "./services/activity.service";
 import { User} from "./entities/User";
 import { GameController } from "./controllers/game.controller";
 import { SessionService } from "src/services/session.service";
@@ -30,6 +29,7 @@ import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
 import { Member } from "./entities/Member";
 import { RoomInvite } from "./entities/RoomInvite";
+import { TypeOrmModule } from "@nestjs/typeorm";
 
 export const db_pool = new Pool({
 	database: "dev", //TODO make this not hardcoded
@@ -72,6 +72,7 @@ export const sessionMiddleware = session({
 	},
 });
 
+//TODO remove this as it has been replaced with TypeOrmModule
 export const dataSource = new DataSource({
 	type: "postgres",
 	host: HOST,
@@ -87,6 +88,7 @@ export const dataSource = new DataSource({
 			return clazz;
 		},
 	),
+	subscribers: [ UserListener ],
 	synchronize: true, //TODO disable and test before turning in
 	//logging: true,
 	// TODO enable cache? (cache: true)
@@ -130,11 +132,13 @@ const entityProviders = entityFiles.map<{
 
 const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room).map(value => {
 	const name = value.name.toUpperCase();
-	console.log(name + "_SERVICE");
+	console.log(name + "_PGPSERVICE");
 	return {
-		provide: name + "_SERVICE",
+		provide: name + "_PGPSERVICE",
 		useFactory: (room_repo: any, member_repo: Repository<Member>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
-			return getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any);
+			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any);
+			console.log(tmp);
+			return tmp;
 		},
 		inject: [name + "_REPO", "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
 	};
@@ -143,6 +147,28 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 @Module({
 	imports: [
 		/*TypeOrmModule.forRoot({ type: "postgres", username: "postgres", password: "postgres", host: "172.19.0.2" }),*/
+		TypeOrmModule.forRoot({
+			type: "postgres",
+			host: HOST,
+			port: DB_PORT,
+			username: DB_USER,
+			password: DB_PASS,
+			//TODO use env variables here
+			database: "dev",
+			entities: entityFiles.map<Function>(
+				(value: string, index: number, array: string[]) => {
+					const entity = require(value);
+					const clazz = Object.values(entity)[0] as Function;
+					return clazz;
+				},
+			),
+			synchronize: true, //TODO disable and test before turning in
+		}),
+		TypeOrmModule.forFeature(entityFiles.map<Function>(value => {
+					const entity = require(value);
+					const clazz = Object.values(entity)[0] as Function;
+					return clazz;
+		})),
 	],
 	controllers: [
 		AppController,
@@ -161,9 +187,9 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		RoomGateway,
 		UpdateGateway,
 		HttpAuthGuard,
-		ActivityService,
 		SessionService,
 		SetupGuard,
+		UserListener,
 		...databaseProviders,
 		...entityProviders,
 		...roomServices,

@@ -1,0 +1,5 @@
+PACKET = { SUBJECT } { IDENTIFIER } { ACTION } { VALUE }
+IDENTIFIER = user id
+SUBJECT = user | invites | requests | friends | status
+ACTION = set | add | remove
+VALUE = ...

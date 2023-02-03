@@ -1,11 +1,12 @@
 import { Injectable, Inject, CanActivate, ExecutionContext, HttpException, HttpStatus } from "@nestjs/common";
 import { Repository } from "typeorm";
-import type { User } from "src/entities/User";
+import { User } from "src/entities/User";
+import { InjectRepository } from "@nestjs/typeorm";
 
 @Injectable()
 export class SetupGuard implements CanActivate {
 	constructor(
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly user_repo: Repository<User>
 	) {}
 

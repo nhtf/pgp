@@ -2,38 +2,37 @@
     import { Dropdown, DropdownItem, Avatar } from 'flowbite-svelte'
     import type { Invite, User } from "$lib/types";
     import {page} from "$app/stores";
-    import { onMount } from 'svelte';
-    import { post } from '$lib/Web';
+    import { post, remove } from '$lib/Web';
 
-    console.log($page.data.user);
-
-    let chat_invites: any[] = $page.data.invites;
-    let friend_requests: any[] = $page.data.friend_requests;
-    let notifications : any[] = [];
+    let chat_invites: Invite[] = $page.data.invites;
+    let friend_requests: Invite[] = $page.data.friend_requests;
+    let notifications : Invite[] = [];
 
     async function removeNotification(index: number) {
         let res;
+        const notif = notifications[index];
         console.log("removing notification: ", index);
-        //TODO actually send a request back to deny invite/request
-        if (notifications[index].type === "chat") {
-            res = await post(`/room/id/${notifications[index].room.id}/deny/`);
-        }
-        if (res && res.ok) {
-                notifications.splice(index, 1);
-                notifications = notifications;
+        try {
+            if (notif.type === "chat" || notif.type === "game") {
+                res = await remove(`/room/id/${notif.room?.id}/${notif.id}`);
             }
-            console.log(res);
+            if (notif.type === "friend") {
+                res = await remove(`/user/me/friends/requests/${notif.id}`);
+            }
+            notifications.splice(index, 1);
+            notifications = notifications;
+        }
+        catch {}
     }
 
     async function acceptInvite(index: number) {
-        let res;
+        const notif = notifications[index];
         try {
-            if (notifications[index].type === "friend") {
-                console.log("sending: ", notifications[index].from.username);
-                res = await post("/user/me/friends/requests/", {"id": notifications[index].from.id});
+            if (notif.type === "friend") {
+                await post("/user/me/friends/requests/", {"id": notif.from.id});
             }
-            else if (notifications[index].type === "chat") {
-                res = await post(`/room/id/${notifications[index].room.id}/accept/`);
+            else if (notif.type === "chat") {
+                await post(`/room/id/${notif.room?.id}/invite/${notif.id}`);
             }
             notifications.splice(index, 1);
             notifications = notifications;
@@ -45,10 +44,10 @@
 
     function fillNotifications() {
         chat_invites.forEach((invite) => {
-            notifications.push({from: invite.from, type: "chat", room: invite.room})
+            notifications.push(invite)
         })
         friend_requests.forEach((request) => {
-            notifications.push({from: request.from, type: "friend"})
+            notifications.push(request)
         });
     }
     fillNotifications();

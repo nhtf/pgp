@@ -3,11 +3,12 @@ import { Room } from "src/entities/Room";
 import { validate_id } from "src/util";
 //import type { Request, Response } from "express";
 import { Repository } from "typeorm";
+import { InjectRepository } from "@nestjs/typeorm";
 
 @Injectable()
 export class RoomMiddleware implements NestMiddleware {
 	constructor(
-		@Inject("ROOM_REPO")
+		@InjectRepository(Room)
 		private readonly repo: Repository<Room>
 	) {}
 

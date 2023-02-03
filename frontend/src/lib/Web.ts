@@ -4,7 +4,6 @@ export async function json(
 	input: RequestInfo | URL,
 	info?: RequestInit | undefined,
 ): Promise<any> {
-	// console.log(`${input}, ${JSON.stringify(info)}`);
 
 	const response = await window.fetch(input, info);
 	const status = response.status;

@@ -9,11 +9,11 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 	const room: Room = await unwrap(get(`/room/id/${params.room}`));
 	const messages: Message[] = await unwrap(get(`/room/${params.room}/messages`));
 	const roomy: any = await unwrap(get(`/room/id/${params.room}`));
-	const mine: Room[] = await get("/room/all");
-	const joinable: Room[] = [];
+	const roomsJoined: Room[] = await get("/room/", "member=true");
+    const roomsJoinable: Room[] = await get("/room/", "member=false");
 	console.log("roomy: ", roomy);
 	console.log("messages", messages);
 
-    return { fetch, room, mine, joinable,  messages};
+    return { fetch, room, roomsJoined, roomsJoinable,  messages};
 }) satisfies PageLoad;
 

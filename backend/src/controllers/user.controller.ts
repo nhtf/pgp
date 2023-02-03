@@ -4,7 +4,7 @@ import { Express, Response} from "express";
 import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
-import { Repository } from "typeorm";
+import { Repository, EntitySubscriberInterface, EventSubscriber, DataSource, UpdateEvent } from "typeorm";
 import { IsString, Length } from "class-validator";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe } from "../util";
@@ -15,6 +15,11 @@ import { join } from "path";
 import { AVATAR_DIR, DEFAULT_AVATAR } from "../vars";
 import * as sharp from "sharp";
 import { SetupGuard } from "src/guards/setup.guard";
+import { UpdateGateway } from "src/gateways/update.gateway";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
+import { instanceToPlain } from "class-transformer";
+import { InjectRepository } from "@nestjs/typeorm";
 
 declare module "express" {
 	export interface Request {
@@ -28,18 +33,39 @@ class UsernameDTO {
 	username: string;
 }
 
+@EventSubscriber()
+export class UserListener implements EntitySubscriberInterface<User> {
+	constructor(
+	) {
+	}
+
+	listenTo() {
+		return User;
+	}
+
+	afterLoad(entity: User) {
+	}
+
+	beforeUpdate(event: UpdateEvent<User>) {
+	}
+
+	afterUpdate(event: UpdateEvent<User>) {
+	}
+}
+
 export function GenericUserController(route: string, options: { param: string, cparam: string, pipe: any }) {
 	@Controller(route)
 	@UseGuards(HttpAuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	class UserControllerFactory {
 		constructor(
-			@Inject("USER_REPO")
+			@InjectRepository(User)
 			readonly user_repo: Repository<User>,
-			@Inject("FRIENDREQUEST_REPO")
+			@InjectRepository(FriendRequest)
 			readonly request_repo: Repository<FriendRequest>,
-			@Inject("INVITE_REPO")
+			@InjectRepository(Invite)
 			readonly invite_repo: Repository<Invite>,
+			readonly update_serivce: UpdateGateway,
 		) {}
 
 		@Get()
@@ -133,6 +159,7 @@ export function GenericUserController(route: string, options: { param: string, c
 					stream.close();
 					file.close();
 					await this.user_repo.save(user);
+					await this.update_serivce.send_update({ subject: Subject.AVATAR, identifier: user.id, action: Action.SET, value: user.avatar});
 					resolve(user);
 				});
 			});
@@ -241,11 +268,22 @@ export function GenericUserController(route: string, options: { param: string, c
 
 				await this.request_repo.remove(request);
 				await this.user_repo.save([user, target]);
+				delete target.friends;
+				delete user.friends;
+				console.log("a");
+				await this.update_serivce.send_update({ subject: Subject.FRIENDS, identifier: user.id, action: Action.ADD, value: target }, user);
+				await this.update_serivce.send_update({ subject: Subject.FRIENDS, identifier: target.id, action: Action.ADD, value: user }, target);
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;
 				friend_request.to = target;
+
 				await this.request_repo.save(friend_request);
+
+				const serialized_request = instanceToPlain(friend_request);
+				await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: user.id, action: Action.ADD, value: serialized_request }, user);
+				await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: target.id, action: Action.ADD, value: serialized_request }, target);
+
 			}
 			return {};
 		}
@@ -262,7 +300,10 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
 			if (user.id !== (await request.from).id && user.id !== (await request.to).id)
 				throw new HttpException("not found", HttpStatus.NOT_FOUND);
+			const serialized_request = instanceToPlain(request);
 			await this.request_repo.remove(request);
+			await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: request.from.id, action: Action.REMOVE, value: serialized_request }, request.from);
+			await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: request.to.id, action: Action.REMOVE, value: serialized_request }, request.to);
 		}
 
 		@Get(`${options.cparam}/invites`)

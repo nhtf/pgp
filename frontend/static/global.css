@@ -9,9 +9,10 @@ body {
 
 /* light mode */
 body {
-	--red: rgb(250, 93, 93);
+	--red: #fa5d5d;
 	--blue: #5193af;
 	--green: #88c5a4;
+	--yellow: #f7d762;
 	position: relative;
 	margin: 0;
 	--text-color: rgb(0, 0, 0);
@@ -324,6 +325,7 @@ table {
 	height: 100vh;
 	left: 0;
 	border-radius: 6px;
+	width: auto!important;
 }
 
 @media (max-width: 500px) {

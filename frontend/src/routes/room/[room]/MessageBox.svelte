@@ -7,17 +7,18 @@
 	import {page} from "$app/stores";
 
 	export let id: number;
-	// export let member: Member;
 	export let message: Message;
-
+	console.log("message: ", message);
 	let member = message.member;
+	const user = member.user;
 
 	const admin_actions = [	"ban", "kick", "mute" ];
 	const owner_actions = [ "demote", "promote" ];
 
-	const flex_direction = $page.data.user?.id == message.user?.id ? "row-reverse" : "row";
-	const align_self = $page.data.user?.id == message.user?.id ? "left" : "right";
-	const user = member.user;
+	const flex_direction = $page.data.user?.id == user?.id ? "row-reverse" : "row";
+	const align_self = $page.data.user?.id == user?.id ? "flex-start" : "flex-end";
+	const text_align = $page.data.user?.id == user?.id ? "left" : "right";
+	
 
 	async function doAction(route: string) {
 		console.log(`/room/id/${id}/${route}`)
@@ -30,26 +31,26 @@
 	console.log("message: ", message);
 </script>
 
-<div class="message" style={`flex-direction: ${flex_direction}; align_self: ${align_self}`}>
-	{#if member.user.username !== $page.data.user.username}
+<div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
+	{#if user.username !== $page.data.user.username}
 	<Dropdown triggeredBy=".acs">
 		<DropdownItem on:click={() => { window.location.assign(`/profile/${user.username}`)}}>Profile</DropdownItem>
 		{#if member.role >= Role.ADMIN}
-		<DropdownDivider/>
-				{#each admin_actions as action}
-					<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
-				{/each}
-			{/if}
-			{#if member.role >= Role.OWNER}
-		<DropdownDivider/>
-				{#each owner_actions as action}
-					<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
-				{/each}
-			{/if}
+			<DropdownDivider/>
+			{#each admin_actions as action}
+				<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
+			{/each}
+		{/if}
+		{#if member.role >= Role.OWNER}
+			<DropdownDivider/>
+			{#each owner_actions as action}
+				<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
+			{/each}
+		{/if}
 	</Dropdown>
 	{/if}
 	<div class="message-box">
-		<div class="text-sm underline text-right">{message.member.user.username} </div>
+		<div class="text-sm underline" style={`text-align: ${text_align};`}>{user.username} </div>
 		<div class="message-content">{message.content}</div>
 	</div>
 	<div class="avatar">
@@ -67,7 +68,6 @@
 		color: var(--text-color);
 		border-radius: 6px;
 		padding: 0.5rem;
-		align-self: flex-end;
 		margin-top: 0.125rem;
 		max-width: 100%;
 		overflow-wrap: break-word;

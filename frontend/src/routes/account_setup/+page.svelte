@@ -1,4 +1,4 @@
-<script src="sweetalert2.min.js">
+<script src="sweetalert2.min.js" lang="ts">
     import { BACKEND, FRONTEND } from '$lib/constants';
 	import { unwrap } from "$lib/Alert";
 	import { put } from "$lib/Web";
@@ -8,13 +8,13 @@
 	async function set_username() {
 		try {
 			await put('/user/me/username', { username: username }, true);
-			window.location = `/profile/${username}`
+			window.location.assign(`/profile/${username}`);
 		} catch (err) {
 			console.error(err);
 		}
 	}
 
-	async function key_event(event) {
+	async function key_event(event: KeyboardEvent) {
 		if (event.key == "Enter")
 			set_username();
 	}

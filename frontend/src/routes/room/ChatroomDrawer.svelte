@@ -1,11 +1,11 @@
 <script lang="ts">
-    import {Checkbox, Drawer, CloseButton, ToolbarButton} from "flowbite-svelte";
+    import {Checkbox, Drawer, CloseButton, ToolbarButton, Tooltip} from "flowbite-svelte";
     import {sineIn} from "svelte/easing"
     import { page } from "$app/stores";
-    import Room from "./Room.svelte";
+    import ChatRoom from "./ChatRoom.svelte";
     import { unwrap } from '$lib/Alert';
     import { get, post } from '$lib/Web';
-    import { Access, type ChatRoom } from "$lib/types";
+    import { Access, type Room } from "$lib/types";
     import { FRONTEND } from "$lib/constants";
     import Swal from "sweetalert2";
 
@@ -18,8 +18,8 @@
     };
     let password = "";
 
-    let mine = $page.data.mine;
-    let joinable = $page.data.joinable;
+    let joined: Room[] = $page.data.roomsJoined;
+    let joinable: Room[] = $page.data.roomsJoinable;
 
     type room_dto = {
         name: string;
@@ -34,8 +34,8 @@
     };
 
     async function fetchChatRooms() {
-        mine = await unwrap(get("/room/all"));
-        // joinable = await unwrap(get("/room/joinable"));
+        joined = await get("/room/", "member=true");
+        joinable = await get("/room/", "member=false");
 
     }
 
@@ -44,18 +44,21 @@
             room.password = password;
         await unwrap(post("/room", room));
         await fetchChatRooms();
+        const room_made = joined.filter((value) => value.name === room.name && value.owner.id === $page.data.user.id);
         createRoomShow = false;
+        window.location.assign(`/room/${room_made[0].id}`);
     };
 
     function toggleCreateRoom() {
         createRoomShow = !createRoomShow;
     }
 
-    function enter(room: ChatRoom) {
+    function enter(room: Room) {
         window.location.assign(`${FRONTEND}/room/${room.id}`);
     }
 
-    async function join(room: ChatRoom) {
+    async function join(room: Room) {
+        console.log("room: ",room);
         if (room.access == Access.PROTECTED) {
             const { value: password, isDismissed } = await Swal.fire({
                 text: "password",
@@ -67,16 +70,16 @@
                 return ;
             }
 
-            await unwrap(post(`/room/id/${room.id}/join`, { password }));
+            await unwrap(post(`/room/id/${room.id}/members`, { password }));
         } else {
-            await unwrap(post(`/room/id/${room.id}/join`));
+            await unwrap(post(`/room/id/${room.id}/members`));
         }
 
         Swal.fire({
             icon: "success",
             text: "Joined room",
         });
-    
+        window.location.assign(`${FRONTEND}/room/${room.id}`);
        await fetchChatRooms();
     }
 
@@ -91,7 +94,7 @@
         
         leftOffset="drawer-custom"
         transitionType="fly" {transitionParams} bind:hidden={hidden1} id='sidebar'
-        divClass="z-50 p-4 bg-c">
+        divClass="z-50 p-4 bg-c w-auto">
         <div class='flex items-center'>
           <h5
             id="drawer-label"
@@ -100,16 +103,18 @@
           </h5>
           <CloseButton on:click={() => (hidden1 = true)} class='mb-4 dark:text-white'/>
         </div>
-        <div class="chat-room-plus" 
+        <div class="chat-room-plus" id="create-room-div"
             on:click={toggleCreateRoom} on:keypress={toggleCreateRoom}>
-        <img src="/Assets/icons/plus.svg" alt="plus" class="icon" title="Create Chat Room">
+        <img src="/Assets/icons/plus.svg" alt="plus" class="icon">
+        <Tooltip triggeredBy="[id='create-room-div']">Create Chat Room</Tooltip>
         </div>
         <div class="overflow-y-auto flex flex-col rooms">
-        {#each mine as chatroom}
-            <Room room={chatroom} click={enter}/>
+        {#each joined as chatroom}
+        <!-- //TODO fix the whole mine and joinable thing -->
+            <ChatRoom room={chatroom} click={enter} joined={true}/>
         {/each}
         {#each joinable as chatroom}
-            <Room room={chatroom} click={join}/>
+            <ChatRoom room={chatroom} click={join} joined={false}/>
         {/each}
         </div>
     </Drawer>
@@ -157,8 +162,8 @@
         border-width: 5px;
         border-color: transparent;
         align-items: center;
-        width: 50px;
-        height: 50px;
+        width: 60px;
+        height: 60px;
     }
 
     .chat-room-plus:hover {
@@ -174,6 +179,7 @@
 		padding: 2px 8px;
         margin-top: 0.25rem;
         margin-bottom: 0.25rem;
+        cursor: pointer;
 	}
 
 	.button {

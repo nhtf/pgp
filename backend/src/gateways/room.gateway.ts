@@ -8,10 +8,11 @@ import {
 	WsException,
 } from "@nestjs/websockets";
 import type { Socket, Server } from "socket.io";
+import { InjectRepository } from "@nestjs/typeorm";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
-import type { User } from "src/entities/User";
-import type { Member } from "src/entities/Member";
+import { User } from "src/entities/User";
+import { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
 import { FRONTEND_ADDRESS } from "src/vars";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
@@ -21,11 +22,11 @@ export class RoomGateway extends ProtectedGateway("room") {
 	server: Server;
 
 	constructor(
-		@Inject("USER_REPO")
+		@InjectRepository(User)
 		private readonly userRepo: Repository<User>,
-		@Inject("MESSAGE_REPO")
+		@InjectRepository(Message)
 		private readonly messageRepo: Repository<Message>,
-		@Inject("MEMBER_REPO")
+		@InjectRepository(Member)
 		private readonly memberRepo: Repository<Member>,
 	) {
 		super(userRepo);
