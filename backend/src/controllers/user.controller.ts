@@ -33,37 +33,17 @@ class UsernameDTO {
 	username: string;
 }
 
-@EventSubscriber()
-export class UserListener implements EntitySubscriberInterface<User> {
-	constructor(
-	) {
-	}
-
-	listenTo() {
-		return User;
-	}
-
-	afterLoad(entity: User) {
-	}
-
-	beforeUpdate(event: UpdateEvent<User>) {
-	}
-
-	afterUpdate(event: UpdateEvent<User>) {
-	}
-}
-
 export function GenericUserController(route: string, options: { param: string, cparam: string, pipe: any }) {
 	@Controller(route)
 	@UseGuards(HttpAuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	class UserControllerFactory {
 		constructor(
-			@InjectRepository(User)
+			@Inject("USER_REPO")
 			readonly user_repo: Repository<User>,
-			@InjectRepository(FriendRequest)
+			@Inject("FRIENDREQUEST_REPO")
 			readonly request_repo: Repository<FriendRequest>,
-			@InjectRepository(Invite)
+			@Inject("INVITE_REPO")
 			readonly invite_repo: Repository<Invite>,
 			readonly update_serivce: UpdateGateway,
 		) {}
@@ -268,22 +248,12 @@ export function GenericUserController(route: string, options: { param: string, c
 
 				await this.request_repo.remove(request);
 				await this.user_repo.save([user, target]);
-				delete target.friends;
-				delete user.friends;
-				console.log("a");
-				await this.update_serivce.send_update({ subject: Subject.FRIENDS, identifier: user.id, action: Action.ADD, value: target }, user);
-				await this.update_serivce.send_update({ subject: Subject.FRIENDS, identifier: target.id, action: Action.ADD, value: user }, target);
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;
 				friend_request.to = target;
 
 				await this.request_repo.save(friend_request);
-
-				const serialized_request = instanceToPlain(friend_request);
-				await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: user.id, action: Action.ADD, value: serialized_request }, user);
-				await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: target.id, action: Action.ADD, value: serialized_request }, target);
-
 			}
 			return {};
 		}

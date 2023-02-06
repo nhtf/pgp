@@ -20,9 +20,9 @@ declare module "socket.io" {
 })
 export class GameGateway {
 	constructor(
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>,
-		@InjectRepository(GameRoom)
+		@Inject("GAMEROOM_REPO")
 		private readonly gameroom_repo: Repository<GameRoom>,
 	) {}
 

@@ -10,7 +10,7 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 	@Injectable()
 	class GenericAuthGuardFactory implements CanActivate {
 		constructor(
-			@InjectRepository(User)
+			@Inject("USER_REPO")
 			readonly user_repo: Repository<User>,
 		) {}
 

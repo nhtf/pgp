@@ -91,6 +91,8 @@ export enum Subject {
 	FRIENDS,
 	STATUS,
 	AVATAR,
+	ROOM,
+	MEMBER,
 }
 
 export enum Action {

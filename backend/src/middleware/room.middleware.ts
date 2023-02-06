@@ -8,7 +8,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 @Injectable()
 export class RoomMiddleware implements NestMiddleware {
 	constructor(
-		@InjectRepository(Room)
+		@Inject("ROOM_REPO")
 		private readonly repo: Repository<Room>
 	) {}
 

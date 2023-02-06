@@ -71,7 +71,10 @@
 				<img id="icon" src={user_icon} alt="user-icon">
 			</div>
 			<div class="block-cell">
-				<h3 id="selector" on:click={() => {changeSettingsTab("profile-information")}}>Profile information</h3>
+				<h3 id="selector" 
+					on:click={() => {changeSettingsTab("profile-information")}}
+					on:keypress={() => {changeSettingsTab("profile-information")}}
+					>Profile information</h3>
 			</div>
 		</div>
 		<div class="block-hor" id="left-alligned">
@@ -79,7 +82,10 @@
 				<img id="icon"  src={security_icon} alt="lock-icon">
 			</div>
 			<div class="block-cell">
-				<h3 id="selector" on:click={() => {changeSettingsTab("security")}}>Security</h3>
+				<h3 id="selector" 
+					on:click={() => {changeSettingsTab("security")}}
+					on:keypress={() => {changeSettingsTab("profile-information")}}
+					>Security</h3>
 			</div>
 		</div>
 	</div>
@@ -96,7 +102,9 @@
 		</div>
 		<div class="block-hor end"></div>
 		<div class="block-hor right">
-			<label id="save-button" for="username-change" on:click={changeUserName}>Save</label>
+			<label id="save-button" for="username-change" 
+				on:click={changeUserName}
+				on:keypress={changeUserName}>Save</label>
 		</div>
 	</div>
 	{/if}

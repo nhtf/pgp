@@ -47,7 +47,7 @@ export class AuthController {
 
 	constructor(
 		private readonly session_utils: SessionService,
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly userRepo: Repository<User>,
 	) {}
 
@@ -87,9 +87,10 @@ export class AuthController {
 		}
 	}
 
+	//TODO added a as string to make it stop complaining, needs proper fix - Siebe
 	async get_id(access_token: AccessToken): Promise<number | undefined> {
 		let rest_client = new rm.RestClient("pgp", "https://api.intra.42.fr", [
-			new BearerCredentialHandler(access_token.token.access_token, false),
+			new BearerCredentialHandler(access_token.token.access_token as string, false),
 		]);
 		const res = await rest_client.get<result_dto>("/v2/me");
 		if (res.statusCode != 200) {
@@ -132,7 +133,8 @@ export class AuthController {
 			await this.userRepo.save(user);
 		}
 
-		request.session.access_token = access_token.token.access_token;
+		//TODO added a as string to make it stop complaining, needs proper fix - Siebe
+		request.session.access_token = access_token.token.access_token as string;
 		request.session.user_id = user.id;
 		request.session.auth_level = AuthLevel.OAuth;
 

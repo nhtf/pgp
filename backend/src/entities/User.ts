@@ -8,6 +8,7 @@ import {
 	ManyToMany,
 	JoinTable,
 	OneToMany,
+	AfterUpdate,
 } from "typeorm";
 import { Exclude, Expose } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from "../vars";

@@ -68,7 +68,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 	@Injectable()
 	class ParseIDPipe implements PipeTransform {
 		constructor(
-			@InjectRepository(type)
+			@Inject(type.name.toString().toUpperCase() + "_REPO")
 			readonly repo: Repository<T>
 		) {}
 
@@ -96,7 +96,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 @Injectable()
 export class ParseUsernamePipe implements PipeTransform {
 	constructor(
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>
 	) {}
 

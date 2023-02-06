@@ -211,6 +211,14 @@ body {
 	
 }
 
+#avatar-menu {
+	cursor: pointer!important;
+}
+
+#avatar-menu:hover {
+	box-shadow: 2px 2px 5px 5px var(--shadow-color);
+}
+
 a {
 	text-decoration: none;
 }
@@ -223,6 +231,10 @@ a {
   .login-button {
 	font-size: 1rem;
 	text-decoration: underline;
+  }
+
+  .login-button:hover {
+	font-size: 1.125rem;
   }
 
 .leaderboard-row {

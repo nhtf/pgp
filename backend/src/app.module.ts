@@ -4,7 +4,7 @@ import { GameGateway } from "./gateways/game.gateway";
 import { AuthController } from "./auth/auth.controller";
 import { TotpController } from "./auth/totp.controller";
 import { DebugController } from "./controllers/debug.controller";
-import { UserIDController, UserUsernameController, UserMeController, UserListener, } from "./controllers/user.controller";
+import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
 import { DataSource } from "typeorm";
 import { HOST, DB_PORT, DB_USER, DB_PASS } from "./vars";
 import { HttpAuthGuard } from "./auth/auth.guard";
@@ -88,7 +88,7 @@ export const dataSource = new DataSource({
 			return clazz;
 		},
 	),
-	subscribers: [ UserListener ],
+	subscribers: [ ],
 	synchronize: true, //TODO disable and test before turning in
 	//logging: true,
 	// TODO enable cache? (cache: true)
@@ -132,12 +132,10 @@ const entityProviders = entityFiles.map<{
 
 const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room).map(value => {
 	const name = value.name.toUpperCase();
-	console.log(name + "_PGPSERVICE");
 	return {
 		provide: name + "_PGPSERVICE",
 		useFactory: (room_repo: any, member_repo: Repository<Member>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
 			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any);
-			console.log(tmp);
 			return tmp;
 		},
 		inject: [name + "_REPO", "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
@@ -147,28 +145,6 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 @Module({
 	imports: [
 		/*TypeOrmModule.forRoot({ type: "postgres", username: "postgres", password: "postgres", host: "172.19.0.2" }),*/
-		TypeOrmModule.forRoot({
-			type: "postgres",
-			host: HOST,
-			port: DB_PORT,
-			username: DB_USER,
-			password: DB_PASS,
-			//TODO use env variables here
-			database: "dev",
-			entities: entityFiles.map<Function>(
-				(value: string, index: number, array: string[]) => {
-					const entity = require(value);
-					const clazz = Object.values(entity)[0] as Function;
-					return clazz;
-				},
-			),
-			synchronize: true, //TODO disable and test before turning in
-		}),
-		TypeOrmModule.forFeature(entityFiles.map<Function>(value => {
-					const entity = require(value);
-					const clazz = Object.values(entity)[0] as Function;
-					return clazz;
-		})),
 	],
 	controllers: [
 		AppController,
@@ -189,12 +165,13 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		HttpAuthGuard,
 		SessionService,
 		SetupGuard,
-		UserListener,
 		...databaseProviders,
 		...entityProviders,
 		...roomServices,
 	],
-	exports: [...databaseProviders],
+	exports: [
+		...databaseProviders,
+	],
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {

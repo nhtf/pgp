@@ -9,6 +9,8 @@
     import { FRONTEND } from "$lib/constants";
     import Swal from "sweetalert2";
 
+    //TODO update the rooms using the update function (socket io)
+
     let createRoomShow = false;
     let hidden1 = true; 
     let transitionParams = {

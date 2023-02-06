@@ -1,4 +1,4 @@
-import { InjectRepository } from "@nestjs/typeorm";
+import { UpdateGateway } from "src/gateways/update.gateway";
 import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
@@ -14,6 +14,9 @@ import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Observable } from "rxjs";
 import { RoomInvite } from "../entities/RoomInvite";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
+import { instanceToPlain } from "class-transformer";
 import * as argon2 from "argon2";
 
 export class CreateRoomDTO {
@@ -189,17 +192,17 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 	@Controller(route || type.name.toString().toLowerCase())
 	class RoomControllerFactory {
 		constructor(
-			@InjectRepository(type)
+			@Inject(type.name.toString().toUpperCase() + "_REPO")
 			readonly room_repo: Repository<T>,
-			@InjectRepository(Member)
+			@Inject("MEMBER_REPO")
 			readonly member_repo: Repository<Member>,
-			@InjectRepository(RoomInvite)
+			@Inject("ROOMINVITE_REPO")
 			readonly invite_repo: Repository<RoomInvite>,
 			//TODO figure out why it injects the ChatRoom repository here for ChatRoom...
 			@Inject(type.name.toString().toUpperCase() + "_PGPSERVICE")
 			readonly service: IRoomService<T>,
+			readonly update_service: UpdateGateway,
 		) {
-			console.log(type.name.toString().toUpperCase() + "_SERVICE ", this.service);
 		}
 
 		async get_member(user: User, room: Room): Promise<Member | null> {
@@ -307,14 +310,16 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 
 			if (room.banned_users?.find(current => current.id === room.id))
 				throw new ForbiddenException("You have been banned from this channel"); //TODO should this give "not found" for private rooms?
-		
-			if (room.access == Access.PROTECTED) {
-				if (!password) {
-					throw new BadRequestException("Missing password");
-				}
-				
-				if (!await argon2.verify(room.password, password)) {
-					throw new ForbiddenException("Incorrect password");
+
+			if (!invites) {
+				if (room.access == Access.PROTECTED) {
+					if (!password) {
+						throw new BadRequestException("Missing password");
+					}
+					
+					if (!await argon2.verify(room.password, password)) {
+						throw new ForbiddenException("Incorrect password");
+					}
 				}
 			}
 			await this.service.add_member(room, me);
@@ -426,7 +431,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			if (await this.get_member(target, room))
 				throw new ForbiddenException("User already member of this room");
 
-			if (await this.invite_repo.findOneBy({ from: { id: me.id }, to: { id: target.id } }))
+			if (await this.invite_repo.findOneBy({ room: { id: room.id }, from: { id: me.id }, to: { id: target.id } }))
 				throw new ForbiddenException("Already invited this user");
 
 			const invite = new RoomInvite;

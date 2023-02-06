@@ -51,7 +51,7 @@ class OtpDTO {
 export class TotpController {
 	constructor(
 		private readonly session_utils: SessionService,
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly userRepo: Repository<User>
 	) {}
 

@@ -11,7 +11,6 @@ export class RoomInvite extends Invite {
 	@ManyToOne(() => Room, (room) => room.invites, { onDelete: "CASCADE", eager: true })
 	room: Room;
 
-	@Expose()
 	get type(): string {
 		return this.room?.type || "unknown";
 	}

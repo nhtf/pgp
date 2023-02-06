@@ -24,7 +24,7 @@ export function ProtectedGateway(namespace?: string) {
 		readonly server: Server;
 
 		constructor(
-			@InjectRepository(User)
+			@Inject("USER_REPO")
 			readonly users: Repository<User>,
 		) {}
 

@@ -1,67 +1,38 @@
 <script lang="ts">
     import { Dropdown, DropdownItem, Avatar } from 'flowbite-svelte'
-    import type { Invite, User } from "$lib/types";
+    import type { Invite } from "$lib/types";
     import {page} from "$app/stores";
-    import { post, remove } from '$lib/Web';
+    import { respond } from '$lib/invites';
 
-    let chat_invites: Invite[] = $page.data.invites;
-    let friend_requests: Invite[] = $page.data.friend_requests;
-    let notifications : Invite[] = [];
+    $: notifications = $page.data.invites_received as Invite[];
+    $: length = $page.data.invites_received.length;
 
     async function removeNotification(index: number) {
-        let res;
         const notif = notifications[index];
-        console.log("removing notification: ", index);
-        try {
-            if (notif.type === "chat" || notif.type === "game") {
-                res = await remove(`/room/id/${notif.room?.id}/${notif.id}`);
-            }
-            if (notif.type === "friend") {
-                res = await remove(`/user/me/friends/requests/${notif.id}`);
-            }
-            notifications.splice(index, 1);
-            notifications = notifications;
-        }
-        catch {}
+        respond(notif, "deny");
     }
 
     async function acceptInvite(index: number) {
         const notif = notifications[index];
-        try {
-            if (notif.type === "friend") {
-                await post("/user/me/friends/requests/", {"id": notif.from.id});
-            }
-            else if (notif.type === "chat") {
-                await post(`/room/id/${notif.room?.id}/invite/${notif.id}`);
-            }
-            notifications.splice(index, 1);
-            notifications = notifications;
-        }
-        catch (err: any) {
-            console.log(err);
-        }
+        respond(notif, "accept");
     }
-
-    function fillNotifications() {
-        chat_invites.forEach((invite) => {
-            notifications.push(invite)
-        })
-        friend_requests.forEach((request) => {
-            notifications.push(request)
-        });
-    }
-    fillNotifications();
-    console.log("notifications: ",notifications);
   </script>
+
+  {@debug length}
   
-  {#if notifications.length > 0}
+  <!-- //TODO get the bell to only show up when there is a notification (and still make it update) -->
+  <!-- {#if notifications.length > 0} -->
   <div id="bell" 
   class="bell">
     <svg class="bell-icon" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
         <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
     </svg>
     <div class="flex relative">
-      <div class="new-notifications"></div>
+        <!-- {#if notifications.length > 0} -->
+        {#key length}
+      <div class="new-notifications">{length}</div>
+      {/key}
+      <!-- {/if} -->
     </div>
   </div>
   <Dropdown triggeredBy="#bell" class="w-full max-w-sm rounded divide-y bor-c shadow bg-c bor-c"
@@ -70,7 +41,7 @@
     <div slot="header" class="text-center py-2 font-bold text-center ">Notifications</div>
     {#each notifications as {from, type}, index}
     <DropdownItem class="flex space-x-4">
-        <Avatar src={from.avatar} rounded />
+        <Avatar src={from.avatar} />
         <div class="pl-3 w-full"
             on:click={() => acceptInvite(index)}
             on:keypress={() => acceptInvite(index)}>
@@ -96,7 +67,7 @@
       </div>
     </a>
   </Dropdown>
-  {/if}
+  <!-- {/if} -->
 
   <style>
     .bell {

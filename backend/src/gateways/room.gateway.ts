@@ -22,11 +22,11 @@ export class RoomGateway extends ProtectedGateway("room") {
 	server: Server;
 
 	constructor(
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly userRepo: Repository<User>,
-		@InjectRepository(Message)
+		@Inject("MESSAGE_REPO")
 		private readonly messageRepo: Repository<Message>,
-		@InjectRepository(Member)
+		@Inject("MEMBER_REPO")
 		private readonly memberRepo: Repository<Member>,
 	) {
 		super(userRepo);

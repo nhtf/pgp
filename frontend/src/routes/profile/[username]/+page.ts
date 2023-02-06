@@ -1,11 +1,9 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from "./$types"
-import type { User, Achievement, Invite } from "$lib/types"
+import { type User, type Achievement, type Invite, Subject, Action } from "$lib/types"
 import { get, remove } from '$lib/Web';
-import { unwrap } from '$lib/Alert';
-import { BACKEND_ADDRESS } from '$lib/constants';
+import { BACKEND, BACKEND_ADDRESS } from '$lib/constants';
 import { io } from 'socket.io-client';
-import { readable, writable } from 'svelte/store';
 
 export const ssr = false;
 
@@ -106,6 +104,38 @@ async function getFriendList(username: string, options: Map<any, any>) {
 	return dummy_friends;
 }
 
+function updateFriends(friendlist: simpleuser[]) {
+	socket.on("update", async (update) => {
+		if (update.subject === Subject.STATUS || update.subject === Subject.AVATAR) {
+			friendlist.forEach((friend: simpleuser) => {
+				if (friend.id === update.identifier) {
+					if (update.subject === Subject.STATUS)
+						friend.status = update.value;
+					else
+						friend.avatar = update.value;
+				}
+			});
+		}
+		if (update.subject === Subject.FRIENDS) {
+			if (update.action === Action.ADD) {
+				const new_friend: simpleuser = {
+					id: update.value.id,
+					username: update.value.username,
+					status: "active",
+					in_game: false,
+					avatar: `${BACKEND}/avatar/${update.value.avatar_base}.jpg`,
+				};
+				friendlist.push(new_friend);
+			}
+			else if (update.action === Action.REMOVE)
+			friendlist = friendlist.filter((friends) => friends.id !== update.identifier)
+		}
+		friendlist = friendlist;
+	});
+}
+
+let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
+
 
 export const load: PageLoad = (async ({ fetch, params }) => {
 	console.log("load: /profile/[username]");
@@ -127,14 +157,9 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 			try {
 				
 				let friendlist = await getFriendList(user.username, drop);
-				let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
-				socket.on("update", async (status) => {
-					friendlist.forEach((friend: simpleuser) => {
-						if (friend.id === status.id)
-							friend.status = status.status;
-					});
-					friendlist = friendlist;
-				});
+				//TODO handle the update of friends using the update Packets
+				
+				updateFriends(friendlist);
 				
 				console.log("load return: ", { fetch, user, friendlist, drop, profile });
 				return { fetch, user, friendlist, drop, profile };

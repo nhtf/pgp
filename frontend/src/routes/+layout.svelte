@@ -18,11 +18,8 @@
     NavLi,
     NavUl,
   } from "flowbite-svelte";
-    import { redirect } from "@sveltejs/kit";
 
   export let data: LayoutData;
-
-  //TODO make the user-avatar button hoverable and have a cursor-pointer
 
   const user = data.user;
 
@@ -31,17 +28,6 @@
     DARK: "dark",
     LIGHT: "light",
   };
-
-  const socket = io(`ws://${BACKEND_ADDRESS}/update`, {
-    withCredentials: true,
-  });
-
-  socket.on("update", (update) => {
-    console.log(update);
-    if (update.subject.INVITES || update.subject.REQUESTS) {
-      console.log("invite or friendrequest: ",update);
-    }
-  });
 
   const STORAGE_KEY = "theme";
   const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
@@ -129,7 +115,7 @@
       <NavLi href={url} active={$page.url.pathname.includes(url)}>{name}</NavLi>
     {/each}
     {#if !user?.username}
-      <NavLi active={true} href={`${BACKEND}/oauth/login`} activeClass="login-button" nonActiveClass="login-button">login</NavLi>
+      <NavLi href={`${BACKEND}/oauth/login`} activeClass="login-button" nonActiveClass="login-button">login</NavLi>
     {/if}
   </NavUl>
 </Navbar>
@@ -138,131 +124,4 @@
 
 <style>
 
-
-
-  /* * {
-    margin: 0;
-    padding: 4px;
-    box-sizing: border-box;
-    font-family: "Poppins", sans-serif;
-    color: var(--text-color);
-    text-decoration: none;
-  } */
-
-  /* nav {
-    position: sticky;
-    top: 0;
-    z-index: 100000;
-  }
-
-  .menu {
-    background: var(--box-color);
-    position: sticky;
-    top: 0;
-    border-radius: 6px;
-    border-color: var(--border-color);
-    border-width: 2px;
-    border-style: solid;
-  }
-
-  .menu ul {
-    display: flex;
-    justify-content: space-evenly;
-    align-items: center;
-  }
-
-  .menu ul li {
-    list-style: none;
-    padding: 4px;
-    display: flex;
-    cursor: pointer;
-  }
-
-  .menu ul li a {
-    padding: 5px 10px;
-  }
-
-  .menu ul li a:hover {
-    border-radius: 6px;
-    box-shadow: 0 0 3px 2px var(--shadow-color);
-  }
-
-  .menu ul li ul li:hover {
-    border-radius: 6px;
-    padding-top: 5px;
-  }
-
-  .menu ul li ul {
-    display: flex;
-    flex-direction: column;
-    position: absolute;
-    top: 3em;
-    right: 0em;
-    background: var(--box-color);
-    border-radius: 6px;
-    box-shadow: 0px 10px 10px 0px rgba(0, 0, 0, 0.5);
-  }
-
-  #nav-menu-mobile {
-    display: none;
-    flex-direction: column;
-  }
-
-  #mobile {
-    display: none;
-    justify-content: flex-start;
-  }
-
-  #ham-drop {
-    right: 0;
-    left: 0em;
-    top: 6em;
-    width: 175px;
-  }
-
-  @media (max-width: 500px) {
-    #nav-menu {
-      display: none;
-    }
-    #nav-menu-mobile {
-      display: flex;
-    }
-
-    #mobile {
-      display: flex;
-    }
-  }
-
-  .bar1,
-  .bar2,
-  .bar3 {
-    width: 35px;
-    height: 3px;
-    background-color: var(--ham-color);
-    margin: 6px 0;
-    transition: 0.4s;
-  }
-
-  #change0 {
-    transform: translate(0, 14px) rotate(-45deg);
-  }
-
-  #change1 {
-    opacity: 0;
-  }
-
-  #change2 {
-    transform: translate(0, -14px) rotate(45deg);
-  }
-
-  .hamburger {
-    display: inline-block;
-    cursor: pointer;
-    align-self: flex-start;
-  }
-
-  .dark .dark\:bg-gray-700 {
-    background: var(--box-color);
-    background-color: var(--box-color);
-  } */
 </style>

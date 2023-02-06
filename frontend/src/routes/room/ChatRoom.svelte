@@ -13,26 +13,30 @@
 
 <button class="room" on:click={() => click(room)}>
 	<div class="chickenss">
-		{#if room.owner.id === $page.data.user.id}
-			<div class="owner-icon"><img src="/Assets/icons/crown.svg" alt="crown"></div>
-		{/if}
-		<div class="max-content">
+		
+		<div class="room-icon-block">
+			<div>
 			{#if room.owner}
 				<img class="room-icon" src={room.owner?.avatar} alt=""/>
 			{:else}
 				<img class="room-icon" src="/avatar-default.png" alt=""/>
 			{/if}
+			</div>
+			{#if room.owner.id === $page.data.user.id}
+				<div class="owner-icon"><img src="/Assets/icons/crown.svg" alt="crown"></div>
+			{/if}
 		</div>
 	
-	{#if joined}
-		<div class="text-xl max-content ">{room.name}</div>
-	{:else}
-		<div class="text-xl text-gray-700 max-content">{room.name}</div>
-	{/if}
-	{#if room.access == Access.PROTECTED && !joined}
-		<img class="lock-icon" src={lock} alt="lock">
-	{/if}
-</div>
+		<!-- //TODO maybe other way to make it obvious that you already joined it? -->
+		{#if joined}
+			<div class="room-name">{room.name}</div>
+		{:else}
+			<div class="room-name text-gray-700">{room.name}</div>
+		{/if}
+		{#if room.access == Access.PROTECTED && !joined}
+			<img class="lock-icon" src={lock} alt="lock">
+		{/if}
+	</div>
 </button>
 
 <style>
@@ -59,8 +63,16 @@
 		border-bottom-width: 2px;
 	}
 
-	.max-content {
+	.room-name {
+		font-size: 1.25rem;
 		width: max-content;
+		margin-left: 0.5rem;
+	}
+
+	.room-icon-block {
+		width: 70px;
+		display: flex;
+		flex-direction: row;
 	}
 
 	.room:hover {
@@ -88,7 +100,7 @@
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
 		position: relative;
-		top: 0.75rem;
+		bottom: 0.5rem;
 		right: 0.5rem;
 	}
 </style>

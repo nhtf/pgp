@@ -1,85 +1,37 @@
 <script lang="ts">
-    import { unwrap } from "$lib/Alert";
-    import type { Invite, FriendRequest } from "$lib/types";
-    import { get, post, remove } from "$lib/Web";
-    import type { PageData } from "./$types";
+    import type { Invite } from "$lib/types";
+    import { post, remove } from "$lib/Web";
+    import { invalidate } from "$app/navigation";
+    import { page } from "$app/stores";
+    import { BACKEND } from "$lib/constants";
+    import {respond } from "$lib/invites";
     import {
         Tabs, 
         TabItem
      } from "flowbite-svelte";
 
-	export let data: PageData;
+    $: invites = {send: $page.data.invites_send, received: $page.data.invites_received};
+    $: send = $page.data.invites_send;
+    $: received = $page.data.invites_received;
 
-    let send: Invite[] = [];
-    let received: Invite[] = [];
-
-    $: invites = {send, received};
-
-    function isFromUser(element: Invite) {
-        return element.from.username === data.user?.username;
-    }
-
-    //TODO use the update socket for this stuff
-    async function fetchInvites() {
-        const room_invites: Invite[] = await unwrap(get("/user/me/invites"));
-        const friend_requests: Invite[] = await get("/user/me/friends/requests");
-
-        const room_send = room_invites.filter(isFromUser);
-        const room_received = room_invites.filter((e) => !isFromUser(e));
-        const friend_send = friend_requests.filter(isFromUser);
-        const friend_received = friend_requests.filter((e) => !isFromUser(e));
-        let send: Invite[] = [];
-        let received: Invite[] = [];
-        room_send?.forEach((invite) => send.push(invite));
-        friend_send?.forEach((request) => {
-            request.type = "friend"
-            send.push(request)
-        });
-        room_received?.forEach((invite) => received.push(invite));
-        friend_received?.forEach((request) => {
-            request.type = "friend"
-            received.push(request)
-        });
-        return {send, received}; 
-    }
-
-    async function respond(invite: Invite, action: string) {
-        //TODO what to do if invite is for a room with a password?
-        if (invite.type === "chat" || invite.type === "game") {
-            if (action === "deny")
-                await remove(`/room/id/${invite.room?.id}/invite/${invite.id}`);
-            else
-                await post(`/room/id/${invite.room?.id}/members`);
-        }
-        else if (invite.type === "friend") {
-            if (action === "deny")
-                await remove(`/user/me/friends/requests/${invite.id}`);
-            else
-                await post(`/user/me/friends/requests/`, {"id": invite.from.id}); 
-        }
-        const new_invites = await fetchInvites();
-        send = new_invites.send;
-        received = new_invites.received;
-    }
-
-    //TODO do this in another way (stores or something)
-    //TODO friend-request maybe need to be invites?
-    function fillInvites() {
-        data.room_send?.forEach((invite) => send.push(invite));
-        data.friend_send?.forEach((request) => {
-            request.type = "friend"
-            send.push(request)
-        });
-        data.room_received?.forEach((invite) => received.push(invite));
-        data.friend_received?.forEach((request) => {
-            request.type = "friend"
-            received.push(request)
-        });
-        invites = {send, received};
-    }
-    fillInvites();
-
-    console.log("send: ", send, "received: ", received);
+    // async function respond(invite: Invite, action: string) {
+    //     if (invite.type === "ChatRoom" || invite.type === "GameRoom") {
+    //         if (action === "deny") {
+    //             await remove(`/room/id/${invite.room?.id}/invite/${invite.id}`);
+    //         }
+    //         else {
+    //             await post(`/room/id/${invite.room?.id}/members`);
+    //             console.log("did a post here");
+    //         }
+    //     }
+    //     else if (invite.type === "Friend") {
+    //         if (action === "deny")
+    //             await remove(`/user/me/friends/requests/${invite.id}`);
+    //         else
+    //             await post(`/user/me/friends/requests/`, {"id": invite.from.id}); 
+    //     }
+    //     // await invalidate(`${BACKEND}/user/me/invites`); //TODO thanks chen en daan for this stupid function that makes it properly update a component when it's data changes
+    // }
 </script>
 
 <div class="invite_list">
@@ -90,7 +42,7 @@
 
     <TabItem open={true} class="bg-c rounded" defaultClass="rounded"  title="send">
         <div>
-            {#if send}
+            {#key $page.data.invites_send}
             {#each send as invite}
                 <div class="invite">
                     <div>
@@ -106,13 +58,13 @@
                     </div>
                 </div>
             {/each}
-            {/if}
+            {/key}
         </div>
     </TabItem>
 
     <TabItem open={false} class="bg-c rounded" defaultClass="rounded"  title="received">
         <div>
-            {#if received}
+            {#key $page.data.invites_received}
             {#each received as invite}
                 <div class="invite">
                     <div>
@@ -129,7 +81,7 @@
                     </div>
                 </div>
             {/each}
-            {/if}
+            {/key}
         </div>
     </TabItem>
     </Tabs>

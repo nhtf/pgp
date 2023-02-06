@@ -58,13 +58,13 @@ class UserDTO {
 export class DebugController {
 	constructor(
 		private readonly sessionUtils: SessionService,
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly userRepo: Repository<User>,
-		@InjectRepository(Room)
+		@Inject("ROOM_REPO")
 		private readonly roomRepo: Repository<Room>,
-		@InjectRepository(Member)
+		@Inject("MEMBER_REPO")
 		private readonly memberRepo: Repository<Member>,
-		@InjectRepository(Invite)
+		@Inject("INVITE_REPO")
 		private readonly inviteRepo: Repository<Invite>,
 	) {}
 

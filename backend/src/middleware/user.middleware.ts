@@ -6,7 +6,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 @Injectable()
 export class UserMiddleware implements NestMiddleware {
 	constructor(
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>,
 	) {}
 

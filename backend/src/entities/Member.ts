@@ -1,9 +1,12 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, AfterRemove } from "typeorm";
 import { Room } from "./Room";
 import { Role } from "src/enums/Role";
 import { User } from "./User";
 import { Exclude, instanceToPlain } from "class-transformer";
 import { Message } from "./Message";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
+import { UpdateGateway } from "src/gateways/update.gateway";
 
 @Entity()
 export class Member {
@@ -27,4 +30,24 @@ export class Member {
 	@Exclude()
 	@OneToMany(() => Message, (message) => message.member)
 	messages: Message[];
+
+	@AfterInsert()
+	async afterInsert() {
+		await UpdateGateway.instance.send_update({
+			subject: Subject.MEMBER,
+			identifier: this.id,
+			action: Action.ADD,
+			value: instanceToPlain(this),
+		}, ...(this.room?.users || []));
+	}
+
+	@AfterRemove()
+	async afterRemove() {
+		await UpdateGateway.instance.send_update({
+			subject: Subject.MEMBER,
+			identifier: this.id,
+			action: Action.REMOVE,
+			value: instanceToPlain(this),
+		}, ...(this.room?.users || []));
+	}
 }

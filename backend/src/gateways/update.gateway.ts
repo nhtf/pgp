@@ -1,7 +1,7 @@
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
 import { Inject, UseGuards, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
 import type { Server, Socket } from "socket.io";
-import { User } from "../entities/User";
+import type { User } from "../entities/User";
 import { Repository } from "typeorm"
 import { instanceToPlain } from "class-transformer";
 import { FRONTEND_ADDRESS } from "../vars";
@@ -44,14 +44,17 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	private readonly activity_map
 	= new Map<number, { last_status: Status, last_activity: number}>();
 
+	static instance: UpdateGateway;
+
 	constructor(
-		@InjectRepository(User)
+		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>,
 	) {
 		setInterval(async () => {
 			await this.tick();
 		}, PURGE_INTERVAL);
 		super(user_repo);
+		UpdateGateway.instance = this;
 	}
 
 	async tick() {
@@ -110,8 +113,9 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			await this.server.emit("update", packet);
 		} else {
 			for (const receiver of receivers) {
+				if (receiver === undefined || receiver === null)
+					continue;
 				const id = typeof receiver === "number" ? receiver : receiver.id;
-				console.log("d " + id);
 				await this.sockets.get(id)?.forEach(socket => socket.emit("update", packet));
 			}
 		}

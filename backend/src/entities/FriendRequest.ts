@@ -1,18 +1,12 @@
 import { User } from "./User";
-import { Entity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from "typeorm";
+import { ChildEntity, PrimaryGeneratedColumn, ManyToOne, CreateDateColumn } from "typeorm";
+import { Invite } from "./Invite";
 import { instanceToPlain } from "class-transformer";
 
-@Entity()
-export class FriendRequest {
-	@PrimaryGeneratedColumn()
-	id!: number;
+@ChildEntity()
+export class FriendRequest extends Invite {
 
-	@CreateDateColumn({ type: 'timestamptz' })
-	date: Date;
-
-	@ManyToOne(() => User, (user) => user.sent_friend_requests, { onDelete: "CASCADE" })
-	from: User;
-
-	@ManyToOne(() => User, (user) => user.incoming_friend_requests, { onDelete: "CASCADE" })
-	to: User;
+	get type(): string {
+		return "Friend";
+	}
 }

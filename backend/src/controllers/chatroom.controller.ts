@@ -6,23 +6,24 @@ import { Member } from "src/entities/Member";
 import { Message } from "src/entities/Message";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { Role } from "src/enums/Role";
-import { InjectRepository } from "@nestjs/typeorm";
+import { UpdateGateway } from "src/gateways/update.gateway";
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)?") {
 
 	constructor(
-		@InjectRepository(ChatRoom)
+		@Inject("CHATROOM_REPO")
 		room_repo: Repository<ChatRoom>,
-		@InjectRepository(Member)
+		@Inject("MEMBER_REPO")
 		member_repo: Repository<Member>,
-		@InjectRepository(RoomInvite)
+		@Inject("ROOMINVITE_REPO")
 		invite_repo: Repository<RoomInvite>,
-		@InjectRepository(ChatRoom)
+		@Inject("CHATROOM_PGPSERVICE")
 		service: IRoomService<ChatRoom>,
-		@InjectRepository(Message)
+		update_service: UpdateGateway,
+		@Inject("MESSAGE_REPO")
 		private readonly message_repo: Repository<Message>,
 	) {
-		super(room_repo, member_repo, invite_repo, service);
+		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
 	@Get(":id/messages")
