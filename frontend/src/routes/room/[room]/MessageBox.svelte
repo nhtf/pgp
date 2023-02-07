@@ -1,61 +1,65 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
-	import { Role, type Member, type Message } from "$lib/types";
     import { post } from "$lib/Web";
-    import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
+    import { Avatar, Dropdown, DropdownDivider, DropdownHeader, DropdownItem } from "flowbite-svelte";
     import Swal from "sweetalert2";
-	import {page} from "$app/stores";
+	import { page } from "$app/stores";
+    import { Role, type ChatRoom, type Member, type Message } from "$lib/types";
 
-	export let id: number;
 	export let message: Message;
-	console.log("message: ", message);
-	let member = message.member;
-	const user = member.user;
 
-	const admin_actions = [	"ban", "kick", "mute" ];
-	const owner_actions = [ "demote", "promote" ];
+	const room: ChatRoom = $page.data.room;
+	const role: Role = $page.data.role;
 
-	const flex_direction = $page.data.user?.id == user?.id ? "row-reverse" : "row";
-	const align_self = $page.data.user?.id == user?.id ? "flex-start" : "flex-end";
-	const text_align = $page.data.user?.id == user?.id ? "left" : "right";
-	
+	const user = message.member.user;
 
-	async function doAction(route: string) {
-		console.log(`/room/id/${id}/${route}`)
-		await unwrap(post(`/room/id/${id}/${route}`, { owner: user.username }));
+	const member_actions = [
+		[],
+		[ "ban", "mute" ],
+		[ "demote", "promote" ],
+	];
+
+	const from_self = $page.data.user?.id == user?.id;
+	const flex_direction = from_self ? "row-reverse" : "row";
+	const align_self = from_self ? "flex-end" : "flex-start";
+	const text_align = from_self ? "right" : "left";
+
+	async function doAction(route: string, target: Member) {
+		await unwrap(post(`/room/id/${room.id}/${route}`, { target: target.id }));
 
 		Swal.fire({
 			icon: "success",
 		})
 	}
-	console.log("message: ", message);
+	console.log(message);
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
-	{#if user.username !== $page.data.user.username}
-	<Dropdown triggeredBy=".acs">
-		<DropdownItem on:click={() => { window.location.assign(`/profile/${user.username}`)}}>Profile</DropdownItem>
-		{#if member.role >= Role.ADMIN}
-			<DropdownDivider/>
-			{#each admin_actions as action}
-				<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
-			{/each}
-		{/if}
-		{#if member.role >= Role.OWNER}
-			<DropdownDivider/>
-			{#each owner_actions as action}
-				<DropdownItem on:click={() => doAction(action)}>{action}</DropdownItem>
-			{/each}
-		{/if}
-	</Dropdown>
-	{/if}
+	<Avatar src={user.avatar} title={user.username}/>
+		<Dropdown>
+			<DropdownHeader>
+				{Role[message.member.role]}
+			</DropdownHeader>
+			<DropdownItem>
+				<a href={`/profile/${user.username}`}>Profile</a>
+			</DropdownItem>
+			{#if user.id !== $page.data.user.id}
+				{#each member_actions as actions, i}
+					{#if role >= i}
+						{#if i > 0}
+							<DropdownDivider/>
+						{/if}
+						{#each actions as action}
+							<DropdownItem on:click={() => doAction(action, message.member)}>{action}</DropdownItem>
+						{/each}
+					{/if}
+				{/each}
+			{/if}
+		</Dropdown>
 	<div class="message-box">
-		<div class="text-sm underline" style={`text-align: ${text_align};`}>{user.username} </div>
+		<div class="text-sm underline" style={`text-align: ${text_align};`}>{user.username}</div>
 		<div class="message-content">{message.content}</div>
 	</div>
-	<div class="avatar">
-		<Avatar class="acs" src={user.avatar} title={user.username}/>
-		</div>
 </div>
 
 <style>
@@ -71,14 +75,6 @@
 		margin-top: 0.125rem;
 		max-width: 100%;
 		overflow-wrap: break-word;
-	}
-
-	.avatar {
-		width: 40px;
-		height: 40px;
-		font-size: smaller;
-		position: relative;
-		top: 0.25rem;
 	}
 
 	.message-box {

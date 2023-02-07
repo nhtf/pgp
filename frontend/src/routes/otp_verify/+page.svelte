@@ -1,9 +1,12 @@
 <script lang="ts" src="sweetalert2.min.js">
+    import { goto } from '$app/navigation';
     import { BACKEND, FRONTEND } from '$lib/constants';
 	import { onMount } from 'svelte';
 	import Swal from 'sweetalert2';
+	import {get} from "$lib/Web";
 	let code: string = "";
 
+	//TODO use the get and post things here
 	async function verify_code() {
 		const response = await fetch(`${BACKEND}/otp/verify`,
 			{
@@ -16,7 +19,7 @@
 				body: `otp=${code}`
 			});
 		if (response.ok) {
-			window.location.assign(`${FRONTEND}/profile`);
+			goto(`${FRONTEND}/profile`);
 		} else {
 			const Toast = Swal.mixin({
 				toast: true,
@@ -44,7 +47,7 @@
 				},
 			});
 		if (response.ok) {
-			window.location.assign(`${FRONTEND}/profile`);
+			goto(`${FRONTEND}/profile`);
 		}
 	});
 </script>

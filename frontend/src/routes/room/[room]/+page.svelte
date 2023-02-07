@@ -3,17 +3,14 @@
     import Swal from "sweetalert2";
     import socket from "../websocket";
     import { unwrap } from "$lib/Alert";
-    import type { Member, Message } from "$lib/types";
     import type { PageData } from "./$types";
-    import { FRONTEND, BACKEND } from "$lib/constants";
     import { post, remove , get } from "$lib/Web";
     import { error } from "@sveltejs/kit";
     import MessageBox from "./MessageBox.svelte";
-	import {ToolbarButton, Dropdown, DropdownItem} from "flowbite-svelte";
-    import ChatroomDrawer from "../ChatroomDrawer.svelte";
+	import { ToolbarButton, Dropdown, DropdownItem, Textarea, Button } from "flowbite-svelte";
+    import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
-	import {page} from "$app/stores";
-
+    import { goto } from "$app/navigation";
 
 	export let data: PageData;
 
@@ -25,11 +22,16 @@
 	let autoscroll: boolean;
 
 	const room = data.room;
+	const user = data.user;
 
 	let messages = data.messages;
 
+	messages.sort((first, second) => {
+		return new Date(first.time).getTime() - new Date(second.time).getTime();
+	});
+
 	let invitee: string = "";
-	let content: string = "";
+	let value: string = "";
 
 	onMount(() => {
 		socket.emit("join", String(room.id));
@@ -40,23 +42,29 @@
 	});
 
 	afterUpdate(() => {
-		if (autoscroll) div.scrollTo(0, div.scrollHeight);
+		if (autoscroll) {
+			div.scrollTo(0, div.scrollHeight);
+		}
 	});
 
 	socket.on("message", async () => {
-		messages = await unwrap(get(`/room/${$page.params.room}/messages`));
+		messages = await unwrap(get(`/room/id/${room.id}/messages`));
 	})
 
 	function handleKeyPress(event: KeyboardEvent) {
-		if (event.key === "Enter" && !event.shiftKey)
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault();
 			sendMessage();
+		}
 	}
 
 	function sendMessage() {
-		if (!content.length)
+		if (!value.length)
            return;
-		socket.emit("message", content);
-		content="";
+	
+		socket.emit("message", value);
+	
+		value = "";
 	}
 
     async function invite() {
@@ -68,17 +76,8 @@
             });
 		}
 
-		// const formData = new FormData();
-		// formData.append("username", invitee);
-
-		// const res = await window.fetch(`${BACKEND}/room/id/${room.id}/invite`, {
-		// credentials: "include",
-		// method: "POST",
-		// body: formData,
-		// });
-		// console.log(res);
-		await unwrap(post(`/room/id/${room.id}/invite`, {username: invitee} ));
-		// if (res.ok){
+		await unwrap(post(`/room/id/${room.id}/invite`, { username: invitee }));
+		
 		Swal.fire({
 			icon: "success",
 			timer: 1000,
@@ -88,7 +87,7 @@
 	async function leave() {
 		await unwrap(remove(`/room/id/${room.id}/leave`));
 
-		window.location.assign(`${FRONTEND}/room`);
+		goto(`/room`);
 	}
 
     async function deleteChatRoom() {
@@ -98,7 +97,7 @@
 			icon: "success",
 			timer: 3000,
 		}).then(() => {
-			window.location.assign(`${FRONTEND}/room`);
+			goto(`/room`);
 		});
     }
 
@@ -108,7 +107,11 @@
 		textarea = e.target;
 	}
 
-	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
+	$: rows = (value.match(/\n/g) || []).length + 1 || 1;
+
+	onMount(() => {
+		autoscroll = true;
+	});
 
 </script>
 
@@ -122,23 +125,21 @@
 	</div>
 	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
 		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
-		{#if data.user?.username === data.room.owner.username}
-		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
-		<DropdownItem class="flex items-center text-base font-semibold gap-2">
-		<form on:submit|preventDefault={invite}>
-			<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
-			<input class="invite-button" type="submit" value="Invite">
-		</form>
-	</DropdownItem>
+		{#if user.id === room.owner.id}
+			<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
+			<DropdownItem class="flex items-center text-base font-semibold gap-2">
+			<form on:submit|preventDefault={invite}>
+				<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
+				<input class="invite-button" type="submit" value="Invite">
+			</form>
+			</DropdownItem>
 		{/if}
 	</Dropdown>
 
 <div class="messages" bind:this={div}>
-	{#if messages}
 	{#each messages as message}
-		<MessageBox id={room.id} {message}/>
+		<MessageBox {message} />
 	{/each}
-	{/if}
 </div>
 
 <div class="message-input">
@@ -148,8 +149,8 @@
 		bind:this={textarea}
 		on:resize={onResize}
 		on:keypress={handleKeyPress}
-		bind:value={content}
-		class="w-full space-x-4"  placeholder="message..."/>
+		bind:value={value}
+		class="w-full space-x-4" placeholder="message..."/>
 	</div>
 	<div class="send-button"
 		on:click|preventDefault={sendMessage}

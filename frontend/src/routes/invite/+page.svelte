@@ -1,37 +1,14 @@
 <script lang="ts">
-    import type { Invite } from "$lib/types";
-    import { post, remove } from "$lib/Web";
-    import { invalidate } from "$app/navigation";
     import { page } from "$app/stores";
-    import { BACKEND } from "$lib/constants";
-    import {respond } from "$lib/invites";
+    import { respond } from "$lib/invites";
     import {
         Tabs, 
         TabItem
      } from "flowbite-svelte";
 
-    $: invites = {send: $page.data.invites_send, received: $page.data.invites_received};
     $: send = $page.data.invites_send;
     $: received = $page.data.invites_received;
 
-    // async function respond(invite: Invite, action: string) {
-    //     if (invite.type === "ChatRoom" || invite.type === "GameRoom") {
-    //         if (action === "deny") {
-    //             await remove(`/room/id/${invite.room?.id}/invite/${invite.id}`);
-    //         }
-    //         else {
-    //             await post(`/room/id/${invite.room?.id}/members`);
-    //             console.log("did a post here");
-    //         }
-    //     }
-    //     else if (invite.type === "Friend") {
-    //         if (action === "deny")
-    //             await remove(`/user/me/friends/requests/${invite.id}`);
-    //         else
-    //             await post(`/user/me/friends/requests/`, {"id": invite.from.id}); 
-    //     }
-    //     // await invalidate(`${BACKEND}/user/me/invites`); //TODO thanks chen en daan for this stupid function that makes it properly update a component when it's data changes
-    // }
 </script>
 
 <div class="invite_list">

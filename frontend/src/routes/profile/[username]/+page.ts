@@ -156,21 +156,19 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 			//getting friends
 			try {
 				
-				let friendlist = await getFriendList(user.username, drop);
-				//TODO handle the update of friends using the update Packets
-				
+				let friendlist = await getFriendList(user.username, drop);				
 				updateFriends(friendlist);
 				
 				console.log("load return: ", { fetch, user, friendlist, drop, profile });
-				return { fetch, user, friendlist, drop, profile };
+				return { user, friendlist, drop, profile };
 			}
 			catch (err:any) {
 				console.log("error gettting friends: ", err);
 			}
 		}
 		const friendlist = dummy_friends;
-		console.log("load return: ", { fetch, user, friendlist, drop, profile });
-		return { fetch, user, friendlist, drop, profile };
+		console.log("load return: ", { user, friendlist, drop, profile });
+		return { user, friendlist, drop, profile };
 	}
 	catch (err: any) {
 		console.log("error in /profile/[username] load: ", err);

@@ -34,8 +34,8 @@ export type FriendRequest = {
 
 export type Message = {
 	content: string,
-	user: User,
 	member: Member,
+	time: string,
 };
 
 export type Room = {
@@ -48,7 +48,11 @@ export type Room = {
 };
 
 export type Gameroom = Room & {
-	gamemode: Gamemode;
+	gamemode: Gamemode,
+};
+
+export type ChatRoom = Room & {
+	messages: Message[],
 };
 
 export type Invite = {
@@ -82,6 +86,7 @@ export enum Access {
 export enum Gamemode {
 	REGULAR,
 	VR,
+	MODERN
 };
 
 export enum Subject {

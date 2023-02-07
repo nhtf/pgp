@@ -52,11 +52,13 @@ export class RoomGateway extends ProtectedGateway("room") {
 				},
 			},
 		});
-	
+
+		console.log(member);
+
 		if (!member) {
 			throw new WsException("not found");
 		}
-
+		
 		this.server.in(client.room).emit("message", {
 			content,
 			user: {
@@ -65,8 +67,6 @@ export class RoomGateway extends ProtectedGateway("room") {
 				username: member.user.username,
 			},
 		});
-
-		console.log(member);
 
 		const message = new Message;
 	

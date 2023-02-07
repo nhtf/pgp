@@ -1,4 +1,4 @@
-import { Ammo } from "./Ammo";
+import { Ammo } from "./VR/Ammo";
 import * as THREE from "three";
 
 export type VectorObject = string;

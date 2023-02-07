@@ -5,7 +5,7 @@ import {
 	ManyToOne,
 	Column,
 } from "typeorm";
-import { Exclude, instanceToPlain } from "class-transformer";
+import { Exclude, Expose } from "class-transformer";
 import { ChatRoom } from "./ChatRoom";
 import { Member } from "./Member";
 
@@ -15,6 +15,7 @@ export class Message {
 	@PrimaryGeneratedColumn()
 	id: number;
 
+	@Expose()
 	@CreateDateColumn({ type: 'timestamptz' })
 	time: Date;
 

@@ -1,12 +1,13 @@
-import { Get, Inject, UseGuards } from "@nestjs/common";
+import { Body, Get, HttpException, HttpStatus, Inject, Post, Request } from "@nestjs/common";
 import { Repository } from "typeorm";
-import { IRoomService, GenericRoomController, RequiredRole, GetRoom } from "src/services/room.service";
+import { IRoomService, GenericRoomController, RequiredRole, GetRoom, GetMember } from "src/services/room.service";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Member } from "src/entities/Member";
 import { Message } from "src/entities/Message";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { Role } from "src/enums/Role";
 import { UpdateGateway } from "src/gateways/update.gateway";
+import { ParseIDPipe } from "src/util";
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)?") {
 
@@ -26,11 +27,9 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
-	@Get(":id/messages")
+	@Get("id/:id/messages")
 	@RequiredRole(Role.MEMBER)
-	async get_messages(
-		@GetRoom() room: ChatRoom
-	) {
+	async get_messages(@GetRoom() room: ChatRoom) {
 		return this.message_repo.find({
 			relations: {
 				member: {
@@ -44,4 +43,53 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 			},
 		});
 	}
+
+	@Post("id/:id/promote")
+	@RequiredRole(Role.OWNER)
+	async promote(
+		@GetRoom() room: ChatRoom,
+		@GetMember() member: Member,
+		@Body("target", ParseIDPipe(Member)) target: Member)
+	{
+		console.log("self:", member);
+		console.log("target:", target);
+
+		target.role += 1;
+
+		console.log(target.role);
+
+
+		if (target.role === Role.OWNER) {
+			return {};
+			member.role -= 1;
+			await this.member_repo.save(member);
+		}
+
+		await this.member_repo.save(target);
+	
+		return {};
+	}
+
+	@Post("id/:id/demote")
+	@RequiredRole(Role.OWNER)
+	async demote(
+		@Request() req: any,
+		@GetRoom() room: ChatRoom,
+		@GetMember() member: Member,
+		@Body("target", ParseIDPipe(Member)) target: Member)
+	{
+		console.log(req);
+		console.log("target:", target);
+
+		if (target.role === 0) {
+			throw new HttpException("Cannot demote members", HttpStatus.BAD_REQUEST);
+		}
+	
+		target.role -= 1;
+	
+		await this.member_repo.save(target);
+	
+		return {};
+	}
+
 }

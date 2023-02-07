@@ -16,8 +16,11 @@ export async function respond(invite: Invite, action: string) {
         }
     }
     else if (invite.type === "Friend") {
-        if (action === "deny")
+        //TODO friend request doesn't work anymore need to fix this
+        if (action === "deny") {
+            console.log("trying to remove a friend request from here: ", invite.id);
             await remove(`/user/me/friends/requests/${invite.id}`);
+        }
         else
             await post(`/user/me/friends/requests/`, {"id": invite.from.id}); 
     }

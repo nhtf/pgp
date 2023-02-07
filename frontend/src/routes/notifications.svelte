@@ -3,6 +3,9 @@
     import type { Invite } from "$lib/types";
     import {page} from "$app/stores";
     import { respond } from '$lib/invites';
+    import { BACKEND } from "$lib/constants";
+    import { invalidate } from "$app/navigation";
+    import {onInterval} from "$lib/interval";
 
     $: notifications = $page.data.invites_received as Invite[];
     $: length = $page.data.invites_received.length;
@@ -16,27 +19,30 @@
         const notif = notifications[index];
         respond(notif, "accept");
     }
-  </script>
 
-  {@debug length}
+    async function checkUpdate() {
+        await invalidate(`${BACKEND}/user/me/invites`);//TODO thanks chen en daan for this stupid function that makes it properly update a component when it's data changes
+    }
+
+    //TODO check if this causes the issue that sometimes if you click on a link it doesn;t work, doubt that this is it
+    onInterval(checkUpdate, 1000);
+    
+  </script>
   
-  <!-- //TODO get the bell to only show up when there is a notification (and still make it update) -->
-  <!-- {#if notifications.length > 0} -->
+  {#key length}
+  {#if notifications.length > 0}
   <div id="bell" 
   class="bell">
     <svg class="bell-icon" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
         <path d="M10 2a6 6 0 00-6 6v3.586l-.707.707A1 1 0 004 14h12a1 1 0 00.707-1.707L16 11.586V8a6 6 0 00-6-6zM10 18a3 3 0 01-3-3h6a3 3 0 01-3 3z"></path>
     </svg>
     <div class="flex relative">
-        <!-- {#if notifications.length > 0} -->
-        {#key length}
-      <div class="new-notifications">{length}</div>
-      {/key}
-      <!-- {/if} -->
+        <!-- //TODO maybe have the red circle dissapear if you have seen the notif and only show up when there are new notifs -->
+        <div class="new-notifications"></div>
     </div>
   </div>
   <Dropdown triggeredBy="#bell" class="w-full max-w-sm rounded divide-y bor-c shadow bg-c bor-c"
-    frameClass="bor-c"
+    frameClass="bor-c shadow divide-y w-full max-w-sm"
     placement="bottom">
     <div slot="header" class="text-center py-2 font-bold text-center ">Notifications</div>
     {#each notifications as {from, type}, index}
@@ -67,7 +73,8 @@
       </div>
     </a>
   </Dropdown>
-  <!-- {/if} -->
+  {/if}
+  {/key}
 
   <style>
     .bell {

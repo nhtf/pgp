@@ -1,22 +1,22 @@
-<script src="sweetalert2.min.js" lang="ts">
-    import { BACKEND, FRONTEND } from '$lib/constants';
-	import { unwrap } from "$lib/Alert";
+<script lang="ts">
 	import { put } from "$lib/Web";
-	import Swal from 'sweetalert2';
+    import { goto } from '$app/navigation';
 	let username = '';
 
 	async function set_username() {
 		try {
 			await put('/user/me/username', { username: username }, true);
-			window.location.assign(`/profile/${username}`);
+		
+			goto(`/profile/${username}`);
 		} catch (err) {
 			console.error(err);
 		}
 	}
 
 	async function key_event(event: KeyboardEvent) {
-		if (event.key == "Enter")
+		if (event.key == "Enter") {
 			set_username();
+		}
 	}
 </script>
 

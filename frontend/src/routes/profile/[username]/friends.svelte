@@ -9,9 +9,6 @@
     import type {simpleuser} from "./+page";
     import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
 
-
-    //TODO update avatars of users
-    //TODO handle update of the users
     let score = new Map();
     const friend_icon = "/Assets/icons/add-friend.png";
     let showFriendWindow = false;

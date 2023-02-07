@@ -5,8 +5,6 @@ import { Access } from "../enums/Access";
 import { Role } from "../enums/Role";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
-import { HttpException, HttpStatus } from "@nestjs/common";
-import { BACKEND_ADDRESS } from "src/vars";
 import { UpdateGateway, UpdatePacket } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";

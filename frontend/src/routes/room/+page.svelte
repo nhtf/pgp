@@ -1,31 +1,67 @@
 <script lang="ts">
-    import ChatroomDrawer from "./ChatroomDrawer.svelte";
+    import { goto } from "$app/navigation";
+    import { unwrap } from "$lib/Alert";
+    import { Access, type ChatRoom } from "$lib/types";
+    import { post } from "$lib/Web";
+    import Swal from "sweetalert2";
+    import type { PageData } from "./$types";
+    import ChatRoomBox from "./ChatRoomBox.svelte";
+    import ChatroomDrawer from "./[room]/ChatroomDrawer.svelte";
+
+	export let data: PageData;
+
+    const joined = data.roomsJoined;
+    const joinable = data.roomsJoinable;
+
+    function enter(room: ChatRoom) {
+        goto(`/room/${room.id}`);
+    }
+
+    async function join(room: ChatRoom) {
+        console.log("room: ",room);
+        if (room.access == Access.PROTECTED) {
+            const { value: password, isDismissed } = await Swal.fire({
+                text: "password",
+                input: "password",
+                inputPlaceholder: "password...",
+            });
+
+            if (isDismissed) {
+                return ;
+            }
+
+            await unwrap(post(`/room/id/${room.id}/members`, { password }));
+        } else {
+            await unwrap(post(`/room/id/${room.id}/members`));
+        }
+
+        Swal.fire({
+            icon: "success",
+            text: "Joined room",
+        });
+    
+        goto(`/room/${room.id}`).catch((err) => console.log(err));
+    }
+
 </script>
 
-<div class="drawer">
 <ChatroomDrawer/>
-<div class="title"><h1>Chat Rooms</h1></div>
+<div class="room_list">
+	<h1>Joined</h1>
+	{#each joined as room}
+		<ChatRoomBox {room} click={enter} joined={true}/>
+	{/each}
+	<h1>Joinable</h1>
+	{#each joinable as room}
+		<ChatRoomBox {room} click={join} joined={false}/>
+	{/each}
 </div>
 
 <style>
-    .drawer {
-        display: flex;
-        flex-direction: row;
-        position: relative;
-        align-items: center;
-        top: 0.5rem;
-        background-color: var(--box-color);
-        width: 100vw;
-        border-radius: 6px;
-        box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-    }
-
-    .title {
-        margin: 0 auto;
-    }
-
-    h1 {
-        font-size: 1.5rem;
-        padding: 3px;
-    }
+	.room_list {
+		display: flex;
+		flex-direction: column;
+		gap: 1em;
+		margin: 1em;
+	}
 </style>

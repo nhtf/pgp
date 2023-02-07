@@ -18,6 +18,7 @@
 
 		room.name = name;
 		room.is_private = is_private;
+		//TODO have a gamemode for modern in backend
 		room.gamemode = gamemode;
 
 		if (!is_private && password.length > 0) {
@@ -57,6 +58,7 @@
 			<select class="select" bind:value={gamemode}>
 				<option value={Gamemode.REGULAR}>Classic</option>
 				<option value={Gamemode.VR}>Vr</option>
+				<option value={Gamemode.MODERN}>Modern</option>
 			</select><br>
 			<input class="input" placeholder="Room password" bind:value={password} disabled={is_private}>
 			<input class="input" type="checkbox" bind:checked={is_private}>
@@ -72,12 +74,12 @@
 					&#x1F97D;
 				{/if}
 			</span>
-			{#if room.owner?.id === data.user.id}
+			{#if room.owner?.id === data.user?.id}
 				<input class="input" placeholder="Username" bind:value={room.data_username}>
 				<button class="button button-invite" on:click={() => inviteUser(room)}>Invite</button>
 			{/if}
 			<a class="button button-enter" href=/game/{room.id}>Enter</a>
-			{#if room.owner?.id === data.user.id}
+			{#if room.owner?.id === data.user?.id}
 				<button class="button button-delete" on:click={() => deleteGame(room)}>Delete</button>
 			{:else}
 				<button class="button button-leave" on:click={() => leaveGame(room)}>Leave</button>

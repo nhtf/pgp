@@ -10,7 +10,6 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 
 @Entity()
 export class Member {
-	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 

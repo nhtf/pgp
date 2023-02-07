@@ -1,127 +1,150 @@
 <script lang="ts">
-  import "../app.postcss";
-  import { onMount } from "svelte";
-  import type { LayoutData } from "./$types";
-  import { logout } from "./layout_log_functions";
-  import { page } from "$app/stores";
-  import Notifications from "./notifications.svelte";
-  import { io } from "socket.io-client";
-  import { BACKEND_ADDRESS, BACKEND } from "$lib/constants";
-  import {
-    Dropdown,
-    DropdownItem,
-    Avatar,
-    DropdownHeader,
-    Navbar,
-    NavBrand,
-    NavHamburger,
-    NavLi,
-    NavUl,
-  } from "flowbite-svelte";
+	import "../app.postcss";
+	import { onMount } from "svelte";
+	import type { LayoutData } from "./$types";
+	import { logout } from "./layout_log_functions";
+	import { page } from "$app/stores";
+	import Notifications from "./notifications.svelte";
+	import { BACKEND } from "$lib/constants";
+	import {
+		Dropdown,
+		DropdownItem,
+		Avatar,
+		DropdownHeader,
+		Navbar,
+		NavBrand,
+		NavHamburger,
+		NavLi,
+		NavUl,
+		Toggle,
+	} from "flowbite-svelte";
+	import { goto } from "$app/navigation";
 
-  export let data: LayoutData;
+	export let data: LayoutData;
 
-  const user = data.user;
+	const user = data.user;
 
-  let currentTheme: string;
-  const THEMES = {
-    DARK: "dark",
-    LIGHT: "light",
-  };
+	let currentTheme: string;
+	const THEMES = {
+		DARK: "dark",
+		LIGHT: "light",
+	};
 
-  const STORAGE_KEY = "theme";
-  const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
-  const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
+	const STORAGE_KEY = "theme";
+	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
+	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
 
-  const toggleTheme = () => {
-    const stored = localStorage.getItem(STORAGE_KEY);
-    if (stored) {
-      localStorage.removeItem(STORAGE_KEY);
-    } else {
-      localStorage.setItem(
-        STORAGE_KEY,
-        prefersDarkThemes() ? THEMES.LIGHT : THEMES.DARK
-      );
-    }
-    applyTheme();
-  };
+	const toggleTheme = () => {
+		const stored = localStorage.getItem(STORAGE_KEY);
+		if (stored) {
+			localStorage.removeItem(STORAGE_KEY);
+		} else {
+			localStorage.setItem(
+				STORAGE_KEY,
+				prefersDarkThemes() ? THEMES.LIGHT : THEMES.DARK
+			);
+		}
+		applyTheme();
+	};
 
-  async function logoutfn() {
-    let res = await logout();
-    if (res) {
-      if (data.user)
-        data.user = null; // CHECK
-      window.location.assign(`/`);
-    }
-  }
+	async function logoutfn() {
+		let res = await logout();
 
-  const applyTheme = () => {
-    const preferredTheme = prefersDarkThemes() ? THEMES.DARK : THEMES.LIGHT;
-    currentTheme = localStorage.getItem(STORAGE_KEY) ?? preferredTheme;
+		if (res) {
+			if (data.user) {
+				data.user = null; // CHECK
+			}
+			goto(`/`);
+		}
+	}
 
-    if (currentTheme === THEMES.DARK) {
-      document.body.classList.remove(THEMES.LIGHT);
-      document.body.classList.add(THEMES.DARK);
-    } else {
-      document.body.classList.remove(THEMES.DARK);
-      document.body.classList.add(THEMES.LIGHT);
-    }
-  };
+	const applyTheme = () => {
+		const preferredTheme = prefersDarkThemes() ? THEMES.DARK : THEMES.LIGHT;
+		currentTheme = localStorage.getItem(STORAGE_KEY) ?? preferredTheme;
 
-  onMount(() => {
-    window.fetch = data.fetch;
-    applyTheme();
-    window.matchMedia(DARK_PREFERENCE).addEventListener("change", applyTheme);
-  });
+		if (currentTheme === THEMES.DARK) {
+			document.body.classList.remove(THEMES.LIGHT);
+			document.body.classList.add(THEMES.DARK);
+		} else {
+			document.body.classList.remove(THEMES.DARK);
+			document.body.classList.add(THEMES.LIGHT);
+		}
+	};
 
-  
-  const links = [
-    { url: "/room", name: "Chat Rooms" },
-    { url: "/game", name: "Game Rooms" },
-    { url: "/leaderboard", name: "Leaderboard" },
-    { url: "/invite", name: "Invites" },
-  ];
+	onMount(() => {
+		applyTheme();
+		window
+			.matchMedia(DARK_PREFERENCE)
+			.addEventListener("change", applyTheme);
+	});
+
+	const links = [
+		{ url: "/room", name: "Chat Rooms" },
+		{ url: "/game", name: "Game Rooms" },
+		{ url: "/leaderboard", name: "Leaderboard" },
+		{ url: "/invite", name: "Invites" },
+	];
 </script>
 
 <Navbar let:hidden let:toggle rounded color="none" class="navbar-bg">
-  <NavBrand href="/">
-    <img src="/favicon.png" class="mr-3 h-6 sm:h-9" alt="pgp logo" />
-    <span class="self-center whitespace-nowrap text-xl font-semibold dark:text-white">PGP</span>
-  </NavBrand>
-  <div class="flex items-center md:order-2">
-    <NavHamburger
-      on:click={toggle}
-      class1="w-full md:flex md:w-auto md:order-1"
-    />
-    {#if user?.username}
-    <Avatar id="avatar-menu" src={data.user?.avatar} />
-    <Notifications/>
-    {/if}
-  </div>
-  {#if user?.username}
-    <Dropdown triggeredBy="#avatar-menu" placement="bottom" class="bg-c bor-c">
-      <DropdownHeader>
-        <span class="block text-sm"> {data.user?.username} </span>
-      </DropdownHeader>
-      <DropdownItem href="/profile/{data.user?.username}">profile</DropdownItem>
-      <DropdownItem href="/settings">settings</DropdownItem>
-      <DropdownItem on:click={toggleTheme}>{currentTheme}</DropdownItem>
-      <DropdownItem on:click={logoutfn}>Sign out</DropdownItem>
-    </Dropdown>
-  {/if}
-  <NavUl {hidden} class="navbar-bg">
-    <NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
-    {#each links as { url, name }}
-      <NavLi href={url} active={$page.url.pathname.includes(url)}>{name}</NavLi>
-    {/each}
-    {#if !user?.username}
-      <NavLi href={`${BACKEND}/oauth/login`} activeClass="login-button" nonActiveClass="login-button">login</NavLi>
-    {/if}
-  </NavUl>
+	<NavBrand href="/">
+		<img src="/favicon.png" class="mr-3 h-6 sm:h-9" alt="pgp logo" />
+		<span
+			class="self-center whitespace-nowrap text-xl font-semibold dark:text-white"
+			>PGP</span
+		>
+	</NavBrand>
+	<div class="flex items-center md:order-2">
+		<NavHamburger
+			on:click={toggle}
+			class1="w-full md:flex md:w-auto md:order-1"
+		/>
+		{#if user?.username}
+			<Avatar id="avatar-menu" src={data.user?.avatar} />
+			<Notifications />
+		{/if}
+	</div>
+	{#if user?.username}
+		<Dropdown
+			triggeredBy="#avatar-menu"
+			placement="bottom"
+			class="bg-c bor-c"
+		>
+			<DropdownHeader>
+				<span class="block text-sm"> {data.user?.username} </span>
+			</DropdownHeader>
+			<DropdownItem href="/profile/{data.user?.username}"
+				>profile</DropdownItem
+			>
+			<DropdownItem href="/settings">settings</DropdownItem>
+			<DropdownItem
+				><Toggle
+					size="small"
+					checked={currentTheme === THEMES.DARK}
+					on:change={toggleTheme}>dark</Toggle
+				></DropdownItem
+			>
+			<DropdownItem on:click={logoutfn}>Sign out</DropdownItem>
+		</Dropdown>
+	{/if}
+	<NavUl {hidden} class="navbar-bg">
+		<NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
+		{#each links as { url, name }}
+			<NavLi href={url} active={$page.url.pathname.includes(url)}
+				>{name}</NavLi
+			>
+		{/each}
+		{#if !user?.username}
+			<NavLi
+				href={`${BACKEND}/oauth/login`}
+				activeClass="login-button"
+				nonActiveClass="login-button">login</NavLi
+			>
+		{/if}
+	</NavUl>
 </Navbar>
 
 <slot />
 
 <style>
-
 </style>

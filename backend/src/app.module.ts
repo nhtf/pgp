@@ -22,7 +22,7 @@ import { User} from "./entities/User";
 import { GameController } from "./controllers/game.controller";
 import { SessionService } from "src/services/session.service";
 import * as Pool from "pg-pool";
-import { SessionExpiryMiddlware } from "./middleware/session.expire.middleware";
+import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";
 import { SetupGuard } from "src/guards/setup.guard";
 import { Room } from "./entities/Room";
 import { getRoomService } from "./services/room.service";
@@ -175,7 +175,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 })
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(SessionExpiryMiddlware).exclude(
+		consumer.apply(SessionExpiryMiddleware).exclude(
 			{ path: "debug(.*)", method: RequestMethod.ALL 
 		}).forRoutes("*");
 		consumer.apply(UserMiddleware).exclude(

@@ -3,20 +3,16 @@ import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions, Not, In, ArrayContains } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
-import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, ParseBoolPipe, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
 import { Role } from "../enums/Role";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
-import { Observable } from "rxjs";
 import { RoomInvite } from "../entities/RoomInvite";
-import { Subject } from "src/enums/Subject";
-import { Action } from "src/enums/Action";
-import { instanceToPlain } from "class-transformer";
 import * as argon2 from "argon2";
 
 export class CreateRoomDTO {
@@ -210,10 +206,24 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		}
 
 		@Get("")
-		async get_visible(@Me() user: User, @Query("member") member?: string) {
+		async get_visible(@Me() user: User, @Query("member", ParseBoolPipe) member?: boolean) {
 			let rooms: T[];
 
-			if (member === "true") {
+			if (member === undefined) {
+				return await this.room_repo.find({
+					relations: {
+						members: {
+							user: true,
+						},
+					} as FindOptionsRelations<T>,
+					where: [
+						{ members: { user: { id: user.id } } },
+						{ is_private: false }
+					] as FindOptionsWhere<T>[],
+				});
+			}
+		
+			if (member) {
 				//TODO fix this
 				rooms = await this.room_repo.createQueryBuilder("room")
 					    .where((qb) => {
@@ -225,13 +235,13 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 							.where("\"roomId\" = \"room\".\"id\"")
 							.andWhere("\"userId\" = :user_id")
 							.getQuery();
-						return "EXISTS (" + subQuery + ")";
+							return "EXISTS (" + subQuery + ")";
 					    })
 						.leftJoinAndSelect("room.members", "member")
 						.leftJoinAndSelect("member.user", "user")
 					    .setParameter("user_id", user.id)
 					    .getMany();
-			} else if (member === "false") {
+			} else {
 				//TODO also list private rooms for which you have an invite?
 				rooms = await this.room_repo.createQueryBuilder("room")
 					    .where("\"room\".\"is_private\" = false")
@@ -244,25 +254,13 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 							.where("\"roomId\" = \"room\".\"id\"")
 							.andWhere("\"userId\" = :user_id")
 							.getQuery();
-						return "NOT EXISTS (" + subQuery + ")";
+							return "NOT EXISTS (" + subQuery + ")";
 					    })
 						.leftJoinAndSelect("room.members", "member")
 						.leftJoinAndSelect("member.user", "user")
 					    .setParameter("user_id", user.id)
 					    .getMany();
-			}  else {
-				rooms = await this.room_repo.find({
-					relations: {
-						members: {
-							user: true,
-						},
-					} as FindOptionsRelations<T>,
-					where: [
-						{ members: { user: { id: user.id } } },
-						{ is_private: false }
-					] as FindOptionsWhere<T>[],
-				});
-			} 
+			}
 
 			return rooms;
 		}
@@ -284,10 +282,12 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		async create_room(@Me() user: User, @Body() dto: C) {
 			const name = dto.name.trim();
 			const room = await this.service.create(name, dto.is_private, dto.password);
+
 			await this.service.add_member(room, user, Role.OWNER);
 			await this.setup_room(room, dto);
 			await this.room_repo.save(room);//TODO only save one time
-			return {};
+		
+			return room;
 		}
 
 		async setup_room(room: T, dto: C) {
@@ -298,6 +298,12 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@RequiredRole(Role.MEMBER)
 		async get_room(@GetRoom() room: T) {
 			return room;
+		}
+
+		@Get("id/:id/role")
+		@RequiredRole(Role.MEMBER)
+		async role(@Me() me: User, @GetRoom() room: T) {
+			return room.members.find((member) => member.user.id === me.id).role;
 		}
 
 		@Post("id/:id/member(s)?")
@@ -330,9 +336,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 
 		@Get("id/:id/member(s)?")
 		@RequiredRole(Role.MEMBER)
-		async list_members(
-			@GetRoom() room: T
-		) {
+		async list_members(@GetRoom() room: T) {
 			return this.member_repo.find({
 				relations: {
 					user: true,
@@ -461,6 +465,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 					throw new HttpException("Insufficient permissions", HttpStatus.FORBIDDEN);
 			}
 			await this.invite_repo.remove(invite);
+		
 			return {};
 			//TODO check if invite is properly removed from Room as well
 		}

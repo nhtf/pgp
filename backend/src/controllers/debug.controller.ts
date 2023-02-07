@@ -26,9 +26,9 @@ import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
 import { Role } from "src/enums/Role";
-import { InjectRepository } from "@nestjs/typeorm";
 
 import { HttpAuthGuard } from "src/auth/auth.guard";
+import { Message } from "src/entities/Message";
 
 class UserDTO {
 	@IsString()
@@ -66,6 +66,8 @@ export class DebugController {
 		private readonly memberRepo: Repository<Member>,
 		@Inject("INVITE_REPO")
 		private readonly inviteRepo: Repository<Invite>,
+		@Inject("MESSAGE_REPO")
+		private readonly messageRepo: Repository<Message>,
 	) {}
 
 	@Get("useradd")
@@ -198,5 +200,14 @@ export class DebugController {
 	@UseGuards(HttpAuthGuard)
 	async test() {
 		return "Test";
+	}
+
+	@Get("messages")
+	async messages() {
+		const messages = await this.messageRepo.find();
+
+		console.log(messages);
+	
+		return messages;
 	}
 }
