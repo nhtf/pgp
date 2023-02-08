@@ -19,7 +19,7 @@ export type User = {
 	auth_req?: number,
 	username: string,
 	avatar: string,
-	status: string,
+	status: Status,
 	in_game: boolean,
 	achievements?: Achievement[],
 	invites?: any[],
@@ -35,7 +35,7 @@ export type FriendRequest = {
 export type Message = {
 	content: string,
 	member: Member,
-	time: string,
+	created: string,
 };
 
 export type Room = {
@@ -98,10 +98,17 @@ export enum Subject {
 	AVATAR,
 	ROOM,
 	MEMBER,
+	USERNAME,
 }
 
 export enum Action {
 	SET,
 	ADD,
 	REMOVE,
+}
+
+export enum Status {
+	OFFLINE,
+	IDLE,
+	ACTIVE,
 }

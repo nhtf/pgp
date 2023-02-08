@@ -116,7 +116,7 @@ export class AuthController {
 	) {
 		const access_token = await this.get_access_token(token.code);
 
-		if (!(await this.session_utils.regenerate_session(request.session)))
+		if (!(await this.session_utils.regenerate_session_req(request)))
 			throw new HttpException(
 				"failed to create session",
 				HttpStatus.SERVICE_UNAVAILABLE,

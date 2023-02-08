@@ -55,7 +55,6 @@
 			security_visible = !security_visible;
 			profile_visible = false;
 		}
-		console.log(profile_visible, security_visible);
 	}
 	let profile_visible = false;
 	let security_visible = false;

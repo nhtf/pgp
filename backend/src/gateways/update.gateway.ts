@@ -1,17 +1,14 @@
-import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import { Inject, UseGuards, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
-import type { Server, Socket } from "socket.io";
+import { Inject, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
+import type { Socket } from "socket.io";
 import type { User } from "../entities/User";
 import { Repository } from "typeorm"
 import { instanceToPlain } from "class-transformer";
-import { FRONTEND_ADDRESS } from "../vars";
 import type { SessionObject } from "src/services/session.service";
 import { Status } from "src/enums/Status";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
-import { IDLE_TIME, OFFLINE_TIME, PURGE_INTERVAL } from "../vars";
+import { PURGE_INTERVAL } from "../vars";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
-import { InjectRepository } from "@nestjs/typeorm";
 import { get_status } from "./get_status";
 
 export interface UpdatePacket {
@@ -110,25 +107,25 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 	async send_update(packet: UpdatePacket, ...receivers: User[] | number[]) {
 		if (receivers === undefined || receivers === null || receivers.length === 0) {
-			await this.server.emit("update", packet);
+			this.server.emit("update", packet);
 		} else {
 			for (const receiver of receivers) {
 				if (receiver === undefined || receiver === null)
 					continue;
 				const id = typeof receiver === "number" ? receiver : receiver.id;
-				await this.sockets.get(id)?.forEach(socket => socket.emit("update", packet));
+				this.sockets.get(id)?.forEach(socket => socket.emit("update", packet));
 			}
 		}
 	}
 
 	async update_user(user: User) {
-		await this.server.serverSideEmit("update", instanceToPlain(user));
+		this.server.serverSideEmit("update", instanceToPlain(user));
 	}
 
 	async update_user_partial(id: number, changes: Partial<User>, to?: User | number) {
 		if (to === undefined) {
 			changes.id = id;
-			await this.server.emit("update", changes);
+			this.server.emit("update", changes);
 		} else {
 			const to_id = typeof to === "number" ? to : to.id;
 			console.log(changes);

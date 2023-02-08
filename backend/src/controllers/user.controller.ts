@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata } from "@nestjs/common";
+import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express, Response} from "express";
 import { User } from "../entities/User";
@@ -71,12 +71,14 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 
 			if (await this.user_repo.findOneBy({ username: dto.username }))
-				throw new HttpException("username taken", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("Username taken");
 			user.username = dto.username;
-			return this.user_repo.save(user);
+			await this.user_repo.save(user);
+			await this.update_serivce.send_update({ subject: Subject.USERNAME, identifier: user.id, action: Action.SET, value: user.username});
+			return user;
 		}
 
 		@Get(options.cparam + "/avatar")
@@ -104,7 +106,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 
 			let new_base;
 			do {
@@ -158,7 +160,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 			return { auth_req: user.auth_req };
 		}
 
@@ -170,7 +172,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 			return this.user_repo.findBy({ friends: { id: user.id } });
 		}
 
@@ -184,12 +186,12 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 
 			const user_friends = await user.friends;
 			const friend_idx = user_friends?.findIndex((x: User) => x.id === friend.id);
 			if (!friend_idx || friend_idx < 0)
-				throw new HttpException("not found", HttpStatus.NOT_FOUND);
+				throw new NotFoundException();
 
 			const friend_friends = await friend.friends;
 			const user_idx = friend_friends.findIndex((x: User) => x.id === user.id);
@@ -207,7 +209,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 			return this.request_repo.find({
 				relations: {
 					from: true,
@@ -229,17 +231,17 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 
 			if (user.id === target.id)
-				throw new HttpException("cannot befriend yourself", HttpStatus.UNPROCESSABLE_ENTITY);
+				throw new UnprocessableEntityException("Cannot befriend yourself");
 
 			const user_friends = await user.friends;
 			if (user_friends?.find(friend => friend.id === target.id))
-				throw new HttpException("already friends", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("Already friends");
 
 			if (await this.request_repo.findOneBy({ from: { id: user.id }, to: { id: target.id } }))
-				throw new HttpException("already sent request", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("Already sent request");
 
 			const request = await this.request_repo.findOneBy({ from: { id: target.id }, to: { id: user.id } });
 			if (request) {
@@ -263,17 +265,14 @@ export function GenericUserController(route: string, options: { param: string, c
 		async delete_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Param("request_id", ParseIDPipe(FriendRequest)) request: FriendRequest
+			@Param("request_id", ParseIDPipe(FriendRequest, { from: true, to: true })) request: FriendRequest
 		) {
 			user = user || me;
 			if (user.id !== me.id)
-				throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException();
 			if (user.id !== (await request.from).id && user.id !== (await request.to).id)
-				throw new HttpException("not found", HttpStatus.NOT_FOUND);
-			const serialized_request = instanceToPlain(request);
+				throw new NotFoundException();
 			await this.request_repo.remove(request);
-			await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: request.from.id, action: Action.REMOVE, value: serialized_request }, request.from);
-			await this.update_serivce.send_update({ subject: Subject.REQUESTS, identifier: request.to.id, action: Action.REMOVE, value: serialized_request }, request.to);
 		}
 
 		@Get(`${options.cparam}/invites`)
@@ -299,6 +298,6 @@ class NullPipe implements PipeTransform {
 	}
 }
 
-export class UserMeController extends GenericUserController("user/", { param: "me", cparam: "me", pipe: NullPipe }) {}
-export class UserIDController extends GenericUserController("user/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User) }) {}
-export class UserUsernameController extends GenericUserController("user/", { param: "username", cparam: ":username", pipe: ParseUsernamePipe }) {}
+export class UserMeController extends GenericUserController("user(s)?/", { param: "me", cparam: "me", pipe: NullPipe }) {}
+export class UserIDController extends GenericUserController("user(s)?/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User) }) {}
+export class UserUsernameController extends GenericUserController("user(s)?/", { param: "username", cparam: ":username", pipe: ParseUsernamePipe }) {}

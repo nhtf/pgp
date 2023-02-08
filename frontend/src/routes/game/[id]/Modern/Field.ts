@@ -59,9 +59,10 @@ export class Field {
     private drawStars(context: CanvasRenderingContext2D) {
         context.save();
         context.fillStyle = 'white';
+        const out = 8 * border;
         this.star_arr.forEach((element) => {
             context.globalAlpha = element.a;
-            if (element.x > -this.width / 4 && element.x < this.width * 1.25 && element.y > -this.height / 4 && element.y < this.height * 1.25)
+            if (element.x > -out && element.x < this.width + out && element.y > -out && element.y < this.height + out)
                 context.fillRect(element.x, element.y, element.size, element.size);
         });
         context.restore();
@@ -69,9 +70,18 @@ export class Field {
 
     private drawHexagon(x: number, y: number, context: CanvasRenderingContext2D) {
         context.beginPath();
-        for (var i = 0; i < 6; i++) {
-            if (x + this.r * Math.cos(a * i) < this.width * 1.25 + 0.5 * this.r)
-                context.lineTo(x + this.r * Math.cos(a * i), y + this.r * Math.sin(a * i));
+        for (var i = 0; i < 4; i++) {
+            let toX = x + this.r * Math.cos(a * i);
+            let toY = y + this.r * Math.sin(a * i);
+            if (toX > this.width + 8 * border)
+                toX = this.width + 8 * border;
+            if (toY > this.height + 8 * border)
+                toY = this.height + 8 * border;
+            if (toY < -8 * border)
+                toY = -8 * border;
+            if (toX < -8 * border)
+                toX = -8 * border;
+            context.lineTo(toX, toY);
         }
         context.stroke();
     }
@@ -80,10 +90,11 @@ export class Field {
         context.strokeStyle = color_grid;
         context.lineWidth = lineWidthHex;
         context.lineCap = 'round';
-        for (let y = -this.height / 4 - this.r; y + this.r * Math.sin(a) < this.height * 1.25 + this.r; y += this.r * Math.sin(a)) {
-            for (let x = -this.width / 4 + this.r, 
+        const out = 8 * border;
+        for (let y = -out; y < this.height + out; y += this.r * Math.sin(a)) {
+            for (let x = -out, 
                 j = 0; 
-                x - .5 * this.r < this.width * 1.25 + this.r; 
+                x < this.width + 2.5 * this.r; 
                 x += this.r * (1 + Math.cos(a)), 
                 y += (-1) ** j++ * this.r * Math.sin(a)) {
                 this.drawHexagon(x, y, context);

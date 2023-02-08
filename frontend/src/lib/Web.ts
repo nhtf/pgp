@@ -33,6 +33,17 @@ export async function post(pathname: string, body?: any) {
 	});
 }
 
+export async function patch(pathname: string, body?: any) {
+	return await json(`${BACKEND}${pathname}`, {
+		credentials: "include",
+		method: "PATCH",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: body ? JSON.stringify(body) : undefined,
+	});
+}
+
 export async function put(pathname: string, body: any, stringify: boolean) {
 	if (stringify) {
 		return await json(`${BACKEND}${pathname}`, {
@@ -54,9 +65,13 @@ export async function put(pathname: string, body: any, stringify: boolean) {
 	
 }
 
-export async function remove(pathname: string) {
+export async function remove(pathname: string, body?: any) {
 	return await json(`${BACKEND}${pathname}`, {
 		credentials: "include",
 		method: "DELETE",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(body),
 	});
 }

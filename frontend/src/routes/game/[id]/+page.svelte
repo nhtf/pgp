@@ -12,8 +12,8 @@
 	<VrGame />
 {:else if data.room.gamemode === Gamemode.REGULAR}
 <!-- For testing Moderngame because backend doesn't allow more modes -->
-	<ModernGame />
-	<!-- <ClassicGame /> -->
+	<!-- <ModernGame /> -->
+	<ClassicGame />
 {:else}
 	<ModernGame />
 {/if}

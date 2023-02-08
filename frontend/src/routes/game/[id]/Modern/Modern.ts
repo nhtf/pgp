@@ -5,7 +5,7 @@ import {Vector} from "./Math";
 import type { VectorObject } from "./Math";
 import type { PaddleObject } from "./Paddle";
 import { Paddle } from "./Paddle";
-import { WIDTH, HEIGHT, UPS, border } from "./Constants";
+import { WIDTH, HEIGHT, UPS, border, paddleHeight, linethickness, paddleWidth } from "./Constants";
 import { Ball } from "./Ball";
 import type { BallObject } from "./Ball";
 import { Field } from "./Field";
@@ -47,7 +47,20 @@ export class Game extends Net {
 			if (paddle !== null) {
 				paddle.userID = event.userID;
 				paddle.position.y = event.mouse.y;
+				paddle.position.x = event.mouse.x;
+				if (paddle.position.y > HEIGHT - paddleHeight / 2 - border)
+					paddle.position.y = HEIGHT - paddleHeight / 2 - border;
+				if (paddle.position.y < paddleHeight / 2 + border + linethickness)
+					paddle.position.y = paddleHeight / 2 + border + linethickness;
+				if (paddle.position.x < paddleWidth / 2 + border + linethickness)
+					paddle.position.x = paddleWidth / 2 + border + linethickness;
+				if (paddle.position.x > WIDTH - paddleWidth / 2 - border - linethickness)
+					paddle.position.x = WIDTH - paddleWidth / 2 - border - linethickness;
 			}
+			if (this.paddles[0].position.x > WIDTH / 2 - paddleWidth / 2 - linethickness)
+				this.paddles[0].position.x = WIDTH / 2 - paddleWidth / 2 - linethickness;
+			if (this.paddles[1].position.x < WIDTH / 2 + paddleWidth / 2 + linethickness)
+				this.paddles[1].position.x = WIDTH / 2 + paddleWidth / 2 + linethickness;
 		});
 	}
 
@@ -82,17 +95,24 @@ export class Game extends Net {
 		this.paddles.forEach(paddle => paddle.render(context));
 	}
 
-	//TODO check for goal collision for points and make the angle thing work here too + cleanup
+	//TODO send to the backend for score update
+	//TODO check for goal collision for points + cleanup
+	//TODO better collission detection with paddle (also if for 4 players paddle will be rotated) intersect or something
 	public lateTick() {
+		this.ball.previousPos.x = this.ball.position.x;
+		this.ball.previousPos.y = this.ball.position.y;
 		this.ball.position.x += this.ball.velocity.x;
 		this.ball.position.y += this.ball.velocity.y;
 
-
-		//Collision with paddle //TODO add the angle part from the classic thing here
 		for (let i = 0; i < players; i+=1) {
 			if ((Math.abs(this.ball.position.x - this.paddles[i].position.x) <= this.paddles[i].width) &&
 				(Math.abs(this.ball.position.y - this.paddles[i].position.y) <= this.paddles[i].height / 2)) {
-				this.ball.velocity.x = -this.ball.velocity.x;
+				const angle = (this.ball.position.y - this.paddles[0].position.y) / this.paddles[0].height * Math.PI * 0.75;
+				let speed = Math.sqrt(Math.pow(this.ball.velocity.x, 2) + Math.pow(this.ball.velocity.y, 2)) * 1.1;
+				if (speed > 5.75)
+					speed = 5.75; //TODO check if this speed is nice as max
+				this.ball.velocity.x = Math.cos(angle) * speed;
+				this.ball.velocity.y = Math.sin(angle) * speed;
 			}
 		}
 		
@@ -162,20 +182,23 @@ export class Modern {
 		const yOffset = Math.floor((this.canvas.height - HEIGHT * minScale) / 2);
 		
 		this.context.fillStyle = "black";
-		const posX = xOffset - WIDTH;
-		const posY = yOffset - HEIGHT;
+		const posX = Math.floor(xOffset - border * minScale * 8);
+		const posY = Math.floor(yOffset - border * minScale * 8);
 		const width = this.canvas.width - 2 * posX;
 		const height = this.canvas.height - 2 * posY;
+		this.context.lineWidth = 5;
 		this.context.fillRect(posX,posY,width, height); //this is for the black background
 		this.context.save();
 		this.context.translate(xOffset, yOffset);
 		this.context.scale(minScale, minScale);
 		this.game.render(this.context);
 		this.context.restore();
+		this.context.strokeStyle = "gray";
+		this.context.lineJoin = "round";
+		this.context.lineCap = "round";
+		this.context.strokeRect(posX,posY,width, height); //this is to hide errors in the outside hexagons
 	}
 
-	//TODO maybe also have keyboard/gamepad control
-	//TODO limit the mousemovement so the paddle cant go out of the gamefield
 	public async start(options: Options) {
 		this.canvas.addEventListener("mousemove", ev => {
 			const xScale = Math.floor(this.canvas.width / WIDTH);

@@ -17,12 +17,12 @@ export class Message {
 
 	@Expose()
 	@CreateDateColumn({ type: 'timestamptz' })
-	time: Date;
+	created: Date;
 
 	@Column()
 	content: string;
 
-	@ManyToOne(() => Member, { onDelete: "CASCADE" })
+	@ManyToOne(() => Member, (member) => member.messages, { onDelete: "CASCADE" })
 	member: Member;
 
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })

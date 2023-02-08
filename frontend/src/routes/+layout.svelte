@@ -5,7 +5,10 @@
 	import { logout } from "./layout_log_functions";
 	import { page } from "$app/stores";
 	import Notifications from "./notifications.svelte";
-	import { BACKEND } from "$lib/constants";
+	import { BACKEND,BACKEND_ADDRESS } from "$lib/constants";
+	import { Subject, Action } from "$lib/types";
+	import { io } from "socket.io-client";
+	import { invalidate } from "$app/navigation";
 	import {
 		Dropdown,
 		DropdownItem,
@@ -19,6 +22,7 @@
 		Toggle,
 	} from "flowbite-svelte";
 	import { goto } from "$app/navigation";
+	import { disable_2fa, enable_2fa } from "./two_facter_functions";
 
 	export let data: LayoutData;
 
@@ -33,6 +37,7 @@
 	const STORAGE_KEY = "theme";
 	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
 	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
+	$: twofa_enabled = data.user?.auth_req === 2 || false;
 
 	const toggleTheme = () => {
 		const stored = localStorage.getItem(STORAGE_KEY);
@@ -71,11 +76,55 @@
 		}
 	};
 
+	async function updateInvite(update: any) {
+		if (update.subject === Subject.INVITES || update.subject === Subject.REQUESTS) {
+			if (update.action === Action.ADD) {
+				if (update.value.from.id !== user?.id)
+					data.invites_received.push(update.value);
+				else
+					data.invites_send.push(update.value);
+			}
+			if (update.action === Action.REMOVE) {
+				if (update.value.from.id !== user?.id) {
+					console.log("before removal: ", data.invites_received);
+					data.invites_received = data.invites_received.filter((invites) => invites.id !== update.identifier);
+					console.log("after removal: ", data.invites_received);
+				}
+				else {
+					console.log("before removal: ", data.invites_send);
+					data.invites_send = data.invites_send.filter((invites) => invites.id !== update.identifier);
+					console.log("after removal: ", data.invites_send);
+				}
+			}
+			data.invites_received = data.invites_received;
+			data.invites_send = data.invites_send;
+			await invalidate(`${BACKEND}/user/me/invites`);
+		}	
+	}
+
+	async function disable_twofa() {
+		const res = await disable_2fa();
+		if (res) {
+			twofa_enabled = false;
+		}
+	}
+
+	async function enable_twofa() {
+		const res = await enable_2fa();
+		if (res) {
+			twofa_enabled = true;
+		}
+	}
+
+
 	onMount(() => {
 		applyTheme();
 		window
 			.matchMedia(DARK_PREFERENCE)
 			.addEventListener("change", applyTheme);
+
+		const socket = io(`ws://${BACKEND_ADDRESS}/update`, { withCredentials: true });
+		socket.on("update", updateInvite);
 	});
 
 	const links = [
@@ -116,7 +165,11 @@
 			<DropdownItem href="/profile/{data.user?.username}"
 				>profile</DropdownItem
 			>
-			<DropdownItem href="/settings">settings</DropdownItem>
+			{#if twofa_enabled}
+			<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
+			{:else}
+			<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
+			{/if}
 			<DropdownItem
 				><Toggle
 					size="small"
@@ -124,7 +177,7 @@
 					on:change={toggleTheme}>dark</Toggle
 				></DropdownItem
 			>
-			<DropdownItem on:click={logoutfn}>Sign out</DropdownItem>
+			<DropdownItem on:click={logoutfn}>sign out</DropdownItem>
 		</Dropdown>
 	{/if}
 	<NavUl {hidden} class="navbar-bg">

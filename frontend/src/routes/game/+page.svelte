@@ -5,6 +5,7 @@
 	import { invalidate } from "$app/navigation";
 	import { Access, Gamemode } from "$lib/types";
 	import type { PageData } from "./$types";
+	import {Checkbox, Select} from "flowbite-svelte";
 
 	export let data: PageData;
 
@@ -18,7 +19,6 @@
 
 		room.name = name;
 		room.is_private = is_private;
-		//TODO have a gamemode for modern in backend
 		room.gamemode = gamemode;
 
 		if (!is_private && password.length > 0) {
@@ -49,31 +49,34 @@
 	async function inviteUser(room: any) {
 		await unwrap(post(`/game/id/${room.id}/invite`, { username: room.data_username }));
 	}
+
+	const i_path = "/Assets/icons/";
+	const icons = [`${i_path}pong-classic.svg`, `${i_path}vr.svg`, `${i_path}hexagon.svg`];
+
+	const gamemodes = [
+		{value:0, name: "Classic"},
+		{value:1, name: "VR"},
+		{value:2, name: "Modern"},
+	];
 </script>
 
 <div class="room-container">
 	<div class="room room-create">
 		<div>
-			<input class="input" placeholder="Room name" bind:value={name}>
-			<select class="select" bind:value={gamemode}>
-				<option value={Gamemode.REGULAR}>Classic</option>
-				<option value={Gamemode.VR}>Vr</option>
-				<option value={Gamemode.MODERN}>Modern</option>
-			</select><br>
-			<input class="input" placeholder="Room password" bind:value={password} disabled={is_private}>
-			<input class="input" type="checkbox" bind:checked={is_private}>
+			<input class="input" type="text" placeholder="Room name" bind:value={name}>
+			<Select defaultClass="select" items={gamemodes} placeholder="Gamemode" bind:value={gamemode}/><p/>
+			<input class="input" type="text" placeholder="Room password" bind:value={password} disabled={is_private}>
+			<Checkbox bind:checked={is_private} class="checkbox"></Checkbox>
 			<span class="label">Private</span>
 		</div>
 		<button class="button button-create" on:click={createGame}>Create</button>
 	</div>
 	{#each data.mine as room}
 		<div class="room room-mine">
-			<span class="room-name">
-				{room.name}
-				{#if room.gamemode === Gamemode.VR}
-					&#x1F97D;
-				{/if}
-			</span>
+			<div class="room-name">
+				<div>{room.name}</div>
+				<img class="icon {gamemodes[room.gamemode].name}" src={icons[room.gamemode]} alt={gamemodes[room.gamemode].name} title={gamemodes[room.gamemode].name}>
+			</div>
 			{#if room.owner?.id === data.user?.id}
 				<input class="input" placeholder="Username" bind:value={room.data_username}>
 				<button class="button button-invite" on:click={() => inviteUser(room)}>Invite</button>
@@ -89,10 +92,8 @@
 	{#each data.joinable as room}
 		<div class="room room-joinable">
 			<span class="room-name">
-				{room.name}
-				{#if room.gamemode === Gamemode.VR}
-					&#x1F97D;
-				{/if}
+				<div>{room.name}</div>
+				<img class="icon {gamemodes[room.gamemode].name}" src={icons[room.gamemode]} alt={gamemodes[room.gamemode].name} title={gamemodes[room.gamemode].name}>
 			</span>
 			{#if room.access === Access.PROTECTED}
 				<input class="input" placeholder="Password" bind:value={room.data_password}>
@@ -103,11 +104,33 @@
 </div>
 
 <style>
+	/* instead of the br so it is the same for chrome and firefox */
+	p {
+		margin-top: 0.375rem;
+	}
+
 	.room-container {
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
 		padding: 25px 10px;
+	}
+
+	.icon {
+		width: 20px;
+		height: 20px;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
+		margin-left: 0.5rem;
+		margin-top: 5px;
+		align-self: center;
+	}
+
+	.VR {
+		-webkit-filter: unset;
+		filter: unset;
+		background-color: var(--box-hover-color);
+		border-radius: 6px;
 	}
 
 	.room {
@@ -124,6 +147,9 @@
 	.room-name {
 		flex-grow: 1;
 		font-size: 1.25em;
+		flex-direction: row;
+		display: flex;
+		align-items: center;
 	}
 
 	.label {
@@ -147,11 +173,11 @@
 		width: 200px;
 	}
 
-	.input[type="checkbox"] {
+	/* .input[type="checkbox"] {
 		width: 30px;
 		height: 30px;
 		vertical-align: top;
-	}
+	} */
 
 	.input:disabled {
 		opacity: 0.25;

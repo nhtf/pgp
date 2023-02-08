@@ -75,7 +75,7 @@ export class User {
 	members: Member[];
 
 	@Exclude()
-	@ManyToMany(() => Room)
+	@ManyToMany(() => Room, (room) => room.banned_users)
 	banned_rooms: Room[];
 
 	@Column({

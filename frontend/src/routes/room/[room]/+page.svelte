@@ -7,10 +7,11 @@
     import { post, remove , get } from "$lib/Web";
     import { error } from "@sveltejs/kit";
     import MessageBox from "./MessageBox.svelte";
-	import { ToolbarButton, Dropdown, DropdownItem, Textarea, Button } from "flowbite-svelte";
+	import { ToolbarButton, Dropdown, DropdownItem } from "flowbite-svelte";
     import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
+    import type { Message } from "$lib/types";
 
 	export let data: PageData;
 
@@ -21,20 +22,18 @@
 	let div: HTMLElement;
 	let autoscroll: boolean;
 
-	const room = data.room;
-	const user = data.user;
-
-	let messages = data.messages;
-
-	messages.sort((first, second) => {
-		return new Date(first.time).getTime() - new Date(second.time).getTime();
-	});
+	$: user = data.user;
+	$: room = data.room;
+	$: messages = data.messages;
 
 	let invitee: string = "";
 	let value: string = "";
 
-	onMount(() => {
+	onMount(async () => {
+		messages = sort(messages);
+
 		socket.emit("join", String(room.id));
+		autoscroll = true;
 	});
 
 	beforeUpdate(() => {
@@ -48,8 +47,17 @@
 	});
 
 	socket.on("message", async () => {
-		messages = await unwrap(get(`/room/id/${room.id}/messages`));
-	})
+		messages = sort(await unwrap(get(`/room/id/${room.id}/messages`)));
+	});
+
+	function sort(messages: Message[]): Message[] {
+		return messages.sort((first, second) => {
+			const a = new Date(first.created).getTime();
+			const b = new Date(second.created).getTime();
+		
+			return a - b;
+		});
+	}
 
 	function handleKeyPress(event: KeyboardEvent) {
 		if (event.key === "Enter" && !event.shiftKey) {
@@ -87,7 +95,7 @@
 	async function leave() {
 		await unwrap(remove(`/room/id/${room.id}/leave`));
 
-		goto(`/room`);
+		await goto(`/room`);
 	}
 
     async function deleteChatRoom() {
@@ -96,8 +104,8 @@
 		Swal.fire({
 			icon: "success",
 			timer: 3000,
-		}).then(() => {
-			goto(`/room`);
+		}).then(async () => {
+			await goto(`/room`);
 		});
     }
 
@@ -108,10 +116,6 @@
 	}
 
 	$: rows = (value.match(/\n/g) || []).length + 1 || 1;
-
-	onMount(() => {
-		autoscroll = true;
-	});
 
 </script>
 
@@ -125,7 +129,7 @@
 	</div>
 	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
 		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
-		{#if user.id === room.owner.id}
+		{#if user?.id === room.owner.id}
 			<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
 			<DropdownItem class="flex items-center text-base font-semibold gap-2">
 			<form on:submit|preventDefault={invite}>

@@ -18,6 +18,7 @@ export class Room {
 	@Column()
 	name: string;
 
+	@Exclude()
 	@Column()
 	is_private: boolean;
 
@@ -39,12 +40,7 @@ export class Room {
 
 	@Expose()
 	get access(): Access {
-		if (this.is_private)
-			return Access.PRIVATE;
-		else if (this.password)
-			return Access.PROTECTED;
-		else
-			return Access.PUBLIC;
+		return this.is_private ? Access.PRIVATE : this.password ? Access.PROTECTED : Access.PUBLIC;
 	}
 
 	@Exclude()
@@ -55,7 +51,7 @@ export class Room {
 		return this.members?.map(member => member.user);
 	}
 
-	@ManyToMany(() => User)
+	@ManyToMany(() => User, (user) => user.banned_rooms)
 	@JoinTable()
 	banned_users: User[];
 
@@ -64,7 +60,7 @@ export class Room {
 
 	async send_update(packet: UpdatePacket) {
 		if (this.is_private) {
-			await UpdateGateway.instance.send_update(packet, ...this.members?.map(member => member.user));
+			await UpdateGateway.instance.send_update(packet, ...(this.users || []));
 		} else {
 			await UpdateGateway.instance.send_update(packet);
 		}

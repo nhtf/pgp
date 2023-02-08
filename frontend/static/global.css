@@ -16,6 +16,7 @@ body {
 	position: relative;
 	margin: 0;
 	--text-color: rgb(0, 0, 0);
+	--text-disabled-color: rgb(175,175,175); 
 	--bkg-color: #dee4e7;
 	--box-color: rgb(249, 249, 249);
 	--box-hover-color: rgb(255, 255, 255);
@@ -49,6 +50,7 @@ body {
 	/* defaults to dark theme */
 	body:not(.light) {
 		--text-color: rgb(255, 255, 255);
+		--text-disabled-color: rgb(150,150,150);
 		--bkg-color: rgb(63, 63, 63);
 		--box-color: rgb(41, 45, 57);
 		--box-hover-color: rgb(85, 89, 101);
@@ -103,7 +105,7 @@ body.dark {
 	--button-hover-color: #374151;
 }
 
-*{
+* {
 	color: var(--text-color);
 	text-decoration: none;
 }
@@ -395,4 +397,24 @@ table {
 
 .br-6 {
 	border-radius: 6px;
+}
+
+.checkbox {
+	width: 30px!important;
+	height: 30px!important;
+	vertical-align: top!important;
+	background-color: var(--box-color)!important;
+}
+
+.select {
+	display: inline-block!important;
+	background: var(--box-color);
+	border: 1px solid var(--border-color);
+	border-radius: 6px;
+	padding-top: 2px!important;
+	padding-bottom: 2px!important;
+	padding-left: 8px!important;
+	width: unset!important;
+	font-size: 1rem!important;
+	line-height: 1.5rem!important;
 }

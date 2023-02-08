@@ -6,7 +6,7 @@ import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
-import { Controller, Inject, Get, Param, HttpException, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe, UnprocessableEntityException } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
 import { Role } from "../enums/Role";
@@ -14,6 +14,15 @@ import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { RoomInvite } from "../entities/RoomInvite";
 import * as argon2 from "argon2";
+
+const ERR_ROOM_NOT_FOUND = "Room not found";
+const ERR_PERM = "Insufficient permissions";
+
+export class PasswordDTO {
+	@IsString()
+	@Length(1, 200)
+	password: string;
+}
 
 export class CreateRoomDTO {
 	@Length(3, 20)
@@ -52,7 +61,7 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 				name = randomBytes(30).toString("hex");
 
 			if (is_private === false && await this.room_repo.findOneBy({ name: name, is_private: false} as FindOptionsWhere<T>))
-				throw new HttpException(`a room with the name "${name}" already exists`, HttpStatus.FORBIDDEN);
+				throw new ForbiddenException(`A room with the name "${name}" already exists`);
 
 			const room = new this.type();
 			room.name = name;
@@ -64,14 +73,22 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 
 		async get_room(room: number | T): Promise<T | null> {
 			if (typeof room === "number")
-				return this.room_repo.findOneBy({ id: room } as FindOptionsWhere<T>);
+				return this.room_repo.findOne({
+					relations: {
+						members: {
+							user: true,
+						},
+						banned_users: true,
+					} as FindOptionsRelations<T>,
+					where :{ id: room } as FindOptionsWhere<T>,
+				});
 			return room;
 		}
 
 		async get_room_or_fail(room: number | T): Promise<T> {
 			room = await this.get_room(room);
 			if (!room)
-				throw new HttpException("room not found", HttpStatus.NOT_FOUND);
+				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 			return room;
 		}
 
@@ -87,10 +104,10 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			if (typeof user === "number")
 				user = await this.user_repo.findOneBy({ id: user });
 			if (!user)
-				throw new HttpException("user not found", HttpStatus.NOT_FOUND);
+				throw new NotFoundException("User not found");
 
 			if (await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: user.id } }))
-				throw new HttpException("already member of room", HttpStatus.FORBIDDEN);
+				throw new ForbiddenException("Already member of room");
 
 			const member = new Member();
 			member.role = role || Role.MEMBER;
@@ -109,13 +126,13 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			await this.member_repo.remove(member);
 
 			if (ban === true) {
-				const user = await member.user;
-				const banned_rooms = await user.banned_rooms;
-				if (banned_rooms)
-					banned_rooms.push(room);
+				const user = member.user;
+				//TODO make sure that banned_users is loaded, because otherwise things will really go wrong
+				if (room.banned_users)
+					room.banned_users.push(user);
 				else
-					user.banned_rooms = [room];
-				await this.user_repo.save(user);
+					room.banned_users = [ user ];
+				await this.room_repo.save(room);
 			}
 
 			return true;
@@ -127,7 +144,7 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			if (!(member instanceof Member))
 				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id  } });
 			if (!member)
-				throw new HttpException("member not found", HttpStatus.NOT_FOUND);
+				throw new NotFoundException("Member not found");
 			member.role = role;
 			return this.member_repo.save(member);
 		}
@@ -141,9 +158,9 @@ export const GetMember = createParamDecorator(
 
 		if (!request.member) {
 			if (request.room.access === Access.PRIVATE)
-				throw new NotFoundException("Room not found");
+				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 			else
-				throw new ForbiddenException("Insufficient permissions");
+				throw new ForbiddenException(ERR_PERM);
 		}
 	
 		return request.member;
@@ -153,8 +170,11 @@ export const GetMember = createParamDecorator(
 export const GetRoom = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
 		const room = ctx.switchToHttp().getRequest().room;
-		if (!room)
-			throw new NotFoundException("Room not found");
+
+		if (!room) {
+			throw new NotFoundException(ERR_ROOM_NOT_FOUND);
+		}
+	
 		return room;
 	}
 );
@@ -172,11 +192,11 @@ export class RolesGuard implements CanActivate {
 		const room = request.room;
 		const member = request.member;
 		if (!room || (!member && room.is_private))
-			throw new NotFoundException("Room not found");
+			throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 		else if (member?.role >= role)
 			return true;
 		else
-			throw new ForbiddenException("Insufficient permissions");
+			throw new ForbiddenException(ERR_PERM);
 	}
 }
 
@@ -194,7 +214,6 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			readonly member_repo: Repository<Member>,
 			@Inject("ROOMINVITE_REPO")
 			readonly invite_repo: Repository<RoomInvite>,
-			//TODO figure out why it injects the ChatRoom repository here for ChatRoom...
 			@Inject(type.name.toString().toUpperCase() + "_PGPSERVICE")
 			readonly service: IRoomService<T>,
 			readonly update_service: UpdateGateway,
@@ -300,6 +319,19 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			return room;
 		}
 
+		@Patch("id/:id")
+		@RequiredRole(Role.OWNER)
+		async edit_room(
+			@GetRoom() room: T,
+			@Body() dto: PasswordDTO,
+		) {
+			if (room.is_private)
+				throw new UnprocessableEntityException("A private room cannot have a password");
+			room.password = await argon2.hash(dto.password);
+			await this.room_repo.save(room);
+			return {};
+		}
+
 		@Get("id/:id/role")
 		@RequiredRole(Role.MEMBER)
 		async role(@Me() me: User, @GetRoom() room: T) {
@@ -316,9 +348,10 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 
 			if (room.banned_users?.find(current => current.id === room.id))
 				throw new ForbiddenException("You have been banned from this channel"); //TODO should this give "not found" for private rooms?
+				// M: no, ban implies they knew of this room
 
-			if (!invites) {
-				if (room.access == Access.PROTECTED) {
+			if (!invites || invites.length === 0) {
+				if (room.access === Access.PROTECTED) {
 					if (!password) {
 						throw new BadRequestException("Missing password");
 					}
@@ -333,6 +366,20 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 
 			return {};
 		}
+
+		@Delete("id/:id/leave")
+		async leave(@GetRoom() room: T, @GetMember() member: Member) {
+			if (member.role === Role.OWNER) {
+				if (room.members.length > 1) {
+					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
+				}
+			
+				return await this.service.destroy(room);
+			}
+		
+			return await this.service.del_member(room, member, false);
+		}
+
 
 		@Get("id/:id/member(s)?")
 		@RequiredRole(Role.MEMBER)
@@ -349,63 +396,69 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			});
 		}
 
-		@Delete("id/:id/member(s)?/:user_id")
+
+		@Delete("id/:id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
 		async remove_member(
-			@Me() me: User,
-			@Param("user_id", ParseIDPipe(User)) target: User,
-			@GetMember() member: Member,
 			@GetRoom() room: T,
-			@Body("ban") ban: string,
+			@GetMember() member: Member,
+			@Param("target", ParseIDPipe(Member)) target: Member,
+			@Body("ban", ParseBoolPipe) ban: boolean,
 		) {
-			const target_member = target.id === me.id ? member : await this.get_member(target, room);
-
-			if (ban === "true" && member.role < Role.ADMIN)
-				throw new ForbiddenException("Insufficient permissions");
-
-			if (!target_member)
-				throw new NotFoundException("Member not found")
-
-			if (target_member.id !== member.id && target_member.role >= member.role)
-				throw new ForbiddenException("Insufficient permissions");
-
-			if (target_member.role === Role.OWNER) {
-				if (room.members.length > 1)
-					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
-				await this.service.destroy(room);
-			} else {
-				await this.service.del_member(room, target_member, ban === "true");
+		
+			if (member.room.id !== room.id) {
+				throw new BadRequestException("Target not a member of this room");
+			} 
+		
+			if (member.id !== target.id && target.role >= member.role) {
+				console.log(member.role + " " + target.role);
+				throw new ForbiddenException(ERR_PERM);
 			}
-			return {};
+			if (ban === true && member.role < Role.ADMIN)
+				throw new ForbiddenException(ERR_PERM);
+
+			if (target.role === Role.OWNER) {
+				if (room.members.length > 1) {
+					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
+				}
+			
+				return await this.service.destroy(room);
+			}
+
+			//TODO fix bans
+			return await this.service.del_member(room, target, ban === true);
 		}
 
 		@Delete("id/:id")
 		@RequiredRole(Role.OWNER)
 		async delete_room(@GetMember() member: Member, @GetRoom() room: T) {
-			//TODO send event to room socket
-			await this.room_repo.remove(room);
-
-			return {};
+			return await this.room_repo.remove(room);
 		}
 
-		@Patch("id/:id/member(s)?/:user_id")
+		@Patch("id/:id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
 		async edit_member(
 			@GetMember() member: Member,
 			@GetRoom() room: T,
-			@Param("username", ParseUsernamePipe) target: User,
+			@Param("target", ParseIDPipe(Member, { room: true })) target: Member,
 			@Body("role", new ParseEnumPipe(Role)) role: Role
 		) {
-			const target_member = await this.get_member(target, room);
-			if (!target_member)
-				throw new NotFoundException("Member not found");
-
-			if (member.role !== Role.OWNER && (target_member.role >= member.role || role >= member.role))
-				throw new ForbiddenException("Insufficient permissions");
-			target_member.role = role;
-			if (role === Role.OWNER)
+			console.log(typeof role);
+			if (member.room.id !== room.id) {
+				throw new BadRequestException("Target not a member of this room");
+			} 
+		
+			if (target.role >= member.role || role >= member.role) {
+				throw new ForbiddenException(ERR_PERM);
+			}
+		
+			target.role = role;
+		
+			if (role === Role.OWNER) {
 				member.role = Role.ADMIN;
-			await this.member_repo.save([member, target_member]);
+			}
+		
+			return await this.member_repo.save([member, target]);
 		}
 
 		@Get("id/:id/invite(s)?")
@@ -440,13 +493,11 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 
 			const invite = new RoomInvite;
 
-			invite.from = member.user;
+			invite.from = me;
 			invite.to = target;
 			invite.room = room;
 
-			await this.invite_repo.save(invite);
-
-			return {}
+			return await this.invite_repo.save(invite);
 		}
 
 		@Delete("id/:id/invite(s)?/:invite_id")
@@ -456,18 +507,27 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			@Param("invite_id", ParseIDPipe(RoomInvite, { room: true, from: true, to: true })) invite: RoomInvite,
 		) {
 			if (invite.room.id != room.id)
-				throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+				throw new NotFoundException("Not found");
 			if (invite.from.id != me.id && invite.to.id != me.id) {
 				const member = await this.member_repo.findOneBy({ user: { id: me.id } });
 				if (!member && room.access == Access.PRIVATE)
-					throw new HttpException("Not found", HttpStatus.NOT_FOUND);
+					throw new NotFoundException("Not found");
 				else if (!member || member.role < Role.ADMIN)
-					throw new HttpException("Insufficient permissions", HttpStatus.FORBIDDEN);
+					throw new ForbiddenException(ERR_PERM);
 			}
 			await this.invite_repo.remove(invite);
 		
 			return {};
 			//TODO check if invite is properly removed from Room as well
+		}
+
+		@Get("id/:id/ban(s)?")
+		@RequiredRole(Role.ADMIN)
+		async list_bans(
+			@GetRoom() room: T
+		) {
+			console.log(room.banned_users);
+			return room.banned_users;
 		}
 	}
 	return RoomControllerFactory;

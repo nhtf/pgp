@@ -103,7 +103,7 @@ export class TotpController {
 		const id = request.session.user_id;
 
 		await this.userRepo.save(user);
-		if (!(await this.session_utils.regenerate_session(request.session)))
+		if (!(await this.session_utils.regenerate_session_req(request)))
 			throw new HttpException(
 				"unable to create session",
 				HttpStatus.INTERNAL_SERVER_ERROR,
@@ -124,7 +124,7 @@ export class TotpController {
 		const access_token = request.session.access_token;
 		const id = request.session.user_id;
 
-		if (!(await this.session_utils.regenerate_session(request.session)))
+		if (!(await this.session_utils.regenerate_session_req(request)))
 			throw new HttpException(
 				"unable to create request.session",
 				HttpStatus.INTERNAL_SERVER_ERROR,

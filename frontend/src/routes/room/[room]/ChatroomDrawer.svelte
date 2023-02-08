@@ -2,10 +2,10 @@
     import {Checkbox, Drawer, CloseButton, ToolbarButton, Tooltip } from "flowbite-svelte";
     import {sineIn} from "svelte/easing"
     import { page } from "$app/stores";
+    import socket from "../websocket";
     import { unwrap } from '$lib/Alert';
     import { get, post } from '$lib/Web';
     import { Access, type ChatRoom, type Room } from "$lib/types";
-    import { FRONTEND } from "$lib/constants";
     import Swal from "sweetalert2";
     import { goto } from "$app/navigation";
     import ChatRoomBox from "../ChatRoomBox.svelte";
@@ -50,20 +50,24 @@
 
         const created = await unwrap(post("/room", room));
 
-       goto(`/room/${created.id}`);
+        enter(created);
     };
 
     function toggleCreateRoom() {
         createRoomShow = !createRoomShow;
     }
 
-    function enter(room: Room) {
-        goto(`${FRONTEND}/room/${room.id}`);
+    async function enter(room: Room) {
+        console.log(room);
+        hidden1 = true;
+        socket.emit("join", String(room.id));
+        await goto(`/room/${room.id}`);
     }
 
     async function join(room: Room) {
         console.log("room: ",room);
         if (room.access == Access.PROTECTED) {
+            //TODO replace the sweetalert for the password input stuff
             const { value: password, isDismissed } = await Swal.fire({
                 text: "password",
                 input: "password",
@@ -78,18 +82,17 @@
         } else {
             await unwrap(post(`/room/id/${room.id}/members`));
         }
-
+        //TODO replace the sweetalert entering the room for flowbite one
         Swal.fire({
             icon: "success",
             text: "Joined room",
         });
-    
-        goto(`${FRONTEND}/room/${room.id}`);
+        enter(room);
     }
 
 </script>
 
-
+<!-- //TODO style the input stuff -->
 <ToolbarButton class="dots-menu bg-c"
     on:click={() => (hidden1 = !hidden1)}>
     <img src="/Assets/icons/chat.svg" alt="chat" class="icon">
@@ -128,9 +131,9 @@
     <div class="create-room">
         <div>
             <input class="input" placeholder="Room name" bind:value={room.name}>
-            {#if !room.is_private}
-                <input class="input" placeholder="password" bind:value={password}>
-            {/if}
+            <!-- {#if !room.is_private} -->
+                <input class="input" type="password" autocomplete="off" placeholder="password" bind:value={password} disabled={room.is_private}>
+            <!-- {/if} -->
             <br>
             <Checkbox bind:checked={room.is_private}>Private</Checkbox>
         </div>
@@ -160,6 +163,10 @@
         left: 30%;
         box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
 	}
+
+    .input:disabled {
+        opacity: 0.25;
+    }
 
     .chat-room-plus {
         display: flex;

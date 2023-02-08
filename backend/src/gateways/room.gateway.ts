@@ -1,21 +1,19 @@
-import { HttpException, HttpStatus, Inject, UseGuards } from "@nestjs/common";
+import { Inject } from "@nestjs/common";
 import {
 	MessageBody,
 	SubscribeMessage,
 	ConnectedSocket,
-	WebSocketGateway,
 	WebSocketServer,
 	WsException,
 } from "@nestjs/websockets";
 import type { Socket, Server } from "socket.io";
-import { InjectRepository } from "@nestjs/typeorm";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
 import { User } from "src/entities/User";
 import { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
-import { FRONTEND_ADDRESS } from "src/vars";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
+import isNumeric from "validator/lib/isNumeric";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -35,6 +33,8 @@ export class RoomGateway extends ProtectedGateway("room") {
 	@SubscribeMessage("join")
 	join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
 		client.room = id;
+
+		console.log("Joining:", id);
 		
 		client.join(id);
 	}
@@ -42,6 +42,11 @@ export class RoomGateway extends ProtectedGateway("room") {
 	@SubscribeMessage("message")
 	async message(@ConnectedSocket() client: Socket, @MessageBody() content: string) {
 		const request: any = client.request;
+
+		if (!client.room) {
+			throw new WsException("Missing room id, did you join?");
+		}
+	
 		const member = await this.memberRepo.findOne({
 			relations: {
 				user: true,
@@ -50,10 +55,11 @@ export class RoomGateway extends ProtectedGateway("room") {
 				user: {
 					id: request.session.user_id,
 				},
+				room: {
+					id: Number(client.room),
+				}
 			},
 		});
-
-		console.log(member);
 
 		if (!member) {
 			throw new WsException("not found");
@@ -73,6 +79,8 @@ export class RoomGateway extends ProtectedGateway("room") {
 		message.content = content;
 		message.member = member;
 		message.room = { id: Number(client.room)} as ChatRoom;
+
+		console.log(message.member);
 
 		await this.messageRepo.save(message);
 	}

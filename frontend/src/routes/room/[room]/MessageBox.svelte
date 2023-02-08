@@ -1,59 +1,73 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
-    import { post } from "$lib/Web";
-    import { Avatar, Dropdown, DropdownDivider, DropdownHeader, DropdownItem } from "flowbite-svelte";
+    import { patch, remove } from "$lib/Web";
+    import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
     import Swal from "sweetalert2";
 	import { page } from "$app/stores";
     import { Role, type ChatRoom, type Member, type Message } from "$lib/types";
 
 	export let message: Message;
 
+	const status_colors = [ "gray", "yellow", "green" ];
+	const border_colors = [ "blue", "green", "red" ];
+
 	const room: ChatRoom = $page.data.room;
-	const role: Role = $page.data.role;
-
-	const user = message.member.user;
-
-	const member_actions = [
-		[],
-		[ "ban", "mute" ],
-		[ "demote", "promote" ],
-	];
+	const my_role: Role = $page.data.role;
+	const member = message.member;
+	const user = member.user;
 
 	const from_self = $page.data.user?.id == user?.id;
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";
 
-	async function doAction(route: string, target: Member) {
-		await unwrap(post(`/room/id/${room.id}/${route}`, { target: target.id }));
+	async function edit(target: Member, role: Role) {
+		console.log(Role[role]);
+		await unwrap(patch(`/room/id/${room.id}/members/${target.id}`, { role }));
 
 		Swal.fire({
 			icon: "success",
 		})
 	}
-	console.log(message);
+
+	async function kick(target: Member, ban: boolean) {
+		await unwrap(remove(`/room/id/${room.id}/members/${target.id}`, { ban }));
+	}
+
+	async function mute(target: Member) {
+		
+	}
+
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
-	<Avatar src={user.avatar} title={user.username}/>
+	{Role[member.role]}
+	<Avatar
+		src={user.avatar}
+		title={user.username}
+		dot={{
+			placement: "bottom-right",
+			color: status_colors[user.status],
+		}}
+		/>
 		<Dropdown>
-			<DropdownHeader>
-				{Role[message.member.role]}
-			</DropdownHeader>
 			<DropdownItem>
 				<a href={`/profile/${user.username}`}>Profile</a>
 			</DropdownItem>
 			{#if user.id !== $page.data.user.id}
-				{#each member_actions as actions, i}
-					{#if role >= i}
-						{#if i > 0}
-							<DropdownDivider/>
-						{/if}
-						{#each actions as action}
-							<DropdownItem on:click={() => doAction(action, message.member)}>{action}</DropdownItem>
-						{/each}
+				{#if my_role >= Role.OWNER && member.role < Role.OWNER}
+					<DropdownDivider/>
+					<DropdownItem on:click={() => edit(member, member.role + 1)}>Promote</DropdownItem>
+					{#if message.member.role > 0}
+						<DropdownItem on:click={() => edit(member, member.role - 1)}>Demote</DropdownItem>
 					{/if}
-				{/each}
+				{/if}
+				{#if my_role >= Role.ADMIN && member.role < Role.ADMIN}
+					<DropdownDivider/>
+					<DropdownItem on:click={() => kick(member, true)}>Ban</DropdownItem>
+					<DropdownItem on:click={() => kick(member, false)}>Kick</DropdownItem>
+					<DropdownItem on:click={() => mute(member)}>Mute</DropdownItem>
+				{/if}
 			{/if}
 		</Dropdown>
 	<div class="message-box">

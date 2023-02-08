@@ -1,6 +1,6 @@
 import { error } from '@sveltejs/kit';
 import type { PageLoad } from "./$types"
-import { type User, type Achievement, type Invite, Subject, Action } from "$lib/types"
+import { type User, type Achievement, type Invite, Subject, Action, Status } from "$lib/types"
 import { get, remove } from '$lib/Web';
 import { BACKEND, BACKEND_ADDRESS } from '$lib/constants';
 import { io } from 'socket.io-client';
@@ -9,21 +9,21 @@ export const ssr = false;
 
 let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
-export type simpleuser = {id: number; username: string; avatar: string; status: string; in_game: boolean;}
+export type simpleuser = {id: number; username: string; avatar: string; status: Status; in_game: boolean;}
 
 const friends: simpleuser[] = [
-	{ username: "dummy1", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy2", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy3", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy4", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy5", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy6", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy7", avatar: profile_image, status: "online", in_game: true, id: 0 },
-	{ username: "dummy8", avatar: profile_image, status: "online", in_game: false, id: 0 },
-	{ username: "dummy9", avatar: profile_image, status: "online", in_game: false, id: 0},
-	{ username: "dummy10", avatar: profile_image, status: "offline", in_game: false, id: 0},
-	{ username: "dummy11", avatar: profile_image, status: "offline", in_game: false, id: 0},
-	{ username: "dummy12", avatar: profile_image, status: "offline", in_game: true, id: 0 }
+	{ username: "dummy1", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy2", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy3", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy4", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy5", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy6", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy7", avatar: profile_image, status: Status.ACTIVE, in_game: true, id: 0 },
+	{ username: "dummy8", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
+	{ username: "dummy9", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0},
+	{ username: "dummy10", avatar: profile_image, status: Status.OFFLINE, in_game: false, id: 0},
+	{ username: "dummy11", avatar: profile_image, status: Status.OFFLINE, in_game: false, id: 0},
+	{ username: "dummy12", avatar: profile_image, status: Status.OFFLINE, in_game: true, id: 0 }
 ];
 
 const pong = "/Assets/achievement-icons/pong.svg";
@@ -65,7 +65,7 @@ function dummydropcreater(can_unfriend: boolean, username: string) {
 				data: [
 				{text: "view profile", fn: null, show: true, redir: "/profile/" + user.username},
 				{text: "spectate", fn: null, show: user.in_game, redir: null}, 
-				{text: "invite game", fn: null, show: user.status !== "offline" && !user.in_game, redir: null}, 
+				{text: "invite game", fn: null, show: user.status !== Status.OFFLINE && !user.in_game, redir: null}, 
 				{text: "unfriend", fn: fn, show: true, redir: null}
 				]},
 			});
@@ -95,7 +95,7 @@ async function getFriendList(username: string, options: Map<any, any>) {
 					data: [
 					{text: "view profile", fn: null, show: true, redir: "/profile/" + newUser.username},
 					{text: "spectate", fn: null, show: newUser.in_game, redir: null}, 
-					{text: "invite game", fn: null, show: newUser.status !== "offline" && !newUser.in_game, redir: null}, 
+					{text: "invite game", fn: null, show: newUser.status !== Status.OFFLINE && !newUser.in_game, redir: null}, 
 					{text: "unfriend", fn: null, show: true, redir: null}
 				]}});
 			
@@ -121,7 +121,7 @@ function updateFriends(friendlist: simpleuser[]) {
 				const new_friend: simpleuser = {
 					id: update.value.id,
 					username: update.value.username,
-					status: "active",
+					status: Status.ACTIVE,
 					in_game: false,
 					avatar: `${BACKEND}/avatar/${update.value.avatar_base}.jpg`,
 				};

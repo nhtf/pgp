@@ -125,7 +125,9 @@ export class DebugController {
 		@Query("id", ParseIDPipe(User)) user: User,
 		@Req() request: Request,
 	) {
-		this.sessionUtils.regenerate_session(request.session);
+		const res = await this.sessionUtils.regenerate_session_req(request);
+		if (!res)
+			throw new HttpException("could not regenerate session", HttpStatus.INTERNAL_SERVER_ERROR);
 		request.session.user_id = user.id;
 		request.session.auth_level = user.auth_req;
 		return user;
@@ -141,7 +143,11 @@ export class DebugController {
 
 	@Get("lsuser")
 	async lsuser() {
-		return this.userRepo.find();
+		return this.userRepo.find({
+			relations: {
+				banned_rooms: true,
+			},			
+		});
 	}
 
 	@Get("rooms")
@@ -151,6 +157,7 @@ export class DebugController {
 				members: {
 					user: true,
 				},
+				banned_users: true,
 			}
 		});
 	}
@@ -180,7 +187,7 @@ export class DebugController {
 		});
 	}
 
-	@Get("invite/delete")
+	@Get("invite(s)?/delete")
 	async deleteInvite(@Query("id") id: string) {
 		return await this.inviteRepo.delete(Number(id));
 	}

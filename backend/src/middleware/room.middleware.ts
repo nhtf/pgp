@@ -1,4 +1,4 @@
-import { Inject, Injectable, NestMiddleware, HttpException, HttpStatus } from "@nestjs/common";
+import { Inject, Injectable, NestMiddleware, BadRequestException } from "@nestjs/common";
 import { Room } from "src/entities/Room";
 import { validate_id } from "src/util";
 import { Repository } from "typeorm";
@@ -13,27 +13,26 @@ export class RoomMiddleware implements NestMiddleware {
 	//TODO use types for req and res
 	async use(req: any, res: any, next: (error?: any) => void) {
 		try {
-			const id = validate_id(req.params.id);
-		
-			const room = await this.repo.findOne({
-				relations: {
-					members: {
-						user: true
+			if (req.params.id) {
+				const id = validate_id(req.params.id);
+			
+				const room = await this.repo.findOne({
+					relations: {
+						members: {
+							user: true
+						},
+						invites: true,
+						banned_users: true,
 					},
-					invites: true,
-					banned_users: true,
-				},
-				where: {
-					id: id,
-				},
-			});
-
-			if (!room)
-				throw new HttpException("room not found", HttpStatus.NOT_FOUND);
-			req.room = room;
+					where: {
+						id: id,
+					},
+				});
+				req.room = room;
+			}
 		} catch (error) {
+			throw new BadRequestException(error.message);
 		}
-	
 		next();
 	}
 }

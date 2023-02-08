@@ -67,20 +67,23 @@ export class SessionService {
 		return promise;
 	}
 
-	async regenerate_session_req(req: Request) {
+	async regenerate_session_req(req: Request): Promise<boolean> {
 		const access_token = req.session.access_token;
 		const secret = req.session.secret;
 		const user_id = req.session.user_id;
 		const auth_level = req.session.auth_level;
 		const last_activity = req.session.last_activity;
 
-		await this.regenerate_session(req.session);
+		const res = await this.regenerate_session(req.session);
+		if (!res)
+			return false;
 
 		req.session.access_token = access_token;
 		req.session.secret = secret;
 		req.session.user_id = user_id;
 		req.session.auth_level = auth_level;
 		req.session.last_activity = last_activity;
+		return true;
 	}
 
 	async regenerate_session(session: SessionObject): Promise<boolean> {

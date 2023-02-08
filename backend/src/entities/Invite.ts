@@ -7,6 +7,7 @@ import {
 	TableInheritance,
 	AfterInsert,
 	BeforeRemove,
+	AfterUpdate,
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { UpdateGateway } from "src/gateways/update.gateway";

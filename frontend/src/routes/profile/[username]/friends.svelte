@@ -1,7 +1,7 @@
 <script lang="ts">
     import { get, post } from '$lib/Web';
     import { io } from 'socket.io-client';
-    import type { User } from "$lib/types";
+    import { Status, type User } from "$lib/types";
     import Swal from "sweetalert2";
     import { page } from '$app/stores';
     import { BACKEND_ADDRESS } from '$lib/constants';
@@ -105,6 +105,8 @@
         }
     }
 
+    //TODO make this update properly when a friend is added/removed etc (see layout.svelte)
+    //TODO avatar update , username, status and other things
     onMount(() => {
         friends = $page.data.friendlist;
         let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
@@ -168,7 +170,7 @@
                     <div class="block-cell">
                         <div class="block-hor">{username}</div>
                         {#if !in_game}
-                            <div class="block-hor" id={status}>{status}</div>
+                            <div class="block-hor" id={Status[status]}>{status}</div>
                         {:else}
                             <div class="block-hor" id="in_game">playing</div>
                             {#if score.has(username)}
@@ -183,7 +185,7 @@
                 <DropdownItem href="/profile/{username}">view profile</DropdownItem>
                 {#if in_game}
                     <DropdownItem>spectate</DropdownItem>
-                {:else if status !== "offline"}
+                {:else if status !== Status.OFFLINE}
                     <DropdownItem>invite game</DropdownItem>
                 {/if}
                 <DropdownItem slot="footer">unfriend</DropdownItem>

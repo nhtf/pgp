@@ -19,16 +19,12 @@
         const notif = notifications[index];
         respond(notif, "accept");
     }
-
-    async function checkUpdate() {
-        await invalidate(`${BACKEND}/user/me/invites`);//TODO thanks chen en daan for this stupid function that makes it properly update a component when it's data changes
-    }
-
-    //TODO check if this causes the issue that sometimes if you click on a link it doesn;t work, doubt that this is it
-    onInterval(checkUpdate, 1000);
     
   </script>
   
+
+  <!-- //TODO instead of denying the invite when you click the x button just remove the notif or have it as seen or something -->
+  <!-- //TODO maybe have the bell shake or something when there is a new notification -->
   {#key length}
   {#if notifications.length > 0}
   <div id="bell" 

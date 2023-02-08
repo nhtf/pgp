@@ -38,8 +38,8 @@ export function validate_id(value: any) {
 	const id = Number(value);
 	if (!isFinite(id))
 		throw new Error("id must be finite");
-	if (id > Number.MAX_SAFE_INTEGER)
-		throw new Error(`id may not be larger than ${Number.MAX_SAFE_INTEGER}`);
+	if (id > 2**31-1)
+		throw new Error(`id may not be larger than ${2**31-1}`);
 	return id;
 }
 

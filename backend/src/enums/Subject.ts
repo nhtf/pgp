@@ -7,4 +7,5 @@ export enum Subject {
 	AVATAR,
 	ROOM,
 	MEMBER,
+	USERNAME,
 }
