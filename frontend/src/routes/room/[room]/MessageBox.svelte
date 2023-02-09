@@ -1,56 +1,68 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
-    import { patch, remove } from "$lib/Web";
-    import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
+    import { patch, post, remove } from "$lib/Web";
+    import { Avatar, Dropdown, DropdownDivider, DropdownHeader, DropdownItem } from "flowbite-svelte";
     import Swal from "sweetalert2";
 	import { page } from "$app/stores";
-    import { Role, type ChatRoom, type Member, type Message } from "$lib/types";
+    import { CoalitionColors, Role, type ChatRoom, type Member, type Message } from "$lib/types";
 
 	export let message: Message;
 
 	const status_colors = [ "gray", "yellow", "green" ];
-	const border_colors = [ "blue", "green", "red" ];
+	const role_colors = Object.values(CoalitionColors);
 
 	const room: ChatRoom = $page.data.room;
 	const my_role: Role = $page.data.role;
 	const member = message.member;
 	const user = member.user;
 
-	const from_self = $page.data.user?.id == user?.id;
+	const from_self = $page.data.user?.id == user.id;
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";
 
 	async function edit(target: Member, role: Role) {
-		console.log(Role[role]);
 		await unwrap(patch(`/room/id/${room.id}/members/${target.id}`, { role }));
 
 		Swal.fire({
 			icon: "success",
-		})
+		});
 	}
 
 	async function kick(target: Member, ban: boolean) {
 		await unwrap(remove(`/room/id/${room.id}/members/${target.id}`, { ban }));
+
+		Swal.fire({
+			icon: "success",
+		});
 	}
 
-	async function mute(target: Member) {
-		
+	async function mute(target: Member, minutes: number) {
+		const millis = minutes * 60 * 1000;
+
+		await unwrap(post(`/room/id/${room.id}/mute/${target.id}`, { duration: millis }));
+	
+		Swal.fire({
+			icon: "success",
+		});
 	}
 
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
-	{Role[member.role]}
 	<Avatar
 		src={user.avatar}
 		title={user.username}
 		dot={{
 			placement: "bottom-right",
 			color: status_colors[user.status],
+			// TODO: update status
 		}}
 		/>
 		<Dropdown>
+			<DropdownHeader>
+				<div class="text-sm">{Role[member.role]}</div>
+			</DropdownHeader>
 			<DropdownItem>
 				<a href={`/profile/${user.username}`}>Profile</a>
 			</DropdownItem>
@@ -62,16 +74,16 @@
 						<DropdownItem on:click={() => edit(member, member.role - 1)}>Demote</DropdownItem>
 					{/if}
 				{/if}
-				{#if my_role >= Role.ADMIN && member.role < Role.ADMIN}
+				{#if my_role >= Role.ADMIN && member.role < my_role}
 					<DropdownDivider/>
 					<DropdownItem on:click={() => kick(member, true)}>Ban</DropdownItem>
 					<DropdownItem on:click={() => kick(member, false)}>Kick</DropdownItem>
-					<DropdownItem on:click={() => mute(member)}>Mute</DropdownItem>
+					<DropdownItem on:click={() => mute(member, 1)}>Mute</DropdownItem>
 				{/if}
 			{/if}
 		</Dropdown>
 	<div class="message-box">
-		<div class="text-sm underline" style={`text-align: ${text_align};`}>{user.username}</div>
+		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${role_colors[member.role]}`}>{user.username}</div>
 		<div class="message-content">{message.content}</div>
 	</div>
 </div>

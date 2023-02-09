@@ -13,17 +13,9 @@ export type simpleuser = {id: number; username: string; avatar: string; status: 
 
 const friends: simpleuser[] = [
 	{ username: "dummy1", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy2", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy3", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy4", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy5", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy6", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy7", avatar: profile_image, status: Status.ACTIVE, in_game: true, id: 0 },
-	{ username: "dummy8", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy9", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0},
-	{ username: "dummy10", avatar: profile_image, status: Status.OFFLINE, in_game: false, id: 0},
-	{ username: "dummy11", avatar: profile_image, status: Status.OFFLINE, in_game: false, id: 0},
-	{ username: "dummy12", avatar: profile_image, status: Status.OFFLINE, in_game: true, id: 0 }
+	{ username: "dummy2", avatar: profile_image, status: Status.ACTIVE, in_game: true, id: 0},
+	{ username: "dummy3", avatar: profile_image, status: Status.IDLE, in_game: false, id: 0 },
+	{ username: "dummy5", avatar: profile_image, status: Status.OFFLINE, in_game: false, id: 0},
 ];
 
 const pong = "/Assets/achievement-icons/pong.svg";
@@ -104,41 +96,41 @@ async function getFriendList(username: string, options: Map<any, any>) {
 	return dummy_friends;
 }
 
-function updateFriends(friendlist: simpleuser[]) {
-	socket.on("update", async (update) => {
-		if (update.subject === Subject.STATUS || update.subject === Subject.AVATAR) {
-			friendlist.forEach((friend: simpleuser) => {
-				if (friend.id === update.identifier) {
-					if (update.subject === Subject.STATUS)
-						friend.status = update.value;
-					else
-						friend.avatar = update.value;
-				}
-			});
-		}
-		if (update.subject === Subject.FRIENDS) {
-			if (update.action === Action.ADD) {
-				const new_friend: simpleuser = {
-					id: update.value.id,
-					username: update.value.username,
-					status: Status.ACTIVE,
-					in_game: false,
-					avatar: `${BACKEND}/avatar/${update.value.avatar_base}.jpg`,
-				};
-				friendlist.push(new_friend);
-			}
-			else if (update.action === Action.REMOVE)
-			friendlist = friendlist.filter((friends) => friends.id !== update.identifier)
-		}
-		friendlist = friendlist;
-	});
-}
+// function updateFriends(friendlist: simpleuser[]) {
+// 	socket.on("update", async (update) => {
+// 		if (update.subject === Subject.STATUS || update.subject === Subject.AVATAR) {
+// 			friendlist.forEach((friend: simpleuser) => {
+// 				if (friend.id === update.identifier) {
+// 					if (update.subject === Subject.STATUS)
+// 						friend.status = update.value;
+// 					else
+// 						friend.avatar = update.value;
+// 				}
+// 			});
+// 		}
+// 		if (update.subject === Subject.FRIENDS) {
+// 			if (update.action === Action.ADD) {
+// 				const new_friend: simpleuser = {
+// 					id: update.value.id,
+// 					username: update.value.username,
+// 					status: Status.ACTIVE,
+// 					in_game: false,
+// 					avatar: `${BACKEND}/avatar/${update.value.avatar_base}.jpg`,
+// 				};
+// 				friendlist.push(new_friend);
+// 			}
+// 			else if (update.action === Action.REMOVE)
+// 			friendlist = friendlist.filter((friends) => friends.id !== update.identifier)
+// 		}
+// 		friendlist = friendlist;
+// 	});
+// }
 
-let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
+// let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
 
 
 export const load: PageLoad = (async ({ fetch, params }) => {
-	console.log("load: /profile/[username]");
+	window.fetch = fetch;
 	try {
 		const profile: User = await get(`/user/${params.username}`);
 		const user: User = await get(`/user/me`);
@@ -157,9 +149,9 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 			try {
 				
 				let friendlist = await getFriendList(user.username, drop);				
-				updateFriends(friendlist);
+				// updateFriends(friendlist);
 				
-				console.log("load return: ", { fetch, user, friendlist, drop, profile });
+				console.log("load return: ", { user, friendlist, drop, profile });
 				return { user, friendlist, drop, profile };
 			}
 			catch (err:any) {

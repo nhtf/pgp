@@ -45,7 +45,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			readonly request_repo: Repository<FriendRequest>,
 			@Inject("INVITE_REPO")
 			readonly invite_repo: Repository<Invite>,
-			readonly update_serivce: UpdateGateway,
+			readonly update_service: UpdateGateway,
 		) {}
 
 		@Get()
@@ -77,7 +77,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new ForbiddenException("Username taken");
 			user.username = dto.username;
 			await this.user_repo.save(user);
-			await this.update_serivce.send_update({ subject: Subject.USERNAME, identifier: user.id, action: Action.SET, value: user.username});
+			await this.update_service.send_update({ subject: Subject.USERNAME, identifier: user.id, action: Action.SET, value: dto.username });
 			return user;
 		}
 
@@ -141,7 +141,7 @@ export function GenericUserController(route: string, options: { param: string, c
 					stream.close();
 					file.close();
 					await this.user_repo.save(user);
-					await this.update_serivce.send_update({ subject: Subject.AVATAR, identifier: user.id, action: Action.SET, value: user.avatar});
+					await this.update_service.send_update({ subject: Subject.AVATAR, identifier: user.id, action: Action.SET, value: user.avatar});
 					resolve(user);
 				});
 			});
@@ -182,23 +182,35 @@ export function GenericUserController(route: string, options: { param: string, c
 		async unfriend(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Param("friend_id", ParseIDPipe(User)) friend: User,
+			@Param("friend_id", ParseIDPipe(User, { friends: true })) friend: User,
 		) {
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
 
-			const user_friends = await user.friends;
-			const friend_idx = user_friends?.findIndex((x: User) => x.id === friend.id);
-			if (!friend_idx || friend_idx < 0)
+			const friend_idx = user.friends?.findIndex((x: User) => x.id === friend.id);
+			if (friend_idx === undefined || friend_idx < 0)
 				throw new NotFoundException();
 
-			const friend_friends = await friend.friends;
-			const user_idx = friend_friends.findIndex((x: User) => x.id === user.id);
+			const user_idx = friend.friends.findIndex((x: User) => x.id === user.id);
 
-			user_friends.splice(friend_idx, 1);
-			friend_friends.splice(user_idx, 1);
+			user.friends.splice(friend_idx, 1);
+			friend.friends.splice(user_idx, 1);
 			await this.user_repo.save([user, friend]);
+			await this.update_service.send_update({
+				subject: Subject.FRIENDS,
+				identifier: user.id,
+				action: Action.REMOVE,
+				value: instanceToPlain(friend)
+			}, user);
+			await this.update_service.send_update({
+				subject: Subject.FRIENDS,
+				identifier: friend.id,
+				action: Action.REMOVE,
+				value: instanceToPlain(user)
+			}, friend);
+
+			return {};
 		}
 
 		@Get(options.cparam + "/friend(s)?/request(s)?")
@@ -227,7 +239,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		async create_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Body("id", ParseIDPipe(User)) target: User,
+			@Body("id", ParseIDPipe(User, { friends: true })) target: User,
 		) {
 			user = user || me;
 			if (user.id !== me.id)
@@ -243,13 +255,41 @@ export function GenericUserController(route: string, options: { param: string, c
 			if (await this.request_repo.findOneBy({ from: { id: user.id }, to: { id: target.id } }))
 				throw new ForbiddenException("Already sent request");
 
-			const request = await this.request_repo.findOneBy({ from: { id: target.id }, to: { id: user.id } });
+			const request = await this.request_repo.findOne({
+				relations: {
+					from: true,
+					to: true,
+				},
+				where: {
+					from: {
+						id: target.id
+					},
+					to: {
+						id: user.id
+					}
+				}
+			});
 			if (request) {
 				user.add_friend(target);
 				target.add_friend(user);
 
 				await this.request_repo.remove(request);
 				await this.user_repo.save([user, target]);
+
+				delete user.friends;
+				delete target.friends;
+				await this.update_service.send_update({
+					subject: Subject.FRIENDS,
+					identifier: user.id,
+					action: Action.ADD,
+					value: instanceToPlain(target)
+				}, user);
+				await this.update_service.send_update({
+					subject: Subject.FRIENDS,
+					identifier: target.id,
+					action: Action.ADD,
+					value: instanceToPlain(user)
+				}, target);
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;
@@ -299,5 +339,5 @@ class NullPipe implements PipeTransform {
 }
 
 export class UserMeController extends GenericUserController("user(s)?/", { param: "me", cparam: "me", pipe: NullPipe }) {}
-export class UserIDController extends GenericUserController("user(s)?/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User) }) {}
+export class UserIDController extends GenericUserController("user(s)?/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User, { friends: true }) }) {}
 export class UserUsernameController extends GenericUserController("user(s)?/", { param: "username", cparam: ":username", pipe: ParseUsernamePipe }) {}

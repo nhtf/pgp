@@ -1,19 +1,22 @@
 <script lang="ts">
     import { page } from "$app/stores";
     import { unwrap } from "$lib/Alert";
-	import { Access, type ChatRoom } from "$lib/types";
+	import { Access, type Room } from "$lib/types";
     import { get } from "$lib/Web";
     import { Avatar } from "flowbite-svelte";
 
     const lock = "/Assets/icons/lock.svg";
 
-	export let room: ChatRoom;
+	export let room: Room;
 	export let click: Function;
 	export let joined: boolean;
+	export let divider: boolean;
+
+	let frameclass = divider ? "room divider" : "room";
 
 </script>
 
-<button class="room" on:click={() => click(room)}>
+<button class={frameclass} on:click={() => click(room)}>
 	<div class="room-block">
 		<div class="room-icon-block">
 			<div>
@@ -39,13 +42,13 @@
 			<img class="lock-icon" src={lock} alt="lock">
 		{/if}
 
-		{#if joined}
+		<!-- {#if joined}
 			{#await get(`/room/id/${room.id}/members`) then members}
 				{#each members as member}
 					<Avatar src={member?.user.avatar} stacked/>
 				{/each}
 			{/await}
-		{/if}
+		{/if} -->
 	</div>
 </button>
 
@@ -71,6 +74,10 @@
 		align-items: center;
 		flex-direction: row;
 		width: 100%;
+		
+	}
+
+	.divider {
 		border-bottom-left-radius: 0;
 		border-bottom-right-radius: 0;
 		border-bottom-color: var(--border-color)!important;

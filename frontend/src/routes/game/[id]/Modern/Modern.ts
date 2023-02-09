@@ -110,7 +110,7 @@ export class Game extends Net {
 				const angle = (this.ball.position.y - this.paddles[0].position.y) / this.paddles[0].height * Math.PI * 0.75;
 				let speed = Math.sqrt(Math.pow(this.ball.velocity.x, 2) + Math.pow(this.ball.velocity.y, 2)) * 1.1;
 				if (speed > 5.75)
-					speed = 5.75; //TODO check if this speed is nice as max
+					speed = 5.75; //TODO check if this speed is correct and needs adjusting
 				this.ball.velocity.x = Math.cos(angle) * speed;
 				this.ball.velocity.y = Math.sin(angle) * speed;
 			}

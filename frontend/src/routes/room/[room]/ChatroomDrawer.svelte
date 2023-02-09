@@ -2,15 +2,13 @@
     import {Checkbox, Drawer, CloseButton, ToolbarButton, Tooltip } from "flowbite-svelte";
     import {sineIn} from "svelte/easing"
     import { page } from "$app/stores";
-    import socket from "../websocket";
+    import { roomSocket } from "../websocket";
     import { unwrap } from '$lib/Alert';
     import { get, post } from '$lib/Web';
     import { Access, type ChatRoom, type Room } from "$lib/types";
     import Swal from "sweetalert2";
     import { goto } from "$app/navigation";
     import ChatRoomBox from "../ChatRoomBox.svelte";
-
-    //TODO update the rooms using the update function (socket io)
 
     let createRoomShow = false;
     let hidden1 = true; 
@@ -49,7 +47,7 @@
         }
 
         const created = await unwrap(post("/room", room));
-
+        createRoomShow = false;
         enter(created);
     };
 
@@ -60,7 +58,7 @@
     async function enter(room: Room) {
         console.log(room);
         hidden1 = true;
-        socket.emit("join", String(room.id));
+        roomSocket.emit("join", String(room.id));
         await goto(`/room/${room.id}`);
     }
 
@@ -92,7 +90,6 @@
 
 </script>
 
-<!-- //TODO style the input stuff -->
 <ToolbarButton class="dots-menu bg-c"
     on:click={() => (hidden1 = !hidden1)}>
     <img src="/Assets/icons/chat.svg" alt="chat" class="icon">
@@ -119,10 +116,10 @@
             <p>fetching data...</p>
         {:then value} 
             {#each value.joined as chatroom}
-                <ChatRoomBox room={chatroom} click={enter} joined={true}/>
+                <ChatRoomBox divider={true} room={chatroom} click={enter} joined={true}/>
             {/each}
             {#each value.joinable as chatroom}
-                <ChatRoomBox room={chatroom} click={join} joined={false}/>
+                <ChatRoomBox divider={true} room={chatroom} click={join} joined={false}/>
             {/each}
         {/await}
         </div>
@@ -131,9 +128,7 @@
     <div class="create-room">
         <div>
             <input class="input" placeholder="Room name" bind:value={room.name}>
-            <!-- {#if !room.is_private} -->
-                <input class="input" type="password" autocomplete="off" placeholder="password" bind:value={password} disabled={room.is_private}>
-            <!-- {/if} -->
+            <input class="input" type="password" autocomplete="off" placeholder="password" bind:value={password} disabled={room.is_private}>
             <br>
             <Checkbox bind:checked={room.is_private}>Private</Checkbox>
         </div>

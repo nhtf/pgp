@@ -1,19 +1,26 @@
 <script lang="ts">
-    import { get, post } from '$lib/Web';
+    import { get, post, remove } from '$lib/Web';
     import { io } from 'socket.io-client';
-    import { Status, type User } from "$lib/types";
+    import { Action, Status, Subject, type User } from "$lib/types";
     import Swal from "sweetalert2";
     import { page } from '$app/stores';
     import { BACKEND_ADDRESS } from '$lib/constants';
     import { onMount } from 'svelte/internal';
     import type {simpleuser} from "./+page";
-    import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
+    import { Button, Dropdown, DropdownItem, Avatar } from 'flowbite-svelte'
+    import {updateManager} from "$lib/updateSocket";
+
+    const friend_icon = "/Assets/icons/add-friend.png";
+	const status_colors = [ "gray", "yellow", "green" ];
 
     let score = new Map();
-    const friend_icon = "/Assets/icons/add-friend.png";
     let showFriendWindow = false;
     let username = "";
-    let friends: simpleuser[];
+
+
+    $: placement = window.innerWidth < 750 ? "top" : "left-end";
+
+    $: friends = $page.data.friendlist as simpleuser[];
 
     function checkGameScores() {
 		let socket = io(`ws://${BACKEND_ADDRESS}/game`, {withCredentials: true});
@@ -105,26 +112,69 @@
         }
     }
 
-    //TODO make this update properly when a friend is added/removed etc (see layout.svelte)
-    //TODO avatar update , username, status and other things
-    onMount(() => {
-        friends = $page.data.friendlist;
-        let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
-        socket.on("update", async (status) => {
-            if (friends) {
-            friends.forEach((friend: simpleuser) => {
-                if (friend.id === status.id) {
-                    console.log("status: ", status);
-                    console.log("friend status before: ", friend.status);
-                    friend.status = status.status;
-                    console.log("friend status after: ", friend.status);
+    async function removeFriend(id: number) {
+        await remove(`/user/me/friends/${id}`);
+        //TODO have a toast or alert or something to show it was fine.
+    }
+
+    function updateUser(update: any) {
+        console.log("updateuser function");
+        friends.forEach((friend: simpleuser) => {
+            if (friend.id === update.identifier) {
+                if (update.subject === Subject.STATUS)
+                    friend.status = update.value;
+                if (update.subject === Subject.USERNAME)
+                    friend.username = update.value;
+                if (update.subject === Subject.AVATAR)
+                    friend.avatar = update.value;
+                if (update.subject === Subject.USER) {
+                    friend.status = update.value.status;
+                    friend.username = update.value.username;
+                    friend.avatar = update.value.avatar;
                 }
-            });
+            }
+        });
+        friends = friends;
+    }
+
+    function updateFriend(update: any) {
+        console.log("updatefriend function");
+        if (update.action === Action.ADD) {
+            const newFriend: simpleuser = {
+                id: update.value.id,
+                username: update.value.username,
+                avatar: update.value.avatar,
+                status: update.value.status,
+                in_game: false,
+            }
+            friends.push(newFriend);
             friends = friends;
-        }});
+        }
+        else if (update.action === Action.REMOVE) {
+            friends = friends.filter((friend) => friend.id !== update.value.id);
+        }
+    }
+
+    onMount(() => {
+        updateManager.add(Subject.FRIENDS, updateFriend);
+        updateManager.add(Subject.STATUS, updateUser);
+        updateManager.add(Subject.USERNAME, updateUser);
+        updateManager.add(Subject.AVATAR, updateUser);
+        updateManager.add(Subject.USER, updateUser);
     });
     console.log($page.data.friendlist);
+    
+
+    function changePlacement() {
+        if (window.innerWidth < 550) {
+            placement = "top";
+        }
+        else
+            placement = "left-end";
+    }
 </script>
+
+<svelte:window on:resize={changePlacement}/>
 
 {#if showFriendWindow}
 <div class="add-friend-window">
@@ -155,7 +205,7 @@
 <div class="block-cell self-flex-start bg-c bordered" id="friend-block">
     <div class="block-hor">
         <div class="block-cell">
-            <h1 >Friends</h1>
+            <h1>Friends</h1>
         </div>
         <div class="block-cell" on:click={toggleAddfriend} on:keypress={toggleAddfriend}>
             <img class="small-avatars" src={friend_icon} alt="friend-icon" title="add friend">
@@ -164,14 +214,21 @@
     </div>
     <div class="block-vert width-available">
         {#if friends}
+        {#key friends}
             {#each friends as { username, avatar, status, in_game, id }, index}
-                <Button color="alternative" id="avatar_with_name{index}">
-                    <Avatar src={avatar} class="mr-2"/>
+                <Button color="alternative" id="avatar_with_name{index}"
+                    class="friend-button">
+                    <Avatar
+                        src={avatar}
+                        dot={{
+                            placement: "bottom-right",
+			                color: status_colors[status],
+                        }}
+                        class="mr-2"
+                    />
                     <div class="block-cell">
                         <div class="block-hor">{username}</div>
-                        {#if !in_game}
-                            <div class="block-hor" id={Status[status]}>{status}</div>
-                        {:else}
+                        {#if in_game}
                             <div class="block-hor" id="in_game">playing</div>
                             {#if score.has(username)}
                                 <div class="block-hor" id="scoredv">{score.get(username)}</div>
@@ -180,17 +237,19 @@
                     </div>
                 </Button>
                 <div class="spacing"></div>
-                <Dropdown inline triggeredBy="#avatar_with_name{index}" class="bor-c bg-c"
+                <Dropdown {placement} inline triggeredBy="#avatar_with_name{index}" class="bor-c bg-c"
                 frameClass="bor-c bg-c">
-                <DropdownItem href="/profile/{username}">view profile</DropdownItem>
+                <DropdownItem  href="/profile/{username}">view profile</DropdownItem>
+                <!-- //TODO make the spectate and invite game actually functional -->
                 {#if in_game}
-                    <DropdownItem>spectate</DropdownItem>
+                    <DropdownItem >spectate</DropdownItem>
                 {:else if status !== Status.OFFLINE}
-                    <DropdownItem>invite game</DropdownItem>
+                    <DropdownItem >invite game</DropdownItem>
                 {/if}
-                <DropdownItem slot="footer">unfriend</DropdownItem>
+                <DropdownItem  on:click={() => removeFriend(id)} slot="footer">unfriend</DropdownItem>
                 </Dropdown>
             {/each}
+            {/key}
         {/if}
     </div>
 </div>

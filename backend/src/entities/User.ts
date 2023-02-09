@@ -14,7 +14,6 @@ import { Exclude, Expose } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from "../vars";
 import { join } from "path";
 import { Room } from "./Room";
-import { Role } from "src/enums/Role";
 import { Status } from "../enums/Status";
 import { Invite } from "./Invite";
 import { get_status } from "src/gateways/get_status";
@@ -66,7 +65,8 @@ export class User {
 	@OneToMany(() => Invite, (invite) => invite.to)
 	received_invites: Invite[];
 
-	@ManyToMany(() => User)
+	@Exclude()
+	@ManyToMany(() => User, (friend) => friend.friends)
 	@JoinTable()
 	friends: User[];
 

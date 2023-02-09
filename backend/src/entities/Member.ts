@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, AfterRemove } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, BeforeRemove } from "typeorm";
 import { Room } from "./Room";
 import { Role } from "src/enums/Role";
 import { User } from "./User";
@@ -30,6 +30,11 @@ export class Member {
 	@OneToMany(() => Message, (message) => message.member)
 	messages: Message[];
 
+	@Column({
+		nullable: true,
+	})
+	mute: Date | null;
+
 	@AfterInsert()
 	async afterInsert() {
 		await UpdateGateway.instance.send_update({
@@ -40,8 +45,8 @@ export class Member {
 		}, ...(this.room?.users || []));
 	}
 
-	@AfterRemove()
-	async afterRemove() {
+	@BeforeRemove()
+	async beforeRemove() {
 		await UpdateGateway.instance.send_update({
 			subject: Subject.MEMBER,
 			identifier: this.id,

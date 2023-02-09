@@ -42,7 +42,6 @@ export type Room = {
     id: number,
     name: string,
 	access: Access,
-	is_private: boolean,
 	type: string,
 	owner: User,
 };
@@ -111,4 +110,10 @@ export enum Status {
 	OFFLINE,
 	IDLE,
 	ACTIVE,
+}
+
+export enum CoalitionColors {
+	CETUS = "3AA2DB",
+	PYXIS = "B73188",
+	VELA = "E52A2D",
 }

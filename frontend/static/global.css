@@ -418,3 +418,11 @@ table {
 	font-size: 1rem!important;
 	line-height: 1.5rem!important;
 }
+
+.friend-button {
+	border-color: transparent!important;
+	border-bottom-left-radius: 0!important;
+	border-bottom-right-radius: 0!important;
+	border-bottom-color: var(--border-color)!important;
+	border-bottom-width: 2px!important;
+}

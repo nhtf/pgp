@@ -38,8 +38,7 @@ function create_status_update(user: User | number, status: Status) {
 export class UpdateGateway extends ProtectedGateway("update") {
 	//TODO purge inactive sockets?
 	private readonly sockets = new Map<number, Socket[]>();
-	private readonly activity_map
-	= new Map<number, { last_status: Status, last_activity: number}>();
+	private readonly activity_map = new Map<number, { last_status: Status, last_activity: number}>();
 
 	static instance: UpdateGateway;
 

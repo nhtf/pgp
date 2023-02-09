@@ -90,7 +90,7 @@ export const dataSource = new DataSource({
 	),
 	subscribers: [ ],
 	synchronize: true, //TODO disable and test before turning in
-	//logging: true,
+	// logging: true,
 	// TODO enable cache? (cache: true)
 });
 

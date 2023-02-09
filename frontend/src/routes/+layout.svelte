@@ -5,10 +5,7 @@
 	import { logout } from "./layout_log_functions";
 	import { page } from "$app/stores";
 	import Notifications from "./notifications.svelte";
-	import { BACKEND,BACKEND_ADDRESS } from "$lib/constants";
-	import { Subject, Action } from "$lib/types";
-	import { io } from "socket.io-client";
-	import { invalidate } from "$app/navigation";
+	import { BACKEND, } from "$lib/constants";
 	import {
 		Dropdown,
 		DropdownItem,
@@ -26,7 +23,7 @@
 
 	export let data: LayoutData;
 
-	const user = data.user;
+	$: user = data.user;
 
 	let currentTheme: string;
 	const THEMES = {
@@ -76,32 +73,6 @@
 		}
 	};
 
-	async function updateInvite(update: any) {
-		if (update.subject === Subject.INVITES || update.subject === Subject.REQUESTS) {
-			if (update.action === Action.ADD) {
-				if (update.value.from.id !== user?.id)
-					data.invites_received.push(update.value);
-				else
-					data.invites_send.push(update.value);
-			}
-			if (update.action === Action.REMOVE) {
-				if (update.value.from.id !== user?.id) {
-					console.log("before removal: ", data.invites_received);
-					data.invites_received = data.invites_received.filter((invites) => invites.id !== update.identifier);
-					console.log("after removal: ", data.invites_received);
-				}
-				else {
-					console.log("before removal: ", data.invites_send);
-					data.invites_send = data.invites_send.filter((invites) => invites.id !== update.identifier);
-					console.log("after removal: ", data.invites_send);
-				}
-			}
-			data.invites_received = data.invites_received;
-			data.invites_send = data.invites_send;
-			await invalidate(`${BACKEND}/user/me/invites`);
-		}	
-	}
-
 	async function disable_twofa() {
 		const res = await disable_2fa();
 		if (res) {
@@ -122,9 +93,6 @@
 		window
 			.matchMedia(DARK_PREFERENCE)
 			.addEventListener("change", applyTheme);
-
-		const socket = io(`ws://${BACKEND_ADDRESS}/update`, { withCredentials: true });
-		socket.on("update", updateInvite);
 	});
 
 	const links = [

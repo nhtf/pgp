@@ -1,4 +1,4 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, AfterInsert, AfterRemove } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, AfterInsert, AfterRemove, BeforeRemove } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../enums/Access";
@@ -51,6 +51,7 @@ export class Room {
 		return this.members?.map(member => member.user);
 	}
 
+	@Exclude()
 	@ManyToMany(() => User, (user) => user.banned_rooms)
 	@JoinTable()
 	banned_users: User[];
@@ -58,31 +59,35 @@ export class Room {
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
 	invites: RoomInvite[];
 
-	async send_update(packet: UpdatePacket) {
-		if (this.is_private) {
-			await UpdateGateway.instance.send_update(packet, ...(this.users || []));
-		} else {
+	async send_update(packet: UpdatePacket, broadcast?: boolean) {
+		if (broadcast === true) {
 			await UpdateGateway.instance.send_update(packet);
+		} else {
+			await UpdateGateway.instance.send_update(packet, ...(this.users || []));
 		}
 	}
 
-	@AfterInsert()
+	/*@AfterInsert()
 	async afterInsert() {
+		const room = { ...instanceToPlain(this), owner: this.owner };
+	
+		console.log("members:", this.members);
 		await this.send_update({
 			subject: Subject.ROOM,
-			identifier: this?.id,
+			identifier: this.id,
 			action: Action.ADD,
-			value: instanceToPlain(this),
-		});
-	}
+			value: room,
+		}, !this.is_private);
+	}*/
 
-	@AfterRemove()
-	async afterRemove() {
+	//TODO check if Room invites get properly removed
+	@BeforeRemove()
+	async beforeRemove() {
 		await this.send_update({
 			subject: Subject.ROOM,
 			identifier: this.id,
 			action: Action.REMOVE,
 			value: instanceToPlain(this),
-		});
+		}, !this.is_private);
 	}
 }

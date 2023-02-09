@@ -13,7 +13,6 @@ import { User } from "src/entities/User";
 import { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
-import isNumeric from "validator/lib/isNumeric";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -30,12 +29,12 @@ export class RoomGateway extends ProtectedGateway("room") {
 		super(userRepo);
 	}
 
+	// TODO: protect
+
 	@SubscribeMessage("join")
 	join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
 		client.room = id;
 
-		console.log("Joining:", id);
-		
 		client.join(id);
 	}
 
@@ -65,6 +64,14 @@ export class RoomGateway extends ProtectedGateway("room") {
 			throw new WsException("not found");
 		}
 		
+		const now = new Date;
+
+		if (member.mute > now) {
+			const remaining = member.mute.getTime() - now.getTime();
+		
+			return client.emit("mute", remaining);
+		}
+
 		this.server.in(client.room).emit("message", {
 			content,
 			user: {
@@ -79,8 +86,6 @@ export class RoomGateway extends ProtectedGateway("room") {
 		message.content = content;
 		message.member = member;
 		message.room = { id: Number(client.room)} as ChatRoom;
-
-		console.log(message.member);
 
 		await this.messageRepo.save(message);
 	}

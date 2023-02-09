@@ -3,7 +3,7 @@ import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions, Not, ArrayContains, ArrayContainedBy } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
 import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe, UnprocessableEntityException } from "@nestjs/common";
@@ -14,9 +14,10 @@ import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { RoomInvite } from "../entities/RoomInvite";
 import * as argon2 from "argon2";
-
-const ERR_ROOM_NOT_FOUND = "Room not found";
-const ERR_PERM = "Insufficient permissions";
+import { ERR_NOT_MEMBER, ERR_PERM, ERR_ROOM_NOT_FOUND } from "src/errors";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
+import { instanceToPlain } from "class-transformer";
 
 export class PasswordDTO {
 	@IsString()
@@ -113,9 +114,14 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			member.role = role || Role.MEMBER;
 			member.room = room;
 			member.user = user;
+			if (room.members)
+				room.members.push(member);
+			else
+				room.members = [ member ];
 			return this.member_repo.save(member);
 		}
 
+		//TODO remove friend info from username update
 		async del_member(room: number | T, member: Member | User | number, ban?: boolean) {
 			room = await this.get_room(room);
 
@@ -123,17 +129,24 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id  } });
 			if (!member)
 				return false;
-			await this.member_repo.remove(member);
 
+			const idx = room.members?.findIndex(x => x.id === (member as Member).id);
+			if (idx === undefined || idx < 0)
+				throw new NotFoundException("Member not found");
+			room.members.splice(idx, 1);
 			if (ban === true) {
-				const user = member.user;
-				//TODO make sure that banned_users is loaded, because otherwise things will really go wrong
+				let user = member.user;
+				
+				if (user === undefined)
+					console.error("member.user was undefined, please make sure to also load the user relation for the member");
+				user = await this.user_repo.findOneBy({ members: { id: member.id } });
 				if (room.banned_users)
 					room.banned_users.push(user);
 				else
 					room.banned_users = [ user ];
-				await this.room_repo.save(room);
 			}
+			await this.room_repo.save(room);
+			await this.member_repo.remove(member);
 
 			return true;
 		}
@@ -225,28 +238,11 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		}
 
 		@Get("")
-		async get_visible(@Me() user: User, @Query("member", ParseBoolPipe) member?: boolean) {
-			let rooms: T[];
-
-			if (member === undefined) {
-				return await this.room_repo.find({
-					relations: {
-						members: {
-							user: true,
-						},
-					} as FindOptionsRelations<T>,
-					where: [
-						{ members: { user: { id: user.id } } },
-						{ is_private: false }
-					] as FindOptionsWhere<T>[],
-				});
-			}
-		
-			if (member) {
-				//TODO fix this
-				rooms = await this.room_repo.createQueryBuilder("room")
-					    .where((qb) => {
-					   	 const subQuery = qb
+		async get_visible(@Me() user: User, @Query("member") member?: string) {
+			if (member === "true") {
+				return this.room_repo.createQueryBuilder("room")
+					.where((qb) => {
+						const subQuery = qb
 							.subQuery()
 							.select("\"member\".\"roomId\"")
 							.select("\"member\".\"userId\"")
@@ -254,18 +250,20 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 							.where("\"roomId\" = \"room\".\"id\"")
 							.andWhere("\"userId\" = :user_id")
 							.getQuery();
-							return "EXISTS (" + subQuery + ")";
+						return "EXISTS (" + subQuery + ")";
 					    })
-						.leftJoinAndSelect("room.members", "member")
-						.leftJoinAndSelect("member.user", "user")
-					    .setParameter("user_id", user.id)
-					    .getMany();
-			} else {
+					.leftJoinAndSelect("room.members", "member")
+					.leftJoinAndSelect("member.user", "user")
+					.setParameter("user_id", user.id)
+					.getMany();
+			} else if (member === "false") {
 				//TODO also list private rooms for which you have an invite?
-				rooms = await this.room_repo.createQueryBuilder("room")
-					    .where("\"room\".\"is_private\" = false")
-					    .andWhere((qb) => {
-					   	 const subQuery = qb
+				return this.room_repo.createQueryBuilder("room")
+					.leftJoinAndSelect("room.banned_users", "banned_user")
+					.where("\"banned_user\" IS NULL")
+					.andWhere("\"room\".\"is_private\" = false")
+					.andWhere((qb) => {
+						const subQuery = qb
 							.subQuery()
 							.select("\"member\".\"roomId\"")
 							.select("\"member\".\"userId\"")
@@ -274,14 +272,32 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 							.andWhere("\"userId\" = :user_id")
 							.getQuery();
 							return "NOT EXISTS (" + subQuery + ")";
+					})
+					.leftJoinAndSelect("room.members", "member")
+					.leftJoinAndSelect("member.user", "user")
+					.setParameter("user_id", user.id)
+					.getMany();
+			} else {
+				console.log("here");
+				return this.room_repo.createQueryBuilder("room")
+					.leftJoinAndSelect("room.banned_users", "banned_user")
+					.where("\"banned_user\" IS NULL")
+					.orWhere((qb) => {
+						const subQuery = qb
+							.subQuery()
+							.select("\"member\".\"roomId\"")
+							.select("\"member\".\"userId\"")
+							.from(Member, "member")
+							.where("\"roomId\" = \"room\".\"id\"")
+							.andWhere("\"userId\" = :user_id")
+							.getQuery();
+						return "EXISTS (" + subQuery + ")";
 					    })
-						.leftJoinAndSelect("room.members", "member")
-						.leftJoinAndSelect("member.user", "user")
-					    .setParameter("user_id", user.id)
-					    .getMany();
+					.leftJoinAndSelect("room.members", "member")
+					.leftJoinAndSelect("member.user", "user")
+					.setParameter("user_id", user.id)
+					.getMany();
 			}
-
-			return rooms;
 		}
 
 		// TODO: remove
@@ -306,12 +322,17 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			await this.setup_room(room, dto);
 			await this.room_repo.save(room);//TODO only save one time
 		
+			await room.send_update({
+				subject: Subject.ROOM,
+				identifier: room.id,
+				action: Action.ADD,
+			       value: instanceToPlain(room),
+			}, !room.is_private);
+		
 			return room;
 		}
 
-		async setup_room(room: T, dto: C) {
-
-		}
+		async setup_room(room: T, dto: C) {}
 
 		@Get("id/:id")
 		@RequiredRole(Role.MEMBER)
@@ -343,10 +364,10 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			const invites = await this.invite_repo.findBy({ to: { id: me.id } });
 
 			if ((!invites || invites.length == 0) && room.access == Access.PRIVATE) {
-				throw new NotFoundException("Not found");
+				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 			}
 
-			if (room.banned_users?.find(current => current.id === room.id))
+			if (room.banned_users?.find(current => current.id === me.id) !== undefined)
 				throw new ForbiddenException("You have been banned from this channel"); //TODO should this give "not found" for private rooms?
 				// M: no, ban implies they knew of this room
 
@@ -402,36 +423,37 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		async remove_member(
 			@GetRoom() room: T,
 			@GetMember() member: Member,
-			@Param("target", ParseIDPipe(Member)) target: Member,
-			@Body("ban", ParseBoolPipe) ban: boolean,
+			@Param("target", ParseIDPipe(Member, { user: true })) target: Member,
+			@Body("ban", ParseBoolPipe) ban?: boolean,
 		) {
 		
 			if (member.room.id !== room.id) {
-				throw new BadRequestException("Target not a member of this room");
+				throw new BadRequestException(ERR_NOT_MEMBER);
 			} 
 		
 			if (member.id !== target.id && target.role >= member.role) {
 				console.log(member.role + " " + target.role);
 				throw new ForbiddenException(ERR_PERM);
 			}
-			if (ban === true && member.role < Role.ADMIN)
+		
+			if (ban === true && member.role < Role.ADMIN) {
 				throw new ForbiddenException(ERR_PERM);
+			}
 
 			if (target.role === Role.OWNER) {
 				if (room.members.length > 1) {
 					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
 				}
-			
+
 				return await this.service.destroy(room);
 			}
 
-			//TODO fix bans
 			return await this.service.del_member(room, target, ban === true);
 		}
 
 		@Delete("id/:id")
 		@RequiredRole(Role.OWNER)
-		async delete_room(@GetMember() member: Member, @GetRoom() room: T) {
+		async delete_room(@GetRoom() room: T) {
 			return await this.room_repo.remove(room);
 		}
 
@@ -443,12 +465,11 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			@Param("target", ParseIDPipe(Member, { room: true })) target: Member,
 			@Body("role", new ParseEnumPipe(Role)) role: Role
 		) {
-			console.log(typeof role);
 			if (member.room.id !== room.id) {
-				throw new BadRequestException("Target not a member of this room");
-			} 
+				throw new BadRequestException(ERR_NOT_MEMBER);
+			}
 		
-			if (target.role >= member.role || role >= member.role) {
+			if (target.role >= member.role || (role !== Role.OWNER && role >= member.role)) {
 				throw new ForbiddenException(ERR_PERM);
 			}
 		
@@ -456,7 +477,21 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		
 			if (role === Role.OWNER) {
 				member.role = Role.ADMIN;
+			
+				await room.send_update({
+					subject: Subject.MEMBER,
+					action: Action.SET,
+					identifier: member.id,
+					value: member.role,
+				});
 			}
+
+			await room.send_update({
+				subject: Subject.MEMBER,
+				action: Action.SET,
+				identifier: target.id,
+				value: role,
+			});
 		
 			return await this.member_repo.save([member, target]);
 		}
@@ -491,6 +526,9 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			if (await this.invite_repo.findOneBy({ room: { id: room.id }, from: { id: me.id }, to: { id: target.id } }))
 				throw new ForbiddenException("Already invited this user");
 
+			if (room.banned_users?.find(x => x.id === target.id))
+				throw new ForbiddenException("Cannot invite banned user");
+
 			const invite = new RoomInvite;
 
 			invite.from = me;
@@ -506,8 +544,10 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			@Param("id", ParseIDPipe(Room)) room: Room,
 			@Param("invite_id", ParseIDPipe(RoomInvite, { room: true, from: true, to: true })) invite: RoomInvite,
 		) {
-			if (invite.room.id != room.id)
+			if (invite.room.id != room.id) {
 				throw new NotFoundException("Not found");
+			}
+		
 			if (invite.from.id != me.id && invite.to.id != me.id) {
 				const member = await this.member_repo.findOneBy({ user: { id: me.id } });
 				if (!member && room.access == Access.PRIVATE)
@@ -515,19 +555,31 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 				else if (!member || member.role < Role.ADMIN)
 					throw new ForbiddenException(ERR_PERM);
 			}
-			await this.invite_repo.remove(invite);
 		
-			return {};
+			return await this.invite_repo.remove(invite);
+		
 			//TODO check if invite is properly removed from Room as well
 		}
 
 		@Get("id/:id/ban(s)?")
 		@RequiredRole(Role.ADMIN)
-		async list_bans(
-			@GetRoom() room: T
-		) {
+		async list_bans(@GetRoom() room: T) {
 			console.log(room.banned_users);
 			return room.banned_users;
+		}
+
+		@Delete("id/:id/ban(s)?/:user_id")
+		@RequiredRole(Role.ADMIN)
+		async remove_ban(
+			@GetRoom() room: T,
+			@Param("user_id", ParseIDPipe(User)) target: User,
+		) {
+			const idx = room.banned_users?.findIndex(user => user.id === target.id);
+			if (idx === undefined || idx < 0)
+				throw new NotFoundException("User not banned");
+			room.banned_users.splice(idx, 1);
+			await this.room_repo.save(room);
+			return {};
 		}
 	}
 	return RoomControllerFactory;

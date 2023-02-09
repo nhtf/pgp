@@ -1,11 +1,12 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
-    import { FRONTEND } from "$lib/constants";
+    import { FRONTEND, BACKEND } from "$lib/constants";
     import { put } from "$lib/Web";
 	import type { PageData } from "./$types";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
 	import { fly } from 'svelte/transition';
 	import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
+    import { invalidate } from "$app/navigation";
 
 	export let data: PageData;
 
@@ -34,6 +35,7 @@
 		}
 	}
 
+	//TODO move this to the profile page
 	async function changeUserName() {		
 		let res = await unwrap(put("/user/me/username", {username}, true));
 		const links = document.getElementsByTagName("a");
@@ -44,6 +46,7 @@
 		}
 		data.user = res;
 		data = data;
+		await invalidate(`${BACKEND}/user/me`);
 	}
 
 	function changeSettingsTab(tab: string) {

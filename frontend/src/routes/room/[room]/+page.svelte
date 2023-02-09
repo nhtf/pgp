@@ -1,30 +1,28 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import Swal from "sweetalert2";
-    import socket from "../websocket";
+    import { roomSocket } from "../websocket";
     import { unwrap } from "$lib/Alert";
     import type { PageData } from "./$types";
     import { post, remove , get } from "$lib/Web";
-    import { error } from "@sveltejs/kit";
     import MessageBox from "./MessageBox.svelte";
 	import { ToolbarButton, Dropdown, DropdownItem } from "flowbite-svelte";
     import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
-    import type { Message } from "$lib/types";
+    import { Role, type Message } from "$lib/types";
+    import MemberDrawer from "./MemberDrawer.svelte";
 
 	export let data: PageData;
-
-	if (!data.user) {
-		throw error(401, "Unauthorized");
-	}
 
 	let div: HTMLElement;
 	let autoscroll: boolean;
 
-	$: user = data.user;
 	$: room = data.room;
 	$: messages = data.messages;
+	$: muted = false;
+
+	$: role = data.role;
 
 	let invitee: string = "";
 	let value: string = "";
@@ -32,7 +30,8 @@
 	onMount(async () => {
 		messages = sort(messages);
 
-		socket.emit("join", String(room.id));
+		roomSocket.emit("join", String(room.id));
+	
 		autoscroll = true;
 	});
 
@@ -46,8 +45,22 @@
 		}
 	});
 
-	socket.on("message", async () => {
+	roomSocket.on("message", async () => {
 		messages = sort(await unwrap(get(`/room/id/${room.id}/messages`)));
+	});
+
+	roomSocket.on("mute", (remaining: number) => {
+		const seconds = Math.floor(remaining / 1000);
+		const minutes = Math.floor(seconds / 60);
+	
+		Swal.fire({
+			icon: "error",
+			text: `muted for another ${minutes} minutes and ${seconds - minutes * 60} seconds`,
+		})
+
+		muted = true;
+
+		setTimeout(() => muted = false, remaining);
 	});
 
 	function sort(messages: Message[]): Message[] {
@@ -70,7 +83,7 @@
 		if (!value.length)
            return;
 	
-		socket.emit("message", value);
+		roomSocket.emit("message", value);
 	
 		value = "";
 	}
@@ -116,7 +129,6 @@
 	}
 
 	$: rows = (value.match(/\n/g) || []).length + 1 || 1;
-
 </script>
 
 <div class="chat-room-container">
@@ -126,35 +138,42 @@
 		<ToolbarButton class="chatroom-menu" id="title-button">
 			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
 		</ToolbarButton>
+		<MemberDrawer/>
 	</div>
 	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
 		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
-		{#if user?.id === room.owner.id}
+		{#if role >= Role.OWNER}
 			<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
+		{/if}
+		{#if role >= Role.ADMIN}
 			<DropdownItem class="flex items-center text-base font-semibold gap-2">
-			<form on:submit|preventDefault={invite}>
-				<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
-				<input class="invite-button" type="submit" value="Invite">
-			</form>
+				<form on:submit|preventDefault={invite}>
+					<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
+					<input class="invite-button" type="submit" value="Invite">
+				</form>
 			</DropdownItem>
 		{/if}
 	</Dropdown>
 
 <div class="messages" bind:this={div}>
 	{#each messages as message}
-		<MessageBox {message} />
+		<MessageBox {message}/>
 	{/each}
 </div>
 
 <div class="message-input">
 	<div class="message-box">
-		<textarea wrap="hard"
-		rows="{rows}"
-		bind:this={textarea}
-		on:resize={onResize}
-		on:keypress={handleKeyPress}
-		bind:value={value}
-		class="w-full space-x-4" placeholder="message..."/>
+		<textarea
+			wrap="hard"
+			disabled={muted}
+			rows="{rows}"
+			bind:this={textarea}
+			on:resize={onResize}
+			on:keypress={handleKeyPress}
+			bind:value={value}
+			class="w-full space-x-4"
+			placeholder="message..."
+		/>
 	</div>
 	<div class="send-button"
 		on:click|preventDefault={sendMessage}

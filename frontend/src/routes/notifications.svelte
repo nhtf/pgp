@@ -3,12 +3,17 @@
     import type { Invite } from "$lib/types";
     import {page} from "$app/stores";
     import { respond } from '$lib/invites';
-    import { BACKEND } from "$lib/constants";
+    import { onMount } from 'svelte';
+    import { Subject, Action } from "$lib/types";
+    import type {UpdatePacket} from "$lib/types";
+    import { updateManager } from "$lib/updateSocket";
     import { invalidate } from "$app/navigation";
-    import {onInterval} from "$lib/interval";
+    import { BACKEND, } from "$lib/constants";
 
     $: notifications = $page.data.invites_received as Invite[];
+    $: send = $page.data.invites_send as Invite[];
     $: length = $page.data.invites_received.length;
+    $: user = $page.data.user;
 
     async function removeNotification(index: number) {
         const notif = notifications[index];
@@ -19,12 +24,40 @@
         const notif = notifications[index];
         respond(notif, "accept");
     }
+
+    async function updateInvite(update: UpdatePacket) {
+		switch (update.action) {
+			case Action.ADD:
+				if (update.value.from.id !== user?.id) {
+					notifications.push(update.value);
+					notifications = notifications;
+				}
+				else {
+					send.push(update.value);
+					send = send;
+				}
+				break;
+			case Action.REMOVE:
+				if (update.value.from.id !== user?.id) {
+					notifications = notifications.filter((invites) => invites.id !== update.identifier);
+				} else {
+					send = send.filter((invites) => invites.id !== update.identifier);
+				}
+				break ;
+		}
+        await invalidate(`${BACKEND}/user/me/invites`);
+    }
+
+        onMount(() => {
+            updateManager.add(Subject.INVITES, updateInvite);
+        });
     
   </script>
   
 
   <!-- //TODO instead of denying the invite when you click the x button just remove the notif or have it as seen or something -->
   <!-- //TODO maybe have the bell shake or something when there is a new notification -->
+  <!-- //TODO sound for notification? -->
   {#key length}
   {#if notifications.length > 0}
   <div id="bell" 

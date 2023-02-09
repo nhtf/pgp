@@ -9,8 +9,7 @@ export interface BallObject {
 	velocity: VectorObject;
 }
 
-//TODO make it look different
-//TODO also draw a trailling effect?
+//TODO make a trailling effect?
 export class Ball {
 	public position: Vector;
 	public previousPos: Vector;

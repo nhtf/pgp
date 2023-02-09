@@ -19,8 +19,6 @@ export interface PaddleObject {
 }
 
 
-
-//TODO paddle should be able to also move on the x-axis
 export class Paddle {
 	public position: Vector;
 	public height: number;

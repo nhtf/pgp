@@ -194,9 +194,4 @@
 	.button-enter {
 		border-color: var(--blue);
 	}
-
-	br {
-		width: 1px;
-		margin-bottom: 10px;
-	}
 </style>

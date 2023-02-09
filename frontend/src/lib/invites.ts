@@ -4,7 +4,6 @@ import {post, remove} from "./Web";
 import { BACKEND } from "$lib/constants";
 import { invalidate } from "$app/navigation";
 
-//TODO fix that if you remove a invite and then without refreshing the page make the same invite again it shows 2 invites now
 export async function respond(invite: Invite, action: string) {
     if (invite.type === "ChatRoom" || invite.type === "GameRoom") {
         if (action === "deny") {
@@ -16,7 +15,6 @@ export async function respond(invite: Invite, action: string) {
         }
     }
     else if (invite.type === "Friend") {
-        //TODO friend request doesn't work anymore need to fix this
         if (action === "deny") {
             console.log("trying to remove a friend request from here: ", invite.id);
             await remove(`/user/me/friends/requests/${invite.id}`);
@@ -24,5 +22,7 @@ export async function respond(invite: Invite, action: string) {
         else
             await post(`/user/me/friends/requests/`, {"id": invite.from.id}); 
     }
+
+    //TODO this one probably not needed anymore
     await invalidate(`${BACKEND}/user/me/invites`); //TODO thanks chen en daan for this stupid function that makes it properly update a component when it's data changes
 }

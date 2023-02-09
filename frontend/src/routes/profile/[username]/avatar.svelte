@@ -6,7 +6,7 @@
 
     const edit_icon = "/Assets/icons/pen.png";
 	let show_edit = false;
-	$: avatar = $page.data?.profile?.avatar; //TODO this is how to do stores properly
+	$: avatar = $page.data?.profile?.avatar;
 	let src: string | null;
 	let filevar: FileList;
 
@@ -199,7 +199,6 @@
 	#edit-icon {
 		max-width: 25px;
 		max-height: 25px;
-		z-index: 20;
 		position: relative;
 		top: -10px;
 		right: -35px;

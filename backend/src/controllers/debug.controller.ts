@@ -211,10 +211,6 @@ export class DebugController {
 
 	@Get("messages")
 	async messages() {
-		const messages = await this.messageRepo.find();
-
-		console.log(messages);
-	
-		return messages;
+		return await this.messageRepo.find();
 	}
 }
