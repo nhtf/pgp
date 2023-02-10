@@ -1,6 +1,8 @@
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { Action, Status, Subject, type UpdatePacket } from "$lib/types";
 import { io } from "socket.io-client";
+import { unwrap } from "./Alert";
+import { get } from "./Web";
 
 const WS = `ws://${BACKEND_ADDRESS}/update`;
 
@@ -12,7 +14,7 @@ class UpdateManager {
 		this.socket.on("update", this.execute.bind(this));
 	}
 
-	add(subject: Subject, fun: Function) {
+	set(subject: Subject, fun: Function) {
 		if (this.functions.has(subject)) {
 			console.log(`Overwriting ${Subject[subject]}; `);
 		}
@@ -20,9 +22,19 @@ class UpdateManager {
 		this.functions.set(subject, fun);
 	}
 
-	execute(update: UpdatePacket) {
+	remove(subject: Subject) {
+		if (!this.functions.has(subject)) {
+			console.log(`Attempting to delete ${Subject[subject]}; `);
+		}
+	
+		this.functions.delete(subject);
+	}
+
+	async execute(update: UpdatePacket) {
 		if (update.subject === Subject.STATUS) {
-			console.log(`${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.identifier};`, Status[update.value]);
+			const user = await unwrap(get(`/user/id/${update.identifier}`));
+		
+			console.log(`${Subject[update.subject]}; ${Action[update.action]}; USER: ${user.username};`, Status[update.value]);
 		} else {
 			console.log(`${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.identifier};`, update.value);
 		}

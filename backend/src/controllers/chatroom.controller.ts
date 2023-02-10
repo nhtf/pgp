@@ -9,6 +9,8 @@ import { Role } from "src/enums/Role";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)?") {
 
@@ -62,6 +64,24 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 
 		target.mute = new Date(Date.now() + milliseconds);
 
-		return await this.member_repo.save(target);
+		room.send_update({
+			subject: Subject.MUTE,
+			action: Action.SET,
+			identifier: target.id,
+			value: milliseconds,
+		});
+
+		await this.member_repo.save(target);
+
+		setTimeout(() => {
+			room.send_update({
+				subject: Subject.MUTE,
+				action: Action.REMOVE,
+				identifier: target.id,
+				value: null,
+			});
+		}, milliseconds);
+
+		return {};
 	}
 }

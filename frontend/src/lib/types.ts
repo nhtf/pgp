@@ -12,6 +12,7 @@ export type Member = {
 	id: number,
 	user: User,
 	role: Role,
+	is_muted: boolean,
 };
 
 export type User = {
@@ -44,6 +45,7 @@ export type Room = {
 	access: Access,
 	type: string,
 	owner: User,
+	joined?: boolean,
 };
 
 export type Gameroom = Room & {
@@ -98,6 +100,7 @@ export enum Subject {
 	ROOM,
 	MEMBER,
 	USERNAME,
+	MUTE,
 }
 
 export enum Action {

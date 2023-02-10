@@ -48,8 +48,6 @@ export class User {
 	@Exclude()
 	@Column({
 		default: DEFAULT_AVATAR,
-		//TODO remove this attribute
-		nullable: true,
 	})
 	avatar_base: string; 
 

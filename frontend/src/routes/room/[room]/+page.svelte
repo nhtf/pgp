@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import Swal from "sweetalert2";
     import { roomSocket } from "../websocket";
     import { unwrap } from "$lib/Alert";
@@ -10,30 +10,51 @@
     import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
-    import { Role, type Message } from "$lib/types";
+    import { Role, Subject, type Member, type Message, type UpdatePacket } from "$lib/types";
     import MemberDrawer from "./MemberDrawer.svelte";
+    import { updateManager } from "$lib/updateSocket";
 
 	export let data: PageData;
+
+	const user = data.user;
+
+	if (!user) {
+		throw goto(`/profile`);
+	}
 
 	let div: HTMLElement;
 	let autoscroll: boolean;
 
+	const self = data.members.find((member) => member.user.id === data.user?.id);
+
+	if (!self) {
+		throw goto(`/room`);
+	}
+
 	$: room = data.room;
-	$: messages = data.messages;
-	$: muted = false;
+	$: messages = sortByDate(data.messages);
+	$: muted = self.is_muted;
 
 	$: role = data.role;
 
 	let invitee: string = "";
 	let value: string = "";
 
-	onMount(async () => {
-		messages = sort(messages);
-
+	onMount(() => {
+		updateManager.set(Subject.MUTE, (update: UpdatePacket) => {
+			const member = data.members.find((member) => member.id === update.identifier) as Member;
+		
+			member.is_muted = update.value.is_muted;
+		});
+	
 		roomSocket.emit("join", String(room.id));
 	
 		autoscroll = true;
 	});
+
+	onDestroy(() => {
+		updateManager.remove(Subject.MUTE);
+	})
 
 	beforeUpdate(() => {
 		autoscroll = div && (div.offsetHeight + div.scrollTop) > (div.scrollHeight - 20);
@@ -46,24 +67,10 @@
 	});
 
 	roomSocket.on("message", async () => {
-		messages = sort(await unwrap(get(`/room/id/${room.id}/messages`)));
+		messages = sortByDate(await unwrap(get(`/room/id/${room.id}/messages`)));
 	});
 
-	roomSocket.on("mute", (remaining: number) => {
-		const seconds = Math.floor(remaining / 1000);
-		const minutes = Math.floor(seconds / 60);
-	
-		Swal.fire({
-			icon: "error",
-			text: `muted for another ${minutes} minutes and ${seconds - minutes * 60} seconds`,
-		})
-
-		muted = true;
-
-		setTimeout(() => muted = false, remaining);
-	});
-
-	function sort(messages: Message[]): Message[] {
+	function sortByDate(messages: Message[]): Message[] {
 		return messages.sort((first, second) => {
 			const a = new Date(first.created).getTime();
 			const b = new Date(second.created).getTime();
@@ -172,7 +179,7 @@
 			on:keypress={handleKeyPress}
 			bind:value={value}
 			class="w-full space-x-4"
-			placeholder="message..."
+			placeholder={self.is_muted ? "You are muted" : "message..."}
 		/>
 	</div>
 	<div class="send-button"

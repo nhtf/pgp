@@ -78,7 +78,10 @@
 					<DropdownDivider/>
 					<DropdownItem on:click={() => kick(member, true)}>Ban</DropdownItem>
 					<DropdownItem on:click={() => kick(member, false)}>Kick</DropdownItem>
-					<DropdownItem on:click={() => mute(member, 1)}>Mute</DropdownItem>
+					<DropdownItem on:click={() => mute(member, 10)}>Mute</DropdownItem>
+					{#if member.is_muted}
+						<DropdownItem on:click={() => mute(member, 0)}>Unmute</DropdownItem>
+					{/if}
 				{/if}
 			{/if}
 		</Dropdown>

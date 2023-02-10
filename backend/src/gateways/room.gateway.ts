@@ -13,6 +13,7 @@ import { User } from "src/entities/User";
 import { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
+import { validate_id } from "src/util";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -29,10 +30,13 @@ export class RoomGateway extends ProtectedGateway("room") {
 		super(userRepo);
 	}
 
-	// TODO: protect
-
 	@SubscribeMessage("join")
 	join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+		try {
+			validate_id(id);
+		} catch (error) {
+			throw new WsException(error.message);
+		}
 		client.room = id;
 
 		client.join(id);

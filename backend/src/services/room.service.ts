@@ -6,9 +6,9 @@ import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions, Not, ArrayContains, ArrayContainedBy } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
-import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe, UnprocessableEntityException } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe, UnprocessableEntityException, Res } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
-import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
+import { IsString, Length, IsOptional, IsBoolean, ValidateIf } from "class-validator";
 import { Role } from "../enums/Role";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
@@ -18,6 +18,7 @@ import { ERR_NOT_MEMBER, ERR_PERM, ERR_ROOM_NOT_FOUND } from "src/errors";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { instanceToPlain } from "class-transformer";
+import type { Response } from "express";
 
 export class PasswordDTO {
 	@IsString()
@@ -34,7 +35,8 @@ export class CreateRoomDTO {
 	is_private: boolean;
 
 	@IsString()
-	@Length(1, 200)//TODO length should not be checked here, an empty password might be sent with is_private on
+	@ValidateIf(o => o.is_private === false) //TODO test
+	@Length(1, 200)//TODO length should not be checked here, an empty password might be sent with is_private on, can probably be done using @ValidateIf
 	@IsOptional()
 	password: string;
 }
@@ -121,7 +123,6 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			return this.member_repo.save(member);
 		}
 
-		//TODO remove friend info from username update
 		async del_member(room: number | T, member: Member | User | number, ban?: boolean) {
 			room = await this.get_room(room);
 
@@ -257,7 +258,6 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 					.setParameter("user_id", user.id)
 					.getMany();
 			} else if (member === "false") {
-				//TODO also list private rooms for which you have an invite?
 				return this.room_repo.createQueryBuilder("room")
 					.leftJoinAndSelect("room.banned_users", "banned_user")
 					.where("\"banned_user\" IS NULL")
@@ -278,7 +278,6 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 					.setParameter("user_id", user.id)
 					.getMany();
 			} else {
-				console.log("here");
 				return this.room_repo.createQueryBuilder("room")
 					.leftJoinAndSelect("room.banned_users", "banned_user")
 					.where("\"banned_user\" IS NULL")
@@ -344,11 +343,15 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@RequiredRole(Role.OWNER)
 		async edit_room(
 			@GetRoom() room: T,
-			@Body() dto: PasswordDTO,
+			@Body() dto?: PasswordDTO,
 		) {
 			if (room.is_private)
 				throw new UnprocessableEntityException("A private room cannot have a password");
-			room.password = await argon2.hash(dto.password);
+
+			if (dto === undefined)
+				room.password = undefined;
+			else
+				room.password = await argon2.hash(dto.password);
 			await this.room_repo.save(room);
 			return {};
 		}
@@ -361,15 +364,21 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 
 		@Post("id/:id/member(s)?")
 		async join(@Me() me: User, @GetRoom() room: T, @Body("password") password?: string) {
-			const invites = await this.invite_repo.findBy({ to: { id: me.id } });
+			const invites = await this.invite_repo.findBy({
+				to: {
+					id: me.id,
+				},
+				room: {
+					id: room.id,
+				},
+			});
 
-			if ((!invites || invites.length == 0) && room.access == Access.PRIVATE) {
+			if (room.access == Access.PRIVATE && (!invites || invites.length === 0)) {
 				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 			}
 
 			if (room.banned_users?.find(current => current.id === me.id) !== undefined)
-				throw new ForbiddenException("You have been banned from this channel"); //TODO should this give "not found" for private rooms?
-				// M: no, ban implies they knew of this room
+				throw new ForbiddenException("You have been banned from this channel");
 
 			if (!invites || invites.length === 0) {
 				if (room.access === Access.PROTECTED) {
@@ -382,23 +391,29 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 					}
 				}
 			}
+		
 			await this.service.add_member(room, me);
 			await this.invite_repo.remove(invites);
+
+			const action = room.is_private ? Action.ADD : Action.SET;
+		
+			await this.update_service.send_update({
+				subject: Subject.ROOM,
+				identifier: room.id,
+				action,
+				value: { ...instanceToPlain(room), joined: true },
+			}, me);
 
 			return {};
 		}
 
+		/* deprecated, use id/:id/members/me */
+		//TODO remove
 		@Delete("id/:id/leave")
-		async leave(@GetRoom() room: T, @GetMember() member: Member) {
-			if (member.role === Role.OWNER) {
-				if (room.members.length > 1) {
-					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
-				}
-			
-				return await this.service.destroy(room);
-			}
-		
-			return await this.service.del_member(room, member, false);
+		async leave(
+			@Res() res: Response,
+		) {
+			res.redirect(HttpStatus.PERMANENT_REDIRECT, "members/me");
 		}
 
 
@@ -417,6 +432,15 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			});
 		}
 
+		@Delete("id/:id/member(s)?/me")
+		@RequiredRole(Role.MEMBER)
+		async user_leave(
+			@GetRoom() room: T,
+			@GetMember() member: Member,
+			@Res() res: Response,
+		) {
+			res.redirect(`${member.id}`);
+		}
 
 		@Delete("id/:id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
@@ -424,7 +448,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			@GetRoom() room: T,
 			@GetMember() member: Member,
 			@Param("target", ParseIDPipe(Member, { user: true })) target: Member,
-			@Body("ban", ParseBoolPipe) ban?: boolean,
+			@Body("ban") ban?: string,
 		) {
 		
 			if (member.room.id !== room.id) {
@@ -436,7 +460,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 				throw new ForbiddenException(ERR_PERM);
 			}
 		
-			if (ban === true && member.role < Role.ADMIN) {
+			if (ban === "true" && member.role < Role.ADMIN) {
 				throw new ForbiddenException(ERR_PERM);
 			}
 
@@ -448,7 +472,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 				return await this.service.destroy(room);
 			}
 
-			return await this.service.del_member(room, target, ban === true);
+			return await this.service.del_member(room, target, ban === "true");
 		}
 
 		@Delete("id/:id")
@@ -564,7 +588,6 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@Get("id/:id/ban(s)?")
 		@RequiredRole(Role.ADMIN)
 		async list_bans(@GetRoom() room: T) {
-			console.log(room.banned_users);
 			return room.banned_users;
 		}
 

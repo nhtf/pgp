@@ -134,9 +134,9 @@
 				>profile</DropdownItem
 			>
 			{#if twofa_enabled}
-			<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
+				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
 			{:else}
-			<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
+				<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
 			{/if}
 			<DropdownItem
 				><Toggle

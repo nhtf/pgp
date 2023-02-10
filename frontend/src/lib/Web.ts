@@ -10,14 +10,14 @@ export async function json(
 	const data = await response.json();
 
 	if (!response.ok) {
-		throw {	status,	message: `Backend: ${data.message}` };
+		throw {	status,	message: data.message };
 	} else {
 		return data;
 	}
 }
 
 export async function get(pathname: string, query?: any) {
-	return await json(`${BACKEND}${pathname}${query ? '?' + new URLSearchParams(query).toString() : ''}`, {
+	return await json(`${BACKEND}${pathname}${query ? `?${new URLSearchParams(query).toString()}` : ''}`, {
 		credentials: "include",
 	});
 }

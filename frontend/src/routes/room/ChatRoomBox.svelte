@@ -1,15 +1,11 @@
 <script lang="ts">
     import { page } from "$app/stores";
-    import { unwrap } from "$lib/Alert";
 	import { Access, type Room } from "$lib/types";
-    import { get } from "$lib/Web";
-    import { Avatar } from "flowbite-svelte";
 
     const lock = "/Assets/icons/lock.svg";
 
 	export let room: Room;
 	export let click: Function;
-	export let joined: boolean;
 	export let divider: boolean;
 
 	let frameclass = divider ? "room divider" : "room";
@@ -32,7 +28,7 @@
 		</div>
 	
 		<!-- //TODO maybe other way to make it obvious that you are not a member or are? -->
-		{#if joined}
+		{#if room.joined}
 			<div class="room-name">{room.name}</div>
 		{:else}
 			<div class="room-name joinable">{room.name}</div>
@@ -41,14 +37,6 @@
 		{#if room.access == Access.PROTECTED}
 			<img class="lock-icon" src={lock} alt="lock">
 		{/if}
-
-		<!-- {#if joined}
-			{#await get(`/room/id/${room.id}/members`) then members}
-				{#each members as member}
-					<Avatar src={member?.user.avatar} stacked/>
-				{/each}
-			{/await}
-		{/if} -->
 	</div>
 </button>
 

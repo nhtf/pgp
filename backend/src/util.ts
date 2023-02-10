@@ -6,13 +6,10 @@ import {
 	PipeTransform,
 	ArgumentMetadata,
 	Injectable,
-	CanActivate,
 	Inject,
 	BadRequestException,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
 import { User } from "./entities/User";
-import { EntityTarget, ObjectLiteral } from "typeorm";
 import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
 import isNumeric from "validator/lib/isNumeric";
 import isLength from "validator/lib/isLength";
@@ -22,7 +19,7 @@ export const Me = createParamDecorator(
 		const user = ctx.switchToHttp().getRequest().user;
 	
 		if (!user)
-			throw new HttpException("unauthorized", HttpStatus.UNAUTHORIZED);
+			throw new HttpException("Unauthorized", HttpStatus.UNAUTHORIZED);
 
 		return user;
 	}
@@ -43,22 +40,8 @@ export function validate_id(value: any) {
 	return id;
 }
 
-// TODO: daan moet hiernaar kijken
 export async function parseId<T>(type: (new () => T), value: any, repo: Repository<T>) {
-	if (!value || value === null)
-		throw new HttpException("id not specified", HttpStatus.BAD_REQUEST);
-	if (!["string", "number"].includes(typeof value))
-		throw new HttpException("id must be either a string or a number", HttpStatus.BAD_REQUEST);
-	if (typeof value === "string") {
-		if (!isNumeric(value, { no_symbols: true }))
-			throw new HttpException("id must consist of only digits", HttpStatus.BAD_REQUEST);
-	}
-	const id = Number(value);
-	if (!isFinite(id))
-		throw new HttpException("id must be finite", HttpStatus.UNPROCESSABLE_ENTITY);
-	if (id > Number.MAX_SAFE_INTEGER)
-		throw new HttpException(`id may not be larger that ${Number.MAX_SAFE_INTEGER}`, HttpStatus.UNPROCESSABLE_ENTITY);
-	const entity = await repo.findOneBy({ id: Number(value) } as unknown as FindOptionsWhere<T>);
+	const entity = await repo.findOneBy({ id: validate_id(value) } as unknown as FindOptionsWhere<T>);
 	if (!entity)
 		throw new HttpException("not found", HttpStatus.NOT_FOUND);
 	return entity;

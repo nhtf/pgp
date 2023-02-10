@@ -11,7 +11,6 @@ export async function respond(invite: Invite, action: string) {
         }
         else {
             await post(`/room/id/${invite.room?.id}/members`);
-            console.log("did a post here");
         }
     }
     else if (invite.type === "Friend") {

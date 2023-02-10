@@ -14,7 +14,7 @@ import { sessionMiddleware } from "./app.module";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import * as compression from "compression";
 
-//TODO remove pretty much all lazy loading from entities...
+//TODO remove
 
 //https://docs.nestjs.com/websockets/adapter
 //https://socket.io/get-started/chat
@@ -61,7 +61,7 @@ async function bootstrap() {
 	app.useWebSocketAdapter(betterAdapter);
 
 	app.useStaticAssets(join(__dirname, "..", "avatar"), { prefix: "/avatar/" });
-	//TODO use nestjs way of setting up the data sourcd
+	
 	app.listen(BACKEND_PORT);
 }
 bootstrap();

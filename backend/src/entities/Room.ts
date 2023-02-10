@@ -1,4 +1,4 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, AfterInsert, AfterRemove, BeforeRemove } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, AfterInsert, AfterRemove, BeforeRemove, VirtualColumn } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../enums/Access";
@@ -58,6 +58,8 @@ export class Room {
 
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
 	invites: RoomInvite[];
+
+	joined?: boolean;
 
 	async send_update(packet: UpdatePacket, broadcast?: boolean) {
 		if (broadcast === true) {

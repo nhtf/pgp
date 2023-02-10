@@ -118,19 +118,22 @@
     }
 
     function updateUser(update: any) {
-        console.log("updateuser function");
         friends.forEach((friend: simpleuser) => {
             if (friend.id === update.identifier) {
-                if (update.subject === Subject.STATUS)
-                    friend.status = update.value;
-                if (update.subject === Subject.USERNAME)
-                    friend.username = update.value;
-                if (update.subject === Subject.AVATAR)
-                    friend.avatar = update.value;
-                if (update.subject === Subject.USER) {
-                    friend.status = update.value.status;
-                    friend.username = update.value.username;
-                    friend.avatar = update.value.avatar;
+                switch (update.subject) {
+                    case Subject.STATUS:
+                        friend.status = update.value;
+                        break ;
+                    case Subject.USERNAME:
+                        friend.username = update.value;
+                        break ;
+                    case Subject.AVATAR:
+                        friend.avatar = update.value;
+                        break ;
+                    case Subject.USER:
+                        friend.status = update.value.status;
+                        friend.username = update.value.username;
+                        friend.avatar = update.value.avatar;
                 }
             }
         });
@@ -156,11 +159,11 @@
     }
 
     onMount(() => {
-        updateManager.add(Subject.FRIENDS, updateFriend);
-        updateManager.add(Subject.STATUS, updateUser);
-        updateManager.add(Subject.USERNAME, updateUser);
-        updateManager.add(Subject.AVATAR, updateUser);
-        updateManager.add(Subject.USER, updateUser);
+        updateManager.set(Subject.FRIENDS, updateFriend);
+        updateManager.set(Subject.STATUS, updateUser);
+        updateManager.set(Subject.USERNAME, updateUser);
+        updateManager.set(Subject.AVATAR, updateUser);
+        updateManager.set(Subject.USER, updateUser);
     });
     console.log($page.data.friendlist);
     

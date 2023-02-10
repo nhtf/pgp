@@ -1,10 +1,10 @@
-import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
+import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException, BadRequestException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express, Response} from "express";
 import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
-import { Repository, EntitySubscriberInterface, EventSubscriber, DataSource, UpdateEvent } from "typeorm";
+import { Repository } from "typeorm";
 import { IsString, Length } from "class-validator";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe } from "../util";
@@ -19,7 +19,7 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { instanceToPlain } from "class-transformer";
-import { InjectRepository } from "@nestjs/typeorm";
+import { validate } from "class-validator";
 
 declare module "express" {
 	export interface Request {
@@ -72,6 +72,10 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
+			dto.username = dto.username.replace(/[\n\r]/g, "").trim();
+			const res = await validate(dto);
+			if (res.length > 0)
+				throw new BadRequestException(res[0].constraints);//TODO improve error message
 
 			if (await this.user_repo.findOneBy({ username: dto.username }))
 				throw new ForbiddenException("Username taken");

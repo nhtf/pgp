@@ -29,7 +29,6 @@ import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
 import { Member } from "./entities/Member";
 import { RoomInvite } from "./entities/RoomInvite";
-import { TypeOrmModule } from "@nestjs/typeorm";
 
 export const db_pool = new Pool({
 	database: "dev", //TODO make this not hardcoded
@@ -72,7 +71,6 @@ export const sessionMiddleware = session({
 	},
 });
 
-//TODO remove this as it has been replaced with TypeOrmModule
 export const dataSource = new DataSource({
 	type: "postgres",
 	host: HOST,
@@ -143,9 +141,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 });
 
 @Module({
-	imports: [
-		/*TypeOrmModule.forRoot({ type: "postgres", username: "postgres", password: "postgres", host: "172.19.0.2" }),*/
-	],
+	imports: [],
 	controllers: [
 		AppController,
 		AuthController,

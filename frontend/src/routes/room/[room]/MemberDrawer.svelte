@@ -6,8 +6,6 @@
 
 	const members: Member[] = $page.data.members;
 
-	console.log(members);
-
     let hidden = true; 
     let transitionParams = {
         x: 100,

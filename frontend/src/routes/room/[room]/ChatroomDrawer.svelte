@@ -41,6 +41,7 @@
         return { joined, joinable };
     }
 
+    //TODO clear input fields after creating a room
     async function createChatRoom() {
         if (password.length) {
             room.password = password;

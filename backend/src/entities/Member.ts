@@ -1,8 +1,8 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, BeforeRemove } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, BeforeRemove, CreateDateColumn } from "typeorm";
 import { Room } from "./Room";
 import { Role } from "src/enums/Role";
 import { User } from "./User";
-import { Exclude, instanceToPlain } from "class-transformer";
+import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { Message } from "./Message";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
@@ -30,10 +30,14 @@ export class Member {
 	@OneToMany(() => Message, (message) => message.member)
 	messages: Message[];
 
-	@Column({
-		nullable: true,
-	})
-	mute: Date | null;
+	@Exclude()
+	@CreateDateColumn()
+	mute: Date;
+
+	@Expose()
+	get is_muted(): boolean {
+		return this.mute > new Date;
+	}
 
 	@AfterInsert()
 	async afterInsert() {
