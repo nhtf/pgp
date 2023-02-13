@@ -5,7 +5,7 @@ import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
 import { Repository } from "typeorm";
-import { IsString, Length } from "class-validator";
+import { IsString, Length, Matches } from "class-validator";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe } from "../util";
 import { randomBytes } from "node:crypto";
@@ -29,7 +29,8 @@ declare module "express" {
 
 class UsernameDTO {
 	@IsString()
-	@Length(3, 20)
+	//@Length(3, 20)
+	@Matches(/^(?!\0)\S(?:(?!\0)[ \S]){1,18}(?!\0)\S$/)
 	username: string;
 }
 
@@ -72,16 +73,17 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
-			dto.username = dto.username.replace(/[\n\r]/g, "").trim();
-			const res = await validate(dto);
-			if (res.length > 0)
-				throw new BadRequestException(res[0].constraints);//TODO improve error message
 
 			if (await this.user_repo.findOneBy({ username: dto.username }))
 				throw new ForbiddenException("Username taken");
 			user.username = dto.username;
 			await this.user_repo.save(user);
-			await this.update_service.send_update({ subject: Subject.USERNAME, identifier: user.id, action: Action.SET, value: dto.username });
+			await this.update_service.send_update({
+				subject: Subject.USERNAME,
+				identifier: user.id,
+				action: Action.SET,
+				value: dto.username
+			});
 			return user;
 		}
 
@@ -145,7 +147,12 @@ export function GenericUserController(route: string, options: { param: string, c
 					stream.close();
 					file.close();
 					await this.user_repo.save(user);
-					await this.update_service.send_update({ subject: Subject.AVATAR, identifier: user.id, action: Action.SET, value: user.avatar});
+					await this.update_service.send_update({
+						subject: Subject.AVATAR,
+						identifier: user.id,
+						action: Action.SET,
+						value: user.avatar,
+					});
 					resolve(user);
 				});
 			});

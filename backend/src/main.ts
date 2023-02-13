@@ -52,9 +52,10 @@ async function bootstrap() {
 		new ValidationPipe({
 			transform: true,
 			forbidUnknownValues: false, // TODO: true
+			/*
 			exceptionFactory: (e) => {
 				throw new HttpException("bad request", HttpStatus.BAD_REQUEST);
-			}
+			}*/
 		}),
 	);
 	const betterAdapter = new BetterAdapter(app);

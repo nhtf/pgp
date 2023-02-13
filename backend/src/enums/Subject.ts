@@ -8,5 +8,4 @@ export enum Subject {
 	ROOM,
 	MEMBER,
 	USERNAME,
-	MUTE,
 }

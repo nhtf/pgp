@@ -4,7 +4,7 @@
     import { roomSocket } from "../websocket";
     import { unwrap } from "$lib/Alert";
     import type { PageData } from "./$types";
-    import { post, remove , get } from "$lib/Web";
+    import { post, remove } from "$lib/Web";
     import MessageBox from "./MessageBox.svelte";
 	import { ToolbarButton, Dropdown, DropdownItem } from "flowbite-svelte";
     import ChatroomDrawer from "./ChatroomDrawer.svelte";
@@ -13,38 +13,35 @@
     import { Role, Subject, type Member, type Message, type UpdatePacket } from "$lib/types";
     import MemberDrawer from "./MemberDrawer.svelte";
     import { updateManager } from "$lib/updateSocket";
+    import { userStore } from "../../../stores";
 
 	export let data: PageData;
 
-	const user = data.user;
-
-	if (!user) {
-		throw goto(`/profile`);
-	}
+	userStore.update((users) => {
+		data.members.forEach((member) => {
+			users.set(member.user.id, member.user);
+		});
+	
+		return users;
+	});
 
 	let div: HTMLElement;
 	let autoscroll: boolean;
 
-	const self = data.members.find((member) => member.user.id === data.user?.id);
-
-	if (!self) {
-		throw goto(`/room`);
-	}
-
 	$: room = data.room;
+	$: self = data.members.find((member) => member.user.id === data.user?.id) as Member;
 	$: messages = sortByDate(data.messages);
 	$: muted = self.is_muted;
-
 	$: role = data.role;
 
 	let invitee: string = "";
 	let value: string = "";
 
 	onMount(() => {
-		updateManager.set(Subject.MUTE, (update: UpdatePacket) => {
-			const member = data.members.find((member) => member.id === update.identifier) as Member;
+		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
+			let member = data.members.find((member) => member.id === update.identifier) as Member;
 		
-			member.is_muted = update.value.is_muted;
+			member = update.value;
 		});
 	
 		roomSocket.emit("join", String(room.id));
@@ -53,7 +50,7 @@
 	});
 
 	onDestroy(() => {
-		updateManager.remove(Subject.MUTE);
+		updateManager.remove(Subject.MEMBER);
 	})
 
 	beforeUpdate(() => {
@@ -66,8 +63,8 @@
 		}
 	});
 
-	roomSocket.on("message", async () => {
-		messages = sortByDate(await unwrap(get(`/room/id/${room.id}/messages`)));
+	roomSocket.on("message", (message: any) => {
+		messages = sortByDate([...messages, message]);
 	});
 
 	function sortByDate(messages: Message[]): Message[] {

@@ -7,7 +7,8 @@
 		try {
 			await put('/user/me/username', { username: username }, true);
 		
-			goto(`/profile/${username}`);
+			
+			goto(`/profile/${encodeURIComponent(username)}`);
 		} catch (err) {
 			console.error(err);
 		}

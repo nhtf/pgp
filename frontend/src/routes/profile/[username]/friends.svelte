@@ -6,9 +6,10 @@
     import { page } from '$app/stores';
     import { BACKEND_ADDRESS } from '$lib/constants';
     import { onMount } from 'svelte/internal';
-    import type {simpleuser} from "./+page";
+    import type { simpleuser } from "./+page";
     import { Button, Dropdown, DropdownItem, Avatar } from 'flowbite-svelte'
-    import {updateManager} from "$lib/updateSocket";
+    import { updateManager } from "$lib/updateSocket";
+    import { userStore } from '../../../stores';
 
     const friend_icon = "/Assets/icons/add-friend.png";
 	const status_colors = [ "gray", "yellow", "green" ];
@@ -17,30 +18,45 @@
     let showFriendWindow = false;
     let username = "";
 
+    let friends: User[] = $page.data.friends;
+
+    userStore.update((users) => {
+        friends.forEach((friend) => {
+            users.set(friend.id, friend);
+        });
+    
+        return users;
+    });
+
+    userStore.subscribe((users) => {
+        console.log("before:", friends);
+        friends = friends.map((friend) => users.get(friend.id) as User);
+        console.log("after: ", friends);
+    })
 
     $: placement = window.innerWidth < 750 ? "top" : "left-end";
-
-    $: friends = $page.data.friendlist as simpleuser[];
+    $: friends = $page.data.friendlist;
 
     function checkGameScores() {
-		let socket = io(`ws://${BACKEND_ADDRESS}/game`, {withCredentials: true});
-		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
+		let socket = io(`ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
+    
+		socket.on("connect", () => { socket.emit("join", { scope: "stat", room: "1" }) });
 		socket.on("status", (status) => {
             if (!$page.data.friendlist)
                 return;
-                $page.data.friendlist.forEach((user: User) => {
-				if (status.players.length > 1 && status.teams.length > 1) {
-					for (let i = 0; i < status.players.length; i+=1) {
+            $page.data.friendlist.forEach((user: User) => {
+                if (status.players.length > 1 && status.teams.length > 1) {
+                    for (let i = 0; i < status.players.length; i+=1) {
                         if (status.players[i].user === user.id) {
                             const points = status.teams[0].score + " - " + status.teams[1].score;
                             score.set(user.username, points);
                         }
-				    }
-				}
+                    }
+                }
 			})
 			score = score;
 		});
-        console.log("friendlist: ", $page.data.friendlist);
+        // console.log("friendlist: ", $page.data.friendlist);
 	}
 
 	checkGameScores();
@@ -163,7 +179,7 @@
         updateManager.set(Subject.STATUS, updateUser);
         updateManager.set(Subject.USERNAME, updateUser);
         updateManager.set(Subject.AVATAR, updateUser);
-        updateManager.set(Subject.USER, updateUser);
+        // updateManager.set(Subject.USER, updateUser);
     });
     console.log($page.data.friendlist);
     
@@ -242,7 +258,7 @@
                 <div class="spacing"></div>
                 <Dropdown {placement} inline triggeredBy="#avatar_with_name{index}" class="bor-c bg-c"
                 frameClass="bor-c bg-c">
-                <DropdownItem  href="/profile/{username}">view profile</DropdownItem>
+                <DropdownItem  href="/profile/{encodeURIComponent(username)}">view profile</DropdownItem>
                 <!-- //TODO make the spectate and invite game actually functional -->
                 {#if in_game}
                     <DropdownItem >spectate</DropdownItem>

@@ -20,6 +20,7 @@
 	});
 </script>
 
+
 <canvas bind:this={canvas}></canvas>
 
 <style>
@@ -29,5 +30,9 @@
 		width: calc(100vw - 10px);
 		inset: 77px 5px 5px 5px;
 		border-radius: 6px;
+	}
+
+	canvas:hover {
+		cursor: none;
 	}
 </style>

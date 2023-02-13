@@ -2,6 +2,10 @@
 	import { page } from "$app/stores";
 	import Avatar from "./avatar.svelte";
 	import Achievements from "./achievements.svelte";
+	import { unwrap } from "$lib/Alert";
+	import { put } from "$lib/Web";
+	import { goto,  } from "$app/navigation";
+	import { CloseButton } from "flowbite-svelte";
 
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)
@@ -15,6 +19,27 @@
 			}
 		}
 	}
+
+	$: username = $page.data.user.username;
+	let editUsername: string;
+
+	async function changeUserName() {
+		const body = {
+			username: editUsername
+		};
+		let res = await unwrap(put("/user/me/username", body, true));
+		//TODO check if this succeeds etc/
+		goto(`/profile/${encodeURIComponent(editUsername)}`)
+		show_edit = false;
+	}
+
+	const edit_icon = "/Assets/icons/pen.png";
+	let show_edit = false;
+
+	function toggleEdit() {
+		show_edit = !show_edit;
+		// src = null;
+	}
 </script>
 
 <svelte:window on:click={clickfunction}/>
@@ -24,6 +49,33 @@
 		<div class="block-cell" id="user-name-block">
 			<div class="block-hor">
 				<h1>{$page.params.username}</h1>
+				{#if $page.data.user?.username === $page.data.profile?.username}
+        <img src={edit_icon} alt="edit icon" id="edit-icon"
+            on:click={toggleEdit}
+            on:keypress={toggleEdit}
+        />
+		{#if show_edit}
+			<div class="edit-username-window">
+				<div class="close">
+					<CloseButton on:click={toggleEdit}/>
+				</div>
+				Change Username
+				<div class="username-input">
+					<input name="username" class="input"  id="edit-username"
+                        type="text" bind:value={editUsername} placeholder="username"
+                    />
+					<div class="send-button"
+						on:click|preventDefault={changeUserName}
+						on:keypress|preventDefault={changeUserName}
+						>
+						<img src="/Assets/icons/send.svg" alt="send" class="icon">
+					</div>
+					
+				</div>
+			</div>
+		{/if}
+
+		{/if}
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">
@@ -72,6 +124,86 @@
 </div>
 
 <style>
+
+	.close {
+		align-self: end;
+		position: relative;
+		bottom: 0.5rem;
+	}
+
+	.username-input {
+		display: flex;
+	}
+
+.icon {
+        width: 30px;
+        height: 30px;
+        -webkit-filter: var(--invert);
+		filter: var(--invert);
+    }
+
+	.send-button {
+		display: flex;
+		background-color: var(--box-color);
+		height: 100%;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		width: 50px;
+		cursor: pointer;
+		margin-left: 0.375rem;
+		margin-right: 0.375rem;
+	}
+
+	.send-button:hover {
+		background-color: var(--box-hover-color);
+	}
+
+.input {
+		display: inline-block;
+		background: var(--box-color);
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 2px 8px;
+		margin: 0 auto;
+	}
+
+.edit-username-window {
+		display: flex;
+		position: fixed;
+		flex-direction: column;
+		z-index: 25;
+		top: calc(50% - 40px);
+		left: calc(50% - 176px);
+		background: var(--box-color);
+		border-radius: 6px;
+		border-width: 1px;
+		border-color: var(--border-color);
+		border-style: solid;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+		width: 400px;
+		height: 120px;
+		justify-content: space-evenly;
+		align-items: center;
+		text-align: center;
+		align-self: flex-end;
+	}
+
+#edit-icon {
+		max-width: 15px;
+		max-height: 15px;
+		position: relative;
+		top: 10px;
+		/* right: -35px; */
+		cursor: pointer;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
+		border-radius: 6px;
+	}
+
+	#edit-icon:hover {
+		box-shadow: 1px 1px 1px 1px var(--shadow-color);
+	}
 
 	#user-name-block {
 		padding: 0;

@@ -16,7 +16,7 @@ class UpdateManager {
 
 	set(subject: Subject, fun: Function) {
 		if (this.functions.has(subject)) {
-			console.log(`Overwriting ${Subject[subject]}; `);
+			console.log(`Overwriting existing ${Subject[subject]}; `);
 		}
 	
 		this.functions.set(subject, fun);
@@ -24,23 +24,24 @@ class UpdateManager {
 
 	remove(subject: Subject) {
 		if (!this.functions.has(subject)) {
-			console.log(`Attempting to delete ${Subject[subject]}; `);
+			console.log(`Attempt to delete nonexistant ${Subject[subject]}; `);
 		}
 	
 		this.functions.delete(subject);
 	}
 
 	async execute(update: UpdatePacket) {
+		const fun = this.functions.get(update.subject);
+		const style = `color: ${fun ? "black" : "gray"}`;
+
 		if (update.subject === Subject.STATUS) {
 			const user = await unwrap(get(`/user/id/${update.identifier}`));
-		
-			console.log(`${Subject[update.subject]}; ${Action[update.action]}; USER: ${user.username};`, Status[update.value]);
+
+			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; USER: ${user.username}; ${Status[update.value]}`, style);
 		} else {
-			console.log(`${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.identifier};`, update.value);
+			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.identifier};`, style, update.value);
 		}
 	
-		const fun = this.functions.get(update.subject);
-
 		if (fun) {
 			fun(update);
 		}

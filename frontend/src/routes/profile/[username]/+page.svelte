@@ -9,7 +9,7 @@
 
 <div class="block-container">
 	<Info/>
-	{#if data.user.username === $page.params.username}
+	{#if data.user?.username === $page.params.username}
 		<Friends/>
 	{/if}
 </div>

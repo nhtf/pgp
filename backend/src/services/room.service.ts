@@ -395,12 +395,10 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			await this.service.add_member(room, me);
 			await this.invite_repo.remove(invites);
 
-			const action = room.is_private ? Action.ADD : Action.SET;
-		
 			await this.update_service.send_update({
 				subject: Subject.ROOM,
 				identifier: room.id,
-				action,
+				action: Action.SET,
 				value: { ...instanceToPlain(room), joined: true },
 			}, me);
 
@@ -506,7 +504,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 					subject: Subject.MEMBER,
 					action: Action.SET,
 					identifier: member.id,
-					value: member.role,
+					value: member,
 				});
 			}
 
@@ -514,7 +512,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 				subject: Subject.MEMBER,
 				action: Action.SET,
 				identifier: target.id,
-				value: role,
+				value: target,
 			});
 		
 			return await this.member_repo.save([member, target]);

@@ -35,7 +35,7 @@
 	}
 
 	async function leaveGame(room: any) {
-		await unwrap(remove(`/game/id/${room.id}/member/${data.user?.id}`));
+		await unwrap(remove(`/game/id/${room.id}/member/me`));
 		await invalidate(`${BACKEND}/game?member=true`);
 		await invalidate(`${BACKEND}/game?member=false`);
 	}

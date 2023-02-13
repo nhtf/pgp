@@ -68,7 +68,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	async expire(user: User | number) {
-		const id = typeof user === "number" ? user : user.id;
+		const id = (typeof user === "number" ? user : user.id);
 		this.activity_map.delete(id);
 		await this.send_update(create_status_update(id, Status.OFFLINE));
 	}

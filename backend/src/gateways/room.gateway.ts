@@ -68,29 +68,18 @@ export class RoomGateway extends ProtectedGateway("room") {
 			throw new WsException("not found");
 		}
 		
-		const now = new Date;
-
-		if (member.mute > now) {
-			const remaining = member.mute.getTime() - now.getTime();
-		
-			return client.emit("mute", remaining);
+		if (member.mute > new Date) {
+			throw new WsException("muted");
 		}
-
-		this.server.in(client.room).emit("message", {
-			content,
-			user: {
-				id: member.user.id,
-				avatar: member.user.avatar,
-				username: member.user.username,
-			},
-		});
-
-		const message = new Message;
-	
+		
+		let message = new Message;
+		
 		message.content = content;
 		message.member = member;
 		message.room = { id: Number(client.room)} as ChatRoom;
-
-		await this.messageRepo.save(message);
+		
+		message = await this.messageRepo.save(message);
+	
+		this.server.in(client.room).emit("message", message);
 	}
 }

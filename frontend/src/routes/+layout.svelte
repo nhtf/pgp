@@ -20,6 +20,8 @@
 	} from "flowbite-svelte";
 	import { goto } from "$app/navigation";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
+    import { userStore } from "../stores";
+    import type { User } from "$lib/types";
 
 	export let data: LayoutData;
 
@@ -89,6 +91,15 @@
 
 
 	onMount(() => {
+		if (user) {
+			let user = data.user as User;
+		
+			userStore.update((users) => {
+				users.set(user.id, user);
+				return users;
+			})
+		}
+
 		applyTheme();
 		window
 			.matchMedia(DARK_PREFERENCE)
@@ -130,7 +141,7 @@
 			<DropdownHeader>
 				<span class="block text-sm"> {data.user?.username} </span>
 			</DropdownHeader>
-			<DropdownItem href="/profile/{data.user?.username}"
+			<DropdownItem href="/profile/{encodeURIComponent(data.user.username)}"
 				>profile</DropdownItem
 			>
 			{#if twofa_enabled}

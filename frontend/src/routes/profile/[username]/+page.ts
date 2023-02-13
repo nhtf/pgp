@@ -70,7 +70,7 @@ async function getFriendList(username: string, options: Map<any, any>) {
 	dummy_friends = [];
 	dummy_friends = dummy_friends.concat(friends);
 	let friend_list: User[] = await get(`/user/me/friends`);
-	console.log("friend_list: ", friend_list);
+	// console.log("friend_list: ", friend_list);
 	if (friend_list !== undefined) {
 		friend_list.forEach((value) => {
 			let newUser: simpleuser = { 
@@ -129,42 +129,31 @@ async function getFriendList(username: string, options: Map<any, any>) {
 // let socket = io(`ws://${BACKEND_ADDRESS}/update`, {withCredentials: true});
 
 
-export const load: PageLoad = (async ({ fetch, params }) => {
+export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	window.fetch = fetch;
-	try {
-		const profile: User = await get(`/user/${params.username}`);
-		const user: User = await get(`/user/me`);
-		let can_unfriend = false;
-		//just for debug
-		if (!profile.achievements) {
-			profile.achievements = dummyachievements}
-		if (profile.username === params.username)
-			can_unfriend = true;
-		let drop = dummydropcreater(can_unfriend, profile.username);
 
-		let dummy_friends: simpleuser[] | null = null;
+	const user = (await parent()).user as User;
+	const profile: User = await get(`/user/${encodeURIComponent(params.username)}`);
+	
+	let can_unfriend = false;
+	let friends: User[] | null = null;
+
+	//just for debug
+	if (!profile.achievements) {
+		profile.achievements = dummyachievements
+	}
+	let drop = dummydropcreater(can_unfriend, profile.username);
+	let friendlist: simpleuser[] | null = null;
+	
+	if (user.id === profile.id) {
+		can_unfriend = true;
 		
-		if (user.username === profile.username) {
-			//getting friends
-			try {
-				
-				let friendlist = await getFriendList(user.username, drop);				
-				// updateFriends(friendlist);
-				
-				console.log("load return: ", { user, friendlist, drop, profile });
-				return { user, friendlist, drop, profile };
-			}
-			catch (err:any) {
-				console.log("error gettting friends: ", err);
-			}
-		}
-		const friendlist = dummy_friends;
-		console.log("load return: ", { user, friendlist, drop, profile });
-		return { user, friendlist, drop, profile };
+		friendlist = await getFriendList(user.username, drop);
+		friends = await get(`/user/me/friends`);
+		// updateFriends(friendlist);
 	}
-	catch (err: any) {
-		console.log("error in /profile/[username] load: ", err);
-		const message = err.message.substr(9);
-		throw error(err.status, message);
-	}
+
+	// console.log("load return: ", { friends, friendlist, drop, profile });
+
+	return { friends, friendlist, drop, profile };
 }) satisfies PageLoad;

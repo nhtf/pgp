@@ -88,10 +88,12 @@
 			case Action.SET:
 				let room = rooms.find((room) => room.id === update.identifier) as ChatRoom;
 				
-				// TODO: update rooms list after invite
-				console.log(room?.joined);
-				room = update.value;
-				console.log(room?.joined);
+				if (room) {
+					room = update.value;
+				} else {
+					rooms.push(room);
+				}
+			
 				rooms = rooms;
 				break ;
 			case Action.ADD:

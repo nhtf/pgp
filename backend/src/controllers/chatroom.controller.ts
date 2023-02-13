@@ -11,6 +11,7 @@ import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
+import { plainToInstance } from "class-transformer";
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)?") {
 
@@ -63,22 +64,22 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 		}
 
 		target.mute = new Date(Date.now() + milliseconds);
-
+		
+		await this.member_repo.save(target);
+	
 		room.send_update({
-			subject: Subject.MUTE,
+			subject: Subject.MEMBER,
 			action: Action.SET,
 			identifier: target.id,
-			value: milliseconds,
+			value: target,
 		});
-
-		await this.member_repo.save(target);
 
 		setTimeout(() => {
 			room.send_update({
-				subject: Subject.MUTE,
-				action: Action.REMOVE,
+				subject: Subject.MEMBER,
+				action: Action.SET,
 				identifier: target.id,
-				value: null,
+				value: target,
 			});
 		}, milliseconds);
 

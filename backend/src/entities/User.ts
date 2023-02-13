@@ -9,14 +9,19 @@ import {
 	JoinTable,
 	OneToMany,
 	AfterUpdate,
+	BeforeRemove,
+	AfterInsert,
 } from "typeorm";
-import { Exclude, Expose } from "class-transformer";
+import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from "../vars";
 import { join } from "path";
 import { Room } from "./Room";
 import { Status } from "../enums/Status";
 import { Invite } from "./Invite";
 import { get_status } from "src/gateways/get_status";
+import { UpdateGateway } from "src/gateways/update.gateway";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
 
 @Entity()
 export class User {
@@ -76,11 +81,13 @@ export class User {
 	@ManyToMany(() => Room, (room) => room.banned_users)
 	banned_rooms: Room[];
 
+	@Exclude()
 	@Column({
 		default: false
 	})
 	has_session: boolean;
 
+	@Exclude()
 	@Column({
 	       nullable: true
 	})
@@ -108,19 +115,37 @@ export class User {
 	}
 
 	async add_friend(target: User) {
-		const user_friends = await this.friends;
-		if (user_friends) user_friends.push(target);
-		else this.friends = [target];
+		const user_friends = this.friends;
+	
+		if (user_friends) {
+			user_friends.push(target);
+		} else {
+			this.friends = [target];
+		}
 	}
 
-	/*
-	toMember(room: Room, role?: Role): Member {
-		const member = new Member;
+	async send_update(action: Action) {
+		await UpdateGateway.instance.send_update({
+			subject: Subject.USER,
+			identifier: this.id,
+			action,
+			value: instanceToPlain(this),
+		});
+	}
 
-		member.user = Promise.resolve(this);
-		member.room = Promise.resolve(room);
-		member.role = role ? role : Role.MEMBER;
+	@AfterInsert()
+	async afterInsert() {
+		await this.send_update(Action.ADD);
+	}
 
-		return member;
-	}*/
+	@AfterUpdate()
+	async afterUpdate() {
+		// TODO: reduce amount
+		// await this.send_update(Action.SET);
+	}
+
+	@BeforeRemove()
+	async beforeRemove() {
+		await this.send_update(Action.REMOVE);
+	}
 }

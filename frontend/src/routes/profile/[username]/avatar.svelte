@@ -10,7 +10,7 @@
 	let src: string | null;
 	let filevar: FileList;
 
-	console.log($page.data.profile.avatar);
+	// console.log($page.data.profile.avatar);
 
 	function toggleEdit() {
 		show_edit = !show_edit;
