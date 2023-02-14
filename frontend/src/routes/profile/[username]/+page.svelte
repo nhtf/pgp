@@ -1,5 +1,4 @@
 <script lang="ts">
-    import { page } from '$app/stores';
 	import type { PageData } from './$types';
 	import Friends from "./friends.svelte";
 	import Info from "./info.svelte";
@@ -9,7 +8,7 @@
 
 <div class="block-container">
 	<Info/>
-	{#if data.user?.username === $page.params.username}
+	{#if data.self}
 		<Friends/>
 	{/if}
 </div>

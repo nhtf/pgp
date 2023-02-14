@@ -14,8 +14,6 @@ import { sessionMiddleware } from "./app.module";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import * as compression from "compression";
 
-//TODO remove
-
 //https://docs.nestjs.com/websockets/adapter
 //https://socket.io/get-started/chat
 //https://socket.io/how-to/use-with-express-session

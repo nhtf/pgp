@@ -198,9 +198,7 @@ export class DebugController {
 	
 		member.role = Role.OWNER;
 
-		await this.memberRepo.save(member);
-
-		return {};
+		return await this.memberRepo.save(member);
 	}
 
 	@Get("test")

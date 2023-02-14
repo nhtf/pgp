@@ -20,7 +20,6 @@ import { AuthLevel } from "../enums/AuthLevel";
 import { IsAlphanumeric } from "class-validator";
 import { BACKEND_ADDRESS, FRONTEND_ADDRESS } from "../vars";
 import { Repository } from "typeorm";
-import { InjectRepository } from "@nestjs/typeorm";
 
 interface result_dto {
 	id: number;
@@ -141,6 +140,7 @@ export class AuthController {
 		await this.session_utils.save_session(request.session);
 		if (request.session.auth_level != user.auth_req)
 			response.redirect(FRONTEND_ADDRESS + "/otp_verify");
-		else response.redirect(FRONTEND_ADDRESS + "/profile");
+		else
+			response.redirect(FRONTEND_ADDRESS + "/profile");
 	}
 }

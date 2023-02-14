@@ -9,8 +9,7 @@ import { DataSource } from "typeorm";
 import { HOST, DB_PORT, DB_USER, DB_PASS } from "./vars";
 import { HttpAuthGuard } from "./auth/auth.guard";
 import * as session from "express-session";
-import { SESSION_SECRET, PURGE_INTERVAL, OFFLINE_TIME, SESSION_ABSOLUTE_TIMEOUT } from "./vars";
-import { TestController } from "./services/room.service";
+import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
 import { ChatRoomController } from "./controllers/chatroom.controller";
@@ -29,9 +28,10 @@ import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
 import { Member } from "./entities/Member";
 import { RoomInvite } from "./entities/RoomInvite";
+import { HttpModule } from "@nestjs/axios";
 
 export const db_pool = new Pool({
-	database: "dev", //TODO make this not hardcoded
+	database: DB_DATABASE,
 	user: DB_USER,
 	password: DB_PASS,
 	port: DB_PORT,
@@ -52,6 +52,8 @@ const entityFiles = [
 	"./entities/Room",
 	"./entities/Member",
 	"./entities/GameRoom",
+	"./entities/ChatRoomMember",
+	"./entities/GameRoomMember",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({
@@ -132,16 +134,23 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 	const name = value.name.toUpperCase();
 	return {
 		provide: name + "_PGPSERVICE",
-		useFactory: (room_repo: any, member_repo: Repository<Member>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
-			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any);
+		useFactory: (room_repo: any, member_repo: Repository<any>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
+			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any, entityClasses.find(clazz => clazz.name === (value.name + "Member")) as any);
 			return tmp;
 		},
-		inject: [name + "_REPO", "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
+		inject: [name + "_REPO", name + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
 	};
 });
 
 @Module({
-	imports: [],
+	imports: [
+		HttpModule.registerAsync({
+			useFactory: () => ({
+				timeout: 5000,
+				maxRedirects: 5,
+			})
+		}),
+	],
 	controllers: [
 		AppController,
 		AuthController,
@@ -152,7 +161,6 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		UserIDController,
 		UserUsernameController,
 		ChatRoomController,
-		TestController, //TODO remove
 	],
 	providers: [
 		GameGateway,

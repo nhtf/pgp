@@ -1,8 +1,6 @@
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { Action, Status, Subject, type UpdatePacket } from "$lib/types";
 import { io } from "socket.io-client";
-import { unwrap } from "./Alert";
-import { get } from "./Web";
 
 const WS = `ws://${BACKEND_ADDRESS}/update`;
 
@@ -34,10 +32,8 @@ class UpdateManager {
 		const fun = this.functions.get(update.subject);
 		const style = `color: ${fun ? "black" : "gray"}`;
 
-		if (update.subject === Subject.STATUS) {
-			const user = await unwrap(get(`/user/id/${update.identifier}`));
-
-			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; USER: ${user.username}; ${Status[update.value]}`, style);
+		if (update.subject === Subject.USER) {
+			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value.username}; ${Status[update.value.status]}`, style, update.value);
 		} else {
 			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.identifier};`, style, update.value);
 		}

@@ -7,8 +7,9 @@ export class ActivityMiddleware implements NestMiddleware {
 
 	async use(req: any, res: any, next: (error?: any) => void) {
 		if (req.user) {
-			this.service.heartbeat(req.user);
+			await this.service.heartbeat(req.user);
 		}
+	
 		next();
 	}
 }

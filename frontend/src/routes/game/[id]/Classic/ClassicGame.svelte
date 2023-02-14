@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
 	import { page } from "$app/stores";
 	import { Classic } from "./Classic";
 
@@ -7,8 +7,10 @@
 
 	//TODO cap the speed of the ball
 
+	let classic;
+
 	onMount(async () => {
-		const classic = new Classic(canvas);
+		classic = new Classic(canvas);
 
 		console.log(classic);
 
@@ -18,6 +20,10 @@
 			classic.update(time);
 			window.requestAnimationFrame(render);
 		});
+	});
+
+	onDestroy(() => {
+		classic?.game.stop();
 	});
 </script>
 

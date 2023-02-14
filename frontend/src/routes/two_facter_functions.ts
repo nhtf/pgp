@@ -31,10 +31,11 @@ export async function enable_2fa() {
 		    inputAutoTrim: true,
 		    inputPlaceholder: "Enter your 2FA code",
 		    inputValidator: (code) => {
-			if (!validator.isLength(code, { min: 6, max: 6 }))
+			if (!validator.default.isLength(code, { min: 6, max: 6 }))
 			    return "OTP must be 6 characters long";
-			if (!validator.isInt(code, { min: 0, max: 999999 }))
+			if (!validator.default.isInt(code, { min: 0, max: 999999 }))
 			    return "OTP consist of only numbers";
+			return null;
 		    },
 		    preConfirm: (code) => {
 			return fetch(`${BACKEND}/otp/setup_verify`, {

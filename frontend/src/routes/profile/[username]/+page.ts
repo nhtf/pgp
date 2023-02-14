@@ -11,7 +11,7 @@ let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
 
 export type simpleuser = {id: number; username: string; avatar: string; status: Status; in_game: boolean;}
 
-const friends: simpleuser[] = [
+const dummyfriends: simpleuser[] = [
 	{ username: "dummy1", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
 	{ username: "dummy2", avatar: profile_image, status: Status.ACTIVE, in_game: true, id: 0},
 	{ username: "dummy3", avatar: profile_image, status: Status.IDLE, in_game: false, id: 0 },
@@ -42,23 +42,20 @@ function dummydropcreater(can_unfriend: boolean, username: string) {
 	let drop = new Map();
 
 	//debug stuff
-	friends?.forEach((user) => {
+	dummyfriends?.forEach((user) => {
 		let fn: any = null;
 		if (can_unfriend) {
-			fn = async () => {
-				const response = await remove(`/user/${username}/friends/${user.username}`);
-				return response;
-			};
+			fn = async () => await remove(`/user/${username}/friends/${user.username}`);
 		}
 		drop.set(user.username, 
 			{
 				title: user.username,
 				options: {
-				data: [
-				{text: "view profile", fn: null, show: true, redir: "/profile/" + user.username},
-				{text: "spectate", fn: null, show: user.in_game, redir: null}, 
-				{text: "invite game", fn: null, show: user.status !== Status.OFFLINE && !user.in_game, redir: null}, 
-				{text: "unfriend", fn: fn, show: true, redir: null}
+					data: [
+						{text: "view profile", fn: null, show: true, redir: "/profile/" + user.username},
+						{text: "spectate", fn: null, show: user.in_game, redir: null}, 
+						{text: "invite game", fn: null, show: user.status !== Status.OFFLINE && !user.in_game, redir: null}, 
+						{text: "unfriend", fn: fn, show: true, redir: null}
 				]},
 			});
 	})
@@ -68,7 +65,7 @@ function dummydropcreater(can_unfriend: boolean, username: string) {
 async function getFriendList(username: string, options: Map<any, any>) {
 	let dummy_friends: simpleuser[] | null = null;
 	dummy_friends = [];
-	dummy_friends = dummy_friends.concat(friends);
+	dummy_friends = dummy_friends.concat(dummyfriends);
 	let friend_list: User[] = await get(`/user/me/friends`);
 	// console.log("friend_list: ", friend_list);
 	if (friend_list !== undefined) {
@@ -132,28 +129,25 @@ async function getFriendList(username: string, options: Map<any, any>) {
 export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	window.fetch = fetch;
 
-	const user = (await parent()).user as User;
+	const { user } = await parent();
 	const profile: User = await get(`/user/${encodeURIComponent(params.username)}`);
+	const self = (user?.id === profile.id);
 	
-	let can_unfriend = false;
 	let friends: User[] | null = null;
 
 	//just for debug
 	if (!profile.achievements) {
 		profile.achievements = dummyachievements
 	}
-	let drop = dummydropcreater(can_unfriend, profile.username);
+	let drop = dummydropcreater(self, profile.username);
 	let friendlist: simpleuser[] | null = null;
 	
-	if (user.id === profile.id) {
-		can_unfriend = true;
-		
-		friendlist = await getFriendList(user.username, drop);
+	if (self) {
 		friends = await get(`/user/me/friends`);
-		// updateFriends(friendlist);
+		friendlist = await getFriendList(user.username, drop);
 	}
 
-	// console.log("load return: ", { friends, friendlist, drop, profile });
+	console.log("load return: ", { self, friends, friendlist, drop, profile });
 
-	return { friends, friendlist, drop, profile };
+	return { self, friends, friendlist, drop, profile };
 }) satisfies PageLoad;

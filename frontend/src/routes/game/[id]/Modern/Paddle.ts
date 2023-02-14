@@ -18,7 +18,7 @@ export interface PaddleObject {
     width: number;
 }
 
-
+//TODO also change how the paddles are placed + rotated depending on things
 export class Paddle {
 	public position: Vector;
 	public height: number;

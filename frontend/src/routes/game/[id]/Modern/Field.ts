@@ -4,19 +4,10 @@ import {
     linethickness,
     color_border,
     color_grid,
-    color_l_f,
-    color_l_s,
-    color_r_f,
-    color_r_s,
-    color_stop,
-    goalHeight,
-    goalWidth,
     b_r,
     border,
     lineWidthHex,
-    field_radius,
-    offset_rect,
-    a
+    a,
  } from "./Constants";
 
 function random(min: number, max: number) {
@@ -31,17 +22,20 @@ type rect = {
 }
 
 //TODO optimize the drawing of the field? maybe try to make it one image / seperate layer?
+//TODO make it use a polyline so it easily can be changed
 export class Field {
     public width: number;
     public height: number;
     public r: number;
     public star_arr: rect[];
+    public lines: line[];
 
-    public constructor() {
+    public constructor(lines: line[]) {
         this.width = WIDTH;
         this.height = HEIGHT;
         this.r = 16;
         const starsFraction = WIDTH * HEIGHT / 100;
+        this.lines = lines;
         
         this.star_arr = [];
         for(let i = 0; i < starsFraction; i++) {
@@ -102,27 +96,11 @@ export class Field {
         }
     }
 
-    private drawLeftField(context: CanvasRenderingContext2D) {
-        const gradient = context.createRadialGradient(border, this.height / 2, field_radius, border, this.height / 2, 0);
-        gradient.addColorStop(1, color_l_s);
-        gradient.addColorStop(0, color_stop);
-        context.fillStyle = gradient;
-        context.fillRect(offset_rect, offset_rect, this.width / 2 - offset_rect, this.height - 2 * offset_rect);
-    }
-
-    private drawRightField(context: CanvasRenderingContext2D) {
-        const gradient = context.createRadialGradient(this.width, this.height * 0.5, field_radius, this.width, this.height / 2, 0);
-        gradient.addColorStop(1, color_r_f);
-        gradient.addColorStop(0, color_stop);
-        context.fillStyle = gradient;
-        context.fillRect(this.width / 2, offset_rect, this.width / 2 - offset_rect, this.height - 2 * offset_rect);
-    }
-
     private drawMiddleLine(context: CanvasRenderingContext2D) {
         context.save();
         context.lineCap = 'square';
-        context.strokeStyle = `rgba(200,200,200,0.5)`;
-        context.fillStyle = 'rgba(100,100,100,0.4)';
+        context.strokeStyle = `rgba(200,200,200,0.9)`;
+        context.fillStyle = 'rgba(100,100,100,1)';
         context.lineWidth = linethickness;
         context.beginPath();
         context.moveTo(this.width / 2, border);
@@ -141,60 +119,33 @@ export class Field {
     private drawBorder(context: CanvasRenderingContext2D) {
         context.lineWidth = linethickness;
         context.strokeStyle = color_border;
+        context.lineJoin = "round";
         context.beginPath();
-        context.arc(border, border, b_r, Math.PI,  1.5 * Math.PI);
-        context.lineTo(this.width - border, border - b_r);
-        context.arc(this.width - border, border, b_r, 1.5 * Math.PI,  0);
-        context.lineTo(this.width - border + b_r, this.height - border - b_r);
-        context.arc(this.width - border, this.height - border - b_r, b_r, 0,  0.5 * Math.PI);
-        context.lineTo(border, this.height - border);
-        context.arc(border, this.height - border - b_r, b_r, 0.5 * Math.PI, Math.PI);
-        context.lineTo(border - b_r, border);
-        context.closePath();
-        context.stroke();
-    }
-
-    private drawGoal(context: CanvasRenderingContext2D, x: number, flip: number) {
-        context.save();
-        context.lineCap = 'square';
-        context.lineWidth = linethickness;
-        
-        let y = this.height / 2 - goalHeight / 2;
-        let offset_w;
-        let offset_r; 
-        if (flip === 1) {
-        context.strokeStyle = color_l_s;
-        context.fillStyle = color_l_f;
-        offset_w = -goalWidth;
-        offset_r = -b_r;
-        }
-        else {
-        context.strokeStyle = color_r_s;
-        context.fillStyle = color_r_f;
-        offset_w = goalWidth;
-        offset_r = b_r;
-        }
-        context.beginPath();
-        context.moveTo(x, y);
-        context.lineTo(x + offset_w, y);
-        context.arc(x + offset_w, y + b_r, b_r, 1.5 * Math.PI,  Math.PI * flip, flip === 1);
-        context.lineTo(x + offset_w + offset_r, y + goalHeight);
-        context.arc(x + offset_w, y + goalHeight, b_r, Math.PI * flip,  0.5 * Math.PI, flip === 1);
-        context.lineTo(x, y + b_r + goalHeight);
-        context.fill();
-        context.stroke();
-        context.restore();
+        context.moveTo(this.lines[0].x, this.lines[0].y);
+        this.lines.forEach((pos) => {
+            if (pos.arc)
+                context.arc(pos.x, pos.y, b_r,pos.angle1, pos.angle2);
+            else if (!pos.gradient)
+                context.lineTo(pos.x, pos.y);
+            else {
+                const gradient = context.createRadialGradient(pos.x, pos.y, pos.gradient.r0, pos.gradient.x1, pos.gradient.y1, pos.gradient.r1);
+                gradient.addColorStop(1, pos.gradient.c1);
+                gradient.addColorStop(0, pos.gradient.c0);
+                context.fillStyle = gradient;
+                context.closePath();
+                context.stroke();
+                context.fill();
+                if (!pos.last)
+                    context.beginPath();
+            }
+        });
     }
 
     public render(context: CanvasRenderingContext2D) {
         context.lineCap = 'round';
         this.drawStars(context);
         this.drawGrid(context);
-        this.drawLeftField(context);
-        this.drawRightField(context);
-        this.drawMiddleLine(context);    
-        this.drawGoal(context, border - linethickness, 1);
-        this.drawGoal(context, this.width - border + linethickness, 0);
         this.drawBorder(context);
+        this.drawMiddleLine(context);
     }
 }

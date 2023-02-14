@@ -75,7 +75,6 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 	return ParseIDPipe;
 }
 
-//TODO do not allow whitespaces in username=
 @Injectable()
 export class ParseUsernamePipe implements PipeTransform {
 	constructor(

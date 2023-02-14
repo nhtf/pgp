@@ -2,10 +2,13 @@
 	import { page } from "$app/stores";
 	import Avatar from "./avatar.svelte";
 	import Achievements from "./achievements.svelte";
-	import { unwrap } from "$lib/Alert";
 	import { put } from "$lib/Web";
-	import { goto,  } from "$app/navigation";
-	import { CloseButton } from "flowbite-svelte";
+	import { goto, invalidate,  } from "$app/navigation";
+	import Swal from "sweetalert2";
+	import "@sweetalert2/theme-dark/dark.scss";
+	import * as validator from "validator";
+	import { BACKEND } from "$lib/constants";
+    import type { User } from "$lib/types";
 
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)
@@ -20,24 +23,57 @@
 		}
 	}
 
-	$: username = $page.data.user.username;
-	let editUsername: string;
+	let profile: User;
 
-	async function changeUserName() {
-		const body = {
-			username: editUsername
-		};
-		let res = await unwrap(put("/user/me/username", body, true));
-		//TODO check if this succeeds etc/
-		goto(`/profile/${encodeURIComponent(editUsername)}`)
-		show_edit = false;
-	}
+	$: profile = $page.data.profile;
+	$: username = profile.username;
 
 	const edit_icon = "/Assets/icons/pen.png";
-	let show_edit = false;
 
-	function toggleEdit() {
-		show_edit = !show_edit;
+	async function changeUsername() {
+		await Swal.fire({
+			title: "Change username",
+			input: "text",
+			showCancelButton: true,
+			confirmButtonText: "Set username",
+			confirmButtonColor: "var(--confirm-color)",
+			cancelButtonColor: "var(--cancel-color)",
+			background: "var(--box-color)",
+			showLoaderOnConfirm: true,
+			inputAutoTrim: true,
+			inputPlaceholder: "Enter new username",
+			allowOutsideClick: () => !Swal.isLoading(),
+			inputValidator: (username) => {
+				if (!validator.default.isLength(username, { min: 3, max: 20 }))
+					return "Username must be at least 3, and max 20 characters";
+				if (!/^(?!\0)\S(?:(?!\0)[ \S]){1,18}(?!\0)\S$/.test(username))
+					return "Username may not contain tabs, newlines etc.";
+				return null;
+			},
+			preConfirm: (username) => {
+				return put("/user/me/username", { username }, true).catch(error => {
+						Swal.showValidationMessage(error.message);
+					});
+			},
+		}).then(async (result) => {
+			if (result.isConfirmed) {
+				const newUsername = result.value.username;
+				profile = newUsername;
+				username = newUsername;
+				console.log($page.data.user.username, $page.data.profile.username);
+				await goto(`/profile/${encodeURIComponent(newUsername)}`);
+				
+				Swal.fire({
+					position: "top-end",
+					icon: "success",
+					title: "Successfully set username",
+					showConfirmButton: false,
+					timer: 1300,
+				});
+				await invalidate(`${BACKEND}/user/me`);
+			}
+		});
+			
 		// src = null;
 	}
 </script>
@@ -49,33 +85,12 @@
 		<div class="block-cell" id="user-name-block">
 			<div class="block-hor">
 				<h1>{$page.params.username}</h1>
-				{#if $page.data.user?.username === $page.data.profile?.username}
-        <img src={edit_icon} alt="edit icon" id="edit-icon"
-            on:click={toggleEdit}
-            on:keypress={toggleEdit}
-        />
-		{#if show_edit}
-			<div class="edit-username-window">
-				<div class="close">
-					<CloseButton on:click={toggleEdit}/>
-				</div>
-				Change Username
-				<div class="username-input">
-					<input name="username" class="input"  id="edit-username"
-                        type="text" bind:value={editUsername} placeholder="username"
-                    />
-					<div class="send-button"
-						on:click|preventDefault={changeUserName}
-						on:keypress|preventDefault={changeUserName}
-						>
-						<img src="/Assets/icons/send.svg" alt="send" class="icon">
-					</div>
-					
-				</div>
-			</div>
-		{/if}
-
-		{/if}
+				{#if username === profile.username}
+					<img src={edit_icon} alt="edit icon" id="edit-icon"
+					on:click={changeUsername}
+					on:keypress={changeUsername}
+					/>
+				{/if}
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">

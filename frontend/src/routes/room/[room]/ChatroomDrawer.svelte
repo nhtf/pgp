@@ -117,10 +117,10 @@
             <p>fetching data...</p>
         {:then value} 
             {#each value.joined as chatroom}
-                <ChatRoomBox divider={true} room={chatroom} click={enter} joined={true}/>
+                <ChatRoomBox divider={true} room={chatroom} click={enter}/>
             {/each}
             {#each value.joinable as chatroom}
-                <ChatRoomBox divider={true} room={chatroom} click={join} joined={false}/>
+                <ChatRoomBox divider={true} room={chatroom} click={join}/>
             {/each}
         {/await}
         </div>

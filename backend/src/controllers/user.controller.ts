@@ -5,21 +5,21 @@ import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
 import { Repository } from "typeorm";
-import { IsString, Length, Matches } from "class-validator";
+import { IsString, Matches } from "class-validator";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe } from "../util";
 import { randomBytes } from "node:crypto";
 import { open, rm } from "node:fs/promises";
 import { finished, Readable } from "node:stream";
 import { join } from "path";
-import { AVATAR_DIR, DEFAULT_AVATAR } from "../vars";
+import { AVATAR_DIR, DEFAULT_AVATAR, AVATAR_EXT } from "../vars";
 import * as sharp from "sharp";
 import { SetupGuard } from "src/guards/setup.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { instanceToPlain } from "class-transformer";
-import { validate } from "class-validator";
+import * as gm from "gm";
 
 declare module "express" {
 	export interface Request {
@@ -71,19 +71,23 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Body() dto: UsernameDTO,
 		) {
 			user = user || me;
-			if (user.id !== me.id)
+			if (user.id !== me.id) {
 				throw new ForbiddenException();
+			}
 
-			if (await this.user_repo.findOneBy({ username: dto.username }))
+			if (await this.user_repo.findOneBy({ username: dto.username })) {
 				throw new ForbiddenException("Username taken");
+			}
+		
 			user.username = dto.username;
 			await this.user_repo.save(user);
 			await this.update_service.send_update({
-				subject: Subject.USERNAME,
+				subject: Subject.USER,
 				identifier: user.id,
 				action: Action.SET,
-				value: dto.username
+				value: instanceToPlain(user),
 			});
+		
 			return user;
 		}
 
@@ -114,14 +118,44 @@ export function GenericUserController(route: string, options: { param: string, c
 			if (user.id !== me.id)
 				throw new ForbiddenException();
 
-			let new_base;
+			let new_base = "";
 			do {
 				new_base = user.id + randomBytes(20).toString("hex");
 			} while (new_base === user.avatar_base);
 
-			const transform = sharp().resize(200, 200).jpeg();
+			// console.log(uploaded_file.buffer instanceof Buffer);
+			const promise = new Promise((resolve, reject) => {
+				gm.subClass({ imageMagick: true })(uploaded_file.buffer)
+				.resize(256, 256, "!")
+				.write(join(AVATAR_DIR, new_base + AVATAR_EXT), error => {
+					if (error)
+						reject(error);
+					resolve("yes");
+				});
+			});
+
+			try {
+				const res = await promise;
+			} catch (error) {
+				console.error(error);
+				throw new UnprocessableEntityException("Corrupted image");
+			}
+			if (user.avatar_base !== DEFAULT_AVATAR)
+				await rm(user.avatar_path);
+			user.avatar_base = new_base;
+			await this.user_repo.save(user);
+			await this.update_service.send_update({
+				subject: Subject.USER,
+				identifier: user.id,
+				action: Action.SET,
+				value: instanceToPlain(user),
+			});
+			return user;
+			/*
+			//const transform = sharp().resize(200, 200).gif();
+			const transform = sharp().gif();
 			//TODO catch possible exception thrown by open?
-			const file = await open(join(AVATAR_DIR, new_base + ".jpg"), "w");
+			const file = await open(join(AVATAR_DIR, new_base + AVATAR_EXT), "w");
 			const stream = file.createWriteStream();
 
 			const istream = new Readable();
@@ -148,10 +182,10 @@ export function GenericUserController(route: string, options: { param: string, c
 					file.close();
 					await this.user_repo.save(user);
 					await this.update_service.send_update({
-						subject: Subject.AVATAR,
+						subject: Subject.USER,
 						identifier: user.id,
 						action: Action.SET,
-						value: user.avatar,
+						value: instanceToPlain(user),
 					});
 					resolve(user);
 				});
@@ -160,7 +194,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				return await promise;
 			} catch (error) {
 				throw new HttpException(error.statusMessage, error.statusCode);
-			}
+			}*/
 		}
 
 		@Get(options.cparam + "/auth_req")
@@ -259,7 +293,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			if (user.id === target.id)
 				throw new UnprocessableEntityException("Cannot befriend yourself");
 
-			const user_friends = await user.friends;
+			const user_friends = user.friends;
 			if (user_friends?.find(friend => friend.id === target.id))
 				throw new ForbiddenException("Already friends");
 

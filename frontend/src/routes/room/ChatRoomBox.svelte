@@ -1,26 +1,29 @@
 <script lang="ts">
+    import { goto } from "$app/navigation";
     import { page } from "$app/stores";
-	import { Access, type Room } from "$lib/types";
-
-    const lock = "/Assets/icons/lock.svg";
-
-	export let room: Room;
+	import { Access, type ChatRoom, type User } from "$lib/types";
+	
+	export let room: ChatRoom;
 	export let click: Function;
 	export let divider: boolean;
 
+    const lock = "/Assets/icons/lock.svg";
+	const user: User = $page.data.user;
+
 	let frameclass = divider ? "room divider" : "room";
+
+	async function enter(room: ChatRoom) {
+		await goto(`/room/${room.id}`);
+	}
 
 </script>
 
+<!-- TODO: make like gameroom -->
 <button class={frameclass} on:click={() => click(room)}>
 	<div class="room-block">
 		<div class="room-icon-block">
 			<div>
-				{#if room.owner}
-					<img class="room-icon" src={room.owner?.avatar} alt=""/>
-				{:else}
-					<img class="room-icon" src="/avatar-default.png" alt=""/>
-				{/if}
+				<img class="room-icon" src={room.owner?.avatar} alt=""/>
 			</div>
 			{#if room.owner && room.owner.id === $page.data.user.id}
 				<div class="owner-icon"><img src="/Assets/icons/crown.svg" alt="crown"></div>

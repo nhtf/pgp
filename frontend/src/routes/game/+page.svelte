@@ -3,9 +3,9 @@
 	import { post, remove } from "$lib/Web";
 	import { unwrap } from "$lib/Alert";
 	import { invalidate } from "$app/navigation";
-	import { Access, Gamemode } from "$lib/types";
+	import { Access } from "$lib/types";
 	import type { PageData } from "./$types";
-	import {Checkbox, Select} from "flowbite-svelte";
+	import { Checkbox, Select } from "flowbite-svelte";
 
 	export let data: PageData;
 
@@ -23,6 +23,10 @@
 
 		if (!is_private && password.length > 0) {
 			room.password = password;
+		}
+
+		if (!room.name.length) {
+			delete room.name;
 		}
 
 		await unwrap(post("/game", room));

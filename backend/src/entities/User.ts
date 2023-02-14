@@ -11,9 +11,10 @@ import {
 	AfterUpdate,
 	BeforeRemove,
 	AfterInsert,
+	CreateDateColumn,
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
-import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from "../vars";
+import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { join } from "path";
 import { Room } from "./Room";
 import { Status } from "../enums/Status";
@@ -56,12 +57,6 @@ export class User {
 	})
 	avatar_base: string; 
 
-	@OneToMany(() => FriendRequest, (request) => request.from)
-	sent_friend_requests: FriendRequest[];
-
-	@OneToMany(() => FriendRequest, (request) => request.to)
-	incoming_friend_requests: FriendRequest[];
-
 	@OneToMany(() => Invite, (invite) => invite.from)
 	sent_invites: Invite[];
 
@@ -88,9 +83,7 @@ export class User {
 	has_session: boolean;
 
 	@Exclude()
-	@Column({
-	       nullable: true
-	})
+	@CreateDateColumn()
 	last_activity: Date;
 
 	@Expose()
@@ -101,13 +94,13 @@ export class User {
 	@Expose()
 	get status(): Status {
 		if (this.has_session)
-			return get_status(this.last_activity?.getTime());
+			return get_status(this.last_activity);
 		else
 			return Status.OFFLINE;
 	}
 
 	get avatar_basename(): string {
-		return this.avatar_base + ".jpg";
+		return this.avatar_base + AVATAR_EXT;
 	}
 
 	get avatar_path(): string {

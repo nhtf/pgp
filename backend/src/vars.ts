@@ -22,3 +22,6 @@ export const SESSION_ABSOLUTE_TIMEOUT: number = Number(process.env.SESSION_ABSOL
 export const SESSION_REGENERATE_TIME: number = Number(process.env.SESSION_REGENERATE_TIME || SESSION_IDLE_TIME / 3);
 export const CLIENT_ID: string = process.env.CLIENT_ID;
 export const CLIENT_SECRET: string = process.env.CLIENT_SECRET;
+export const DB_DATABASE: string = process.env.DB_DATABSE;
+export const AVATAR_EXT: string = process.env.AVATAR_EXT || ".gif";
+export const TENOR_KEY: string = process.env.TENOR_KEY;

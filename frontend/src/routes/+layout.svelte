@@ -33,6 +33,26 @@
 		LIGHT: "light",
 	};
 
+	onMount(() => {
+		if (user) {
+			let user = data.user as User;
+		
+			userStore.update((users) => {
+				return users.set(user.id, user);
+			});
+
+			userStore.subscribe((users) => {
+				console.log(users);
+				user = users.get(user.id) as User;
+			});
+		}
+
+		applyTheme();
+		window
+			.matchMedia(DARK_PREFERENCE)
+			.addEventListener("change", applyTheme);
+	});
+
 	const STORAGE_KEY = "theme";
 	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
 	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
@@ -89,23 +109,6 @@
 		}
 	}
 
-
-	onMount(() => {
-		if (user) {
-			let user = data.user as User;
-		
-			userStore.update((users) => {
-				users.set(user.id, user);
-				return users;
-			})
-		}
-
-		applyTheme();
-		window
-			.matchMedia(DARK_PREFERENCE)
-			.addEventListener("change", applyTheme);
-	});
-
 	const links = [
 		{ url: "/room", name: "Chat Rooms" },
 		{ url: "/game", name: "Game Rooms" },
@@ -132,16 +135,16 @@
 			<Notifications />
 		{/if}
 	</div>
-	{#if user?.username}
+	{#if user && user.username}
 		<Dropdown
 			triggeredBy="#avatar-menu"
 			placement="bottom"
 			class="bg-c bor-c"
 		>
 			<DropdownHeader>
-				<span class="block text-sm"> {data.user?.username} </span>
+				<span class="block text-sm"> {user.username} </span>
 			</DropdownHeader>
-			<DropdownItem href="/profile/{encodeURIComponent(data.user.username)}"
+			<DropdownItem href="/profile/{encodeURIComponent(user.username)}"
 				>profile</DropdownItem
 			>
 			{#if twofa_enabled}

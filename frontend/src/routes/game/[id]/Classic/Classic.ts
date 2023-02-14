@@ -36,6 +36,12 @@ export interface Options extends NetOptions {
 	user: User;
 }
 
+export interface Line {
+	p0: Vector,
+	p1: Vector,
+	name: string,
+}
+
 export class Vector {
 	public x: number;
 	public y: number;
@@ -43,6 +49,39 @@ export class Vector {
 	public constructor(x: number, y: number) {
 		this.x = x;
 		this.y = y;
+	}
+
+	public add(other: Vector): Vector {
+		return new Vector(this.x + other.x, this.y + other.y);
+	}
+
+	public sub(other: Vector): Vector {
+		return new Vector(this.x - other.x, this.y - other.y);
+	}
+
+	public dot(other: Vector): number {
+		return this.x * other.x + this.y * other.y;
+	}
+
+	public scale(scale: number): Vector {
+		return new Vector(this.x * scale, this.y * scale);
+	}
+
+	public tangent(): Vector {
+		return new Vector(-this.y, this.x);
+	}
+
+	public magnitude(): number {
+		return Math.sqrt(this.x * this.x + this.y * this.y);
+	}
+
+	public normalize(): Vector {
+		return this.scale(1 / this.magnitude());
+	}
+
+	public reflect(line: Vector) {
+		const normal = line.tangent().normalize();
+		return this.add(normal.scale(this.dot(normal) * -2));
 	}
 
 	public save(): VectorObject {
@@ -76,6 +115,23 @@ export class Ball {
 			position: this.position.save(),
 			velocity: this.velocity.save(),
 		};
+	}
+
+	public collision(lines: Line[]): [Line, Vector, number] | null {
+		let closest: [Line, Vector, number] | null = null;
+
+		for (let line of lines) {
+			const [t0, t1] = intersection([this.position, this.velocity], [line.p0, line.p1.sub(line.p0)])
+
+			if (t1 >= 0 && t1 <= 1 && t0 > 0.001) {
+				if (closest === null || t0 < closest[2]) {
+					const pos = this.position.add(this.velocity.scale(t0));
+					closest = [line, pos, t0];
+				}
+			}
+		}
+
+		return closest;
 	}
 
 	public load(object: BallObject) {
@@ -173,6 +229,55 @@ export class Game extends Net {
 	}
 
 	public lateTick() {
+		let time = 1;
+
+		while (time > 0) {
+			const collision = this.ball.collision([
+				{ name: "wall-top", p0: new Vector(0, 0), p1: new Vector(WIDTH, 0) },
+				{ name: "wall-bottom", p0: new Vector(0, HEIGHT), p1: new Vector(WIDTH, HEIGHT) },
+				{ name: "wall-left", p0: new Vector(0, 0), p1: new Vector(0, HEIGHT) },
+				{ name: "wall-right", p0: new Vector(WIDTH, 0), p1: new Vector(WIDTH, HEIGHT) },
+				{ name: "paddle-left", p0: new Vector(this.paddles[0].position.x, this.paddles[0].position.y - this.paddles[0].height / 2), p1: new Vector(this.paddles[0].position.x, this.paddles[0].position.y + this.paddles[0].height / 2) },
+				{ name: "paddle-right", p0: new Vector(this.paddles[1].position.x, this.paddles[1].position.y - this.paddles[1].height / 2), p1: new Vector(this.paddles[1].position.x, this.paddles[1].position.y + this.paddles[1].height / 2) },
+			]);
+
+			if (collision === null || collision[2] > time + 0.001) {
+				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
+				break;
+			} else if (collision[0].name == "wall-left") {
+				/* TODO: Point to team right */
+				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
+				this.ball.velocity = new Vector(1, 0);
+				break;
+			} else if (collision[0].name == "wall-right") {
+				/* TODO: Point to team left */
+				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
+				this.ball.velocity = new Vector(-1, 0);
+				break;
+			} else if (collision[0].name == "paddle-left") {
+				this.ball.position = collision[1];
+				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
+				const relAngle = Math.PI / 2 - Math.abs(Math.tan(this.ball.velocity.y / this.ball.velocity.x));
+				const hit = (this.ball.position.y - this.paddles[0].position.y) / this.paddles[0].height;
+				const angle = Math.atan2(this.ball.velocity.y, this.ball.velocity.x) + relAngle * hit;
+				this.ball.velocity = new Vector(Math.cos(angle), Math.sin(angle)).scale(this.ball.velocity.magnitude() + 0.1);
+				break;
+			} else if (collision[0].name == "paddle-right") {
+				this.ball.position = collision[1];
+				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
+				const relAngle = Math.PI / 2 - Math.abs(Math.tan(this.ball.velocity.y / this.ball.velocity.x));
+				const hit = (this.ball.position.y - this.paddles[1].position.y) / this.paddles[1].height;
+				const angle = Math.atan2(this.ball.velocity.y, this.ball.velocity.x) - relAngle * hit;
+				this.ball.velocity = new Vector(Math.cos(angle), Math.sin(angle)).scale(this.ball.velocity.magnitude() + 0.1);
+				break;
+			} else {
+				this.ball.position = collision[1];
+				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
+				time -= collision[2];
+			}
+		}
+
+		/*
 		this.ball.position.x += this.ball.velocity.x;
 		this.ball.position.y += this.ball.velocity.y;
 
@@ -211,6 +316,7 @@ export class Game extends Net {
 			this.ball.position.y = -this.ball.position.y + HEIGHT * 2;
 			this.ball.velocity.y = -this.ball.velocity.y;
 		}
+		*/
 
 		super.lateTick();
 	}
@@ -284,4 +390,10 @@ export class Classic {
 
 		await this.game.start(options);
 	}
+}
+
+export function intersection(a: [Vector, Vector], b: [Vector, Vector]): [number, number] {
+	const t1 = (a[1].x * (a[0].y - b[0].y) - a[1].y * (a[0].x - b[0].x)) / (a[1].x * b[1].y - b[1].x * a[1].y);
+	const t0 = (b[1].x * (b[0].y - a[0].y) - b[1].y * (b[0].x - a[0].x)) / (b[1].x * a[1].y - a[1].x * b[1].y);
+	return [t0, t1];
 }

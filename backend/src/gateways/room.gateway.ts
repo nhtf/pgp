@@ -14,6 +14,9 @@ import { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { validate_id } from "src/util";
+import { HttpService } from "@nestjs/axios";
+import { catchError, firstValueFrom } from "rxjs";
+import { TENOR_KEY } from "src/vars";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -26,6 +29,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		private readonly messageRepo: Repository<Message>,
 		@Inject("MEMBER_REPO")
 		private readonly memberRepo: Repository<Member>,
+		private readonly httpService: HttpService,
 	) {
 		super(userRepo);
 	}
@@ -70,6 +74,16 @@ export class RoomGateway extends ProtectedGateway("room") {
 		
 		if (member.mute > new Date) {
 			throw new WsException("muted");
+		}
+		if (/^\/tenor /.test(content)) {
+			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}`)
+				.pipe(catchError((error) => {
+					console.error("crap");
+					throw "crap";
+			}));
+
+			const { data } = await firstValueFrom(res);
+			content = data.results[0].url;
 		}
 		
 		let message = new Message;

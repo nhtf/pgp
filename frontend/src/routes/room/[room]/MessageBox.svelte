@@ -6,6 +6,7 @@
 	import { page } from "$app/stores";
     import { CoalitionColors, Role, type User, type ChatRoom, type Member, type Message } from "$lib/types";
     import { userStore } from "../../../stores";
+    import { onMount } from "svelte";
 
 	export let message: Message;
 
@@ -14,17 +15,22 @@
 
 	const room: ChatRoom = $page.data.room;
 	const my_role: Role = $page.data.role;
+	const self: User = $page.data.user;
 	const member = message.member;
+
 	let user = member.user;
 
-	userStore.subscribe((users) => {
-		user = users.get(member.user.id) as User;
-	})
-
-	const from_self = $page.data.user?.id == user.id;
+	const from_self = self.id === user.id;
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";
+
+	onMount(() => {
+		userStore.subscribe((users) => {
+			user = users.get(member.user.id) as User;
+		})
+
+	});
 
 	async function edit(target: Member, role: Role) {
 		await unwrap(patch(`/room/id/${room.id}/members/${target.id}`, { role }));

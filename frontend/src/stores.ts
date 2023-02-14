@@ -8,6 +8,7 @@ updateManager.set(Subject.USER, (update: UpdatePacket) => {
 	userStore.update((users) => {
 		switch (update.action) {
 			case Action.ADD | Action.SET:
+				console.log("update: ", update.value);
 				users.set(update.identifier as number, update.value);
 				break ;
 			case Action.REMOVE:

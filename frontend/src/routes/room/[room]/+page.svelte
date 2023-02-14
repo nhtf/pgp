@@ -10,20 +10,12 @@
     import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
-    import { Role, Subject, type Member, type Message, type UpdatePacket } from "$lib/types";
+    import { Role, Subject, type Member, type Message, type UpdatePacket, type User } from "$lib/types";
     import MemberDrawer from "./MemberDrawer.svelte";
     import { updateManager } from "$lib/updateSocket";
     import { userStore } from "../../../stores";
 
 	export let data: PageData;
-
-	userStore.update((users) => {
-		data.members.forEach((member) => {
-			users.set(member.user.id, member.user);
-		});
-	
-		return users;
-	});
 
 	let div: HTMLElement;
 	let autoscroll: boolean;
@@ -37,7 +29,19 @@
 	let invitee: string = "";
 	let value: string = "";
 
+	userStore.update((users) => {
+		data.members.forEach((member) => {
+			users.set(member.user.id, member.user);
+		});
+	
+		return users;
+	});
+	
 	onMount(() => {
+		userStore.subscribe((users) => {
+			messages.forEach((message) => message.member.user = users.get(message.member.user.id) as User);
+		})
+
 		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
 			let member = data.members.find((member) => member.id === update.identifier) as Member;
 		
@@ -63,7 +67,7 @@
 		}
 	});
 
-	roomSocket.on("message", (message: any) => {
+	roomSocket.on("message", (message: Message) => {
 		messages = sortByDate([...messages, message]);
 	});
 

@@ -1,17 +1,15 @@
 <script lang="ts">
 	import { put } from "$lib/Web";
-    import { goto } from '$app/navigation';
-	let username = '';
+    import { goto, invalidate } from '$app/navigation';
+    import { unwrap } from "$lib/Alert";
+    import { BACKEND } from "$lib/constants";
+
+	let username = "";
 
 	async function set_username() {
-		try {
-			await put('/user/me/username', { username: username }, true);
-		
-			
-			goto(`/profile/${encodeURIComponent(username)}`);
-		} catch (err) {
-			console.error(err);
-		}
+		await unwrap(put('/user/me/username', { username }, true));
+		await invalidate(`${BACKEND}/user/me`);
+		await goto(`/profile/${encodeURIComponent(username)}`);
 	}
 
 	async function key_event(event: KeyboardEvent) {
@@ -28,7 +26,7 @@
 	</div>
 		<div class="block-hor">
 			<input class='center' id='input' type='text' bind:value={username}
-				   placeholder='username' required minlength='1' maxlength='20' on:keypress={key_event}>
+				   placeholder='username' required minlength='3' maxlength='20' on:keypress={key_event}>
 		</div>
 		<div class="block-hor">
 	<button class='center' id='setup' on:click={set_username}>setup</button>
