@@ -67,7 +67,7 @@ export type Invite = {
 
 export interface UpdatePacket {
 	subject: Subject;
-	identifier?: number;
+	identifier: number;
 	action: Action;
 	value?: any;
 }
@@ -95,12 +95,8 @@ export enum Subject {
 	INVITES,
 	REQUESTS,
 	FRIENDS,
-	STATUS,
-	AVATAR,
 	ROOM,
 	MEMBER,
-	USERNAME,
-	MUTE,
 }
 
 export enum Action {

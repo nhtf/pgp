@@ -2,6 +2,13 @@
 	import { page } from "$app/stores";
 	import Avatar from "./avatar.svelte";
 	import Achievements from "./achievements.svelte";
+	import { put } from "$lib/Web";
+	import { goto, invalidate,  } from "$app/navigation";
+	import Swal from "sweetalert2";
+	import "@sweetalert2/theme-dark/dark.scss";
+	import * as validator from "validator";
+	import { BACKEND } from "$lib/constants";
+    import type { User } from "$lib/types";
 
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)
@@ -15,6 +22,60 @@
 			}
 		}
 	}
+
+	let profile: User;
+
+	$: profile = $page.data.profile;
+	$: username = profile.username;
+
+	const edit_icon = "/Assets/icons/pen.png";
+
+	async function changeUsername() {
+		await Swal.fire({
+			title: "Change username",
+			input: "text",
+			showCancelButton: true,
+			confirmButtonText: "Set username",
+			confirmButtonColor: "var(--confirm-color)",
+			cancelButtonColor: "var(--cancel-color)",
+			background: "var(--box-color)",
+			showLoaderOnConfirm: true,
+			inputAutoTrim: true,
+			inputPlaceholder: "Enter new username",
+			allowOutsideClick: () => !Swal.isLoading(),
+			inputValidator: (username) => {
+				if (!validator.default.isLength(username, { min: 3, max: 20 }))
+					return "Username must be at least 3, and max 20 characters";
+				if (!/^(?!\0)\S(?:(?!\0)[ \S]){1,18}(?!\0)\S$/.test(username))
+					return "Username may not contain tabs, newlines etc.";
+				return null;
+			},
+			preConfirm: (username) => {
+				return put("/user/me/username", { username }, true).catch(error => {
+						Swal.showValidationMessage(error.message);
+					});
+			},
+		}).then(async (result) => {
+			if (result.isConfirmed) {
+				const newUsername = result.value.username;
+				profile = newUsername;
+				username = newUsername;
+				console.log($page.data.user.username, $page.data.profile.username);
+				await goto(`/profile/${encodeURIComponent(newUsername)}`);
+				
+				Swal.fire({
+					position: "top-end",
+					icon: "success",
+					title: "Successfully set username",
+					showConfirmButton: false,
+					timer: 1300,
+				});
+				await invalidate(`${BACKEND}/user/me`);
+			}
+		});
+			
+		// src = null;
+	}
 </script>
 
 <svelte:window on:click={clickfunction}/>
@@ -24,6 +85,12 @@
 		<div class="block-cell" id="user-name-block">
 			<div class="block-hor">
 				<h1>{$page.params.username}</h1>
+				{#if username === profile.username}
+					<img src={edit_icon} alt="edit icon" id="edit-icon"
+					on:click={changeUsername}
+					on:keypress={changeUsername}
+					/>
+				{/if}
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">
@@ -72,6 +139,86 @@
 </div>
 
 <style>
+
+	.close {
+		align-self: end;
+		position: relative;
+		bottom: 0.5rem;
+	}
+
+	.username-input {
+		display: flex;
+	}
+
+.icon {
+        width: 30px;
+        height: 30px;
+        -webkit-filter: var(--invert);
+		filter: var(--invert);
+    }
+
+	.send-button {
+		display: flex;
+		background-color: var(--box-color);
+		height: 100%;
+		align-items: center;
+		justify-content: center;
+		border-radius: 6px;
+		width: 50px;
+		cursor: pointer;
+		margin-left: 0.375rem;
+		margin-right: 0.375rem;
+	}
+
+	.send-button:hover {
+		background-color: var(--box-hover-color);
+	}
+
+.input {
+		display: inline-block;
+		background: var(--box-color);
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 2px 8px;
+		margin: 0 auto;
+	}
+
+.edit-username-window {
+		display: flex;
+		position: fixed;
+		flex-direction: column;
+		z-index: 25;
+		top: calc(50% - 40px);
+		left: calc(50% - 176px);
+		background: var(--box-color);
+		border-radius: 6px;
+		border-width: 1px;
+		border-color: var(--border-color);
+		border-style: solid;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+		width: 400px;
+		height: 120px;
+		justify-content: space-evenly;
+		align-items: center;
+		text-align: center;
+		align-self: flex-end;
+	}
+
+#edit-icon {
+		max-width: 15px;
+		max-height: 15px;
+		position: relative;
+		top: 10px;
+		/* right: -35px; */
+		cursor: pointer;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
+		border-radius: 6px;
+	}
+
+	#edit-icon:hover {
+		box-shadow: 1px 1px 1px 1px var(--shadow-color);
+	}
 
 	#user-name-block {
 		padding: 0;

@@ -10,19 +10,21 @@
 	import { invalidate } from "$app/navigation";
 	import { BACKEND, } from "$lib/constants";
     import { afterUpdate } from 'svelte';
-	import { backIn as anim } from 'svelte/easing';
+	import { bounceOut as anim } from 'svelte/easing';
 
 	//TODO typescript this thing
 	function spin(node, { duration }) {
 		return {
 			duration,
 			css: t => {
-				const rot_eased = Math.sin(t * 2 * Math.PI);
-				const scal_eased = anim(t) + .5; //TODO look at scale animation
+				const rot_eased = Math.sin(t * 12 * Math.PI);
+				let scal_eased = anim(t) + 0.5; //TODO look at scale animation
+				if (scal_eased < 0.9)
+					scal_eased = 0.9;
 				if (!newNotifs)
 					return ''
 				return `transform: rotate(${rot_eased * 45}deg);
-						`
+						scale: ${scal_eased};`
 			}
 		};
 	}
@@ -51,6 +53,7 @@
 			clearTimeout(timer);
 	})
 
+	//TODO still happens that when you remove a notification you can't click the notification away properly
 	async function removeNotification(invite: Invite) {
 		//the timer is so that it waits a bit before removing it so that you don't click behind the dropdown menu
 		timer = setTimeout(() => {
@@ -145,7 +148,7 @@
   <div id="bell"
   class="bell">
   	{#key newNotifs && length}
-  	<img src="/Assets/icons/bell.svg" class="bell-icon"  alt="bell" in:spin="{{duration: 250}}">
+  	<img src="/Assets/icons/bell.svg" class="bell-icon"  alt="bell" in:spin="{{duration: 1500}}">
 	{/key}
 	<div class="flex relative">
 		{#key newNotifs}

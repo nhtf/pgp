@@ -9,14 +9,20 @@ import {
 	JoinTable,
 	OneToMany,
 	AfterUpdate,
+	BeforeRemove,
+	AfterInsert,
+	CreateDateColumn,
 } from "typeorm";
-import { Exclude, Expose } from "class-transformer";
-import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS } from "../vars";
+import { Exclude, Expose, instanceToPlain } from "class-transformer";
+import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { join } from "path";
 import { Room } from "./Room";
 import { Status } from "../enums/Status";
 import { Invite } from "./Invite";
 import { get_status } from "src/gateways/get_status";
+import { UpdateGateway } from "src/gateways/update.gateway";
+import { Subject } from "src/enums/Subject";
+import { Action } from "src/enums/Action";
 
 @Entity()
 export class User {
@@ -51,12 +57,6 @@ export class User {
 	})
 	avatar_base: string; 
 
-	@OneToMany(() => FriendRequest, (request) => request.from)
-	sent_friend_requests: FriendRequest[];
-
-	@OneToMany(() => FriendRequest, (request) => request.to)
-	incoming_friend_requests: FriendRequest[];
-
 	@OneToMany(() => Invite, (invite) => invite.from)
 	sent_invites: Invite[];
 
@@ -76,14 +76,14 @@ export class User {
 	@ManyToMany(() => Room, (room) => room.banned_users)
 	banned_rooms: Room[];
 
+	@Exclude()
 	@Column({
 		default: false
 	})
 	has_session: boolean;
 
-	@Column({
-	       nullable: true
-	})
+	@Exclude()
+	@CreateDateColumn()
 	last_activity: Date;
 
 	@Expose()
@@ -94,13 +94,13 @@ export class User {
 	@Expose()
 	get status(): Status {
 		if (this.has_session)
-			return get_status(this.last_activity?.getTime());
+			return get_status(this.last_activity);
 		else
 			return Status.OFFLINE;
 	}
 
 	get avatar_basename(): string {
-		return this.avatar_base + ".jpg";
+		return this.avatar_base + AVATAR_EXT;
 	}
 
 	get avatar_path(): string {
@@ -108,19 +108,37 @@ export class User {
 	}
 
 	async add_friend(target: User) {
-		const user_friends = await this.friends;
-		if (user_friends) user_friends.push(target);
-		else this.friends = [target];
+		const user_friends = this.friends;
+	
+		if (user_friends) {
+			user_friends.push(target);
+		} else {
+			this.friends = [target];
+		}
 	}
 
-	/*
-	toMember(room: Room, role?: Role): Member {
-		const member = new Member;
+	async send_update(action: Action) {
+		await UpdateGateway.instance.send_update({
+			subject: Subject.USER,
+			identifier: this.id,
+			action,
+			value: instanceToPlain(this),
+		});
+	}
 
-		member.user = Promise.resolve(this);
-		member.room = Promise.resolve(room);
-		member.role = role ? role : Role.MEMBER;
+	@AfterInsert()
+	async afterInsert() {
+		await this.send_update(Action.ADD);
+	}
 
-		return member;
-	}*/
+	@AfterUpdate()
+	async afterUpdate() {
+		// TODO: reduce amount
+		// await this.send_update(Action.SET);
+	}
+
+	@BeforeRemove()
+	async beforeRemove() {
+		await this.send_update(Action.REMOVE);
+	}
 }

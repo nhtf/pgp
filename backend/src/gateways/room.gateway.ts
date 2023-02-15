@@ -14,6 +14,9 @@ import { Member } from "src/entities/Member";
 import { Repository } from "typeorm";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { validate_id } from "src/util";
+import { HttpService } from "@nestjs/axios";
+import { catchError, firstValueFrom } from "rxjs";
+import { TENOR_KEY } from "src/vars";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -26,6 +29,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		private readonly messageRepo: Repository<Message>,
 		@Inject("MEMBER_REPO")
 		private readonly memberRepo: Repository<Member>,
+		private readonly httpService: HttpService,
 	) {
 		super(userRepo);
 	}
@@ -68,29 +72,28 @@ export class RoomGateway extends ProtectedGateway("room") {
 			throw new WsException("not found");
 		}
 		
-		const now = new Date;
-
-		if (member.mute > now) {
-			const remaining = member.mute.getTime() - now.getTime();
-		
-			return client.emit("mute", remaining);
+		if (member.mute > new Date) {
+			throw new WsException("muted");
 		}
+		if (/^\/tenor /.test(content)) {
+			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}`)
+				.pipe(catchError((error) => {
+					console.error("crap");
+					throw "crap";
+			}));
 
-		this.server.in(client.room).emit("message", {
-			content,
-			user: {
-				id: member.user.id,
-				avatar: member.user.avatar,
-				username: member.user.username,
-			},
-		});
-
-		const message = new Message;
-	
+			const { data } = await firstValueFrom(res);
+			content = data.results[0].url;
+		}
+		
+		let message = new Message;
+		
 		message.content = content;
 		message.member = member;
 		message.room = { id: Number(client.room)} as ChatRoom;
-
-		await this.messageRepo.save(message);
+		
+		message = await this.messageRepo.save(message);
+	
+		this.server.in(client.room).emit("message", message);
 	}
 }

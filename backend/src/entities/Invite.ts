@@ -7,9 +7,8 @@ import {
 	TableInheritance,
 	AfterInsert,
 	BeforeRemove,
-	AfterUpdate,
 } from "typeorm";
-import { Exclude, Expose, instanceToPlain } from "class-transformer";
+import { Expose, instanceToPlain } from "class-transformer";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
@@ -34,23 +33,22 @@ export class Invite {
 		return "Room";
 	}
 
-	@AfterInsert()
-	async afterInsert() {
+	async send_update(action: Action) {
 		await UpdateGateway.instance.send_update({
 			subject: Subject.INVITES,
 			identifier: this.id,
-			action: Action.ADD,
+			action,
 			value: instanceToPlain(this),
 		}, this.from, this.to);
 	}
 
+	@AfterInsert()
+	async afterInsert() {
+		await this.send_update(Action.ADD);
+	}
+
 	@BeforeRemove()
 	async beforeRemove() {
-		await UpdateGateway.instance.send_update({
-			subject: Subject.INVITES,
-			identifier: this.id,
-			action: Action.REMOVE,
-			value: instanceToPlain(this),
-		}, this.from, this.to);
+		await this.send_update(Action.REMOVE);
 	}
 }

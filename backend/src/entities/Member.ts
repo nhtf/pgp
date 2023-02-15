@@ -1,4 +1,4 @@
-import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, BeforeRemove, CreateDateColumn } from "typeorm";
+import { Column, Entity, ManyToOne, OneToMany, PrimaryGeneratedColumn, AfterInsert, BeforeRemove, CreateDateColumn, TableInheritance, AfterUpdate } from "typeorm";
 import { Room } from "./Room";
 import { Role } from "src/enums/Role";
 import { User } from "./User";
@@ -9,6 +9,7 @@ import { Action } from "src/enums/Action";
 import { UpdateGateway } from "src/gateways/update.gateway";
 
 @Entity()
+@TableInheritance({ column : { type: "varchar", name: "type" } })
 export class Member {
 	@PrimaryGeneratedColumn()
 	id: number;
@@ -39,23 +40,27 @@ export class Member {
 		return this.mute > new Date;
 	}
 
-	@AfterInsert()
-	async afterInsert() {
+	async send_update(action: Action) {
 		await UpdateGateway.instance.send_update({
 			subject: Subject.MEMBER,
 			identifier: this.id,
-			action: Action.ADD,
+			action,
 			value: instanceToPlain(this),
 		}, ...(this.room?.users || []));
 	}
 
+	@AfterInsert()
+	async afterInsert() {
+		await this.send_update(Action.ADD);
+	}
+
+	@AfterUpdate()
+	async afterUpdate() {
+		await this.send_update(Action.SET);
+	}
+
 	@BeforeRemove()
 	async beforeRemove() {
-		await UpdateGateway.instance.send_update({
-			subject: Subject.MEMBER,
-			identifier: this.id,
-			action: Action.REMOVE,
-			value: instanceToPlain(this),
-		}, ...(this.room?.users || []));
+		await this.send_update(Action.REMOVE);
 	}
 }

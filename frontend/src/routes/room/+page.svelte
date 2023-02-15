@@ -6,59 +6,53 @@
 	import Swal from "sweetalert2";
 	import type { PageData } from "./$types";
 	import ChatRoomBox from "./ChatRoomBox.svelte";
-	import {Checkbox} from "flowbite-svelte";
+	import { Checkbox } from "flowbite-svelte";
 	import { onDestroy, onMount } from "svelte";
 	import { updateManager } from "$lib/updateSocket";
 
 	export let data: PageData;
 
-	$: rooms = setJoined(data.roomsJoined, true).concat(setJoined(data.roomsJoinable, false));
-	$: joined = rooms.filter((room) => room.joined);
-	$: joinable = rooms.filter((room) => !room.joined);
+	$: rooms = data.roomsJoined.concat(data.roomsJoinable);
 
-	let password = "";
-
-	type room_dto = {
-		name: string;
+	const room: {
+		name?: string;
+		password?: string;
 		is_private: boolean;
-		password: string | undefined;
-	};
-
-	const room: room_dto = {
+	} = {
 		name: "",
+		password: "",
 		is_private: false,
-		password: undefined,
 	};
 
 	onMount(() => {
 		updateManager.set(Subject.ROOM, updateRooms);
-
-		console.log(rooms);
 	});
 
 	onDestroy(() => {
 		updateManager.remove(Subject.ROOM);
 	});
 
-	function setJoined(rooms: ChatRoom[], joined: boolean): ChatRoom[] {
-		return rooms.map((room) => { room.joined = joined; return room });
-	}
-
-	function enter(room: ChatRoom) {
-		goto(`/room/${room.id}`);
+	async function enter(room: ChatRoom) {
+		await goto(`/room/${room.id}`);
 	}
 
 	async function createChatRoom() {
-		if (password.length) {
-			room.password = password;
+		if (!room.password?.length) {
+			delete room.password;
 		}
 
-		const created = await unwrap(post("/room", room));
+		if (!room.name?.length) {
+			delete room.name;
+		}
 
-		enter(created);
+		const created: ChatRoom = await unwrap(post("/room", room));
+
+		// await goto(`/room/${created.id}`);
 	};
 
 	async function join(room: ChatRoom) {
+		let body: { name?: string, password?: string } = {};
+	
 		if (room.access == Access.PROTECTED) {
 			const { value: password, isDismissed } = await Swal.fire({
 				text: "password",
@@ -70,10 +64,10 @@
 				return ;
 			}
 
-			await unwrap(post(`/room/id/${room.id}/members`, { password }));
-		} else {
-			await unwrap(post(`/room/id/${room.id}/members`));
+			body.password = password;
 		}
+
+		await unwrap(post(`/room/id/${room.id}/members`, body));
 
 		Swal.fire({
 			icon: "success",
@@ -84,14 +78,18 @@
 	}
 
 	function updateRooms(update: UpdatePacket) {
+		update.value.joined = (update.value.owner.id === data.user?.id);
+	
 		switch (update.action) {
 			case Action.SET:
 				let room = rooms.find((room) => room.id === update.identifier) as ChatRoom;
 				
-				// TODO: update rooms list after invite
-				console.log(room?.joined);
-				room = update.value;
-				console.log(room?.joined);
+				if (room) {
+					room = update.value;
+				} else {
+					rooms.push(room);
+				}
+			
 				rooms = rooms;
 				break ;
 			case Action.ADD:
@@ -107,28 +105,40 @@
 
 </script>
 
+<!-- {#if room.owner?.id === data.user?.id}
+<input class="input" placeholder="Username" bind:value={room.data_username}>
+<button class="button button-invite" on:click={() => inviteUser(room)}>Invite</button>
+{/if}
+<a class="button button-enter" href=/game/{room.id}>Enter</a>
+{#if room.owner?.id === data.user?.id}
+<button class="button button-delete" on:click={() => deleteGame(room)}>Delete</button>
+{:else}
+<button class="button button-leave" on:click={() => leaveGame(room)}>Leave</button>
+{/if} -->
+
 <div class="room_list">
 	<div class="room room-create">
-		<div>
-			<input class="input" type="text" placeholder="Room name" bind:value={room.name}>
-			<p/>
-			<input class="input" type="password" autocomplete="off" placeholder="Room password" bind:value={password} disabled={room.is_private}>
-			<Checkbox bind:checked={room.is_private} class="checkbox"></Checkbox>
-			<span class="label">Private</span>
-		</div>
+		<input
+			class="input"
+			type="text"
+			placeholder="Room name"
+			bind:value={room.name}
+		/>
+		<input
+			class="input"
+			type="password"
+			autocomplete="off"
+			placeholder="Room password"
+			bind:value={room.password}
+			disabled={room.is_private}
+		/>
+		<Checkbox bind:checked={room.is_private} class="checkbox"></Checkbox>
+		<span class="label">Private</span>
 		<button class="button button-create" on:click={createChatRoom}>Create</button>
 	</div>
-	{#key joined}
-		{#each joined as room}
-			<ChatRoomBox divider={false} {room} click={enter}/>
-		{/each}
-	{/key}
-	<div></div>
-	{#key joinable}
-		{#each joinable as room}
-			<ChatRoomBox divider={false} {room} click={join}/>
-		{/each}
-	{/key}
+	{#each rooms as room}
+		<ChatRoomBox divider={false} {room} click={room.joined ? enter : join}/>
+	{/each}
 	
 </div>
 
@@ -172,7 +182,7 @@
 		border-color: var(--green);
 	}
 
-	p {
+	/* p {
 		margin-top: 0.375rem;
-	}
+	} */
 </style>

@@ -9,6 +9,8 @@ import { WIDTH, HEIGHT, UPS, border, paddleHeight, linethickness, paddleWidth } 
 import { Ball } from "./Ball";
 import type { BallObject } from "./Ball";
 import { Field } from "./Field";
+import { Goal } from "./Goal";
+import { fields, GAME } from "./Constants";
 
 const players = 2;
 
@@ -32,13 +34,20 @@ export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
 	public field: Field;
+	public goals: Goal[];
+	public players: GAME;
 
-	public constructor() {
+	public constructor(players: GAME) {
 		super();
 
+		this.players = players;
 		this.ball = new Ball();
 		this.paddles = [new Paddle("left"), new Paddle("right")];
-		this.field = new Field();
+		this.field = new Field(fields[this.players].lines);
+		this.goals = [];
+		fields[this.players].goals.forEach((goal, index) => {
+			this.goals.push(new Goal(new Vector(goal.x, goal.y), goal.angle, index, goal.cf, goal.cs));
+		});
 
 		this.on("mousemove", netEvent => {
 			const event = netEvent as MouseEvent;
@@ -91,16 +100,16 @@ export class Game extends Net {
 	//TODO lerp/slerp the paddle and ball for smoother motion
 	public render(context: CanvasRenderingContext2D) {
 		this.field.render(context);
+		this.goals.forEach(goal => goal.render(context));
 		this.ball.render(context);
 		this.paddles.forEach(paddle => paddle.render(context));
+		// this.goals[1].render(context);
 	}
 
 	//TODO send to the backend for score update
 	//TODO check for goal collision for points + cleanup
 	//TODO better collission detection with paddle (also if for 4 players paddle will be rotated) intersect or something
 	public lateTick() {
-		this.ball.previousPos.x = this.ball.position.x;
-		this.ball.previousPos.y = this.ball.position.y;
 		this.ball.position.x += this.ball.velocity.x;
 		this.ball.position.y += this.ball.velocity.y;
 
@@ -152,11 +161,13 @@ export class Modern {
 	private context: CanvasRenderingContext2D;
 	private game: Game;
 	private lastTime?: number;
+	private players: GAME;
 
-	public constructor(canvas: HTMLCanvasElement) {
+	public constructor(canvas: HTMLCanvasElement, players: number) {
 		this.canvas = canvas;
 		this.context = canvas.getContext("2d")!;
-		this.game = new Game();
+		this.game = new Game(players);
+		this.players = players;
 	}
 
 	public update(time: number) {

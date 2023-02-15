@@ -2,7 +2,7 @@ import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, Pars
 import { Repository } from "typeorm";
 import { IRoomService, GenericRoomController, RequiredRole, GetRoom } from "src/services/room.service";
 import { ChatRoom } from "src/entities/ChatRoom";
-import { Member } from "src/entities/Member";
+import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Message } from "src/entities/Message";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { Role } from "src/enums/Role";
@@ -12,13 +12,13 @@ import { ERR_PERM } from "src/errors";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 
-export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)?") {
+export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "room(s)?") {
 
 	constructor(
 		@Inject("CHATROOM_REPO")
 		room_repo: Repository<ChatRoom>,
 		@Inject("MEMBER_REPO")
-		member_repo: Repository<Member>,
+		member_repo: Repository<ChatRoomMember>,
 		@Inject("ROOMINVITE_REPO")
 		invite_repo: Repository<RoomInvite>,
 		@Inject("CHATROOM_PGPSERVICE")
@@ -33,7 +33,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 	@Get("id/:id/messages")
 	@RequiredRole(Role.MEMBER)
 	async get_messages(@GetRoom() room: ChatRoom) {
-		return this.message_repo.find({
+		const messages = await this.message_repo.find({
 			relations: {
 				member: {
 					user: true,
@@ -45,13 +45,15 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 				},
 			},
 		});
+
+		return messages;
 	}
 
 	@Post("id/:id/mute/:target")
 	@RequiredRole(Role.ADMIN)
 	async mute(
 		@GetRoom() room: ChatRoom,
-		@Param("target", ParseIDPipe(Member, { room: true })) target: Member,
+		@Param("target", ParseIDPipe(ChatRoomMember, { room: true })) target: ChatRoomMember,
 		@Body("duration", ParseIntPipe) duration: number)
 	{
 		if (target.room.id !== room.id) {
@@ -63,7 +65,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 		}
 
 		target.mute = new Date(Date.now() + duration);
-
+		
 		await this.member_repo.save(target);
 	
 		room.send_update({

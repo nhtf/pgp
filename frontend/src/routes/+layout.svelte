@@ -20,6 +20,8 @@
 	} from "flowbite-svelte";
 	import { goto } from "$app/navigation";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
+    import { userStore } from "../stores";
+    import type { User } from "$lib/types";
 
 	export let data: LayoutData;
 
@@ -30,6 +32,26 @@
 		DARK: "dark",
 		LIGHT: "light",
 	};
+
+	onMount(() => {
+		if (user) {
+			let user = data.user as User;
+		
+			userStore.update((users) => {
+				return users.set(user.id, user);
+			});
+
+			userStore.subscribe((users) => {
+				console.log(users);
+				user = users.get(user.id) as User;
+			});
+		}
+
+		applyTheme();
+		window
+			.matchMedia(DARK_PREFERENCE)
+			.addEventListener("change", applyTheme);
+	});
 
 	const STORAGE_KEY = "theme";
 	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
@@ -87,14 +109,6 @@
 		}
 	}
 
-
-	onMount(() => {
-		applyTheme();
-		window
-			.matchMedia(DARK_PREFERENCE)
-			.addEventListener("change", applyTheme);
-	});
-
 	const links = [
 		{ url: "/room", name: "Chat Rooms" },
 		{ url: "/game", name: "Game Rooms" },
@@ -121,16 +135,16 @@
 			<Notifications />
 		{/if}
 	</div>
-	{#if user?.username}
+	{#if user && user.username}
 		<Dropdown
 			triggeredBy="#avatar-menu"
 			placement="bottom"
 			class="bg-c bor-c"
 		>
 			<DropdownHeader>
-				<span class="block text-sm"> {data.user?.username} </span>
+				<span class="block text-sm"> {user.username} </span>
 			</DropdownHeader>
-			<DropdownItem href="/profile/{data.user?.username}"
+			<DropdownItem href="/profile/{encodeURIComponent(user.username)}"
 				>profile</DropdownItem
 			>
 			{#if twofa_enabled}

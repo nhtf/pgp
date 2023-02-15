@@ -10,48 +10,62 @@
 	let src: string | null;
 	let filevar: FileList;
 
-	console.log($page.data.profile.avatar);
+	// console.log($page.data.profile.avatar);
 
-	function toggleEdit() {
-		show_edit = !show_edit;
-		src = null;
-	}
-
-	function onChange() {
-		var reader = new FileReader();
-		reader.onload = function (e) {
-			if (e.target && e.target.result) src = e.target.result as string;
-		};
-		reader.readAsDataURL(filevar[0]);
-	}
-
-	async function upload() {
-		const formData = new FormData();
-		formData.append("avatar", filevar[0]);
-		if (filevar[0].size > 10485760) {
-			const Toast = Swal.mixin({
-				toast: true,
-				position: "bottom-end",
-				showConfirmButton: false,
-				timer: 3000,
-				timerProgressBar: false,
-				didOpen: (toast) => {
-					toast.addEventListener("mouseenter", Swal.stopTimer);
-					toast.addEventListener("mouseleave", Swal.resumeTimer);
+	async function changeAvatar() {
+		const { value: file } = await Swal.fire({
+				title: "Select image",
+				input: "file",
+				showCancelButton: true,
+				confirmButtonText: "Select",
+				inputAttributes: {
+					"accept": "image/*",
+					"aria-label": "Upload your avatar",
+				},
+				inputValidator: file => {
+					if (!file)
+						return "No file selected";
+					if (file.size > 10485760)
+						return "May not be larger than 10 MiB";
+					return null;
 				},
 			});
-			Toast.fire({
-				icon: "error",
-				title: "File is more than 10 MiB large",
-			});
-			return;
+		
+		if (file) {
+			const reader = new FileReader();
+			reader.onload = async (e) => {
+				await Swal.fire({
+					title: "Change avatar",
+					imageUrl: (e.target?.result as string),
+					imageWidth: 400,
+					imageHeight: 400,
+					imageAlt: "Uploaded image",
+					showCancelButton: true,
+					preConfirm: () => {
+						const form = new FormData();
+						form.append("avatar", file);
+						return put("/user/me/avatar", form, false).catch(error => {
+							Swal.showValidationMessage(error.message);
+						});
+					},
+				}).then(result => {
+					if (result.isConfirmed) {
+						const avatars = document.getElementById("avatar-menu") as HTMLImageElement;
+						avatars.src = result.value.avatar;
+						avatar = result.value.avatar;
+						src = null;
+						Swal.fire({
+							position: "top-end",
+							icon: "success",
+							title: "Set new image",
+							showConfirmButton: false,
+							timer: 1300,
+						});
+					}
+				});
+			};
+			reader.readAsDataURL(file);
 		}
-		const result = await put(`/user/me/avatar`, formData, false);
-		const avatars = document.getElementById("avatar-menu") as HTMLImageElement;
-		avatars.src = result.avatar;
-		avatar = result.avatar;		
-		src = null;
-		show_edit = false;
 	}
 
 </script>
@@ -60,42 +74,9 @@
 	<img id="avatar" src={avatar} alt="avatar" />
     {#if $page.data.user?.username === $page.data.profile?.username}
         <img src={edit_icon} alt="edit icon" id="edit-icon"
-            on:click={toggleEdit}
-            on:keypress={toggleEdit}
+            on:click={changeAvatar}
+            on:keypress={changeAvatar}
         />
-        {#if show_edit}
-        <div class="edit-avatar-window">
-            <div class="close-button">
-                <svg fill="currentColor" width="24" height="24"
-                    on:click={toggleEdit}
-                    on:keypress={toggleEdit}	
-                >
-                    <path d="M13.42 12L20 18.58 18.58 20 12 13.42
-                            5.42 20 4 18.58 10.58 12 4 5.42 5.42
-                            4 12 10.58 18.58 4 20 5.42z"/>
-                </svg>
-            </div>
-            {#if !src}
-                <div class="avatar-preview-container">
-                    <img class="current-avatar" src={$page.data.profile.avatar} alt="avatar"/>
-                </div>
-                <div class="image-selector">
-                    <input name="file" class="hidden" id="image-selector_file_upload"
-                        type="file" accept="image/*" bind:files={filevar} on:change={onChange}
-                    />
-                    <label for="image-selector_file_upload">edit avatar</label>
-                </div>
-            {/if}
-            {#if src}
-                <div class="avatar-preview-container">
-                    <img {src} class="current-avatar" alt="" />
-                </div>
-                <div class="image-selector" on:click={upload} on:keypress={upload}>
-                    submit
-                </div>
-            {/if}
-        </div>
-        {/if}
     {/if}
 </div>
 

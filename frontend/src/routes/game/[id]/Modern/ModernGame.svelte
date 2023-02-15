@@ -2,6 +2,7 @@
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
 	import { Modern } from "./Modern";
+	import { GAME } from "./Constants";
 
 	let canvas: HTMLCanvasElement;
 
@@ -9,7 +10,7 @@
 	//TODO also implement powerups
 	//TODO add sound effects
 	onMount(async () => {
-		const modern = new Modern(canvas);
+		const modern = new Modern(canvas, GAME.TWOPLAYERS);
 
 		await modern.start({ room: $page.data.params.id, user: $page.data.user });
 
@@ -20,6 +21,7 @@
 	});
 </script>
 
+
 <canvas bind:this={canvas}></canvas>
 
 <style>
@@ -29,5 +31,9 @@
 		width: calc(100vw - 10px);
 		inset: 77px 5px 5px 5px;
 		border-radius: 6px;
+	}
+
+	canvas:hover {
+		cursor: none;
 	}
 </style>

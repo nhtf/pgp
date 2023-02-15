@@ -20,7 +20,6 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 	
 		return { user, invites_received, invites_send }
 	} catch (err) {
-		console.log("+layout.ts", err);
-		return { user: null, invites_received: [], invites_send: []};
+		return { user: null, invites_received: null, invites_send: null }
 	}
 }) satisfies LayoutLoad;

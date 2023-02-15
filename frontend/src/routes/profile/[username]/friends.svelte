@@ -5,10 +5,12 @@
     import Swal from "sweetalert2";
     import { page } from '$app/stores';
     import { BACKEND_ADDRESS } from '$lib/constants';
-    import { onMount } from 'svelte/internal';
-    import type {simpleuser} from "./+page";
+    import { onDestroy, onMount } from 'svelte/internal';
+    import type { simpleuser } from "./+page";
     import { Button, Dropdown, DropdownItem, Avatar } from 'flowbite-svelte'
-    import {updateManager} from "$lib/updateSocket";
+    import { updateManager } from "$lib/updateSocket";
+    import { userStore } from '../../../stores';
+	import "@sweetalert2/theme-dark/dark.scss";
 
     const friend_icon = "/Assets/icons/add-friend.png";
 	const status_colors = [ "gray", "yellow", "green" ];
@@ -17,36 +19,99 @@
     let showFriendWindow = false;
     let username = "";
 
-
+	let profile: User = $page.data.profile;
+    let friends: User[];
+    $: friends = $page.data.friends;
     $: placement = window.innerWidth < 750 ? "top" : "left-end";
 
-    $: friends = $page.data.friendlist as simpleuser[];
+    onMount(() => {
+		userStore.update((users) => {
+			users.set(profile.id, profile);
+			friends.forEach((friend) => {
+				users.set(friend.id, friend);
+			});
+		
+			return users;
+		});
 
+		userStore.subscribe((users) => {
+			friends = friends.map((friend) => users.get(friend.id) as User);
+		})
+
+        updateManager.set(Subject.FRIENDS, updateFriends);
+    });
+
+    onDestroy(() => {
+        updateManager.remove(Subject.FRIENDS);
+    })
+    
     function checkGameScores() {
-		let socket = io(`ws://${BACKEND_ADDRESS}/game`, {withCredentials: true});
-		socket.on("connect", () => {socket.emit("join", {scope: "stat", room: "1"})});
+		let socket = io(`ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
+    
+		socket.on("connect", () => { socket.emit("join", { scope: "stat", room: "1" }) });
 		socket.on("status", (status) => {
+            console.log(status);
             if (!$page.data.friendlist)
                 return;
-                $page.data.friendlist.forEach((user: User) => {
-				if (status.players.length > 1 && status.teams.length > 1) {
-					for (let i = 0; i < status.players.length; i+=1) {
+            $page.data.friendlist?.forEach((user: User) => {
+                if (status.players.length > 1 && status.teams.length > 1) {
+                    for (let i = 0; i < status.players.length; i+=1) {
                         if (status.players[i].user === user.id) {
                             const points = status.teams[0].score + " - " + status.teams[1].score;
                             score.set(user.username, points);
                         }
-				    }
-				}
+                    }
+                }
 			})
 			score = score;
 		});
-        console.log("friendlist: ", $page.data.friendlist);
+        // console.log("friendlist: ", $page.data.friendlist);
 	}
 
-	checkGameScores();
+	// checkGameScores();
 
-    function toggleAddfriend() {
-        showFriendWindow = !showFriendWindow;
+    async function toggleAddfriend() {
+		await Swal.fire({
+			title: "Add friend",
+			input: "text",
+			showCancelButton: true,
+			confirmButtonText: "Add friend",
+			confirmButtonColor: "var(--confirm-color)",
+			cancelButtonColor: "var(--cancel-color)",
+			background: "var(--box-color)",
+			showLoaderOnConfirm: true,
+			inputAutoTrim: true,
+			inputPlaceholder: "Enter username",
+			allowOutsideClick: () => !Swal.isLoading(),
+			inputValidator: (username) => {
+				if (username.length < 3 || username.length > 20)
+					return "Username must be be 3-20 characters";
+				if (!/^(?!\0)\S(?:(?!\0)[ \S]){1,18}(?!\0)\S$/.test(username))
+					return "Invalid characters";
+				if (username === $page.data.user.username)
+					return "Cannot befriend yourself";
+                return null;
+			},
+			preConfirm: async (username) => {
+				return get(`/user/${encodeURIComponent(username)}`).then(async target => {
+					await post("/user/me/friends/requests", { id: target.id });
+					return null;
+				}).catch(error => {
+					Swal.showValidationMessage(error.message);
+				});
+			},
+		}).then(result => {
+			if (result.isConfirmed) {
+				Swal.fire({
+					position: "top-end",
+					icon: "success",
+					title: "Successfully sent friend request",
+					showConfirmButton: false,
+					timer: 1300,
+				});
+			}
+		});
+        //showFriendWindow = !showFriendWindow;
     }
 
     async function addFriend() {
@@ -73,7 +138,6 @@
         }
         try {
             const id_obj = {"id" : id.id};
-            const result = await post("/user/me/friends/requests", id_obj);
             const Toast = Swal.mixin({
 				toast: true,
 				showConfirmButton: false,
@@ -117,30 +181,7 @@
         //TODO have a toast or alert or something to show it was fine.
     }
 
-    function updateUser(update: any) {
-        friends.forEach((friend: simpleuser) => {
-            if (friend.id === update.identifier) {
-                switch (update.subject) {
-                    case Subject.STATUS:
-                        friend.status = update.value;
-                        break ;
-                    case Subject.USERNAME:
-                        friend.username = update.value;
-                        break ;
-                    case Subject.AVATAR:
-                        friend.avatar = update.value;
-                        break ;
-                    case Subject.USER:
-                        friend.status = update.value.status;
-                        friend.username = update.value.username;
-                        friend.avatar = update.value.avatar;
-                }
-            }
-        });
-        friends = friends;
-    }
-
-    function updateFriend(update: any) {
+    function updateFriends(update: any) {
         console.log("updatefriend function");
         if (update.action === Action.ADD) {
             const newFriend: simpleuser = {
@@ -157,16 +198,6 @@
             friends = friends.filter((friend) => friend.id !== update.value.id);
         }
     }
-
-    onMount(() => {
-        updateManager.set(Subject.FRIENDS, updateFriend);
-        updateManager.set(Subject.STATUS, updateUser);
-        updateManager.set(Subject.USERNAME, updateUser);
-        updateManager.set(Subject.AVATAR, updateUser);
-        updateManager.set(Subject.USER, updateUser);
-    });
-    console.log($page.data.friendlist);
-    
 
     function changePlacement() {
         if (window.innerWidth < 550) {
@@ -242,7 +273,7 @@
                 <div class="spacing"></div>
                 <Dropdown {placement} inline triggeredBy="#avatar_with_name{index}" class="bor-c bg-c"
                 frameClass="bor-c bg-c">
-                <DropdownItem  href="/profile/{username}">view profile</DropdownItem>
+                <DropdownItem  href="/profile/{encodeURIComponent(username)}">view profile</DropdownItem>
                 <!-- //TODO make the spectate and invite game actually functional -->
                 {#if in_game}
                     <DropdownItem >spectate</DropdownItem>

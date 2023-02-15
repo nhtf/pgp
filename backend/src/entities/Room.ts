@@ -59,8 +59,6 @@ export class Room {
 	@OneToMany(() => RoomInvite, (invite) => invite.room)
 	invites: RoomInvite[];
 
-	joined?: boolean;
-
 	async send_update(packet: UpdatePacket, broadcast?: boolean) {
 		if (broadcast === true) {
 			await UpdateGateway.instance.send_update(packet);
@@ -68,19 +66,6 @@ export class Room {
 			await UpdateGateway.instance.send_update(packet, ...(this.users || []));
 		}
 	}
-
-	/*@AfterInsert()
-	async afterInsert() {
-		const room = { ...instanceToPlain(this), owner: this.owner };
-	
-		console.log("members:", this.members);
-		await this.send_update({
-			subject: Subject.ROOM,
-			identifier: this.id,
-			action: Action.ADD,
-			value: room,
-		}, !this.is_private);
-	}*/
 
 	//TODO check if Room invites get properly removed
 	@BeforeRemove()

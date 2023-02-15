@@ -3,7 +3,7 @@ import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions, Not, ArrayContains, ArrayContainedBy } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions } from "typeorm";
 import { Access } from "../enums/Access";
 import { GameRoom } from "../entities/GameRoom";
 import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe, UnprocessableEntityException, Res } from "@nestjs/common";
@@ -19,6 +19,7 @@ import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { instanceToPlain } from "class-transformer";
 import type { Response } from "express";
+import { genName } from "src/namegen";
 
 export class PasswordDTO {
 	@IsString()
@@ -29,14 +30,15 @@ export class PasswordDTO {
 export class CreateRoomDTO {
 	@Length(3, 20)
 	@IsString()
+	@IsOptional()
 	name: string;
 
 	@IsBoolean()
 	is_private: boolean;
 
 	@IsString()
-	@ValidateIf(o => o.is_private === false) //TODO test
-	@Length(1, 200)//TODO length should not be checked here, an empty password might be sent with is_private on, can probably be done using @ValidateIf
+	@ValidateIf(o => o.is_private === false)
+	@Length(1, 200)
 	@IsOptional()
 	password: string;
 }
@@ -49,11 +51,11 @@ export interface IRoomService<T extends Room> {
 	del_member(room: number | T, member: Member | User | number, ban?: boolean): Promise<boolean>;
 }
 
-export function getRoomService<T extends Room>(room_repo: Repository<T>, member_repo: Repository<Member>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T)) {
+export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
 	class RoomService<T extends Room> implements IRoomService<T> {
 		constructor(
 			readonly room_repo: Repository<T>,
-			readonly member_repo: Repository<Member>,
+			readonly member_repo: Repository<U>,
 			readonly invite_repo: Repository<RoomInvite>,
 			readonly user_repo: Repository<User>,
 			readonly type: (new () => T),
@@ -101,7 +103,7 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			return true;
 		}
 
-		async add_member(room: number | T, user: number | User, role?: Role): Promise<Member> {
+		async add_member(room: number | T, user: number | User, role?: Role): Promise<U> {
 			room = await this.get_room(room);
 
 			if (typeof user === "number")
@@ -109,10 +111,10 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			if (!user)
 				throw new NotFoundException("User not found");
 
-			if (await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: user.id } }))
+			if (await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: user.id } } as FindOptionsWhere<U>))
 				throw new ForbiddenException("Already member of room");
 
-			const member = new Member();
+			const member = new MemberType();
 			member.role = role || Role.MEMBER;
 			member.room = room;
 			member.user = user;
@@ -123,18 +125,18 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			return this.member_repo.save(member);
 		}
 
-		async del_member(room: number | T, member: Member | User | number, ban?: boolean) {
+		async del_member(room: number | T, member: U | User | number, ban?: boolean) {
 			room = await this.get_room(room);
 
 			if (!(member instanceof Member))
-				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id  } });
+				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id  } } as FindOptionsWhere<U>);
 			if (!member)
 				return false;
 
-			const idx = room.members?.findIndex(x => x.id === (member as Member).id);
-			if (idx === undefined || idx < 0)
+			const index = room.members?.findIndex(x => x.id === (member as Member).id);
+			if (index === undefined || index < 0)
 				throw new NotFoundException("Member not found");
-			room.members.splice(idx, 1);
+			room.members.splice(index, 1);
 			if (ban === true) {
 				let user = member.user;
 				
@@ -152,11 +154,11 @@ export function getRoomService<T extends Room>(room_repo: Repository<T>, member_
 			return true;
 		}
 
-		async edit_member(room: number | T, role: Role, member: Member | User | number): Promise<Member> {
+		async edit_member(room: number | T, role: Role, member: U | User | number): Promise<U> {
 			room = await this.get_room(room);
 
 			if (!(member instanceof Member))
-				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id  } });
+				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id  } } as FindOptionsWhere<U>);
 			if (!member)
 				throw new NotFoundException("Member not found");
 			member.role = role;
@@ -216,7 +218,7 @@ export class RolesGuard implements CanActivate {
 
 export const RequiredRole = (role: Role) => SetMetadata(ROLE_KEY, role);
 
-export function GenericRoomController<T extends Room, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), route?: string, c?: (new () => C)) {
+export function GenericRoomController<T extends Room, U extends Member, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), MemberType: (new () => U), route?: string, c?: (new () => C)) {
 	@UseGuards(HttpAuthGuard, RolesGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Controller(route || type.name.toString().toLowerCase())
@@ -224,8 +226,8 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		constructor(
 			@Inject(type.name.toString().toUpperCase() + "_REPO")
 			readonly room_repo: Repository<T>,
-			@Inject("MEMBER_REPO")
-			readonly member_repo: Repository<Member>,
+			@Inject(MemberType.name.toString().toUpperCase() + "_REPO")
+			readonly member_repo: Repository<U>,
 			@Inject("ROOMINVITE_REPO")
 			readonly invite_repo: Repository<RoomInvite>,
 			@Inject(type.name.toString().toUpperCase() + "_PGPSERVICE")
@@ -234,8 +236,8 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		) {
 		}
 
-		async get_member(user: User, room: Room): Promise<Member | null> {
-			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } });
+		async get_member(user: User, room: Room): Promise<U | null> {
+			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
 		}
 
 		@Get("")
@@ -314,7 +316,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@Post()
 		@UsePipes(new ValidationPipe({ expectedType: c || CreateRoomDTO }))
 		async create_room(@Me() user: User, @Body() dto: C) {
-			const name = dto.name.trim();
+			const name = dto.name ? dto.name.trim() : genName();
 			const room = await this.service.create(name, dto.is_private, dto.password);
 
 			await this.service.add_member(room, user, Role.OWNER);
@@ -325,9 +327,9 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 				subject: Subject.ROOM,
 				identifier: room.id,
 				action: Action.ADD,
-			       value: instanceToPlain(room),
+				value: instanceToPlain(room),
 			}, !room.is_private);
-		
+
 			return room;
 		}
 
@@ -395,12 +397,10 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			await this.service.add_member(room, me);
 			await this.invite_repo.remove(invites);
 
-			const action = room.is_private ? Action.ADD : Action.SET;
-		
 			await this.update_service.send_update({
 				subject: Subject.ROOM,
 				identifier: room.id,
-				action,
+				action: Action.SET,
 				value: { ...instanceToPlain(room), joined: true },
 			}, me);
 
@@ -423,12 +423,12 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			return this.member_repo.find({
 				relations: {
 					user: true,
-				},
+				} as FindOptionsRelations<U>,
 				where: {
 					room: {
 						id: room.id,
 					},
-				},
+				} as FindOptionsWhere<U>,
 			});
 		}
 
@@ -436,7 +436,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@RequiredRole(Role.MEMBER)
 		async user_leave(
 			@GetRoom() room: T,
-			@GetMember() member: Member,
+			@GetMember() member: U,
 			@Res() res: Response,
 		) {
 			res.redirect(`${member.id}`);
@@ -446,8 +446,8 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@RequiredRole(Role.MEMBER)
 		async remove_member(
 			@GetRoom() room: T,
-			@GetMember() member: Member,
-			@Param("target", ParseIDPipe(Member, { user: true })) target: Member,
+			@GetMember() member: U,
+			@Param("target", ParseIDPipe(MemberType, { user: true } as FindOptionsRelations<U>)) target: U,
 			@Body("ban") ban?: string,
 		) {
 		
@@ -484,9 +484,9 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@Patch("id/:id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
 		async edit_member(
-			@GetMember() member: Member,
+			@GetMember() member: U,
 			@GetRoom() room: T,
-			@Param("target", ParseIDPipe(Member, { room: true })) target: Member,
+			@Param("target", ParseIDPipe(MemberType, { room: true } as FindOptionsRelations<U>)) target: U,
 			@Body("role", new ParseEnumPipe(Role)) role: Role
 		) {
 			if (member.room.id !== room.id) {
@@ -506,7 +506,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 					subject: Subject.MEMBER,
 					action: Action.SET,
 					identifier: member.id,
-					value: member.role,
+					value: member,
 				});
 			}
 
@@ -514,7 +514,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 				subject: Subject.MEMBER,
 				action: Action.SET,
 				identifier: target.id,
-				value: role,
+				value: target,
 			});
 		
 			return await this.member_repo.save([member, target]);
@@ -540,7 +540,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 		@RequiredRole(Role.ADMIN)
 		async create_invite(
 			@Me() me: User,
-			@GetMember() member: Member,
+			@GetMember() member: U,
 			@GetRoom() room: T,
 			@Body("username", ParseUsernamePipe) target: User
 		) {
@@ -573,7 +573,7 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			}
 		
 			if (invite.from.id != me.id && invite.to.id != me.id) {
-				const member = await this.member_repo.findOneBy({ user: { id: me.id } });
+				const member = await this.member_repo.findOneBy({ user: { id: me.id } } as FindOptionsWhere<U>);
 				if (!member && room.access == Access.PRIVATE)
 					throw new NotFoundException("Not found");
 				else if (!member || member.role < Role.ADMIN)
@@ -597,16 +597,16 @@ export function GenericRoomController<T extends Room, C extends CreateRoomDTO = 
 			@GetRoom() room: T,
 			@Param("user_id", ParseIDPipe(User)) target: User,
 		) {
-			const idx = room.banned_users?.findIndex(user => user.id === target.id);
-			if (idx === undefined || idx < 0)
+			const index = room.banned_users?.findIndex(user => user.id === target.id);
+		
+			if (!index  || index < 0) {
 				throw new NotFoundException("User not banned");
-			room.banned_users.splice(idx, 1);
-			await this.room_repo.save(room);
-			return {};
+			}
+		
+			room.banned_users.splice(index, 1);
+		
+			return await this.room_repo.save(room);
 		}
 	}
 	return RoomControllerFactory;
-}
-
-export class TestController extends GenericRoomController(GameRoom) {
 }
