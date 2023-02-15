@@ -52,7 +52,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 	async mute(
 		@GetRoom() room: ChatRoom,
 		@Param("target", ParseIDPipe(Member, { room: true })) target: Member,
-		@Body("duration", ParseIntPipe) milliseconds: number)
+		@Body("duration", ParseIntPipe) duration: number)
 	{
 		if (target.room.id !== room.id) {
 			throw new BadRequestException("Target not a member of this room");
@@ -62,25 +62,25 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, "room(s)
 			throw new ForbiddenException(ERR_PERM);
 		}
 
-		target.mute = new Date(Date.now() + milliseconds);
-
-		room.send_update({
-			subject: Subject.MUTE,
-			action: Action.SET,
-			identifier: target.id,
-			value: milliseconds,
-		});
+		target.mute = new Date(Date.now() + duration);
 
 		await this.member_repo.save(target);
+	
+		room.send_update({
+			subject: Subject.MEMBER,
+			action: Action.SET,
+			identifier: target.id,
+			value: target,
+		});
 
 		setTimeout(() => {
 			room.send_update({
-				subject: Subject.MUTE,
-				action: Action.REMOVE,
+				subject: Subject.MEMBER,
+				action: Action.SET,
 				identifier: target.id,
-				value: null,
+				value: target,
 			});
-		}, milliseconds);
+		}, duration);
 
 		return {};
 	}

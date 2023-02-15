@@ -41,10 +41,10 @@
 	let value: string = "";
 
 	onMount(() => {
-		updateManager.set(Subject.MUTE, (update: UpdatePacket) => {
-			const member = data.members.find((member) => member.id === update.identifier) as Member;
+		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
+			let member = data.members.find((member) => member.id === update.identifier) as Member;
 		
-			member.is_muted = update.value.is_muted;
+			member = update.value;
 		});
 	
 		roomSocket.emit("join", String(room.id));
@@ -53,7 +53,7 @@
 	});
 
 	onDestroy(() => {
-		updateManager.remove(Subject.MUTE);
+		updateManager.remove(Subject.MEMBER);
 	})
 
 	beforeUpdate(() => {

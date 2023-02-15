@@ -6,7 +6,6 @@ import { Repository } from "typeorm"
 import { validate_id } from "src/util";
 import { GameRoom } from "src/entities/GameRoom";
 import { FRONTEND_ADDRESS } from "src/vars";
-import { InjectRepository } from "@nestjs/typeorm";
 
 declare module "socket.io" {
 	export interface Socket {

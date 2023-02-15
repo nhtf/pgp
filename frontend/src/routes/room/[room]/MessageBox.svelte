@@ -76,9 +76,9 @@
 				{/if}
 				{#if my_role >= Role.ADMIN && member.role < my_role}
 					<DropdownDivider/>
-					<DropdownItem on:click={() => kick(member, true)}>Ban</DropdownItem>
-					<DropdownItem on:click={() => kick(member, false)}>Kick</DropdownItem>
 					<DropdownItem on:click={() => mute(member, 10)}>Mute</DropdownItem>
+					<DropdownItem on:click={() => kick(member, false)}>Kick</DropdownItem>
+					<DropdownItem on:click={() => kick(member, true)}>Ban</DropdownItem>
 					{#if member.is_muted}
 						<DropdownItem on:click={() => mute(member, 0)}>Unmute</DropdownItem>
 					{/if}
