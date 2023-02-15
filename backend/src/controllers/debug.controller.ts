@@ -211,4 +211,9 @@ export class DebugController {
 	async messages() {
 		return await this.messageRepo.find();
 	}
+
+	@Get("message(s)?/delete")
+	async deleteMessage(@Query("id") id: string) {
+		return await this.messageRepo.delete(Number(id));
+	}
 }

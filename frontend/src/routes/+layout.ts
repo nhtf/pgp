@@ -18,8 +18,8 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 			user.auth_req = auth_req.auth_req;
 		}
 	
-		return { user, invites_received, invites_send }
+		return { user, invites, invites_received, invites_send }
 	} catch (err) {
-		return { user: null, invites_received: null, invites_send: null }
+		return { user: null, invites: null, invites_received: null, invites_send: null }
 	}
 }) satisfies LayoutLoad;

@@ -19,8 +19,8 @@ export type User = {
 	id: number,
 	auth_req?: number,
 	username: string,
-	avatar: string,
 	status: Status,
+	avatar: string,
 	in_game: boolean,
 	achievements?: Achievement[],
 	invites?: any[],
@@ -48,7 +48,7 @@ export type Room = {
 	joined?: boolean,
 };
 
-export type Gameroom = Room & {
+export type GameRoom = Room & {
 	gamemode: Gamemode,
 };
 
@@ -100,8 +100,8 @@ export enum Subject {
 }
 
 export enum Action {
-	SET,
 	ADD,
+	SET,
 	REMOVE,
 }
 

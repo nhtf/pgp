@@ -87,16 +87,16 @@ export class User {
 	last_activity: Date;
 
 	@Expose()
-	get avatar(): string {
-		return BACKEND_ADDRESS + "/" + this.avatar_path;
-	}
-
-	@Expose()
 	get status(): Status {
 		if (this.has_session)
 			return get_status(this.last_activity);
 		else
 			return Status.OFFLINE;
+	}
+
+	@Expose()
+	get avatar(): string {
+		return BACKEND_ADDRESS + "/" + this.avatar_path;
 	}
 
 	get avatar_basename(): string {

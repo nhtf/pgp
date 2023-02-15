@@ -10,7 +10,7 @@
     import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
-    import { Role, Subject, type Member, type Message, type UpdatePacket, type User } from "$lib/types";
+    import { Role, Status, Subject, type Member, type Message, type UpdatePacket, type User } from "$lib/types";
     import MemberDrawer from "./MemberDrawer.svelte";
     import { updateManager } from "$lib/updateSocket";
     import { userStore } from "../../../stores";
@@ -21,31 +21,44 @@
 	let autoscroll: boolean;
 
 	$: room = data.room;
-	$: self = data.members.find((member) => member.user.id === data.user?.id) as Member;
 	$: messages = sortByDate(data.messages);
-	$: muted = self.is_muted;
-	$: role = data.role;
+	$: members = [...new Set(messages.map((message) => message.member))];
+	$: self = members.find((member) => member.user.id === data.user?.id) as Member;
+	$: rows = (value.match(/\n/g) || []).length + 1 || 1;
 
-	let invitee: string = "";
+	let textarea = null;
 	let value: string = "";
+	let invitee: string = "";
 
-	userStore.update((users) => {
-		data.members.forEach((member) => {
-			users.set(member.user.id, member.user);
+	onMount(() => {
+		userStore.update((users) => {
+			members.forEach((member) => {
+				users.set(member.user.id, member.user);
+			});
+
+			return users;
 		});
 	
-		return users;
-	});
-	
-	onMount(() => {
 		userStore.subscribe((users) => {
-			messages.forEach((message) => message.member.user = users.get(message.member.user.id) as User);
+			messages = messages.map((message) => {
+				message.member.user = users.get(message.member.user.id) as User;
+			
+				return message;
+			} );
 		})
 
 		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
-			let member = data.members.find((member) => member.id === update.identifier) as Member;
-		
-			member = update.value;
+			messages = messages.map((message) => {
+				if (message.member.id === update.identifier) {
+					const user = message.member.user;
+					
+					message.member = update.value;
+
+					message.member.user = user;
+				}
+			
+				return message;
+			});
 		});
 	
 		roomSocket.emit("join", String(room.id));
@@ -130,13 +143,10 @@
 		});
     }
 
-	let textarea = null;
-
 	function onResize(e: UIEvent) {
 		textarea = e.target;
 	}
 
-	$: rows = (value.match(/\n/g) || []).length + 1 || 1;
 </script>
 
 <div class="chat-room-container">
@@ -150,10 +160,10 @@
 	</div>
 	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
 		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
-		{#if role >= Role.OWNER}
+		{#if self.role >= Role.OWNER}
 			<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
 		{/if}
-		{#if role >= Role.ADMIN}
+		{#if self.role >= Role.ADMIN}
 			<DropdownItem class="flex items-center text-base font-semibold gap-2">
 				<form on:submit|preventDefault={invite}>
 					<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
@@ -164,23 +174,24 @@
 	</Dropdown>
 
 <div class="messages" bind:this={div}>
-	{#each messages as message}
-		<MessageBox {message}/>
-	{/each}
+	{#key messages}
+		{#each messages as message}
+			<MessageBox {message}/>
+		{/each}
+	{/key}
 </div>
-
 <div class="message-input">
 	<div class="message-box">
 		<textarea
-			wrap="hard"
-			disabled={muted}
-			rows="{rows}"
+			bind:value={value}
 			bind:this={textarea}
 			on:resize={onResize}
 			on:keypress={handleKeyPress}
-			bind:value={value}
+			wrap="hard"
+			disabled={self?.is_muted ? self.is_muted : false}
+			rows="{rows}"
 			class="w-full space-x-4"
-			placeholder={self.is_muted ? "You are muted" : "message..."}
+			placeholder={self?.is_muted ? "You are muted" : "message..."}
 		/>
 	</div>
 	<div class="send-button"

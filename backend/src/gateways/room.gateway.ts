@@ -17,6 +17,8 @@ import { validate_id } from "src/util";
 import { HttpService } from "@nestjs/axios";
 import { catchError, firstValueFrom } from "rxjs";
 import { TENOR_KEY } from "src/vars";
+import * as linkify from "linkifyjs";
+import axios from "axios";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -75,6 +77,18 @@ export class RoomGateway extends ProtectedGateway("room") {
 		if (member.mute > new Date) {
 			throw new WsException("muted");
 		}
+
+		const links = linkify.find(content, "url");
+		const embeds = [];
+
+		for (const link of links) {
+			try {
+				const res = await axios.head(link.href);
+				//TODO find out how revolt detects embed type
+				console.log(res);
+			} catch {}
+		}
+
 		if (/^\/tenor /.test(content)) {
 			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}`)
 				.pipe(catchError((error) => {

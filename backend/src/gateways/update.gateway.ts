@@ -48,12 +48,18 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	// TODO: remove status
-	create_update(user: User, status: Status) {
+	create_update(user: User, status?: Status) {
+		let value = instanceToPlain(user);
+
+		if (status) {
+			value.status = status;
+		}
+	
 		return {
 			subject: Subject.USER,
 			identifier: user.id,
 			action: Action.SET,
-			value: instanceToPlain(user),
+			value,
 		};
 	}
 

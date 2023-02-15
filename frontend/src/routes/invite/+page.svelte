@@ -1,13 +1,16 @@
 <script lang="ts">
     import { page } from "$app/stores";
     import { respond } from "$lib/invites";
-    import {
-        Tabs, 
-        TabItem
-     } from "flowbite-svelte";
+    import { Tabs, TabItem } from "flowbite-svelte";
+    import type { Invite, User } from "$lib/types";
+    import type { PageData } from "./$types";
 
-    $: send = $page.data.invites_send;
-    $: received = $page.data.invites_received;
+    export let data: PageData;
+
+    $: user = data.user as User;
+    $: invites = data.invites as Invite[];
+    $: send = invites.filter((invite) => invite.from.id === user.id);
+    $: received = invites.filter((invite) => invite.to.id === user.id);
 
 </script>
 
@@ -17,24 +20,24 @@
     defaultClass="flex flex-wrap space-x-2 bg-c rounded"
     contentClass="tab-content-background">
 
-    <TabItem open={true} class="bg-c rounded" defaultClass="rounded"  title="send">
+    <TabItem open={true} class="bg-c rounded" defaultClass="rounded" title="send">
         <div>
             {#key $page.data.invites_send}
-            {#each send as invite}
-                <div class="invite">
-                    <div>
-                        {#if invite.to && invite.to.avatar}
-                        <img class="avatar" src={invite.to.avatar} alt="">
-                        {:else}
-                            <img class="avatar" src="/avatar-default.png" alt="">
-                        {/if}
+                {#each send as invite}
+                    <div class="invite">
+                        <div>
+                            {#if invite.to && invite.to.avatar}
+                            <img class="avatar" src={invite.to.avatar} alt="">
+                            {:else}
+                                <img class="avatar" src="/avatar-default.png" alt="">
+                            {/if}
+                        </div>
+                        <div>{invite.type} invitation to {invite.to.username}</div>
+                        <div>
+                            <button class="deny" on:click={() => respond(invite, "deny")}>Cancel</button>
+                        </div>
                     </div>
-                    <div>{invite.type} invitation to {invite.to.username}</div>
-                    <div>
-                        <button class="deny" on:click={() => respond(invite, "deny")}>Cancel</button>
-                    </div>
-                </div>
-            {/each}
+                {/each}
             {/key}
         </div>
     </TabItem>
@@ -42,22 +45,22 @@
     <TabItem open={false} class="bg-c rounded" defaultClass="rounded"  title="received">
         <div>
             {#key $page.data.invites_received}
-            {#each received as invite}
-                <div class="invite">
-                    <div>
-                        {#if invite.from && invite.from.avatar}
-                            <img class="avatar" src={invite.from.avatar} alt="">
-                        {:else}
-                            <img class="avatar" src="/avatar-default.png" alt="">
-                        {/if}
+                {#each received as invite}
+                    <div class="invite">
+                        <div>
+                            {#if invite.from && invite.from.avatar}
+                                <img class="avatar" src={invite.from.avatar} alt="">
+                            {:else}
+                                <img class="avatar" src="/avatar-default.png" alt="">
+                            {/if}
+                        </div>
+                        <div>{invite.type} invite from {invite.from.username}</div>
+                        <div class="buttons">
+                            <button class="confirm" on:click={() => respond(invite, "accept")}>Accept</button>
+                            <button class="deny" on:click={() => respond(invite, "deny")}>Deny</button>
+                        </div>
                     </div>
-                    <div>{invite.type} invite from {invite.from.username}</div>
-                    <div class="buttons">
-                        <button class="confirm" on:click={() => respond(invite, "accept")}>Accept</button>
-                        <button class="deny" on:click={() => respond(invite, "deny")}>Deny</button>
-                    </div>
-                </div>
-            {/each}
+                {/each}
             {/key}
         </div>
     </TabItem>

@@ -8,7 +8,7 @@ export const linethickness = 1.5;
 export const goalHeight = 65;
 export const goalWidth = 10;
 export const border = 5;
-export const b_r = 2.0; //border radius
+export const b_r = 3.0; //border radius
 export const lineWidthHex = 0.9;
 export const field_radius = 150.0;
 export const offset_rect = border - linethickness / 2;
@@ -45,7 +45,9 @@ export enum GAME {
     FOURPLAYERS,
 };
 
-type gradient = {
+export type gradient = {
+    x0: number;
+    y0: number;
     x1: number;
     y1: number;
     r0: number;
@@ -55,7 +57,7 @@ type gradient = {
     last: boolean;
 }
 
-type line = {
+export type line = {
     x: number;
     y: number;
     arc: boolean;
@@ -72,11 +74,33 @@ type goal = {
     cs: string;
 }
 
-type field = {
+type paddle = {
+    x: number;
+    y: number;
+    angle: number;
+    cf: string;
+    cs: string;
+}
+
+export type renderArc = {
+    pos: Vector;
+    angle1: number;
+    angle2: number;
+}
+
+export type field = {
     players: number;
     goals: goal[];
-    lines: line[];
+    lines: Line[];
+    paddles: paddle[];
+    gradients: gradient[];
+    arcs: renderArc[];
+    gradientIndexs: boolean[];
+    collisions: Line[];
 }
+
+import type { Line } from "../Classic/Classic";
+import { Vector } from "./Math";
 
 export const fields: field[] = [{
     players: 2,
@@ -84,19 +108,43 @@ export const fields: field[] = [{
             {x: WIDTH  + linethickness, y: HEIGHT / 2, angle: 0, cf: 'rgba(65, 190, 220, 0.7)', cs: 'rgba(65, 190, 220, 0.9)'},
             ],
     lines: [
-        {x: WIDTH / 2, y: HEIGHT - border, arc: false},
-        {x: border + b_r, y: HEIGHT - border - b_r, arc: true, angle1: 0.5 * Math.PI, angle2: 1.0 * Math.PI},
-        {x: border, y: HEIGHT - border - b_r, arc: false},
-        {x: border + b_r, y: border + b_r, arc: true, angle1: Math.PI, angle2: 1.5 * Math.PI},
-        {x: border + b_r, y: border, arc: false,},
-        {x: WIDTH / 2, y: border, arc: false},
-        {x: border, y: HEIGHT / 2, arc: false, gradient: {x1: border, y1: HEIGHT / 2, r0: field_radius, r1: 0, c1: color_r_f, c0: color_stop, last: false}},
-        {x: WIDTH / 2, y: border, arc: false},
-        {x: WIDTH - border - b_r, y: border, arc: false},
-        {x: WIDTH - border - b_r, y: border + b_r, arc: true, angle1: 1.5 * Math.PI, angle2: 0},
-        {x: WIDTH - border, y: HEIGHT - border - b_r, arc: false},
-        {x: WIDTH - border - b_r, y: HEIGHT - border - b_r, arc: true, angle1: 0 * Math.PI, angle2: 0.5 * Math.PI},
-        {x: WIDTH / 2, y: HEIGHT - border, arc: false},
-        {x: WIDTH, y: HEIGHT / 2, arc: false, gradient: {x1: WIDTH, y1: HEIGHT / 2, r0: field_radius, r1: 0, c1: color_l_f, c0: color_stop, last: true}},
-    ]
+        {p0: new Vector(WIDTH / 2, HEIGHT - border), p1: new Vector(border + b_r, HEIGHT - border), name: "render1"},
+        {p0: new Vector(border, HEIGHT - border), p1: new Vector(border, border + b_r), name: "render2"},
+        {p0: new Vector(border, border), p1: new Vector(WIDTH / 2, border), name: "render3"}, //After this a gradient
+        {p0: new Vector(WIDTH / 2, border), p1: new Vector(WIDTH - border - b_r, border), name: "render4"},
+        {p0: new Vector(WIDTH - border, border), p1: new Vector(WIDTH - border, HEIGHT - border - b_r), name: "render5"},
+        {p0: new Vector(WIDTH - border, HEIGHT - border), p1: new Vector(WIDTH / 2, HEIGHT - border), name: "render6"},
+    ],
+    arcs: [
+        {pos: new Vector(border + b_r, HEIGHT - border - b_r), angle1: 0.5 * Math.PI, angle2: 1.0 * Math.PI},
+        {pos: new Vector(border + b_r, border + b_r), angle1: 1.0 * Math.PI, angle2: 1.5 * Math.PI},
+        {pos: new Vector(0,0), angle1: 0.0 * Math.PI, angle2: 0.0 * Math.PI}, //no arc for this line
+        {pos: new Vector(WIDTH - border - b_r, border + b_r ), angle1: 1.5 * Math.PI, angle2: 0.0 * Math.PI},
+        {pos: new Vector(WIDTH - border - b_r, HEIGHT - border - b_r), angle1: 0.0 * Math.PI, angle2: 0.5 * Math.PI},
+        {pos: new Vector(0,0), angle1: 0.0 * Math.PI, angle2: 0.0 * Math.PI}, //no arc for this line
+    ],
+    gradients: [
+        {x0: border, y0: HEIGHT / 2, x1: border, y1: HEIGHT / 2, r0: field_radius, r1: 0, c1: color_l_f, c0: color_stop, last: false},
+        {x0: WIDTH, y0: HEIGHT / 2, x1: WIDTH, y1: HEIGHT / 2, r0: field_radius, r1: 0, c1: color_r_f, c0: color_stop, last: true}
+    ],
+    gradientIndexs: [false, false, true, false, false, false],
+    collisions: [
+        {p0: new Vector(border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(border, border), name: "field1"},
+        {p0: new Vector(border, border), p1: new Vector(WIDTH - border, border), name: "field2"},
+        {p0: new Vector(WIDTH - border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(WIDTH - border, border), name: "field3"},
+        {p0: new Vector(WIDTH - border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(WIDTH - border, HEIGHT - border), name: "field4"},
+        {p0: new Vector(border, HEIGHT - border), p1: new Vector(WIDTH - border, HEIGHT - border), name: "field5"},
+        {p0: new Vector(border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(border, HEIGHT - border), name: "field6"},
+    
+        {p0: new Vector(border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(border - goalWidth, HEIGHT / 2 - goalHeight / 2 - border), name: "goal1-1"},
+        {p0: new Vector(border - goalWidth, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(border - goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal1-2"},
+        {p0: new Vector(border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(border - goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal1-3"},
+    
+        {p0: new Vector(WIDTH - border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 - goalHeight / 2 - border), name: "goal2-1"},
+        {p0: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal2-2"},
+        {p0: new Vector(WIDTH - border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal2-3"},
+    ],
+
+    paddles: [{x: 10, y: HEIGHT / 2, angle: Math.PI / 3, cf: 'rgba(213, 172, 28, 0.7)', cs: 'rgba(213, 172, 28, 0.9)'},
+    {x: WIDTH  - 10, y: HEIGHT / 2, angle: 0, cf: 'rgba(65, 190, 220, 0.7)', cs: 'rgba(65, 190, 220, 0.9)'}]
 }];

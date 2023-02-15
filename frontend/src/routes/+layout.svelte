@@ -42,7 +42,6 @@
 			});
 
 			userStore.subscribe((users) => {
-				console.log(users);
 				user = users.get(user.id) as User;
 			});
 		}
@@ -132,7 +131,7 @@
 		/>
 		{#if user?.username}
 			<Avatar id="avatar-menu" src={data.user?.avatar} />
-			<Notifications />
+			<Notifications/>
 		{/if}
 	</div>
 	{#if user && user.username}

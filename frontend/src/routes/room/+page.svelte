@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { goto } from "$app/navigation";
 	import { unwrap } from "$lib/Alert";
-	import { Access, Action, Subject, type ChatRoom, type UpdatePacket } from "$lib/types";
+	import { Action, Subject, type UpdatePacket } from "$lib/types";
 	import { post } from "$lib/Web";
-	import Swal from "sweetalert2";
 	import type { PageData } from "./$types";
 	import ChatRoomBox from "./ChatRoomBox.svelte";
 	import { Checkbox } from "flowbite-svelte";
@@ -32,10 +30,6 @@
 		updateManager.remove(Subject.ROOM);
 	});
 
-	async function enter(room: ChatRoom) {
-		await goto(`/room/${room.id}`);
-	}
-
 	async function createChatRoom() {
 		if (!room.password?.length) {
 			delete room.password;
@@ -45,55 +39,24 @@
 			delete room.name;
 		}
 
-		const created: ChatRoom = await unwrap(post("/room", room));
-
-		// await goto(`/room/${created.id}`);
+		await unwrap(post("/room", room));
 	};
 
-	async function join(room: ChatRoom) {
-		let body: { name?: string, password?: string } = {};
-	
-		if (room.access == Access.PROTECTED) {
-			const { value: password, isDismissed } = await Swal.fire({
-				text: "password",
-				input: "password",
-				inputPlaceholder: "password...",
-			});
-
-			if (isDismissed) {
-				return ;
-			}
-
-			body.password = password;
-		}
-
-		await unwrap(post(`/room/id/${room.id}/members`, body));
-
-		Swal.fire({
-			icon: "success",
-			text: "Joined room",
-		});
-	
-		goto(`/room/${room.id}`);
-	}
-
 	function updateRooms(update: UpdatePacket) {
-		update.value.joined = (update.value.owner.id === data.user?.id);
-	
 		switch (update.action) {
-			case Action.SET:
-				let room = rooms.find((room) => room.id === update.identifier) as ChatRoom;
-				
-				if (room) {
-					room = update.value;
-				} else {
-					rooms.push(room);
-				}
-			
-				rooms = rooms;
-				break ;
 			case Action.ADD:
 				rooms = [...rooms, update.value];
+				break ;
+			case Action.SET:
+				if (rooms.map((room) => room.id).includes(update.identifier)) {
+					if (update.value.is_private && !update.value.joined) {
+						rooms = rooms.filter((room) => room.id !== update.identifier);
+					} else {
+						rooms = rooms.map((room) => room.id === update.identifier ? update.value : room);
+					}
+				} else {
+					rooms = [...rooms, update.value];
+				}
 				break ;
 			case Action.REMOVE:
 				rooms = rooms.filter((room) => room.id !== update.identifier);
@@ -101,20 +64,7 @@
 		}
 	}
 
-
-
 </script>
-
-<!-- {#if room.owner?.id === data.user?.id}
-<input class="input" placeholder="Username" bind:value={room.data_username}>
-<button class="button button-invite" on:click={() => inviteUser(room)}>Invite</button>
-{/if}
-<a class="button button-enter" href=/game/{room.id}>Enter</a>
-{#if room.owner?.id === data.user?.id}
-<button class="button button-delete" on:click={() => deleteGame(room)}>Delete</button>
-{:else}
-<button class="button button-leave" on:click={() => leaveGame(room)}>Leave</button>
-{/if} -->
 
 <div class="room_list">
 	<div class="room room-create">
@@ -134,10 +84,11 @@
 		/>
 		<Checkbox bind:checked={room.is_private} class="checkbox"></Checkbox>
 		<span class="label">Private</span>
+		<div class="grow"/>
 		<button class="button button-create" on:click={createChatRoom}>Create</button>
 	</div>
 	{#each rooms as room}
-		<ChatRoomBox divider={false} {room} click={room.joined ? enter : join}/>
+		<ChatRoomBox {room}/>
 	{/each}
 	
 </div>

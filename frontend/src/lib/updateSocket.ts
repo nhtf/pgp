@@ -33,7 +33,7 @@ class UpdateManager {
 		const style = `color: ${fun ? "black" : "gray"}`;
 
 		if (update.subject === Subject.USER) {
-			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value.username}; ${Status[update.value.status]}`, style, update.value);
+			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value.username}; ${Status[update.value.status]}`, style);
 		} else {
 			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.identifier};`, style, update.value);
 		}

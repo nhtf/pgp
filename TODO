@@ -1,0 +1,8 @@
+send heartbeat for chat messages
+highlight links in chat (linkify)
+add ability to mention in chat (and invite with it)
+fix duplicate status updates being send
+
+Fix chatroom options size
+fix gameroom updates
+find out how revolt detects embed type and do something similar

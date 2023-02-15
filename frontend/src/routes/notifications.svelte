@@ -3,7 +3,7 @@
 	import type { Invite } from "$lib/types";
 	import {page} from "$app/stores";
 	import { respond } from '$lib/invites';
-	import { onMount } from 'svelte';
+	import { onDestroy, onMount } from 'svelte';
 	import { Subject, Action } from "$lib/types";
 	import type {UpdatePacket} from "$lib/types";
 	import { updateManager } from "$lib/updateSocket";
@@ -12,37 +12,32 @@
     import { afterUpdate } from 'svelte';
 	import { bounceOut as anim } from 'svelte/easing';
 
-	//TODO typescript this thing
-	function spin(node, { duration }) {
-		return {
-			duration,
-			css: t => {
-				const rot_eased = Math.sin(t * 12 * Math.PI);
-				let scal_eased = anim(t) + 0.5; //TODO look at scale animation
-				if (scal_eased < 0.9)
-					scal_eased = 0.9;
-				if (!newNotifs)
-					return ''
-				return `transform: rotate(${rot_eased * 45}deg);
-						scale: ${scal_eased};`
-			}
-		};
-	}
-
-	$: notifications = $page.data.invites_received as Invite[];
-	$: send = $page.data.invites_send as Invite[];
-	$: user = $page.data.user;
-
 	enum Status {
 		UNREAD,
 		READ,
 		REMOVED,
 	}
+	
+	$: notifications = $page.data.invites_received as Invite[];
+	$: send = $page.data.invites_send as Invite[];
+	$: user = $page.data.user;
 	$: notifMap = new Map<Invite, Status>();
+
+	onMount(() => {
+		updateManager.set(Subject.INVITES, updateInvite);
+		notifications.forEach((notif) => notifMap.set(notif, Status.UNREAD));
+		length = countNotifs();
+		if (length === 0)
+			newNotifs = false;
+	});
+
+	onDestroy(() => {
+		updateManager.remove(Subject.INVITES);
+	});
 
 	function countNotifs() : number {
 		let notifs = 0;
-		notifMap.forEach((value, key) => { if (value !== Status.REMOVED) notifs +=1;})
+		notifMap.forEach((value) => { if (value !== Status.REMOVED) notifs +=1;})
 		return notifs;
 	}
 
@@ -57,8 +52,7 @@
 	async function removeNotification(invite: Invite) {
 		//the timer is so that it waits a bit before removing it so that you don't click behind the dropdown menu
 		timer = setTimeout(() => {
-			notifMap.set(invite, Status.REMOVED);
-			notifMap = notifMap;
+			notifMap = notifMap.set(invite, Status.REMOVED);
 			length = length - 1;
 			if (length === 0)
 				newNotifs = false;
@@ -74,30 +68,27 @@
 		switch (update.action) {
 			case Action.ADD:
 				if (update.value.from.id !== user?.id) {
-					notifications.push(update.value);
-					notifications = notifications;
-					notifMap.set(update.value, Status.UNREAD);
-					notifMap = notifMap;
+					notifications = [...notifications, update.value];
+					notifMap = notifMap.set(update.value, Status.UNREAD);
 					length += 1;
 					newNotifs = true;
 				}
 				else {
-					send.push(update.value);
-					send = send;
+					send = [...send, update.value];
 				}
 				break;
 			case Action.REMOVE:
 				if (update.value.from.id !== user?.id) {
 					notifications = notifications.filter((invites) => invites.id !== update.identifier);
 					notifMap.delete(update.value);
-					length -= 1;
 					notifMap = notifMap;
+					length -= 1;
 				} else {
 					send = send.filter((invites) => invites.id !== update.identifier);
 				}
 				break ;
 		}
-		await invalidate(`${BACKEND}/user/me/invites`);
+		// await invalidate(`${BACKEND}/user/me/invites`);
 	}
 
 	$: newNotifs = true;
@@ -134,13 +125,23 @@
 		newNotifs = unread;
 	}
 
-	onMount(() => {
-		updateManager.set(Subject.INVITES, updateInvite);
-		notifications.forEach((notif) => notifMap.set(notif, Status.UNREAD));
-		length = countNotifs();
-		if (length === 0)
-			newNotifs = false;
-	});
+	//TODO typescript this thing
+	function spin(node: any, { duration }: { duration: number }) {
+		return {
+			duration,
+			css: (t: number) => {
+				const rot_eased = Math.sin(t * 12 * Math.PI);
+				let scal_eased = anim(t) + 0.5; //TODO look at scale animation
+				if (scal_eased < 0.9)
+					scal_eased = 0.9;
+				if (!newNotifs)
+					return ''
+				return `transform: rotate(${rot_eased * 45}deg);
+						scale: ${scal_eased};`
+			}
+		};
+	}
+
   </script>
   
   <!-- //TODO sound for notification? -->
@@ -276,10 +277,10 @@
 	}
 
 	@media (max-width: 750px) {
-		.bell-icon {
-			/* width: 1.25rem;
-			height: 1.25rem; */
-		}
+		/* .bell-icon {
+			width: 1.25rem;
+			height: 1.25rem;
+		} */
 
 		.bell {
 			left: 0.25;

@@ -1,6 +1,8 @@
 import {Vector} from "./Math";
 import type { VectorObject } from "./Math";
-import { WIDTH, HEIGHT, size, paddleStrokeC, paddleFillC } from "./Constants";
+import { WIDTH, HEIGHT, size, paddleStrokeC, paddleFillC, linethickness } from "./Constants";
+import { intersection } from "../Classic/Classic";
+import type { Line } from "../Classic/Classic";
 
 
 export interface BallObject {
@@ -36,6 +38,7 @@ export class Ball {
 			positions.shift();
 		context.fillStyle = paddleFillC;
 		context.strokeStyle = paddleStrokeC;
+		context.lineWidth = linethickness;
 		if (positions.length === 20) {
 			context.beginPath();
 			var grad= context.createLinearGradient(positions[0].x, positions[0].y, lastPos.x, lastPos.y);
@@ -59,6 +62,23 @@ export class Ball {
 		context.arc(posX - size / 2, posY - size / 2, size, 0, Math.PI * 2);
 		context.fill();
 		context.stroke();
+	}
+
+	public collision(lines: Line[]): [Line, Vector, number] | null {
+		let closest: [Line, Vector, number] | null = null;
+
+		for (let line of lines) {
+			const [t0, t1] = intersection([this.position, this.velocity], [line.p0, line.p1.sub(line.p0)])
+
+			if (t1 >= 0 && t1 <= 1 && t0 > 0.001) {
+				if (closest === null || t0 < closest[2]) {
+					const pos = this.position.add(this.velocity.scale(t0));
+					closest = [line, pos, t0];
+				}
+			}
+		}
+
+		return closest;
 	}
 
 	public save(): BallObject {

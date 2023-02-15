@@ -1,4 +1,4 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, AfterInsert, AfterRemove, BeforeRemove, VirtualColumn } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, BeforeRemove } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../enums/Access";
@@ -67,7 +67,6 @@ export class Room {
 		}
 	}
 
-	//TODO check if Room invites get properly removed
 	@BeforeRemove()
 	async beforeRemove() {
 		await this.send_update({

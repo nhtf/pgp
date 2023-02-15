@@ -7,15 +7,15 @@ export const userStore = writable(new Map<number, User>);
 updateManager.set(Subject.USER, (update: UpdatePacket) => {
 	userStore.update((users) => {
 		switch (update.action) {
-			case Action.ADD | Action.SET:
-				console.log("update: ", update.value);
-				users.set(update.identifier as number, update.value);
+			case Action.ADD:
+			case Action.SET:
+				users.set(update.identifier, update.value);
 				break ;
 			case Action.REMOVE:
-				users.delete(update.identifier as number);
+				users.delete(update.identifier );
 				break;
-		}
-
+			}
+			
 		return users;
 	});
 })

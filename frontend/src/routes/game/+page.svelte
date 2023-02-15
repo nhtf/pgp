@@ -3,9 +3,11 @@
 	import { post, remove } from "$lib/Web";
 	import { unwrap } from "$lib/Alert";
 	import { invalidate } from "$app/navigation";
-	import { Access } from "$lib/types";
+	import { Access, Action, Subject, type GameRoom, type UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
 	import { Checkbox, Select } from "flowbite-svelte";
+    import { onDestroy, onMount } from "svelte";
+    import { updateManager } from "$lib/updateSocket";
 
 	export let data: PageData;
 
@@ -13,6 +15,49 @@
 	let is_private = false;
 	let password = "";
 	let gamemode = 0;
+	let invitee = "";
+	let join_password = "";
+
+	// TODO: use
+	$: rooms = data.rooms;
+
+	onMount(() => {
+		updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
+			switch (update.action) {
+				case Action.ADD:
+					rooms = [...rooms, update.value];
+					break;
+				case Action.SET:
+					if (rooms.map((room) => room.id).includes(update.identifier)) {
+						rooms = rooms.map((room) => room.id === update.identifier ? update.value : room);
+					} else {
+						rooms = [...rooms, update.value];
+					}
+					break;
+				case Action.REMOVE:
+					rooms = rooms.filter((room) => room.id !== update.identifier);
+					break;
+			}
+		});
+	});
+
+	onDestroy(() => {
+		updateManager.remove(Subject.ROOM);
+	});
+
+	// function updateRooms(update: UpdatePacket) {
+	// 	switch (update.action) {
+	// 		case Action.ADD:
+	// 			rooms = [...rooms, update.value];
+	// 			break ;
+	// 		case Action.SET:
+	// 			rooms = rooms.map((room) => room.id === update.identifier ? update.value : room);
+	// 			break ;
+	// 		case Action.REMOVE:
+	// 			rooms = rooms.filter((room) => room.id !== update.identifier);
+	// 			break;
+	// 	}
+	// }
 
 	async function createGame() {
 		const room: any = {};
@@ -30,28 +75,27 @@
 		}
 
 		await unwrap(post("/game", room));
-		await invalidate(`${BACKEND}/game?member=true`);
 	}
 
-	async function deleteGame(room: any) {
+	async function deleteGame(room: GameRoom) {
 		await unwrap(remove(`/game/id/${room.id}`));
-		await invalidate(`${BACKEND}/game?member=true`);
+		// await invalidate(`${BACKEND}/game?member=true`);
 	}
 
-	async function leaveGame(room: any) {
+	async function leaveGame(room: GameRoom) {
 		await unwrap(remove(`/game/id/${room.id}/member/me`));
-		await invalidate(`${BACKEND}/game?member=true`);
-		await invalidate(`${BACKEND}/game?member=false`);
+		// await invalidate(`${BACKEND}/game?member=true`);
+		// await invalidate(`${BACKEND}/game?member=false`);
 	}
 
-	async function joinGame(room: any) {
-		await unwrap(post(`/game/id/${room.id}/member`, { password: room.data_password }));
-		await invalidate(`${BACKEND}/game?member=true`);
-		await invalidate(`${BACKEND}/game?member=false`);
+	async function joinGame(room: GameRoom) {
+		await unwrap(post(`/game/id/${room.id}/member`, { password: join_password }));
+		// await invalidate(`${BACKEND}/game?member=true`);
+		// await invalidate(`${BACKEND}/game?member=false`);
 	}
 
-	async function inviteUser(room: any) {
-		await unwrap(post(`/game/id/${room.id}/invite`, { username: room.data_username }));
+	async function inviteUser(room: GameRoom) {
+		await unwrap(post(`/game/id/${room.id}/invite`, { username: invitee }));
 	}
 
 	const i_path = "/Assets/icons/";
@@ -82,7 +126,7 @@
 				<img class="icon {gamemodes[room.gamemode].name}" src={icons[room.gamemode]} alt={gamemodes[room.gamemode].name} title={gamemodes[room.gamemode].name}>
 			</div>
 			{#if room.owner?.id === data.user?.id}
-				<input class="input" placeholder="Username" bind:value={room.data_username}>
+				<input class="input" placeholder="Username" bind:value={invitee}>
 				<button class="button button-invite" on:click={() => inviteUser(room)}>Invite</button>
 			{/if}
 			<a class="button button-enter" href=/game/{room.id}>Enter</a>
@@ -100,7 +144,7 @@
 				<img class="icon {gamemodes[room.gamemode].name}" src={icons[room.gamemode]} alt={gamemodes[room.gamemode].name} title={gamemodes[room.gamemode].name}>
 			</span>
 			{#if room.access === Access.PROTECTED}
-				<input class="input" placeholder="Password" bind:value={room.data_password}>
+				<input class="input" placeholder="Password" bind:value={join_password}>
 			{/if}
 			<button class="button button-join" on:click={() => joinGame(room)}>Join</button>
 		</div>

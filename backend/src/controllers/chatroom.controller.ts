@@ -1,6 +1,6 @@
 import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post } from "@nestjs/common";
 import { Repository } from "typeorm";
-import { IRoomService, GenericRoomController, RequiredRole, GetRoom } from "src/services/room.service";
+import { IRoomService, GenericRoomController, RequiredRole, GetRoom, GetMember } from "src/services/room.service";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Message } from "src/entities/Message";
@@ -11,6 +11,7 @@ import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
+import { instanceToPlain } from "class-transformer";
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "room(s)?") {
 
@@ -52,6 +53,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 	@Post("id/:id/mute/:target")
 	@RequiredRole(Role.ADMIN)
 	async mute(
+		@GetMember() member: ChatRoomMember,
 		@GetRoom() room: ChatRoom,
 		@Param("target", ParseIDPipe(ChatRoomMember, { room: true })) target: ChatRoomMember,
 		@Body("duration", ParseIntPipe) duration: number)
@@ -60,7 +62,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 			throw new BadRequestException("Target not a member of this room");
 		}
 
-		if (target.role >= Role.ADMIN) {
+		if (target.role >= member.role) {
 			throw new ForbiddenException(ERR_PERM);
 		}
 
@@ -68,19 +70,12 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		
 		await this.member_repo.save(target);
 	
-		room.send_update({
-			subject: Subject.MEMBER,
-			action: Action.SET,
-			identifier: target.id,
-			value: target,
-		});
-
 		setTimeout(() => {
 			room.send_update({
 				subject: Subject.MEMBER,
 				action: Action.SET,
 				identifier: target.id,
-				value: target,
+				value: instanceToPlain(target),
 			});
 		}, duration);
 

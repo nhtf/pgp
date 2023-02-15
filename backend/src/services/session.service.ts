@@ -4,7 +4,7 @@ import { AuthLevel } from "src/enums/AuthLevel";
 import * as session from "express-session";
 import { Request } from "express";
 import type { ExpressSessionStore } from "pg-session-store";
-import { HOST, DB_PORT, DB_USER, DB_PASS, SESSION_SECRET, SESSION_IDLE_TIME, SESSION_REGENERATE_TIME, SESSION_PURGE_TIME } from "src/vars";
+import { SESSION_IDLE_TIME, SESSION_REGENERATE_TIME, SESSION_PURGE_TIME } from "src/vars";
 
 declare module "express-session" {
 	export interface SessionData {

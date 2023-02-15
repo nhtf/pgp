@@ -1,5 +1,5 @@
 export enum Action {
-	SET,
 	ADD,
+	SET,
 	REMOVE,
 }

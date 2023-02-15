@@ -1,43 +1,39 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
     import { patch, post, remove } from "$lib/Web";
-    import { Avatar, Dropdown, DropdownDivider, DropdownHeader, DropdownItem } from "flowbite-svelte";
+    import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
     import Swal from "sweetalert2";
 	import { page } from "$app/stores";
-    import { CoalitionColors, Role, type User, type ChatRoom, type Member, type Message } from "$lib/types";
-    import { userStore } from "../../../stores";
-    import { onMount } from "svelte";
+    import { CoalitionColors, Role, type User, type ChatRoom, type Member, type Message, Status } from "$lib/types";
+    import isURL from "validator/lib/isURL";
+    import { BACKEND } from "$lib/constants";
 
 	export let message: Message;
 
+	type Word = {
+		value: string,
+		link: boolean,
+	}
+
+	const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const status_colors = [ "gray", "yellow", "green" ];
 	const role_colors = Object.values(CoalitionColors);
-
+	
 	const room: ChatRoom = $page.data.room;
 	const my_role: Role = $page.data.role;
 	const self: User = $page.data.user;
 	const member = message.member;
-
-	let user = member.user;
+	const user = member.user;
 
 	const from_self = self.id === user.id;
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";
 
-	onMount(() => {
-		userStore.subscribe((users) => {
-			user = users.get(member.user.id) as User;
-		})
-
-	});
+	let words: Word[] = splitIfLink(message.content);
 
 	async function edit(target: Member, role: Role) {
 		await unwrap(patch(`/room/id/${room.id}/members/${target.id}`, { role }));
-
-		Swal.fire({
-			icon: "success",
-		});
 	}
 
 	async function kick(target: Member, ban: boolean) {
@@ -58,6 +54,18 @@
 		});
 	}
 
+	function splitIfLink(value: string) {
+		const split = message.content.split(/\s/);
+		const containsLink = split.some((word) => isURL(word));
+		let words: Word[] = [];
+
+		if (containsLink) {
+			words = split.map((value) => { return { value, link: isURL(value) } });
+		}
+
+		return words;
+	}
+
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
@@ -67,13 +75,9 @@
 		dot={{
 			placement: "bottom-right",
 			color: status_colors[user.status],
-			// TODO: update status
 		}}
 		/>
 		<Dropdown>
-			<DropdownHeader>
-				<div class="text-sm">{Role[member.role]}</div>
-			</DropdownHeader>
 			<DropdownItem>
 				<a href={`/profile/${user.username}`}>Profile</a>
 			</DropdownItem>
@@ -98,7 +102,12 @@
 		</Dropdown>
 	<div class="message-box">
 		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${role_colors[member.role]}`}>{user.username}</div>
-		<div class="message-content">{message.content}</div>
+		<!--- TODO probably extremely unsafe -->
+		{#if tenor_regex.test(message.content)}
+			<img class="message-image" src={`${BACKEND}/proxy?url=${message.content}`} alt="embedded content">
+		{:else}
+			<div class="message-content">{message.content}</div>
+		{/if}
 	</div>
 </div>
 
@@ -119,10 +128,18 @@
 
 	.message-box {
 		max-width: calc(100vw - 150px);
+		gap: 1em;
 	}
 
 	.message-content {
 		white-space: pre-wrap;
 		font-size: 1.125rem;
 	}
+
+	.message-image {
+		max-width: 10rem;
+		max-height: 10rem;
+		margin: 0.25rem;
+	}
+
 </style>

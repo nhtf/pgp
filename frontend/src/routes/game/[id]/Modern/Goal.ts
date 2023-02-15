@@ -34,10 +34,10 @@ export class Goal {
         const w = this.width / 2;
         const h = this.height / 2;
 
-        const A = {x: crot * -w + srot * -h, y: -srot * -w + crot * -h};
-        const B = {x: crot * w + srot * -h, y: -srot * w + crot * -h};
-        const C = {x: crot * w + srot * h, y: -srot * w + crot * h};
-        const D = {x: crot * -w + srot * h, y: -srot * -w + crot * h};
+        const A = {x: crot * (-w -linethickness / 2) + srot * -h, y: -srot * (-w -linethickness / 2) + crot * -h};
+        const B = {x: crot * (w + linethickness / 2) + srot * -h, y: -srot * (w + linethickness / 2) + crot * -h};
+        const C = {x: crot * (w + linethickness / 2) + srot * h, y: -srot * (w + linethickness / 2) + crot * h};
+        const D = {x: crot * (-w -linethickness / 2) + srot * h, y: -srot * (-w -linethickness / 2) + crot * h};
 
         context.beginPath();
         context.lineJoin = "round";

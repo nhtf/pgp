@@ -327,8 +327,15 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				subject: Subject.ROOM,
 				identifier: room.id,
 				action: Action.ADD,
-				value: instanceToPlain(room),
+				value: { ...instanceToPlain(room), joined: false },
 			}, !room.is_private);
+
+			await this.update_service.send_update({
+				subject: Subject.ROOM,
+				identifier: room.id,
+				action: Action.SET,
+				value: { ...instanceToPlain(room), joined: true }
+			}, user)
 
 			return room;
 		}
@@ -366,13 +373,19 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Post("id/:id/member(s)?")
 		async join(@Me() me: User, @GetRoom() room: T, @Body("password") password?: string) {
-			const invites = await this.invite_repo.findBy({
-				to: {
-					id: me.id,
+			const invites = await this.invite_repo.find({
+				relations: {
+					from: true,
+					to: true,
 				},
-				room: {
-					id: room.id,
-				},
+				where: {
+					to: {
+						id: me.id,
+					},
+					room: {
+						id: room.id,
+					},
+				}
 			});
 
 			if (room.access == Access.PRIVATE && (!invites || invites.length === 0)) {
@@ -435,7 +448,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		@Delete("id/:id/member(s)?/me")
 		@RequiredRole(Role.MEMBER)
 		async user_leave(
-			@GetRoom() room: T,
 			@GetMember() member: U,
 			@Res() res: Response,
 		) {
@@ -472,7 +484,16 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				return await this.service.destroy(room);
 			}
 
-			return await this.service.del_member(room, target, ban === "true");
+			await this.service.del_member(room, target, ban === "true");
+
+			await this.update_service.send_update({
+				subject: Subject.ROOM,
+				action: Action.SET,
+				identifier: room.id,
+				value: { ...instanceToPlain(room), joined: false },
+			}, target.user);
+
+			return {};
 		}
 
 		@Delete("id/:id")
@@ -501,22 +522,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		
 			if (role === Role.OWNER) {
 				member.role = Role.ADMIN;
-			
-				await room.send_update({
-					subject: Subject.MEMBER,
-					action: Action.SET,
-					identifier: member.id,
-					value: member,
-				});
 			}
 
-			await room.send_update({
-				subject: Subject.MEMBER,
-				action: Action.SET,
-				identifier: target.id,
-				value: target,
-			});
-		
 			return await this.member_repo.save([member, target]);
 		}
 
@@ -576,7 +583,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				const member = await this.member_repo.findOneBy({ user: { id: me.id } } as FindOptionsWhere<U>);
 				if (!member && room.access == Access.PRIVATE)
 					throw new NotFoundException("Not found");
-				else if (!member || member.role < Role.ADMIN)
+				if (!member || member.role < Role.ADMIN)
 					throw new ForbiddenException(ERR_PERM);
 			}
 		
