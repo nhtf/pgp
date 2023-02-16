@@ -56,3 +56,15 @@ export class Vector {
 		return new Vector(object.x, object.y);
 	}
 }
+
+export function intersection(a: [Vector, Vector], b: [Vector, Vector]): [number, number] {
+	const t1 = (a[1].x * (a[0].y - b[0].y) - a[1].y * (a[0].x - b[0].x)) / (a[1].x * b[1].y - b[1].x * a[1].y);
+	const t0 = (b[1].x * (b[0].y - a[0].y) - b[1].y * (b[0].x - a[0].x)) / (b[1].x * a[1].y - a[1].x * b[1].y);
+	return [t0, t1];
+}
+
+export interface Line {
+	p0: Vector,
+	p1: Vector,
+	name: string,
+}

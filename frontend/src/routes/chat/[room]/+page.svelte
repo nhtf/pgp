@@ -7,7 +7,6 @@
     import { post, remove } from "$lib/Web";
     import MessageBox from "./MessageBox.svelte";
 	import { ToolbarButton, Dropdown, DropdownItem } from "flowbite-svelte";
-    import ChatroomDrawer from "./ChatroomDrawer.svelte";
 	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
     import { Role, Status, Subject, type Member, type Message, type UpdatePacket, type User } from "$lib/types";
@@ -118,7 +117,7 @@
             });
 		}
 
-		await unwrap(post(`/room/id/${room.id}/invite`, { username: invitee }));
+		await unwrap(post(`/chat/id/${room.id}/invite`, { username: invitee }));
 		
 		Swal.fire({
 			icon: "success",
@@ -127,19 +126,21 @@
     }
 
 	async function leave() {
-		await unwrap(remove(`/room/id/${room.id}/leave`));
+		await unwrap(remove(`/chat/id/${room.id}/leave`));
 
-		await goto(`/room`);
+		// TODO
+		await goto(`/chat`);
 	}
 
     async function deleteChatRoom() {
-        await unwrap(remove(`/room/id/${room.id}`));
+        await unwrap(remove(`/chat/id/${room.id}`));
 	
 		Swal.fire({
 			icon: "success",
 			timer: 3000,
 		}).then(async () => {
-			await goto(`/room`);
+			// TODO
+			await goto(`/chat`);
 		});
     }
 
@@ -151,7 +152,6 @@
 
 <div class="chat-room-container">
 	<div class="room-title">
-		<ChatroomDrawer/>
 		<h1 id="room-name">{room.name}</h1>
 		<ToolbarButton class="chatroom-menu" id="title-button">
 			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>

@@ -1,52 +1,69 @@
 <script lang="ts">
-	import { Dropdown, DropdownItem, Avatar, DropdownDivider } from 'flowbite-svelte'
+	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import type { Invite } from "$lib/types";
-	import {page} from "$app/stores";
-	import { respond } from '$lib/invites';
-	import { onDestroy, onMount } from 'svelte';
-	import { Subject, Action } from "$lib/types";
-	import type {UpdatePacket} from "$lib/types";
+	import { page } from "$app/stores";
+	import { respond } from "$lib/invites";
+	import { onDestroy, onMount } from "svelte";
+	import { Subject, Action, type User } from "$lib/types";
+	import type { UpdatePacket } from "$lib/types";
 	import { updateManager } from "$lib/updateSocket";
-	import { invalidate } from "$app/navigation";
-	import { BACKEND, } from "$lib/constants";
-    import { afterUpdate } from 'svelte';
-	import { bounceOut as anim } from 'svelte/easing';
+	import { afterUpdate } from "svelte";
+	import { bounceOut as anim } from "svelte/easing";
+    import { inviteStore } from "../stores";
 
 	enum Status {
 		UNREAD,
 		READ,
 		REMOVED,
 	}
-	
-	$: notifications = $page.data.invites_received as Invite[];
-	$: send = $page.data.invites_send as Invite[];
-	$: user = $page.data.user;
+
+	let notificationss: Map<Invite, Status>;
+
+
+	// TODO: fix notification
+	$: user = $page.data.user as User;
+	$: invites = $page.data.invites as Invite[];
+	$: _notifications = new Map(invites.map((invite) => [invite, Status.UNREAD]));
+	$: _newNotifs = [..._notifications].some((notif) => notif[1] === Status.UNREAD);
+
+	$: notifications = invites.filter((invite) => invite.to.id === user.id);
 	$: notifMap = new Map<Invite, Status>();
+	$: newNotifs = true;
+	$: length = countNotifs();
 
 	onMount(() => {
-		updateManager.set(Subject.INVITES, updateInvite);
+		inviteStore.subscribe((inv) => {
+			invites = [...inv.values()];
+			newNotifs = true;
+		});
+	
+		// updateManager.set(Subject.INVITE, updateInvite);
 		notifications.forEach((notif) => notifMap.set(notif, Status.UNREAD));
 		length = countNotifs();
-		if (length === 0)
-			newNotifs = false;
+		if (length === 0) newNotifs = false;
 	});
 
 	onDestroy(() => {
-		updateManager.remove(Subject.INVITES);
+		updateManager.remove(Subject.INVITE);
 	});
 
-	function countNotifs() : number {
+	function countNotifs(): number {
 		let notifs = 0;
-		notifMap.forEach((value) => { if (value !== Status.REMOVED) notifs +=1;})
+		notifMap.forEach((value) => {
+			if (value !== Status.REMOVED) {
+				notifs += 1;
+			}
+		});
 		return notifs;
 	}
 
 	let timer: NodeJS.Timeout | undefined;
 
 	afterUpdate(() => {
-		if (timer)
+		if (timer) {
 			clearTimeout(timer);
-	})
+		}
+	});
 
 	//TODO still happens that when you remove a notification you can't click the notification away properly
 	async function removeNotification(invite: Invite) {
@@ -54,50 +71,47 @@
 		timer = setTimeout(() => {
 			notifMap = notifMap.set(invite, Status.REMOVED);
 			length = length - 1;
-			if (length === 0)
+			if (length === 0) {
 				newNotifs = false;
+			}
 		}, 75);
 	}
 
 	async function acceptInvite(invite: Invite) {
-		removeNotification(invite);
-		respond(invite, "accept");
+		await removeNotification(invite);
+		await respond(invite, "accept");
 	}
 
 	async function updateInvite(update: UpdatePacket) {
 		switch (update.action) {
 			case Action.ADD:
+				invites = [...invites, update.value];
+
 				if (update.value.from.id !== user?.id) {
 					notifications = [...notifications, update.value];
 					notifMap = notifMap.set(update.value, Status.UNREAD);
 					length += 1;
 					newNotifs = true;
 				}
-				else {
-					send = [...send, update.value];
-				}
 				break;
 			case Action.REMOVE:
+				invites = invites.filter((invite) => invite.id !== update.identifier);
+			
 				if (update.value.from.id !== user?.id) {
-					notifications = notifications.filter((invites) => invites.id !== update.identifier);
+					notifications = notifications.filter(
+						(invites) => invites.id !== update.identifier
+					);
 					notifMap.delete(update.value);
 					notifMap = notifMap;
 					length -= 1;
-				} else {
-					send = send.filter((invites) => invites.id !== update.identifier);
 				}
-				break ;
+				break;
 		}
-		// await invalidate(`${BACKEND}/user/me/invites`);
 	}
-
-	$: newNotifs = true;
-	$: length = countNotifs();
 
 	function markAllRead() {
 		notifMap.forEach((value, key: Invite) => {
-			if (value !== Status.REMOVED)
-				notifMap.set(key, Status.READ);
+			if (value !== Status.REMOVED) notifMap.set(key, Status.READ);
 		});
 		notifMap = notifMap;
 		newNotifs = false;
@@ -132,84 +146,133 @@
 			css: (t: number) => {
 				const rot_eased = Math.sin(t * 12 * Math.PI);
 				let scal_eased = anim(t) + 0.5; //TODO look at scale animation
-				if (scal_eased < 0.9)
-					scal_eased = 0.9;
-				if (!newNotifs)
-					return ''
+				if (scal_eased < 0.9) scal_eased = 0.9;
+				if (!newNotifs) return "";
 				return `transform: rotate(${rot_eased * 45}deg);
-						scale: ${scal_eased};`
-			}
+						scale: ${scal_eased};`;
+			},
 		};
 	}
+</script>
 
-  </script>
-  
-  <!-- //TODO sound for notification? -->
-  <!-- //TODO have the unread and read look different -->
-  <div id="bell"
-  class="bell">
-  	{#key newNotifs && length}
-  	<img src="/Assets/icons/bell.svg" class="bell-icon"  alt="bell" in:spin="{{duration: 1500}}">
+<!-- //TODO sound for notification? -->
+<!-- //TODO have the unread and read look different -->
+<div id="bell" class="bell">
+	{#key newNotifs && length}
+		<img
+			src="/Assets/icons/bell.svg"
+			class="bell-icon"
+			alt="bell"
+			in:spin={{ duration: 1500 }}
+		/>
 	{/key}
 	<div class="flex relative">
 		{#key newNotifs}
-		{#if newNotifs}
-		<div  class="new-notifications"></div>
-		{/if}
+			{#if newNotifs}
+				<div class="new-notifications" />
+			{/if}
 		{/key}
 	</div>
-  </div>
-  <Dropdown triggeredBy="#bell" class="w-full max-w-sm rounded divide-y bor-c shadow bg-c bor-c"
+</div>
+<Dropdown
+	triggeredBy="#bell"
+	class="w-full max-w-sm rounded divide-y bor-c shadow bg-c bor-c"
 	frameClass="bor-c shadow divide-y w-full max-w-sm"
-	placement="bottom">
-	<div slot="header" class="text-center py-2 font-bold text-center ">Notifications</div>
+	placement="bottom"
+>
+	<div slot="header" class="text-center py-2 font-bold text-center ">
+		Notifications
+	</div>
 	{#each [...notifMap] as [key, value]}
-	{#if value !== Status.REMOVED}
-	<DropdownItem class="flex space-x-4">
-		<Avatar src={key.from.avatar} />
-		<div class="pl-3 w-full">
-			<div class="text-gray-500 text-sm mb-1.5 dark:text-gray-400">New {key.type} invite from <span class="font-semibold text-gray-900 dark:text-white">{key.from.username}</span></div>
-			<div class="flex flex-row justify-between items-center">
-			<div class="block text-xs text-blue-600 dark:text-blue-500 accept"
-				on:click={() => acceptInvite(key)}
-				on:keypress={() => acceptInvite(key)}>accept invite</div>
-			{#if value === Status.UNREAD}
-			<div class="block text-xs text-blue-600 dark:text-blue-500 accept"
-				on:click={() => markRead(key)}
-				on:keypress={() => markRead(key)}>mark as read</div>
-			{:else}
-			<div class="block text-xs text-blue-600 dark:text-blue-500 accept"
-				on:click={() => markUnRead(key)}
-				on:keypress={() => markUnRead(key)}>mark as unread</div>
-			{/if}
-			</div>
-		</div>
-		<div class="close-button" title="remove notification">
-		  <svg fill="currentColor" width="20" height="20"
-			  on:click={() => removeNotification(key)}
-			  on:keypress={() => removeNotification(key)}
-		  >
-			  <path d="M13.42 12L20 18.58 18.58 20 12 13.42
+		{#if value !== Status.REMOVED}
+			<DropdownItem class="flex space-x-4">
+				<Avatar src={key.from.avatar} />
+				<div class="pl-3 w-full">
+					<div
+						class="text-gray-500 text-sm mb-1.5 dark:text-gray-400"
+					>
+						New {key.type} invite from
+						<span
+							class="font-semibold text-gray-900 dark:text-white"
+							>{key.from.username}</span
+						>
+					</div>
+					<div class="flex flex-row justify-between items-center">
+						<div
+							class="block text-xs text-blue-600 dark:text-blue-500 accept"
+							on:click={() => acceptInvite(key)}
+							on:keypress={() => acceptInvite(key)}
+						>
+							accept invite
+						</div>
+						{#if value === Status.UNREAD}
+							<div
+								class="block text-xs text-blue-600 dark:text-blue-500 accept"
+								on:click={() => markRead(key)}
+								on:keypress={() => markRead(key)}
+							>
+								mark as read
+							</div>
+						{:else}
+							<div
+								class="block text-xs text-blue-600 dark:text-blue-500 accept"
+								on:click={() => markUnRead(key)}
+								on:keypress={() => markUnRead(key)}
+							>
+								mark as unread
+							</div>
+						{/if}
+					</div>
+				</div>
+				<div class="close-button" title="remove notification">
+					<svg
+						fill="currentColor"
+						width="20"
+						height="20"
+						on:click={() => removeNotification(key)}
+						on:keypress={() => removeNotification(key)}
+					>
+						<path
+							d="M13.42 12L20 18.58 18.58 20 12 13.42
 					  5.42 20 4 18.58 10.58 12 4 5.42 5.42
-					  4 12 10.58 18.58 4 20 5.42z"/>
-		  </svg>
-	  </div>
-	  </DropdownItem>
-	  {/if}
+					  4 12 10.58 18.58 4 20 5.42z"
+						/>
+					</svg>
+				</div>
+			</DropdownItem>
+		{/if}
 	{/each}
 	{#if length}
-	<DropdownItem class="space-x-4 flex" on:click={markAllRead}><div class="pl-3 w-full text-center">mark all as read</div></DropdownItem>
+		<DropdownItem class="space-x-4 flex" on:click={markAllRead}
+			><div class="pl-3 w-full text-center">
+				mark all as read
+			</div></DropdownItem
+		>
 	{/if}
-	<a slot="footer" href="/invite" class="block py-2 -my-1 text-sm font-medium text-center bg-c">
-	  <div class="inline-flex items-center">
-		<svg class="mr-2 w-4 h-4 text-gray-500 dark:text-gray-400" aria-hidden="true" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="M10 12a2 2 0 100-4 2 2 0 000 4z"></path><path fill-rule="evenodd" d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z" clip-rule="evenodd"></path></svg>
-		  View all
-	  </div>
+	<a
+		slot="footer"
+		href="/invite"
+		class="block py-2 -my-1 text-sm font-medium text-center bg-c"
+	>
+		<div class="inline-flex items-center">
+			<svg
+				class="mr-2 w-4 h-4 text-gray-500 dark:text-gray-400"
+				aria-hidden="true"
+				fill="currentColor"
+				viewBox="0 0 20 20"
+				xmlns="http://www.w3.org/2000/svg"
+				><path d="M10 12a2 2 0 100-4 2 2 0 000 4z" /><path
+					fill-rule="evenodd"
+					d="M.458 10C1.732 5.943 5.522 3 10 3s8.268 2.943 9.542 7c-1.274 4.057-5.064 7-9.542 7S1.732 14.057.458 10zM14 10a4 4 0 11-8 0 4 4 0 018 0z"
+					clip-rule="evenodd"
+				/></svg
+			>
+			View all
+		</div>
 	</a>
-  </Dropdown>
+</Dropdown>
 
-  <style>
-
+<style>
 	.accept {
 		outline: 1px solid var(--border-color);
 		border-radius: 6px;
@@ -224,7 +287,6 @@
 	.accept:hover {
 		background-color: var(--button-hover-color);
 	}
-
 
 	.bell {
 		display: inline-flex;
@@ -252,7 +314,7 @@
 		position: relative;
 		top: -0.5rem;
 		right: 0.75rem;
-		width: .875rem;
+		width: 0.875rem;
 		height: 0.875rem;
 		background-color: red;
 		border-radius: 100%;
@@ -286,6 +348,4 @@
 			left: 0.25;
 		}
 	}
-
-
-  </style>
+</style>

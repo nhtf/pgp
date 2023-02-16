@@ -7,6 +7,9 @@ import {
     b_r,
     border,
     lineWidthHex,
+
+    FIELDWIDTH,
+    FIELDHEIGHT,
     a,
  } from "./Constants";
 
@@ -34,8 +37,8 @@ export class Background {
     public goals: Goal[];
 
     public constructor(field: Field, goals: Goal[]) {
-        this.width = WIDTH;
-        this.height = HEIGHT;
+        this.width = FIELDWIDTH;
+        this.height = FIELDHEIGHT;
         this.r = 16;
         const starsFraction = WIDTH * HEIGHT / 100;
         this.field = field;

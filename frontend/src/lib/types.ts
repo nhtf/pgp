@@ -43,9 +43,9 @@ export type Room = {
     id: number,
     name: string,
 	access: Access,
-	type: string,
+	type: "ChatRoom" | "GameRoom",
 	owner: User,
-	joined?: boolean,
+	joined?: boolean,	
 };
 
 export type GameRoom = Room & {
@@ -53,7 +53,7 @@ export type GameRoom = Room & {
 };
 
 export type ChatRoom = Room & {
-	messages: Message[],
+	// messages: Message[],
 };
 
 export type Invite = {
@@ -92,9 +92,8 @@ export enum Gamemode {
 
 export enum Subject {
 	USER,
-	INVITES,
-	REQUESTS,
-	FRIENDS,
+	INVITE,
+	FRIEND,
 	ROOM,
 	MEMBER,
 }

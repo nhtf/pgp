@@ -33,11 +33,11 @@
 	let words: Word[] = splitIfLink(message.content);
 
 	async function edit(target: Member, role: Role) {
-		await unwrap(patch(`/room/id/${room.id}/members/${target.id}`, { role }));
+		await unwrap(patch(`/chat/id/${room.id}/members/${target.id}`, { role }));
 	}
 
 	async function kick(target: Member, ban: boolean) {
-		await unwrap(remove(`/room/id/${room.id}/members/${target.id}`, { ban }));
+		await unwrap(remove(`/chat/id/${room.id}/members/${target.id}`, { ban }));
 
 		Swal.fire({
 			icon: "success",
@@ -47,7 +47,7 @@
 	async function mute(target: Member, minutes: number) {
 		const millis = minutes * 60 * 1000;
 
-		await unwrap(post(`/room/id/${room.id}/mute/${target.id}`, { duration: millis }));
+		await unwrap(post(`/chat/id/${room.id}/mute/${target.id}`, { duration: millis }));
 	
 		Swal.fire({
 			icon: "success",

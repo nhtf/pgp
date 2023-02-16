@@ -7,7 +7,7 @@
 
 	//TODO cap the speed of the ball
 
-	let classic;
+	let classic: Classic;
 
 	onMount(async () => {
 		classic = new Classic(canvas);

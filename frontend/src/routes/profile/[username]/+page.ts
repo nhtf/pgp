@@ -105,7 +105,7 @@ async function getFriendList(username: string, options: Map<any, any>) {
 // 				}
 // 			});
 // 		}
-// 		if (update.subject === Subject.FRIENDS) {
+// 		if (update.subject === Subject.FRIEND) {
 // 			if (update.action === Action.ADD) {
 // 				const new_friend: simpleuser = {
 // 					id: update.value.id,

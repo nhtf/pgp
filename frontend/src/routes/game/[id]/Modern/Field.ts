@@ -1,13 +1,13 @@
 import { 
-    WIDTH, 
-    HEIGHT, 
+    FIELDWIDTH, 
+    FIELDHEIGHT, 
     linethickness,
     color_border,
     b_r,
  } from "./Constants";
 
-import type {field, renderArc, gradient} from "./Constants";
-import type { Line } from "../Classic/Classic"
+import type { field, renderArc, gradient } from "./Constants";
+import type { Line } from "../lib2D/Math2D"
 
 export class Field {
     public width: number;
@@ -18,8 +18,8 @@ export class Field {
     public gradientIndexs: boolean[];
 
     public constructor(field: field) {
-        this.width = WIDTH;
-        this.height = HEIGHT;
+        this.width = FIELDWIDTH;
+        this.height = FIELDHEIGHT;
         this.renderLines = field.lines;
         this.arcs = field.arcs;
         this.gradients = field.gradients;

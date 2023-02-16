@@ -13,7 +13,7 @@ import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { instanceToPlain } from "class-transformer";
 
-export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "room(s)?") {
+export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
 
 	constructor(
 		@Inject("CHATROOM_REPO")

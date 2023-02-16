@@ -3,10 +3,10 @@
 	import { Action, Subject, type UpdatePacket } from "$lib/types";
 	import { post } from "$lib/Web";
 	import type { PageData } from "./$types";
-	import ChatRoomBox from "./ChatRoomBox.svelte";
 	import { Checkbox } from "flowbite-svelte";
 	import { onDestroy, onMount } from "svelte";
 	import { updateManager } from "$lib/updateSocket";
+    import RoomBox from "../RoomBox.svelte";
 
 	export let data: PageData;
 
@@ -39,7 +39,7 @@
 			delete room.name;
 		}
 
-		await unwrap(post("/room", room));
+		await unwrap(post(`/chat`, room));
 	};
 
 	function updateRooms(update: UpdatePacket) {
@@ -66,7 +66,7 @@
 
 </script>
 
-<div class="room_list">
+<div class="room-container">
 	<div class="room room-create">
 		<input
 			class="input"
@@ -87,18 +87,21 @@
 		<div class="grow"/>
 		<button class="button button-create" on:click={createChatRoom}>Create</button>
 	</div>
-	{#each rooms as room}
-		<ChatRoomBox {room}/>
-	{/each}
+	{#key rooms}
+		{#each rooms as room}
+			<RoomBox {room}/>
+		{/each}
+	{/key}
 	
 </div>
 
 <style>
-	.room_list {
+
+	.room-container {
 		display: flex;
 		flex-direction: column;
-		gap: 1em;
-		margin: 1em;
+		gap: 10px;
+		padding: 25px 10px;
 	}
 
 	.room {
@@ -133,7 +136,4 @@
 		border-color: var(--green);
 	}
 
-	/* p {
-		margin-top: 0.375rem;
-	} */
 </style>

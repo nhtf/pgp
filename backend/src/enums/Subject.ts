@@ -1,8 +1,7 @@
 export enum Subject {
 	USER,
-	INVITES,
-	REQUESTS,
-	FRIENDS,
+	INVITE,
+	FRIEND,
 	ROOM,
 	MEMBER,
 }

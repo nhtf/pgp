@@ -25,8 +25,6 @@
 				inputValidator: file => {
 					if (!file)
 						return "No file selected";
-					if (file.size > 10485760)
-						return "May not be larger than 10 MiB";
 					return null;
 				},
 			});
@@ -35,16 +33,16 @@
 			const reader = new FileReader();
 			reader.onload = async (e) => {
 				await Swal.fire({
-					title: "Change avatar",
+					title: "Change avatar?",
 					imageUrl: (e.target?.result as string),
 					imageWidth: 400,
 					imageHeight: 400,
 					imageAlt: "Uploaded image",
 					showCancelButton: true,
-					preConfirm: () => {
+					preConfirm: async () => {
 						const form = new FormData();
 						form.append("avatar", file);
-						return put("/user/me/avatar", form, false).catch(error => {
+						return await put("/user/me/avatar", form, false).catch(error => {
 							Swal.showValidationMessage(error.message);
 						});
 					},
@@ -54,13 +52,13 @@
 						avatars.src = result.value.avatar;
 						avatar = result.value.avatar;
 						src = null;
-						Swal.fire({
-							position: "top-end",
-							icon: "success",
-							title: "Set new image",
-							showConfirmButton: false,
-							timer: 1300,
-						});
+						// Swal.fire({
+						// 	position: "top-end",
+						// 	icon: "success",
+						// 	title: "Set new image",
+						// 	showConfirmButton: false,
+						// 	timer: 1300,
+						// });
 					}
 				});
 			};

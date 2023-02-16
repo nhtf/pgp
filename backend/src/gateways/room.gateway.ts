@@ -19,6 +19,7 @@ import { catchError, firstValueFrom } from "rxjs";
 import { TENOR_KEY } from "src/vars";
 import * as linkify from "linkifyjs";
 import axios from "axios";
+import { instanceToPlain } from "class-transformer"
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -108,6 +109,6 @@ export class RoomGateway extends ProtectedGateway("room") {
 		
 		message = await this.messageRepo.save(message);
 	
-		this.server.in(client.room).emit("message", message);
+		this.server.in(client.room).emit("message", instanceToPlain(message));
 	}
 }

@@ -19,7 +19,7 @@
 				body: `otp=${code}`
 			});
 		if (response.ok) {
-			goto(`${FRONTEND}/profile`);
+			await goto(`/profile`);
 		} else {
 			const Toast = Swal.mixin({
 				toast: true,
@@ -47,7 +47,7 @@
 				},
 			});
 		if (response.ok) {
-			goto(`${FRONTEND}/profile`);
+			await goto(`/profile`);
 		}
 	});
 </script>

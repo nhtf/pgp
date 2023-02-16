@@ -1,22 +1,10 @@
-import {Vector} from "./Math";
-import type { VectorObject } from "./Math";
-import { WIDTH, HEIGHT, size, paddleStrokeC, paddleFillC, linethickness } from "./Constants";
-import { intersection } from "../Classic/Classic";
-import type { Line } from "../Classic/Classic";
-
-
-export interface BallObject {
-	position: VectorObject;
-	velocity: VectorObject;
-}
-
-type vec = {
-	x: number;
-	y: number;
-};
+import { Vector, intersection } from "../lib2D/Math2D";
+import type { VectorObject, Line } from "../lib2D/Math2D";
+import { FIELDWIDTH, FIELDHEIGHT, size, paddleStrokeC, paddleFillC, linethickness } from "./Constants";
+import type { BallObject } from "../lib2D/interfaces";
 
 //for making the trailing effect
-let positions: vec[] = [];
+let positions: VectorObject[] = [];
 
 export class Ball {
 	public position: Vector;
@@ -24,7 +12,7 @@ export class Ball {
 	public counter: number;
 
 	public constructor() {
-		this.position = new Vector(WIDTH / 2, HEIGHT / 2);
+		this.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 		this.velocity = new Vector(1, 1);
 		this.counter = 0;
 	}
@@ -68,12 +56,15 @@ export class Ball {
 		let closest: [Line, Vector, number] | null = null;
 
 		for (let line of lines) {
-			const [t0, t1] = intersection([this.position, this.velocity], [line.p0, line.p1.sub(line.p0)])
+			const p0 = new Vector(line.p0.x, line.p0.y);
+			const p1 = new Vector(line.p1.x, line.p1.y);
+			const retLine: Line = {p0: p0, p1: p1, name: line.name};
+			const [t0, t1] = intersection([this.position, this.velocity], [p0, p1.sub(p0)])
 
 			if (t1 >= 0 && t1 <= 1 && t0 > 0.001) {
 				if (closest === null || t0 < closest[2]) {
 					const pos = this.position.add(this.velocity.scale(t0));
-					closest = [line, pos, t0];
+					closest = [retLine, pos, t0];
 				}
 			}
 		}

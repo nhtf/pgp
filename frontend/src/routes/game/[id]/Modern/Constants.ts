@@ -1,5 +1,7 @@
-export const WIDTH = 320;
-export const HEIGHT = 180;
+export const WIDTH = 400;
+export const HEIGHT = 225;
+export const FIELDWIDTH = 320;
+export const FIELDHEIGHT = 180;
 export const UPS = 60;
 
 export const linethickness = 1.5;
@@ -18,7 +20,7 @@ export const a = 2 * Math.PI / 6;
 export const size = 2;
 
 //Paddle
-export const paddlexOffset = 10; //for where it spawns offset on x axis
+export const paddlexOffset = 10; //for where it spawns offset on x axis , depens on level type
 export const paddleHeight = 24;
 export const paddleWidth = 2;
 export const paddleFillC = 'rgba(190, 162, 28, 1)';
@@ -57,16 +59,7 @@ export type gradient = {
     last: boolean;
 }
 
-export type line = {
-    x: number;
-    y: number;
-    arc: boolean;
-    angle1: number | undefined;
-    angle2: number | undefined;
-    gradient: gradient| undefined;
-};
-
-type goal = {
+export type goal = {
     x: number;
     y: number;
     angle: number;
@@ -74,7 +67,7 @@ type goal = {
     cs: string;
 }
 
-type paddle = {
+export type paddle = {
     x: number;
     y: number;
     angle: number;
@@ -99,10 +92,12 @@ export type field = {
     collisions: Line[];
 }
 
-import type { Line } from "../Classic/Classic";
-import { Vector } from "./Math";
+import type { Line } from "../lib2D/Math2D";
+import { Vector } from "../lib2D/Math2D";
 
-export const fields: field[] = [{
+export const levels = ["/game/twoplayerLevel.json"];
+
+const field1 = {
     players: 2,
     goals: [{x: -linethickness, y: HEIGHT / 2, angle: Math.PI, cf: 'rgba(213, 172, 28, 0.7)', cs: 'rgba(213, 172, 28, 0.9)'},
             {x: WIDTH  + linethickness, y: HEIGHT / 2, angle: 0, cf: 'rgba(65, 190, 220, 0.7)', cs: 'rgba(65, 190, 220, 0.9)'},
@@ -145,6 +140,8 @@ export const fields: field[] = [{
         {p0: new Vector(WIDTH - border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal2-3"},
     ],
 
-    paddles: [{x: 10, y: HEIGHT / 2, angle: Math.PI / 3, cf: 'rgba(213, 172, 28, 0.7)', cs: 'rgba(213, 172, 28, 0.9)'},
+    paddles: [{x: 10, y: HEIGHT / 2, angle: 0, cf: 'rgba(213, 172, 28, 0.7)', cs: 'rgba(213, 172, 28, 0.9)'},
     {x: WIDTH  - 10, y: HEIGHT / 2, angle: 0, cf: 'rgba(65, 190, 220, 0.7)', cs: 'rgba(65, 190, 220, 0.9)'}]
-}];
+};
+
+export const fields: field[] = [field1,];

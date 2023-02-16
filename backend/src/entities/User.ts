@@ -23,6 +23,7 @@ import { get_status } from "src/gateways/get_status";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
+import { Player } from "./Player";
 
 @Entity()
 export class User {
@@ -85,6 +86,9 @@ export class User {
 	@Exclude()
 	@CreateDateColumn()
 	last_activity: Date;
+
+	@OneToMany(() => Player, (player) => player.user)
+	players: Player[];
 
 	@Expose()
 	get status(): Status {

@@ -1,9 +1,12 @@
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
 
-export async function load({ params }: any) {
-	const room = await unwrap(get(`/game/id/${params.id}`));
-	const user = await unwrap(get("/user/me"));
+export const ssr = false;
 
-	return { params, room, user };
+export async function load({ fetch, params }: any) {
+	window.fetch = fetch;
+
+	const room = await unwrap(get(`/game/id/${params.id}`));
+
+	return { params, room };
 };

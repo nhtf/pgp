@@ -2,13 +2,15 @@ import type { Invite } from "./types";
 import { post, remove } from "./Web";
 
 export async function respond(invite: Invite, action: string) {
+	const url_type = invite.type.replace("Room", "").toLowerCase();
+
 	switch (invite.type) {
 		case "ChatRoom":
 		case "GameRoom":
 			if (action === "deny") {
-				await remove(`/room/id/${invite.room?.id}/invite/${invite.id}`);
+				await remove(`/${url_type}/id/${invite.room?.id}/invite/${invite.id}`);
 			} else {
-				await post(`/room/id/${invite.room?.id}/members`);
+				await post(`/${url_type}/id/${invite.room?.id}/members`);
 			}
 			break;
 		case "Friend":

@@ -38,11 +38,11 @@
 			friends = friends.map((friend) => users.get(friend.id) as User);
 		})
 
-        updateManager.set(Subject.FRIENDS, updateFriends);
+        updateManager.set(Subject.FRIEND, updateFriends);
     });
 
     onDestroy(() => {
-        updateManager.remove(Subject.FRIENDS);
+        updateManager.remove(Subject.FRIEND);
     })
     
     function checkGameScores() {
@@ -273,7 +273,7 @@
                 <div class="spacing"></div>
                 <Dropdown {placement} inline triggeredBy="#avatar_with_name{index}" class="bor-c bg-c"
                 frameClass="bor-c bg-c">
-                <DropdownItem  href="/profile/{encodeURIComponent(username)}">view profile</DropdownItem>
+                <DropdownItem  href="/profile/{encodeURIComponent(username)}">profile</DropdownItem>
                 <!-- //TODO make the spectate and invite game actually functional -->
                 {#if in_game}
                     <DropdownItem >spectate</DropdownItem>

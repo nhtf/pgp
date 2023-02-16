@@ -1,100 +1,12 @@
 import { Net } from "../Net";
-import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "../Net";
-import type { User } from "$lib/types";
+import type { BallObject, PaddleObject, MouseEvent, Snapshot, Options } from "../lib2D/interfaces";
+import {  Vector, intersection } from "../lib2D/Math2D";
+import type {  Line } from "../lib2D/Math2D";
 
 export const WIDTH = 160;
 export const HEIGHT = 90;
 export const UPS = 60;
 
-export interface VectorObject {
-	x: number;
-	y: number;
-}
-
-export interface BallObject {
-	position: VectorObject;
-	velocity: VectorObject;
-}
-
-export interface PaddleObject {
-	position: VectorObject;
-	height: number;
-	userID?: number;
-}
-
-export interface Snapshot extends NetSnapshot {
-	ball: BallObject;
-	paddles: PaddleObject[];
-}
-
-export interface MouseEvent extends NetEvent {
-	u: number;
-	y: number;
-}
-
-export interface Options extends NetOptions {
-	user: User;
-}
-
-export interface Line {
-	p0: Vector,
-	p1: Vector,
-	name: string,
-}
-
-export class Vector {
-	public x: number;
-	public y: number;
-
-	public constructor(x: number, y: number) {
-		this.x = x;
-		this.y = y;
-	}
-
-	public add(other: Vector): Vector {
-		return new Vector(this.x + other.x, this.y + other.y);
-	}
-
-	public sub(other: Vector): Vector {
-		return new Vector(this.x - other.x, this.y - other.y);
-	}
-
-	public dot(other: Vector): number {
-		return this.x * other.x + this.y * other.y;
-	}
-
-	public scale(scale: number): Vector {
-		return new Vector(this.x * scale, this.y * scale);
-	}
-
-	public tangent(): Vector {
-		return new Vector(-this.y, this.x);
-	}
-
-	public magnitude(): number {
-		return Math.sqrt(this.x * this.x + this.y * this.y);
-	}
-
-	public normalize(): Vector {
-		return this.scale(1 / this.magnitude());
-	}
-
-	public reflect(line: Vector) {
-		const normal = line.tangent().normalize();
-		return this.add(normal.scale(this.dot(normal) * -2));
-	}
-
-	public save(): VectorObject {
-		return {
-			x: this.x,
-			y: this.y,
-		};
-	}
-
-	public static load(object: VectorObject): Vector {
-		return new Vector(object.x, object.y);
-	}
-}
 
 export class Ball {
 	public position: Vector;
@@ -165,6 +77,7 @@ export class Paddle {
 			position: this.position.save(),
 			height: this.height,
 			userID: this.userID,
+			width: 0, //width only needed for the modern pong
 		};
 	}
 
@@ -390,10 +303,4 @@ export class Classic {
 
 		await this.game.start(options);
 	}
-}
-
-export function intersection(a: [Vector, Vector], b: [Vector, Vector]): [number, number] {
-	const t1 = (a[1].x * (a[0].y - b[0].y) - a[1].y * (a[0].x - b[0].x)) / (a[1].x * b[1].y - b[1].x * a[1].y);
-	const t0 = (b[1].x * (b[0].y - a[0].y) - b[1].y * (b[0].x - a[0].x)) / (b[1].x * a[1].y - a[1].x * b[1].y);
-	return [t0, t1];
 }

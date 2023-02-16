@@ -6,9 +6,9 @@ import type { PageLoad } from "./$types"
 export const load: PageLoad = (async ({ fetch, params }) => {
 	window.fetch = fetch;
 
-	const room: ChatRoom = await unwrap(get(`/room/id/${params.room}`));
-	const messages: Message[] = await unwrap(get(`/room/id/${params.room}/messages`));
-	const role: Role = await unwrap(get(`/room/id/${params.room}/role`));
+	const room: ChatRoom = await unwrap(get(`/chat/id/${params.room}`));
+	const messages: Message[] = await unwrap(get(`/chat/id/${params.room}/messages`));
+	const role: Role = await unwrap(get(`/chat/id/${params.room}/role`));
 
     return { room, messages, role };
 }) satisfies PageLoad;

@@ -5,8 +5,7 @@ import { User } from "../entities/User";
 import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions } from "typeorm";
 import { Access } from "../enums/Access";
-import { GameRoom } from "../entities/GameRoom";
-import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, ParseBoolPipe, UnprocessableEntityException, Res } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
 import { IsString, Length, IsOptional, IsBoolean, ValidateIf } from "class-validator";
 import { Role } from "../enums/Role";
@@ -257,6 +256,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 					    })
 					.leftJoinAndSelect("room.members", "member")
 					.leftJoinAndSelect("member.user", "user")
+					.leftJoinAndSelect("room.state", "state")
 					.setParameter("user_id", user.id)
 					.getMany();
 			} else if (member === "false") {
@@ -277,6 +277,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 					})
 					.leftJoinAndSelect("room.members", "member")
 					.leftJoinAndSelect("member.user", "user")
+					.leftJoinAndSelect("room.state", "state")
 					.setParameter("user_id", user.id)
 					.getMany();
 			} else {
@@ -296,6 +297,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 					    })
 					.leftJoinAndSelect("room.members", "member")
 					.leftJoinAndSelect("member.user", "user")
+					.leftJoinAndSelect("room.state", "state")
 					.setParameter("user_id", user.id)
 					.getMany();
 			}

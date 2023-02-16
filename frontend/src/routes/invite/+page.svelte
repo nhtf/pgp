@@ -1,9 +1,10 @@
 <script lang="ts">
-    import { page } from "$app/stores";
     import { respond } from "$lib/invites";
     import { Tabs, TabItem } from "flowbite-svelte";
     import type { Invite, User } from "$lib/types";
     import type { PageData } from "./$types";
+    import { inviteStore } from "../../stores";
+    import { onMount } from "svelte";
 
     export let data: PageData;
 
@@ -12,6 +13,11 @@
     $: send = invites.filter((invite) => invite.from.id === user.id);
     $: received = invites.filter((invite) => invite.to.id === user.id);
 
+    onMount(() => {
+        inviteStore.subscribe((inv) => {
+            invites = [...inv.values()];
+        });
+    });
 </script>
 
 <div class="invite_list">
@@ -22,7 +28,7 @@
 
     <TabItem open={true} class="bg-c rounded" defaultClass="rounded" title="send">
         <div>
-            {#key $page.data.invites_send}
+            {#key send}
                 {#each send as invite}
                     <div class="invite">
                         <div>
@@ -44,7 +50,7 @@
 
     <TabItem open={false} class="bg-c rounded" defaultClass="rounded"  title="received">
         <div>
-            {#key $page.data.invites_received}
+            {#key received}
                 {#each received as invite}
                     <div class="invite">
                         <div>

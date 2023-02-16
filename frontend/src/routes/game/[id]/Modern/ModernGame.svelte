@@ -2,7 +2,7 @@
 	import { onMount } from "svelte";
 	import { page } from "$app/stores";
 	import { Modern } from "./Modern";
-	import { GAME } from "./Constants";
+	import { GAME, levels } from "./Constants";
 
 	let canvas: HTMLCanvasElement;
 
@@ -11,13 +11,14 @@
 	//TODO add sound effects
 	onMount(async () => {
 		const modern = new Modern(canvas, GAME.TWOPLAYERS);
-
+		await modern.init();
 		await modern.start({ room: $page.data.params.id, user: $page.data.user });
 
 		window.requestAnimationFrame(function render(time) {
 			modern.update(time);
 			window.requestAnimationFrame(render);
 		});
+
 	});
 </script>
 

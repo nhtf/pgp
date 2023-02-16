@@ -221,7 +221,6 @@ export function GenericUserController(route: string, options: { param: string, c
 
 		@Delete(options.cparam + "/friend(s)?/:friend_id")
 		@UseGuards(SetupGuard)
-		@HttpCode(HttpStatus.NO_CONTENT)
 		async unfriend(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
@@ -241,13 +240,13 @@ export function GenericUserController(route: string, options: { param: string, c
 			friend.friends.splice(user_idx, 1);
 			await this.user_repo.save([user, friend]);
 			await this.update_service.send_update({
-				subject: Subject.FRIENDS,
+				subject: Subject.FRIEND,
 				identifier: user.id,
 				action: Action.REMOVE,
 				value: instanceToPlain(friend)
 			}, user);
 			await this.update_service.send_update({
-				subject: Subject.FRIENDS,
+				subject: Subject.FRIEND,
 				identifier: friend.id,
 				action: Action.REMOVE,
 				value: instanceToPlain(user)
@@ -322,13 +321,13 @@ export function GenericUserController(route: string, options: { param: string, c
 				delete user.friends;
 				delete target.friends;
 				await this.update_service.send_update({
-					subject: Subject.FRIENDS,
+					subject: Subject.FRIEND,
 					identifier: user.id,
 					action: Action.ADD,
 					value: instanceToPlain(target)
 				}, user);
 				await this.update_service.send_update({
-					subject: Subject.FRIENDS,
+					subject: Subject.FRIEND,
 					identifier: target.id,
 					action: Action.ADD,
 					value: instanceToPlain(user)
@@ -355,7 +354,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new ForbiddenException();
 			if (user.id !== (await request.from).id && user.id !== (await request.to).id)
 				throw new NotFoundException();
-			await this.request_repo.remove(request);
+			return await this.request_repo.remove(request);
 		}
 
 		@Get(`${options.cparam}/invites`)

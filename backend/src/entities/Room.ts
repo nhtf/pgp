@@ -48,7 +48,7 @@ export class Room {
 	members: Member[];
 
 	get users(): User[] {
-		return this.members?.map(member => member.user);
+		return this.members.map(member => member.user);
 	}
 
 	@Exclude()

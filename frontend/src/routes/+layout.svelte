@@ -35,17 +35,10 @@
 
 	onMount(() => {
 		if (user) {
-			let user = data.user as User;
-		
-			userStore.update((users) => {
-				return users.set(user.id, user);
-			});
-
 			userStore.subscribe((users) => {
-				user = users.get(user.id) as User;
+				user = users.get(user?.id as number) as User;
 			});
 		}
-
 		applyTheme();
 		window
 			.matchMedia(DARK_PREFERENCE)
@@ -109,7 +102,7 @@
 	}
 
 	const links = [
-		{ url: "/room", name: "Chat Rooms" },
+		{ url: "/chat", name: "Chat Rooms" },
 		{ url: "/game", name: "Game Rooms" },
 		{ url: "/leaderboard", name: "Leaderboard" },
 		{ url: "/invite", name: "Invites" },

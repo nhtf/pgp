@@ -52,6 +52,7 @@ export const genAdjective = () => choice([
 	() => `dead`,
 	() => `elegant`,
 	() => `expensive`,
+	() => `explosive`,
 	() => `famous`,
 	() => `fragile`,
 	() => `friendly`,

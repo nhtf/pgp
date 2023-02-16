@@ -12,7 +12,7 @@ import * as session from "express-session";
 import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
-import { ChatRoomController } from "./controllers/chatroom.controller";
+import { ChatRoomController } from "./controllers/chat.controller";
 import { RoomGateway } from "./gateways/room.gateway";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
@@ -26,7 +26,6 @@ import { SetupGuard } from "src/guards/setup.guard";
 import { Room } from "./entities/Room";
 import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
-import { Member } from "./entities/Member";
 import { RoomInvite } from "./entities/RoomInvite";
 import { HttpModule } from "@nestjs/axios";
 
@@ -54,6 +53,9 @@ const entityFiles = [
 	"./entities/GameRoom",
 	"./entities/ChatRoomMember",
 	"./entities/GameRoomMember",
+	"./entities/Team",
+	"./entities/Player",
+	"./entities/GameState",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({
