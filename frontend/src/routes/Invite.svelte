@@ -1,18 +1,17 @@
 <script lang="ts">
     import { unwrap } from "$lib/Alert";
     import type { Member, Room, User } from "$lib/types";
-    import { get, post } from "$lib/Web";
+    import { post } from "$lib/Web";
     import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
+    import { onMount } from "svelte";
     import Swal from "sweetalert2";
 
 	export let room: Room;
+	export let members: Member[];
 	export let users: User[];
 
+	const ids = members.map((member) => member.user.id);
 	const url_type = room.type.replace("Room", "").toLowerCase();
-	const promise = ;
-
-	let members: Member[] = [];
-	let ids: number[] = [];
 
 	$: invitee = "";
 	$: invitable = users!.filter((user) => !ids.includes(user.id));
@@ -40,23 +39,17 @@
 		return user.username.includes(invitee);
 	}
 
-	async function fetchMembers() {
-		members = await get(`/${url_type}/id/${room.id}/members`)
-	}
-
 </script>
 
-<input class="input" placeholder="Username" bind:value={invitee} on:input={updateInput} on:focus={fetchMembers}>
-{#if invitee.length}
-	<Dropdown>
-		{#each matches as { username, avatar }}
-			<DropdownItem class="flex gap">
-				<Avatar class="avatar" src={avatar}/>
-				<div>{username}</div>
-			</DropdownItem>
-		{/each}
-	</Dropdown>
-{/if}
+<input class="input" placeholder="Username" bind:value={invitee} on:input={updateInput}>
+<Dropdown>
+	{#each matches as { username, avatar }}
+		<DropdownItem class="flex gap">
+			<Avatar class="avatar" src={avatar}/>
+			<div>{username}</div>
+		</DropdownItem>
+	{/each}
+</Dropdown>
 <button class="button green" on:click={() => invite(room)}>Invite</button>
 
 <style>

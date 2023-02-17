@@ -76,7 +76,9 @@
 	<div class="grow"/>
 	{#if room.joined}
 		{#if room.owner.id === user.id}
-			<Invite {room} {users}/>
+			{#await get(`/${url_type}/id/${room.id}/members`) then members}
+				<Invite {room} {members} {users}/>
+			{/await}
 			<button class="button red" on:click={() => erase(room)}>Delete</button>
 		{:else}
 			<button class="button red" on:click={() => leave(room)}>Leave</button>
@@ -156,7 +158,7 @@
 	}	
 	
 	.button {
-		max-width: 1200px;
+		max-width: 80px;
 		text-align: center;
 	}
 
