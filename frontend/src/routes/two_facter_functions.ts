@@ -92,13 +92,15 @@ export async function disable_2fa() {
 			confirmButtonColor: "#198754",
 			allowOutsideClick: () => !Swal.isLoading(),
 			focusCancel: true,
-			preConfirm: () => {
+			preConfirm: async () => {
 			    return fetch(`${BACKEND}/otp/disable`, {
 				method: "POST",
 				credentials: "include",
 			    })
 				.then((response) => {
-				    if (!response.ok) throw new (response.statusText);
+				    if (!response.ok) {
+						throw new (response.statusText);
+					}
 				    return null;
 				})
 				.catch((error) => {

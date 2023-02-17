@@ -81,7 +81,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			await this.user_repo.save(user);
 			await this.update_service.send_update({
 				subject: Subject.USER,
-				identifier: user.id,
+				id: user.id,
 				action: Action.SET,
 				value: instanceToPlain(user),
 			});
@@ -144,7 +144,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			await this.user_repo.save(user);
 			await this.update_service.send_update({
 				subject: Subject.USER,
-				identifier: user.id,
+				id: user.id,
 				action: Action.SET,
 				value: instanceToPlain(user),
 			});
@@ -181,7 +181,7 @@ export function GenericUserController(route: string, options: { param: string, c
 					await this.user_repo.save(user);
 					await this.update_service.send_update({
 						subject: Subject.USER,
-						identifier: user.id,
+						id: user.id,
 						action: Action.SET,
 						value: instanceToPlain(user),
 					});
@@ -241,13 +241,13 @@ export function GenericUserController(route: string, options: { param: string, c
 			await this.user_repo.save([user, friend]);
 			await this.update_service.send_update({
 				subject: Subject.FRIEND,
-				identifier: user.id,
+				id: user.id,
 				action: Action.REMOVE,
 				value: instanceToPlain(friend)
 			}, user);
 			await this.update_service.send_update({
 				subject: Subject.FRIEND,
-				identifier: friend.id,
+				id: friend.id,
 				action: Action.REMOVE,
 				value: instanceToPlain(user)
 			}, friend);
@@ -322,13 +322,13 @@ export function GenericUserController(route: string, options: { param: string, c
 				delete target.friends;
 				await this.update_service.send_update({
 					subject: Subject.FRIEND,
-					identifier: user.id,
+					id: user.id,
 					action: Action.ADD,
 					value: instanceToPlain(target)
 				}, user);
 				await this.update_service.send_update({
 					subject: Subject.FRIEND,
-					identifier: target.id,
+					id: target.id,
 					action: Action.ADD,
 					value: instanceToPlain(user)
 				}, target);

@@ -15,7 +15,6 @@ import type { Line } from "../lib2D/Math2D";
 								  C-CD-D
 		*/
 
-//TODO also change how the paddles are placed + rotated depending on things
 export class Paddle {
 	public position: Vector;
 	public height: number;
@@ -129,39 +128,31 @@ export class Paddle {
         context.restore();
 	}
 
-	//TODO check this maybe
-	public ballIntersect(ballPos: Vector, oldPos: Vector): [boolean, number, number, number, number, Vector] {
-		const crot = Math.cos(this.angle);
-        const srot = Math.sin(this.angle);
-        const w = this.width;
-        const h = this.height / 2;
+	// 
+	// //oldPos is the oldpos of the paddle
+	// public ballIntersect(ballPos: Vector, oldPos: Vector): [boolean, number, number, number, number, Vector] {
+	// 	const crot = Math.cos(this.angle);
+    //     const srot = Math.sin(this.angle);
+    //     const w = this.width;
+    //     const h = this.height / 2;
 
 
 		
-		const A = {x: (crot * -w + srot * -h) + this.position.x, y: (-srot * -w + crot * -h) + this.position.y};
-		const B = {x: (crot * w + srot * -h) + this.position.x, y: (-srot * w + crot * -h) + this.position.y};
-		const C = {x: (crot * -w + srot * h) + this.position.x, y: (-srot * -w + crot * h) + this.position.y};
-		const D = {x: (crot * w + srot * h) + this.position.x, y: (-srot * w + crot * h) + this.position.y};
+	// 	const A = {x: (crot * -w + srot * -h) + this.position.x, y: (-srot * -w + crot * -h) + this.position.y};
+	// 	const B = {x: (crot * w + srot * -h) + this.position.x, y: (-srot * w + crot * -h) + this.position.y};
+	// 	const C = {x: (crot * -w + srot * h) + this.position.x, y: (-srot * -w + crot * h) + this.position.y};
+	// 	const D = {x: (crot * w + srot * h) + this.position.x, y: (-srot * w + crot * h) + this.position.y};
 
-		const E = {x: (crot * -w + srot * -h) + oldPos.x, y: (-srot * -w + crot * -h) + oldPos.y};
-		const F = {x: (crot * w + srot * -h) + oldPos.x, y: (-srot * w + crot * -h) + oldPos.y};
-		const G = {x: (crot * -w + srot * h) + oldPos.x, y: (-srot * -w + crot * h) + oldPos.y};
-		const H = {x: (crot * w + srot * h) + oldPos.x, y: (-srot * w + crot * h) + oldPos.y};
-		
-		//TODO better collision check
-		//right hit
-		if (ballPos.x >= B.x && ballPos.x <= F.x ) {
-
-			// AM = "A to middle";
-			
-			// (0<𝐀𝐌⋅𝐀𝐁<𝐀𝐁⋅𝐀𝐁) && (0<𝐀𝐌⋅𝐀𝐃<𝐀𝐃⋅𝐀𝐃)
-		}
+	// 	const E = {x: (crot * -w + srot * -h) + oldPos.x, y: (-srot * -w + crot * -h) + oldPos.y};
+	// 	const F = {x: (crot * w + srot * -h) + oldPos.x, y: (-srot * w + crot * -h) + oldPos.y};
+	// 	const G = {x: (crot * -w + srot * h) + oldPos.x, y: (-srot * -w + crot * h) + oldPos.y};
+	// 	const H = {x: (crot * w + srot * h) + oldPos.x, y: (-srot * w + crot * h) + oldPos.y};
 
 
-		const maxX = Math.max(A.x, B.x, C.x, D.x, E.x, F.x, G.x, H.x);
-		const minX = Math.min(A.x, B.x, C.x, D.x, E.x, F.x, G.x, H.x);
-		const maxY = Math.max(A.y, B.y, C.y, D.y, E.y, F.y, G.y, H.y);
-		const minY = Math.min(A.y, B.y, C.y, D.y, E.y, F.y, G.y, H.y);
-		return [(ballPos.x >= minX && ballPos.x <= maxX && ballPos.y >= minY && ballPos.y <= maxY ), maxX, maxY, minX, minY, ballPos];
-	}
+	// 	const maxX = Math.max(A.x, B.x, C.x, D.x, E.x, F.x, G.x, H.x);
+	// 	const minX = Math.min(A.x, B.x, C.x, D.x, E.x, F.x, G.x, H.x);
+	// 	const maxY = Math.max(A.y, B.y, C.y, D.y, E.y, F.y, G.y, H.y);
+	// 	const minY = Math.min(A.y, B.y, C.y, D.y, E.y, F.y, G.y, H.y);
+	// 	return [(ballPos.x >= minX && ballPos.x <= maxX && ballPos.y >= minY && ballPos.y <= maxY ), maxX, maxY, minX, minY, ballPos];
+	// }
 }

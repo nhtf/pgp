@@ -14,13 +14,23 @@ export const load: PageLoad = (async ({ fetch, parent }) => {
 		throw error(401, "Unauthorized");
 	}
 
-	const mine: GameRoom[] = setJoined(await get("/game?member=true"), true);
-	const joinable: GameRoom[] = setJoined(await get("/game?member=false"), false);
-	const rooms = mine.concat(joinable);
+	const joined = await get(`/game/joined`);
+	const joinable = await get(`/game?member=false`);
+	const rooms = [];
 
-	console.log(rooms[0]);
+	for (let member of joined) {
+		member.room.joined = true;
+		member.room.member = member;
+		rooms.push(member.room);
+	}
+
+	for (let room of joinable) {
+		room.joined = false;
+		rooms.push(room);
+	}
+	console.log(rooms);
 	
-	return { rooms, mine, joinable };
+	return { rooms };
 }) satisfies PageLoad;
 
 function setJoined(rooms: GameRoom[], joined: boolean): GameRoom[] {

@@ -74,7 +74,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 			room.send_update({
 				subject: Subject.MEMBER,
 				action: Action.SET,
-				identifier: target.id,
+				id: target.id,
 				value: instanceToPlain(target),
 			});
 		}, duration);

@@ -19,7 +19,7 @@ export type Activity = {
 
 export interface UpdatePacket {
 	subject: Subject;
-	identifier?: number;
+	id?: number;
 	action: Action;
 	value?: any;
 }
@@ -57,7 +57,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	
 		return {
 			subject: Subject.USER,
-			identifier: user.id,
+			id: user.id,
 			action: Action.SET,
 			value,
 		};
@@ -105,7 +105,6 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		user.has_session = true;
 
 		await this.user_repo.save(user);
-		await this.setActivity(user);
 
 		if (!this.sockets.has(id)) {
 			this.sockets.set(id, []);
@@ -125,6 +124,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	
 		if (index < 0) {
 			console.error("could not find socket");
+			console.error(this.sockets);
 			throw new WsException("could not find socket");
 		}
 	
@@ -154,7 +154,6 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		const last_status = activity ? activity.last_status : Status.OFFLINE;
 	
 		user = await this.setActivity(user);
-
 	
 		if (last_status !== user.status) {
 			await this.send_update(this.create_update(user, Status.ACTIVE));

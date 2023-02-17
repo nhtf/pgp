@@ -1,17 +1,23 @@
 <script lang="ts">
+    import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { unwrap } from "$lib/Alert";
     import { icon_path } from "$lib/constants";
-	import { Access, Gamemode, type Room, type User } from "$lib/types";
-    import { post, remove } from "$lib/Web";
-    import Swal from "sweetalert2";
+	import { Access, Gamemode, type Room, type User, type GameRoomMember, type Team } from "$lib/types";
+    import { get, post, remove, patch } from "$lib/Web";
+    import Invite from "./Invite.svelte";
 
 	type T = Room & {
 		gamemode?: Gamemode,
+		member?: GameRoomMember,
+		teamsLocked?: boolean,
+		teams: Team[],
 	};
 
 	export let room: T;
 
+	const users: User[] = $page.data.users;
+	
     const lock = `${icon_path}/lock.svg`;
 	const crown = `${icon_path}/crown.svg`;
 	const gamemode_icons = [
@@ -19,12 +25,11 @@
 		`${icon_path}/vr.svg`,
 		`${icon_path}/hexagon.svg`,
 	];
-
+	
 	const icon = gamemode_icons[room.gamemode as Gamemode];
 	const url_type = room.type.replace("Room", "").toLowerCase();
 
 	let user: User;
-	let invitee = "";
 	let password = "";
 
 	$: user = $page.data.user;
@@ -39,33 +44,28 @@
 		await unwrap(remove(`/${url_type}/id/${room.id}/members/me`));
 	}
 	
-    async function invite(room: T) {
-		if (!invitee.length) {
-			return Swal.fire({
-                icon: "warning",
-                text: "Please enter a username",
-				timer: 3000,
-            });
-		}
-
-		await unwrap(post(`/${url_type}/id/${room.id}/invite`, { username: invitee }));
-		
-		Swal.fire({	icon: "success" });
-    }
-
 	async function erase(room: T) {
         await unwrap(remove(`/${url_type}/id/${room.id}`));
 	}
+	
+	async function joinTeam(room: T, team: Team | null) {
+		if (room.member?.player?.team?.id !== team?.id) {
+			await unwrap(patch(`/${url_type}/id/${room.id}/team/${room.member?.id}`, { team: team?.id }));
+		}
 
+		await goto(`/${url_type}/${room.id}`);
+	}
 </script>
 
 <div class="room">
 	<div class="room-name">
 		{#if room.type === "ChatRoom"}
 			<img class="avatar" src={room.owner.avatar} alt="avatar"/>
-			<img class="owner-icon" src={crown} alt="crown"/>
 		{/if}
 		<div>{room.name}</div>
+		{#if room.type === "ChatRoom" && room.owner.id === user.id}
+			<img class="owner-icon" src={crown} alt="crown"/>
+		{/if}
 		{#if room.type === "GameRoom"}
 			<img class="icon" src={icon} alt="icon"/>
 		{/if}
@@ -76,20 +76,28 @@
 	<div class="grow"/>
 	{#if room.joined}
 		{#if room.owner.id === user.id}
-			<input class="input" placeholder="Username" bind:value={invitee}>
-			<button class="button button-invite" on:click={() => invite(room)}>Invite</button>
-		{/if}
-		<a class="button button-enter" href={`/${url_type}/${room.id}`}>Enter</a>
-		{#if room.owner.id === user.id}
-			<button class="button button-delete" on:click={() => erase(room)}>Delete</button>
+			<Invite {room} {users}/>
+			<button class="button red" on:click={() => erase(room)}>Delete</button>
 		{:else}
-			<button class="button button-leave" on:click={() => leave(room)}>Leave</button>
+			<button class="button red" on:click={() => leave(room)}>Leave</button>
+		{/if}
+		{#if room.type !== "GameRoom" || room.teamsLocked}
+			<a class="button blue" href={`/${url_type}/${room.id}`}>Enter</a>
+		{:else}
+			{#if !room.teamsLocked || room.member?.player === null}
+				<button class="button blue" on:click={() => joinTeam(room, null)}>Spectate</button>
+			{/if}
+			{#each room.teams as team}
+				{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
+					<button class="button blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
+				{/if}
+			{/each}
 		{/if}
 	{:else}
 		{#if room.access === Access.PROTECTED}
 			<input class="input" placeholder="Password" type="password" bind:value={password}>
 		{/if}
-		<button class="button button-join" on:click={() => join(room)}>Join</button>
+		<button class="button green" on:click={() => join(room)}>Join</button>
 	{/if}
 </div>
 
@@ -126,13 +134,10 @@
 	}
 
 	.owner-icon {
-		width: 20px;
-		height: 20px;
+		width: 1.5rem;
+		height: 1.5rem;
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
-		position: relative;
-		bottom: 0.5rem;
-		right: 0.5rem;
 	}
 
 	.avatar {
@@ -151,19 +156,19 @@
 	}	
 	
 	.button {
-		width: 80px;
+		max-width: 1200px;
 		text-align: center;
 	}
 
-	.button-join, .button-invite {
-		border-color: var(--green);
-	}
-
-	.button-delete, .button-leave {
+	.red {
 		border-color: var(--red);
 	}
 
-	.button-enter {
+	.green {
+		border-color: var(--green);
+	}
+
+	.blue {
 		border-color: var(--blue);
 	}
 

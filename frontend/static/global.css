@@ -16,7 +16,7 @@ body {
 	position: relative;
 	margin: 0;
 	--text-color: rgb(0, 0, 0);
-	--text-disabled-color: rgb(175,175,175); 
+	--text-disabled-color: rgb(175, 175, 175);
 	--bkg-color: #dee4e7;
 	--box-color: rgb(249, 249, 249);
 	--box-hover-color: rgb(255, 255, 255);
@@ -50,7 +50,7 @@ body {
 	/* defaults to dark theme */
 	body:not(.light) {
 		--text-color: rgb(255, 255, 255);
-		--text-disabled-color: rgb(150,150,150);
+		--text-disabled-color: rgb(150, 150, 150);
 		--bkg-color: rgb(63, 63, 63);
 		--box-color: rgb(41, 45, 57);
 		--box-hover-color: rgb(85, 89, 101);
@@ -210,11 +210,11 @@ body {
 
 .small-avatars:hover {
 	box-shadow: 2px 2px 5px 5px var(--shadow-color);
-	
+
 }
 
 #avatar-menu {
-	cursor: pointer!important;
+	cursor: pointer !important;
 }
 
 #avatar-menu:hover {
@@ -226,18 +226,18 @@ a {
 }
 
 .navbar-bg {
-    background-color: var(--box-color)!important;
-	border-color: transparent!important;
-  }
+	background-color: var(--box-color) !important;
+	border-color: transparent !important;
+}
 
-  .login-button {
+.login-button {
 	font-size: 1rem;
 	text-decoration: underline;
-  }
+}
 
-  .login-button:hover {
+.login-button:hover {
 	font-size: 1.125rem;
-  }
+}
 
 .leaderboard-row {
 	background-color: var(--box-color);
@@ -280,11 +280,11 @@ a {
 	padding-right: 0.5em;
 }
 
-.table-cell-s{
-	padding-left: 1rem!important;
-	padding-right: 0.5rem!important;
-	padding-top: 1rem!important;
-	padding-bottom: 1rem!important;
+.table-cell-s {
+	padding-left: 1rem !important;
+	padding-right: 0.5rem !important;
+	padding-top: 1rem !important;
+	padding-bottom: 1rem !important;
 	white-space: nowrap;
 	font-size: 0.875rem;
 	line-height: 1.25rem;
@@ -300,15 +300,15 @@ a {
 }
 
 .table-head {
-	background-color: var(--box-color)!important;
+	background-color: var(--box-color) !important;
 }
 
 .bg-c {
-	background-color: var(--box-color)!important;
+	background-color: var(--box-color) !important;
 }
 
 .bor-c {
-	border: 1px solid var(--border-color)!important;
+	border: 1px solid var(--border-color) !important;
 	border-radius: 0.25rem;
 }
 
@@ -319,9 +319,9 @@ table {
 
 .bordered {
 	-moz-border-radius: 6px;
-    -webkit-border-radius: 6px;
-    border-radius: 6px;
-	border: 2px solid var(--border-color)!important;
+	-webkit-border-radius: 6px;
+	border-radius: 6px;
+	border: 2px solid var(--border-color) !important;
 }
 
 .tab-content-background {
@@ -339,7 +339,7 @@ table {
 	height: 100vh;
 	left: 0;
 	border-radius: 6px;
-	width: auto!important;
+	width: auto !important;
 }
 
 @media (max-width: 500px) {
@@ -358,7 +358,7 @@ table {
 	position: relative;
 	width: 50px;
 	height: 20px;
-	background-color: var(--box-color)!important;
+	background-color: var(--box-color) !important;
 	border-radius: 6px;
 }
 
@@ -369,13 +369,13 @@ table {
 	align-items: center;
 	display: flex;
 	justify-content: center;
-	box-shadow: unset!important;
+	box-shadow: unset !important;
 	width: 50px;
 	height: 50px;
 }
 
 .dots-menu:hover {
-	background-color: var(--box-hover-color)!important;
+	background-color: var(--box-hover-color) !important;
 }
 
 .chatroom-menu {
@@ -387,12 +387,12 @@ table {
 	right: 0.375rem;
 	height: 35px;
 	width: 35px;
-	outline: unset!important;
-	box-shadow: unset!important;
+	outline: unset !important;
+	box-shadow: unset !important;
 }
 
 .chatroom-menu:hover {
-	background-color: var(--box-hover-color)!important;
+	background-color: var(--box-hover-color) !important;
 }
 
 .br-6 {
@@ -400,29 +400,29 @@ table {
 }
 
 .checkbox {
-	width: 30px!important;
-	height: 30px!important;
-	vertical-align: top!important;
-	background-color: var(--box-color)!important;
+	width: 30px !important;
+	height: 30px !important;
+	vertical-align: top !important;
+	background-color: var(--box-color) !important;
 }
 
 .select {
-	display: inline-block!important;
+	display: inline-block !important;
 	background: var(--box-color);
 	border: 1px solid var(--border-color);
 	border-radius: 6px;
-	padding-top: 2px!important;
-	padding-bottom: 2px!important;
-	padding-left: 8px!important;
-	width: unset!important;
-	font-size: 1rem!important;
-	line-height: 1.5rem!important;
+	padding-top: 2px !important;
+	padding-bottom: 2px !important;
+	padding-left: 8px !important;
+	width: unset !important;
+	font-size: 1rem !important;
+	line-height: 1.5rem !important;
 }
 
 .friend-button {
-	border-color: transparent!important;
-	border-bottom-left-radius: 0!important;
-	border-bottom-right-radius: 0!important;
-	border-bottom-color: var(--border-color)!important;
-	border-bottom-width: 2px!important;
+	border-color: transparent !important;
+	border-bottom-left-radius: 0 !important;
+	border-bottom-right-radius: 0 !important;
+	border-bottom-color: var(--border-color) !important;
+	border-bottom-width: 2px !important;
 }

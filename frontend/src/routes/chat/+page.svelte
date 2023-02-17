@@ -10,7 +10,7 @@
 
 	export let data: PageData;
 
-	$: rooms = data.roomsJoined.concat(data.roomsJoinable);
+	$: rooms = data.rooms;
 
 	const room: {
 		name?: string;
@@ -43,24 +43,26 @@
 	};
 
 	function updateRooms(update: UpdatePacket) {
-		switch (update.action) {
-			case Action.ADD:
-				rooms = [...rooms, update.value];
-				break ;
-			case Action.SET:
-				if (rooms.map((room) => room.id).includes(update.identifier)) {
-					if (update.value.is_private && !update.value.joined) {
-						rooms = rooms.filter((room) => room.id !== update.identifier);
-					} else {
-						rooms = rooms.map((room) => room.id === update.identifier ? update.value : room);
-					}
-				} else {
+		if (update.value.type === "ChatRoom") {
+			switch (update.action) {
+				case Action.ADD:
 					rooms = [...rooms, update.value];
-				}
-				break ;
-			case Action.REMOVE:
-				rooms = rooms.filter((room) => room.id !== update.identifier);
-				break;
+					break ;
+				case Action.SET:
+					if (rooms.map((room) => room.id).includes(update.id)) {
+						if (update.value.is_private && !update.value.joined) {
+							rooms = rooms.filter((room) => room.id !== update.id);
+						} else {
+							rooms = rooms.map((room) => room.id === update.id ? update.value : room);
+						}
+					} else {
+						rooms = [...rooms, update.value];
+					}
+					break ;
+				case Action.REMOVE:
+					rooms = rooms.filter((room) => room.id !== update.id);
+					break;
+			}
 		}
 	}
 
@@ -101,7 +103,7 @@
 		display: flex;
 		flex-direction: column;
 		gap: 10px;
-		padding: 25px 10px;
+		padding: 10px 10px;
 	}
 
 	.room {

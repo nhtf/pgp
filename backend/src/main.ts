@@ -48,7 +48,7 @@ async function bootstrap() {
 	});
 	app.useGlobalPipes(
 		new ValidationPipe({
-			transform: true,
+			transform: false, // TODO: true
 			forbidUnknownValues: false, // TODO: true
 			/*
 			exceptionFactory: (e) => {

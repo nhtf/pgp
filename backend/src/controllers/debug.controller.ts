@@ -150,7 +150,7 @@ export class DebugController {
 		});
 	}
 
-	@Get("rooms")
+	@Get("room(s)?")
 	async rooms() {
 		return this.roomRepo.find({
 			relations: {
@@ -162,7 +162,7 @@ export class DebugController {
 		});
 	}
 
-	@Get("room/delete")
+	@Get("room(s)?/delete")
 	async deleteRoom(@Query("id") id: string) {
 		return await this.roomRepo.delete(Number(id));
 	}

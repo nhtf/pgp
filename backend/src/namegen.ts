@@ -2,7 +2,7 @@ function choice<T>(array: T[]): T {
 	return array[Math.floor(Math.random() * array.length)];
 }
 
-export const genMaybeQuoted = str => choice([
+export const genMaybeQuoted = (str: string) => choice([
 	() => `${str}`,
 	() => `${str}`,
 	() => `${str}`,

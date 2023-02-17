@@ -35,7 +35,7 @@
 		});
 
 		userStore.subscribe((users) => {
-			friends = friends.map((friend) => users.get(friend.id) as User);
+			friends = friends.map((friend) => users.get(friend.id)!);
 		})
 
         updateManager.set(Subject.FRIEND, updateFriends);
@@ -48,6 +48,7 @@
     function checkGameScores() {
 		let socket = io(`ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
     
+        // TODO
 		socket.on("connect", () => { socket.emit("join", { scope: "stat", room: "1" }) });
 		socket.on("status", (status) => {
             console.log(status);

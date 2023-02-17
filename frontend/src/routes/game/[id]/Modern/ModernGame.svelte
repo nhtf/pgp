@@ -6,9 +6,8 @@
 
 	let canvas: HTMLCanvasElement;
 
-	//TODO try and make it possible to have 2 or 4 players , and depending on that the field adjusts
-	//TODO also implement powerups
-	//TODO add sound effects
+	//TODO implement powerups
+	//TODO maybe add sound effects
 	onMount(async () => {
 		const modern = new Modern(canvas, GAME.TWOPLAYERS);
 		await modern.init();

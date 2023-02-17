@@ -217,7 +217,7 @@ export class RolesGuard implements CanActivate {
 
 export const RequiredRole = (role: Role) => SetMetadata(ROLE_KEY, role);
 
-export function GenericRoomController<T extends Room, U extends Member, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), MemberType: (new () => U), route?: string, c?: (new () => C)) {
+export function GenericRoomController<T extends Room, U extends Member, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), MemberType: (new () => U), route?: string, c?: (new () => C)): any {
 	@UseGuards(HttpAuthGuard, RolesGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Controller(route || type.name.toString().toLowerCase())
@@ -239,7 +239,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
 		}
 
-		@Get("")
+		@Get()
 		async get_visible(@Me() user: User, @Query("member") member?: string) {
 			if (member === "true") {
 				return this.room_repo.createQueryBuilder("room")
@@ -327,14 +327,14 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		
 			await room.send_update({
 				subject: Subject.ROOM,
-				identifier: room.id,
+				id: room.id,
 				action: Action.ADD,
 				value: { ...instanceToPlain(room), joined: false },
 			}, !room.is_private);
 
 			await this.update_service.send_update({
 				subject: Subject.ROOM,
-				identifier: room.id,
+				id: room.id,
 				action: Action.SET,
 				value: { ...instanceToPlain(room), joined: true }
 			}, user)
@@ -414,7 +414,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 			await this.update_service.send_update({
 				subject: Subject.ROOM,
-				identifier: room.id,
+				id: room.id,
 				action: Action.SET,
 				value: { ...instanceToPlain(room), joined: true },
 			}, me);
@@ -491,7 +491,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			await this.update_service.send_update({
 				subject: Subject.ROOM,
 				action: Action.SET,
-				identifier: room.id,
+				id: room.id,
 				value: { ...instanceToPlain(room), joined: false },
 			}, target.user);
 

@@ -1,5 +1,5 @@
 import { Team } from "./Team";
-import { Exclude } from "class-transformer";
+import { Exclude, Expose } from "class-transformer";
 import { Column, OneToMany, OneToOne, PrimaryGeneratedColumn, Entity, JoinColumn } from "typeorm";
 import { Gamemode } from "src/enums/Gamemode";
 import { GameRoom } from "./GameRoom";
@@ -13,8 +13,7 @@ export class GameState {
 	@Column()
 	gamemode: Gamemode;
 
-	@Exclude()
-	@OneToMany(() => Team, (team) => team.room)
+	@OneToMany(() => Team, (team) => team.state, { cascade: [ "insert", "update" ] })
 	teams: Team[];
 
 	@Column({ default: false })

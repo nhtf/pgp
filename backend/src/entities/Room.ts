@@ -1,4 +1,4 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, BeforeRemove } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, BeforeInsert, BeforeRemove } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access } from "../enums/Access";
@@ -28,10 +28,18 @@ export class Room {
 	})
 	password: string | null;
 
-	@Expose()
-	get owner(): User {
-		return this.members?.find(member => member.role === Role.OWNER)?.user;
-	}
+	@Exclude()
+	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
+	members: Member[];
+
+	@Exclude()
+	@ManyToMany(() => User, (user) => user.banned_rooms)
+	@JoinTable()
+	banned_users: User[];
+
+	@Exclude()
+	@OneToMany(() => RoomInvite, (invite) => invite.room)
+	invites: RoomInvite[];
 
 	@Expose()
 	get type(): string {
@@ -43,27 +51,20 @@ export class Room {
 		return this.is_private ? Access.PRIVATE : this.password ? Access.PROTECTED : Access.PUBLIC;
 	}
 
-	@Exclude()
-	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
-	members: Member[];
-
-	get users(): User[] {
-		return this.members.map(member => member.user);
+	@Expose()
+	get owner(): User {
+		return this.members?.find(member => member.role === Role.OWNER)?.user;
 	}
 
-	@Exclude()
-	@ManyToMany(() => User, (user) => user.banned_rooms)
-	@JoinTable()
-	banned_users: User[];
-
-	@OneToMany(() => RoomInvite, (invite) => invite.room)
-	invites: RoomInvite[];
+	get users(): User[] {
+		return this.members?.map(member => member.user);
+	}
 
 	async send_update(packet: UpdatePacket, broadcast?: boolean) {
 		if (broadcast === true) {
 			await UpdateGateway.instance.send_update(packet);
 		} else {
-			await UpdateGateway.instance.send_update(packet, ...(this.users || []));
+			await UpdateGateway.instance.send_update(packet, ...this.users);
 		}
 	}
 
@@ -71,7 +72,7 @@ export class Room {
 	async beforeRemove() {
 		await this.send_update({
 			subject: Subject.ROOM,
-			identifier: this.id,
+			id: this.id,
 			action: Action.REMOVE,
 			value: instanceToPlain(this),
 		}, !this.is_private);

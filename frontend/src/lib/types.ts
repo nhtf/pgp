@@ -15,6 +15,19 @@ export type Member = {
 	is_muted: boolean,
 };
 
+export type Team = {
+	id: number,
+	name: string,
+};
+
+export type Player = {
+	team: Team,
+};
+
+export type GameRoomMember = Member & {
+	player: Player | null,
+};
+
 export type User = {
 	id: number,
 	auth_req?: number,
@@ -48,13 +61,18 @@ export type Room = {
 	joined?: boolean,	
 };
 
-export type GameRoom = Room & {
-	gamemode: Gamemode,
-};
-
 export type ChatRoom = Room & {
 	// messages: Message[],
 };
+
+export type GameRoom = Room & {
+	state: GameState,
+};
+
+export type GameState = {
+	teamsLocked: boolean,
+	gamemode: Gamemode,
+}
 
 export type Invite = {
 	id: number,
@@ -67,7 +85,7 @@ export type Invite = {
 
 export interface UpdatePacket {
 	subject: Subject;
-	identifier: number;
+	id: number;
 	action: Action;
 	value?: any;
 }

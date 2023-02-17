@@ -36,7 +36,7 @@ export class Invite {
 	async send_update(action: Action) {
 		await UpdateGateway.instance.send_update({
 			subject: Subject.INVITE,
-			identifier: this.id,
+			id: this.id,
 			action,
 			value: instanceToPlain(this),
 		}, this.from, this.to);

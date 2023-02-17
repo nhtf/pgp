@@ -1,6 +1,6 @@
 import { Exclude } from "class-transformer";
 import { Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, Column } from "typeorm";
-import { GameRoom } from "./GameRoom";
+import { GameState } from "./GameState";
 import { Player } from "./Player";
 
 @Entity()
@@ -11,8 +11,8 @@ export class Team {
 	@Column()
 	name: string;
 
-	@ManyToOne(() => GameRoom, (room) => room.teams, { onDelete: "CASCADE" })
-	room: GameRoom;
+	@ManyToOne(() => GameState, (state) => state.teams, { onDelete: "CASCADE" })
+	state: GameState;
 
 	@Exclude()
 	@OneToMany(() => Player, (player) => player.team)

@@ -156,6 +156,8 @@ let dummy_data = [
     ]},
     ];
 
-export const load = (() => {
-    return {lb: dummy_data};
+export const load: PageLoad = (({ fetch }) => {
+    window.fetch = fetch;
+
+    return { lb: dummy_data };
   }) satisfies PageLoad;

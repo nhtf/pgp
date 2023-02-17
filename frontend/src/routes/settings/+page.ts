@@ -1,15 +1,10 @@
-import { BACKEND } from "$lib/constants";
-import { error } from "@sveltejs/kit";
 import type { PageLoad } from "./$types";
+import { get } from "$lib/Web"
 
 export const load: PageLoad = (async ({ fetch }) => {
-	const response = await fetch(`${BACKEND}/user/me/auth_req`, {
-		credentials: 'include'
-	});
+	window.fetch = fetch;
 
-	if (!response.ok)
-		throw error(response.status, response.message);
+	const { auth_req } = await get(`/user/me/auth_req`);
 
-	let auth_req = await response.json();
-	return { auth_req: auth_req };
+	return { auth_req };
 }) satisfies PageLoad;

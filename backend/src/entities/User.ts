@@ -124,7 +124,7 @@ export class User {
 	async send_update(action: Action) {
 		await UpdateGateway.instance.send_update({
 			subject: Subject.USER,
-			identifier: this.id,
+			id: this.id,
 			action,
 			value: instanceToPlain(this),
 		});

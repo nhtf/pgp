@@ -2,10 +2,9 @@
 	import "../app.postcss";
 	import { onMount } from "svelte";
 	import type { LayoutData } from "./$types";
-	import { logout } from "./layout_log_functions";
 	import { page } from "$app/stores";
 	import Notifications from "./notifications.svelte";
-	import { BACKEND, } from "$lib/constants";
+	import { BACKEND } from "$lib/constants";
 	import {
 		Dropdown,
 		DropdownItem,
@@ -20,8 +19,10 @@
 	} from "flowbite-svelte";
 	import { goto } from "$app/navigation";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
-    import { userStore } from "../stores";
-    import type { User } from "$lib/types";
+	import { userStore } from "../stores";
+	import type { User } from "$lib/types";
+	import { unwrap } from "$lib/Alert";
+	import { post } from "$lib/Web";
 
 	export let data: LayoutData;
 
@@ -36,7 +37,7 @@
 	onMount(() => {
 		if (user) {
 			userStore.subscribe((users) => {
-				user = users.get(user?.id as number) as User;
+				user = users.get(user!.id!) as User;
 			});
 		}
 		applyTheme();
@@ -64,14 +65,17 @@
 	};
 
 	async function logoutfn() {
-		let res = await logout();
+		await unwrap(post(`/oauth/logout`));
 
-		if (res) {
-			if (data.user) {
-				data.user = null; // CHECK
-			}
-			goto(`/`);
-		}
+		userStore.update((users) => {
+			users.delete(data.user!.id);
+
+			return users;
+		});
+	
+		data.user = null;
+	
+		await goto(`/`);
 	}
 
 	const applyTheme = () => {
@@ -124,7 +128,7 @@
 		/>
 		{#if user?.username}
 			<Avatar id="avatar-menu" src={data.user?.avatar} />
-			<Notifications/>
+			<Notifications />
 		{/if}
 	</div>
 	{#if user && user.username}
@@ -140,26 +144,26 @@
 				>profile</DropdownItem
 			>
 			{#if twofa_enabled}
-				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
+				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem
+				>
 			{:else}
 				<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
 			{/if}
-			<DropdownItem
-				><Toggle
+			<DropdownItem>
+				<Toggle
 					size="small"
 					checked={currentTheme === THEMES.DARK}
-					on:change={toggleTheme}>dark</Toggle
-				></DropdownItem
-			>
+					on:change={toggleTheme}
+				>dark
+				</Toggle>
+			</DropdownItem>
 			<DropdownItem on:click={logoutfn}>sign out</DropdownItem>
 		</Dropdown>
 	{/if}
 	<NavUl {hidden} class="navbar-bg">
 		<NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
 		{#each links as { url, name }}
-			<NavLi href={url} active={$page.url.pathname.includes(url)}
-				>{name}</NavLi
-			>
+			<NavLi href={url} active={$page.url.pathname.includes(url)}>{name}</NavLi>
 		{/each}
 		{#if !user?.username}
 			<NavLi

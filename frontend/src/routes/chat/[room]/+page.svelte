@@ -6,27 +6,25 @@
     import type { PageData } from "./$types";
     import { post, remove } from "$lib/Web";
     import MessageBox from "./MessageBox.svelte";
-	import { ToolbarButton, Dropdown, DropdownItem } from "flowbite-svelte";
-	import { beforeUpdate, afterUpdate } from 'svelte';
     import { goto } from "$app/navigation";
-    import { Role, Status, Subject, type Member, type Message, type UpdatePacket, type User } from "$lib/types";
-    import MemberDrawer from "./MemberDrawer.svelte";
+    import { Role, Subject, type Message, type Room, type UpdatePacket, type User } from "$lib/types";
     import { updateManager } from "$lib/updateSocket";
     import { userStore } from "../../../stores";
+    import Invite from "../../Invite.svelte";
+    import { Dropdown, DropdownItem } from "flowbite-svelte";
 
 	export let data: PageData;
 
-	let div: HTMLElement;
-	let autoscroll: boolean;
-
+	$: users = data.users!;
+	$: members = data.members;
 	$: room = data.room;
+	$: self = members.find((member) => member.user.id === data.user!.id)!;
 	$: messages = sortByDate(data.messages);
-	$: members = [...new Set(messages.map((message) => message.member))];
-	$: self = members.find((member) => member.user.id === data.user?.id) as Member;
-	$: rows = (value.match(/\n/g) || []).length + 1 || 1;
+	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
+	$: invitable = data.users!.filter(notMember);
+	$: matches = invitable.filter(match);
 
-	let textarea = null;
-	let value: string = "";
+	let content: string = "";
 	let invitee: string = "";
 
 	onMount(() => {
@@ -40,15 +38,17 @@
 	
 		userStore.subscribe((users) => {
 			messages = messages.map((message) => {
-				message.member.user = users.get(message.member.user.id) as User;
+				message.member.user = users.get(message.member.user.id)!;
 			
 				return message;
-			} );
+			});
+
+			invitable = [...users.values()].filter(notMember);
 		})
 
 		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
 			messages = messages.map((message) => {
-				if (message.member.id === update.identifier) {
+				if (message.member.id === update.id) {
 					const user = message.member.user;
 					
 					message.member = update.value;
@@ -61,23 +61,19 @@
 		});
 	
 		roomSocket.emit("join", String(room.id));
-	
-		autoscroll = true;
 	});
+
+	function notMember(user: User) {
+		return !members.map((member) => member.user.id).includes(user.id);
+	}
+
+	function match(user: User) {
+		return user.username.includes(invitee);
+	}
 
 	onDestroy(() => {
 		updateManager.remove(Subject.MEMBER);
 	})
-
-	beforeUpdate(() => {
-		autoscroll = div && (div.offsetHeight + div.scrollTop) > (div.scrollHeight - 20);
-	});
-
-	afterUpdate(() => {
-		if (autoscroll) {
-			div.scrollTo(0, div.scrollHeight);
-		}
-	});
 
 	roomSocket.on("message", (message: Message) => {
 		messages = sortByDate([...messages, message]);
@@ -100,15 +96,19 @@
 	}
 
 	function sendMessage() {
-		if (!value.length)
+		if (!content.length)
            return;
 	
-		roomSocket.emit("message", value);
+		roomSocket.emit("message", content);
 	
-		value = "";
+		content = "";
 	}
 
-    async function invite() {
+	function updateInput() {
+		matches = invitable.filter(match);
+	}
+
+    async function invite(room: Room) {
 		if (!invitee.length) {
 			return Swal.fire({
                 icon: "warning",
@@ -125,129 +125,118 @@
 		});
     }
 
-	async function leave() {
+	async function leave(room: Room) {
 		await unwrap(remove(`/chat/id/${room.id}/leave`));
-
-		// TODO
 		await goto(`/chat`);
 	}
 
-    async function deleteChatRoom() {
+    async function erase(room: Room) {
         await unwrap(remove(`/chat/id/${room.id}`));
-	
-		Swal.fire({
-			icon: "success",
-			timer: 3000,
-		}).then(async () => {
-			// TODO
-			await goto(`/chat`);
-		});
+		await goto(`/chat`);
     }
-
-	function onResize(e: UIEvent) {
-		textarea = e.target;
-	}
 
 </script>
 
-<div class="chat-room-container">
+<div class="room-container">
 	<div class="room-title">
-		<h1 id="room-name">{room.name}</h1>
-		<ToolbarButton class="chatroom-menu" id="title-button">
-			<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-5 h-5"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM12.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0zM18.75 12a.75.75 0 11-1.5 0 .75.75 0 011.5 0z" /></svg>
-		</ToolbarButton>
-		<MemberDrawer/>
-	</div>
-	<Dropdown triggeredBy="#title-button" placement="bottom" class="bg-c bor-c">
-		<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={leave}>leave</DropdownItem>
-		{#if self.role >= Role.OWNER}
-			<DropdownItem class="flex items-center text-base font-semibold gap-2" on:click={deleteChatRoom}>delete</DropdownItem>
+		<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
+		<div class="room-name">{room.name}</div>
+		{#if data.role >= Role.ADMIN}
+			<Invite {room} {members} {users}/>
 		{/if}
-		{#if self.role >= Role.ADMIN}
-			<DropdownItem class="flex items-center text-base font-semibold gap-2">
-				<form on:submit|preventDefault={invite}>
-					<input class="user-invite" bind:value={invitee} type="text" placeholder="username...">
-					<input class="invite-button" type="submit" value="Invite">
-				</form>
+		<button class="button">Settings</button>
+		<Dropdown>
+			<DropdownItem>
+				{#if data.role >= Role.OWNER}
+					<button class="button red" on:click={() => erase(room)}>Delete</button>
+				{:else}
+					<button class="button red" on:click={() => leave(room)}>Leave</button>
+				{/if}
 			</DropdownItem>
-		{/if}
-	</Dropdown>
+		</Dropdown>
+	</div>
 
-<div class="messages" bind:this={div}>
-	{#key messages}
-		{#each messages as message}
-			<MessageBox {message}/>
-		{/each}
-	{/key}
-</div>
-<div class="message-input">
-	<div class="message-box">
-		<textarea
-			bind:value={value}
-			bind:this={textarea}
-			on:resize={onResize}
-			on:keypress={handleKeyPress}
-			wrap="hard"
-			disabled={self?.is_muted ? self.is_muted : false}
-			rows="{rows}"
-			class="w-full space-x-4"
-			placeholder={self?.is_muted ? "You are muted" : "message..."}
-		/>
+	<div class="messages">
+		{#key messages}
+			{#each messages as message}
+				<MessageBox {message}/>
+			{/each}
+		{/key}
 	</div>
-	<div class="send-button"
-		on:click|preventDefault={sendMessage}
-		on:keypress|preventDefault={sendMessage}
-		>
-		<img src="/Assets/icons/send.svg" alt="chat" class="icon">
+	<div class="message-input">
+		<div class="message-box">
+			{#key self}
+				<textarea
+					bind:value={content}
+					on:keypress={handleKeyPress}
+					wrap="hard"
+					disabled={self?.is_muted ? self.is_muted : false}
+					rows="{rows}"
+					class="w-full space-x-4"
+					placeholder={self?.is_muted ? "You are muted" : "message..."}
+				/>
+			{/key}
+		</div>
+		<div class="send-button"
+			on:click|preventDefault={sendMessage}
+			on:keypress|preventDefault={sendMessage}
+			>
+			<img src="/Assets/icons/send.svg" alt="chat" class="icon">
+		</div>
 	</div>
-</div>
 </div>
 	
 <style>
 
-	textarea {
-		height: 5rem;
-		color: var(--text-color);
-		background-color: var(--input-bkg-color);
-		border-radius: 6px;
-		height: auto;
-		max-height: 75vh;
+	.room-container {
+		display: flex;
+		flex-direction: column;
+		gap: 10px;
+		height: calc(100vh - 80px);
+		padding: 0 0 3rem 0;
 	}
 
-	.user-invite {
-		width: 7.5rem;
-		height: 40px;
-		font-size: 0.75rem;
+	.room-title {
+		display: flex;
+		flex-direction: row;
+		justify-content: space-between;
+		background-color: var(--box-color);
+		position: relative;
+		top: 0.5rem;
+		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+		margin-bottom: 0.5rem;
 	}
 
-	.invite-button {
-		width: 2.5rem;
-		height: 40px;
-		font-size: 0.75rem;
-	}
-
-	.invite-button:hover {
-		background-color: var(--box-hover-color);
-	}
-	
-	#room-name {
+	.room-name {
+		text-align: center;
 		font-size: 1.5rem;
 		padding: 3px;
-		position: relative;
 		margin: 0 auto;
+	}
+
+	.button {
+		display: inline-block;
+		background: var(--box-color);
+		border: 1px solid var(--border-color);
+		border-radius: 6px;
+		padding: 2px 8px;
+		margin: 0.25rem;
+		width: 80px;
+		text-align: center;
+	}	
+	
+	.red {
+		border-color: var(--red);
+	}
+
+	.blue {
+		border-color: var(--blue);
 	}
 
 	.message-input {
 		display: flex;
 		position: relative;
 		align-items: center;
-		/* height: 50px; */
-	}
-
-	input {
-		color: var(--text-color);
-		background-color: var(--input-bkg-color);
-		border-radius: 6px;
 	}
 
 	.message-box {
@@ -261,18 +250,6 @@
         -webkit-filter: var(--invert);
 		filter: var(--invert);
     }
-
-	.room-title {
-		background-color: var(--box-color);
-		top: 0.5rem;
-		position: relative;
-		display: flex;
-		width: 100%;
-		flex-direction: row;
-		border-radius: 6px;
-		justify-content: space-between;
-		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-	}
 
 	.messages {
 		display: flex;
@@ -300,11 +277,13 @@
 		background-color: var(--box-hover-color);
 	}
 
-	.chat-room-container {
-		display: flex;
-		flex-direction: column;
-		height: calc(100vh - 80px);
-		gap: 1.25rem;
+	textarea {
+		height: 5rem;
+		color: var(--text-color);
+		background-color: var(--input-bkg-color);
+		border-radius: 6px;
+		height: auto;
+		max-height: 75vh;
 	}
 
 </style>

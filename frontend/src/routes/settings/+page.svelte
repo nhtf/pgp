@@ -35,7 +35,6 @@
 		}
 	}
 
-	//TODO move this to the profile page
 	async function changeUserName() {		
 		let res = await unwrap(put("/user/me/username", {username}, true));
 		const links = document.getElementsByTagName("a");

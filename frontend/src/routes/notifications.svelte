@@ -4,12 +4,11 @@
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
 	import { onDestroy, onMount } from "svelte";
-	import { Subject, Action, type User } from "$lib/types";
+	import { Subject, Action } from "$lib/types";
 	import type { UpdatePacket } from "$lib/types";
 	import { updateManager } from "$lib/updateSocket";
 	import { afterUpdate } from "svelte";
-	import { bounceOut as anim } from "svelte/easing";
-    import { inviteStore } from "../stores";
+	import { backIn as anim } from "svelte/easing";
 
 	enum Status {
 		UNREAD,
@@ -17,27 +16,29 @@
 		REMOVED,
 	}
 
-	let notificationss: Map<Invite, Status>;
+	function spin(node: any, { duration }: { duration: number }) {
+		return {
+			duration,
+			css: (t: number) => {
+				const rot_eased = Math.sin(t * 2 * Math.PI);
+				const scal_eased = anim(t) + 0.5;
+				if (!newNotifs) {
+					return "";
+				}
+				return `transform: rotate(${rot_eased * 45}deg);`;
+			},
+		};
+	}
 
-
-	// TODO: fix notification
-	$: user = $page.data.user as User;
-	$: invites = $page.data.invites as Invite[];
-	$: _notifications = new Map(invites.map((invite) => [invite, Status.UNREAD]));
-	$: _newNotifs = [..._notifications].some((notif) => notif[1] === Status.UNREAD);
-
-	$: notifications = invites.filter((invite) => invite.to.id === user.id);
+	$: notifications = $page.data.invites_received as Invite[];
+	$: send = $page.data.invites_send as Invite[];
+	$: user = $page.data.user;
 	$: notifMap = new Map<Invite, Status>();
 	$: newNotifs = true;
 	$: length = countNotifs();
 
 	onMount(() => {
-		inviteStore.subscribe((inv) => {
-			invites = [...inv.values()];
-			newNotifs = true;
-		});
-	
-		// updateManager.set(Subject.INVITE, updateInvite);
+		updateManager.set(Subject.INVITE, updateInvite);
 		notifications.forEach((notif) => notifMap.set(notif, Status.UNREAD));
 		length = countNotifs();
 		if (length === 0) newNotifs = false;
@@ -47,63 +48,57 @@
 		updateManager.remove(Subject.INVITE);
 	});
 
-	function countNotifs(): number {
-		let notifs = 0;
-		notifMap.forEach((value) => {
-			if (value !== Status.REMOVED) {
-				notifs += 1;
-			}
-		});
-		return notifs;
-	}
-
-	let timer: NodeJS.Timeout | undefined;
-
 	afterUpdate(() => {
 		if (timer) {
 			clearTimeout(timer);
 		}
 	});
 
-	//TODO still happens that when you remove a notification you can't click the notification away properly
+	function countNotifs(): number {
+		let notifs = 0;
+		notifMap.forEach((value, key) => {
+			if (value !== Status.REMOVED) notifs += 1;
+		});
+		return notifs;
+	}
+
+	let timer: NodeJS.Timeout | undefined;
+
 	async function removeNotification(invite: Invite) {
 		//the timer is so that it waits a bit before removing it so that you don't click behind the dropdown menu
 		timer = setTimeout(() => {
-			notifMap = notifMap.set(invite, Status.REMOVED);
+			notifMap.set(invite, Status.REMOVED);
+			notifMap = notifMap;
 			length = length - 1;
-			if (length === 0) {
-				newNotifs = false;
-			}
+			if (length === 0) newNotifs = false;
 		}, 75);
 	}
 
 	async function acceptInvite(invite: Invite) {
-		await removeNotification(invite);
-		await respond(invite, "accept");
+		removeNotification(invite);
+		respond(invite, "accept");
 	}
 
 	async function updateInvite(update: UpdatePacket) {
 		switch (update.action) {
 			case Action.ADD:
-				invites = [...invites, update.value];
-
 				if (update.value.from.id !== user?.id) {
 					notifications = [...notifications, update.value];
 					notifMap = notifMap.set(update.value, Status.UNREAD);
 					length += 1;
 					newNotifs = true;
+				} else {
+					send = [...send, update.value];
 				}
 				break;
 			case Action.REMOVE:
-				invites = invites.filter((invite) => invite.id !== update.identifier);
-			
 				if (update.value.from.id !== user?.id) {
-					notifications = notifications.filter(
-						(invites) => invites.id !== update.identifier
-					);
+					notifications = notifications.filter((invite) => invite.id !== update.id);
 					notifMap.delete(update.value);
-					notifMap = notifMap;
 					length -= 1;
+					notifMap = notifMap;
+				} else {
+					send = send.filter((invite) => invite.id !== update.id);
 				}
 				break;
 		}
@@ -116,19 +111,16 @@
 		notifMap = notifMap;
 		newNotifs = false;
 	}
-
 	function markRead(key: Invite) {
 		notifMap.set(key, Status.READ);
 		notifMap = notifMap;
 		hasUnread();
 	}
-
 	function markUnRead(key: Invite) {
 		notifMap.set(key, Status.UNREAD);
 		notifMap = notifMap;
 		newNotifs = true;
 	}
-
 	function hasUnread() {
 		let unread = false;
 		notifMap.forEach((value, key) => {
@@ -137,21 +129,6 @@
 			}
 		});
 		newNotifs = unread;
-	}
-
-	//TODO typescript this thing
-	function spin(node: any, { duration }: { duration: number }) {
-		return {
-			duration,
-			css: (t: number) => {
-				const rot_eased = Math.sin(t * 12 * Math.PI);
-				let scal_eased = anim(t) + 0.5; //TODO look at scale animation
-				if (scal_eased < 0.9) scal_eased = 0.9;
-				if (!newNotifs) return "";
-				return `transform: rotate(${rot_eased * 45}deg);
-						scale: ${scal_eased};`;
-			},
-		};
 	}
 </script>
 
@@ -163,7 +140,7 @@
 			src="/Assets/icons/bell.svg"
 			class="bell-icon"
 			alt="bell"
-			in:spin={{ duration: 1500 }}
+			in:spin={{ duration: 250 }}
 		/>
 	{/key}
 	<div class="flex relative">
@@ -283,11 +260,9 @@
 		margin-right: 5px;
 		text-align: center;
 	}
-
 	.accept:hover {
 		background-color: var(--button-hover-color);
 	}
-
 	.bell {
 		display: inline-flex;
 		align-items: center;
@@ -300,7 +275,6 @@
 		width: 40px;
 		height: 40px;
 	}
-
 	.close-button {
 		position: relative;
 		align-self: flex-start;
@@ -308,7 +282,6 @@
 		left: 0.5rem;
 		cursor: pointer;
 	}
-
 	.new-notifications {
 		display: inline-flex;
 		position: relative;
@@ -322,12 +295,10 @@
 		border-color: var(--border-color);
 		/* inline-flex relative -top-2 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 */
 	}
-
 	.close-button:hover {
 		box-shadow: 0 0 3px 2px var(--shadow-color);
 		border-radius: 6px;
 	}
-
 	.bell-icon {
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
@@ -337,13 +308,11 @@
 		width: 25px;
 		height: 25px;
 	}
-
 	@media (max-width: 750px) {
-		/* .bell-icon {
+		.bell-icon {
 			width: 1.25rem;
 			height: 1.25rem;
-		} */
-
+		}
 		.bell {
 			left: 0.25;
 		}

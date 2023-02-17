@@ -27,7 +27,6 @@ type rect = {
     size: number;
 }
 
-//TODO optimize the drawing of the background? maybe try to make it one image / seperate layer?
 export class Background {
     public width: number;
     public height: number;

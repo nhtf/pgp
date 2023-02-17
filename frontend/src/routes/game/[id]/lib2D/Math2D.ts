@@ -63,6 +63,13 @@ export function intersection(a: [Vector, Vector], b: [Vector, Vector]): [number,
 	return [t0, t1];
 }
 
+export function paddleBounce(line: { p0: Vector, p1: Vector }, ball: { position: Vector, velocity: Vector }): Vector {
+	const center = line.p0.add(line.p1).scale(0.5);
+	const distance = line.p0.sub(line.p1).magnitude();
+	const offset = ball.position.sub(center).scale(1 / distance);
+	return ball.velocity.normalize().add(offset).normalize();
+}
+
 export interface Line {
 	p0: Vector,
 	p1: Vector,

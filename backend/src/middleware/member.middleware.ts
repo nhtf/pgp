@@ -15,7 +15,8 @@ export class MemberMiddleware implements NestMiddleware {
 		if (room) {
 			req.member = await this.repo.findOne({
 				relations: {
-					room: true
+					user: true,
+					room: true,
 				},
 				where: {
 					user: {

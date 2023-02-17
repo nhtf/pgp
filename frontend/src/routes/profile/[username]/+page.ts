@@ -97,7 +97,7 @@ async function getFriendList(username: string, options: Map<any, any>) {
 // 	socket.on("update", async (update) => {
 // 		if (update.subject === Subject.STATUS || update.subject === Subject.AVATAR) {
 // 			friendlist.forEach((friend: simpleuser) => {
-// 				if (friend.id === update.identifier) {
+// 				if (friend.id === update.id) {
 // 					if (update.subject === Subject.STATUS)
 // 						friend.status = update.value;
 // 					else
@@ -117,7 +117,7 @@ async function getFriendList(username: string, options: Map<any, any>) {
 // 				friendlist.push(new_friend);
 // 			}
 // 			else if (update.action === Action.REMOVE)
-// 			friendlist = friendlist.filter((friends) => friends.id !== update.identifier)
+// 			friendlist = friendlist.filter((friends) => friends.id !== update.id)
 // 		}
 // 		friendlist = friendlist;
 // 	});

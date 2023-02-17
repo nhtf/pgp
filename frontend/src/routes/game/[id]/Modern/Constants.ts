@@ -95,7 +95,7 @@ export type field = {
 import type { Line } from "../lib2D/Math2D";
 import { Vector } from "../lib2D/Math2D";
 
-export const levels = ["/game/twoplayerLevel.json"];
+export const levels = ["/Assets/game/twoplayerLevel.json"];
 
 const field1 = {
     players: 2,
