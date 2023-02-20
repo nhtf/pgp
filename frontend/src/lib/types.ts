@@ -1,3 +1,5 @@
+import type { Access, Role, Status, Gamemode, Subject, Action } from "./enums";
+
 export type Achievement = {
 	name: string,
 	icon: string,
@@ -67,11 +69,15 @@ export type ChatRoom = Room & {
 
 export type GameRoom = Room & {
 	state: GameState,
+	gamemode: Gamemode,
+	teamsLocked: boolean,
+	teams: Team[],
 };
 
 export type GameState = {
 	teamsLocked: boolean,
 	gamemode: Gamemode,
+	teams: Team[],
 }
 
 export type Invite = {
@@ -83,53 +89,15 @@ export type Invite = {
 	type: string
 };
 
-export interface UpdatePacket {
-	subject: Subject;
-	id: number;
-	action: Action;
-	value?: any;
+export type UpdatePacket = {
+	subject: Subject,
+	action: Action,
+	id: number,
+	value?: any,
 }
 
-export enum Role {
-	MEMBER,
-	ADMIN,
-	OWNER,
-};
-
-export enum Access {
-	PUBLIC,
-	PROTECTED,
-	PRIVATE,
-};
-
-export enum Gamemode {
-	REGULAR,
-	VR,
-	MODERN
-};
-
-export enum Subject {
-	USER,
-	INVITE,
-	FRIEND,
-	ROOM,
-	MEMBER,
-}
-
-export enum Action {
-	ADD,
-	SET,
-	REMOVE,
-}
-
-export enum Status {
-	OFFLINE,
-	IDLE,
-	ACTIVE,
-}
-
-export enum CoalitionColors {
-	CETUS = "3AA2DB",
-	PYXIS = "B73188",
-	VELA = "E52A2D",
+export type RoomDTO = {
+	name?: string,
+	password?: string,
+	is_private?: boolean,
 }

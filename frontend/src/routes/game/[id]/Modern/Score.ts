@@ -19,19 +19,20 @@ export class Score {
         context.fill();
     }
 
-    public render(context: CanvasRenderingContext2D) {
+    //TODO need to check the field for where to place the score?
+    public render(context: CanvasRenderingContext2D, score: number[]) {
         context.strokeStyle = color_l_s;
         context.fillStyle = color_l_f;
         this.drawHexagon(FIELDWIDTH / 4, - this.r, context);
         context.textAlign = "center";
         context.fillStyle = "white";
-		context.fillText("1", FIELDWIDTH / 4, - 3 * this.r / 4, 150);
+		context.fillText(score[0].toString(), FIELDWIDTH / 4, - 3 * this.r / 4, 150);
         context.strokeStyle = color_r_s;
         context.fillStyle = color_r_f;
         this.drawHexagon(3 * FIELDWIDTH / 4, - this.r, context);
 
         context.fillStyle = "white";
-        context.fillText("2", 3 * FIELDWIDTH / 4, - 3 * this.r / 4, 150);
+        context.fillText(score[0].toString(), 3 * FIELDWIDTH / 4, - 3 * this.r / 4, 150);
 
         context.font = "24px helvetica";
         context.textBaseline = "middle";

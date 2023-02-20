@@ -1,51 +1,63 @@
 <script lang="ts">
-    import { unwrap } from "$lib/Alert";
-    import type { Member, Room, User } from "$lib/types";
-    import { post } from "$lib/Web";
-    import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
-    import { onMount } from "svelte";
-    import Swal from "sweetalert2";
+	import { unwrap } from "$lib/Alert";
+	import type { Member, Room, User } from "$lib/types";
+	import { get, post } from "$lib/Web";
+	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
+	import Swal from "sweetalert2";
+	import { userStore } from "../stores";
 
 	export let room: Room;
-	export let members: Member[];
-	export let users: User[];
+
+	let members: Member[] = [];
+	let open = false;
 
 	const ids = members.map((member) => member.user.id);
 	const url_type = room.type.replace("Room", "").toLowerCase();
 
 	$: invitee = "";
-	$: invitable = users!.filter((user) => !ids.includes(user.id));
+	$: invitable = [...$userStore]
+		.map(([id, user]) => user)
+		.filter((user) => !ids.includes(user.id));
 	$: matches = invitable.filter(match);
 
-    async function invite(room: Room) {
+	async function invite(room: Room) {
 		if (!invitee.length) {
 			return Swal.fire({
-                icon: "warning",
-                text: "Please enter a username",
+				icon: "warning",
+				text: "Please enter a username",
 				timer: 3000,
-            });
+			});
 		}
 
-		await unwrap(post(`/${url_type}/id/${room.id}/invite`, { username: invitee }));
-		
-		Swal.fire({	icon: "success" });
-    }
+		await unwrap(
+			post(`/${url_type}/id/${room.id}/invite`, { username: invitee })
+		);
 
-	function updateInput() {
-		matches = invitable.filter(match)
+		Swal.fire({ icon: "success" });
 	}
 
 	function match(user: User) {
 		return user.username.includes(invitee);
 	}
 
+	async function fetchMembers() {
+		if (!members.length) {
+			members = await unwrap(get(`/${url_type}/id/${room.id}/members`));
+		}
+	}
 </script>
 
-<input class="input" placeholder="Username" bind:value={invitee} on:input={updateInput}>
-<Dropdown>
+<input
+	class="input"
+	placeholder="Username"
+	bind:value={invitee}
+	on:input={() => matches = invitable.filter(match)}
+	on:focus={fetchMembers}
+/>
+<Dropdown bind:open={open}>
 	{#each matches as { username, avatar }}
-		<DropdownItem class="flex gap">
-			<Avatar class="avatar" src={avatar}/>
+		<DropdownItem on:click={() => { invitee = username; open = false; }} class="flex gap-1">
+			<Avatar class="avatar" src={avatar} />
 			<div>{username}</div>
 		</DropdownItem>
 	{/each}
@@ -53,16 +65,16 @@
 <button class="button green" on:click={() => invite(room)}>Invite</button>
 
 <style>
-
-	.button, .input {
+	.button,
+	.input {
 		display: inline-block;
 		background: var(--box-color);
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
 		padding: 2px 8px;
 		margin: 0.25rem;
-	}	
-	
+	}
+
 	.button {
 		width: 80px;
 		text-align: center;
@@ -71,6 +83,4 @@
 	.green {
 		border-color: var(--green);
 	}
-
-
 </style>

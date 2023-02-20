@@ -1,5 +1,6 @@
 import { BACKEND_ADDRESS } from "$lib/constants";
-import { Action, Status, Subject, type UpdatePacket } from "$lib/types";
+import type { UpdatePacket } from "$lib/types";
+import { Subject, Action, Status } from "$lib/enums";
 import { io } from "socket.io-client";
 
 const WS = `ws://${BACKEND_ADDRESS}/update`;

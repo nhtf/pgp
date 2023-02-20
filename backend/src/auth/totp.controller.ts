@@ -85,7 +85,7 @@ export class TotpController {
 		try {
 			qr = await promise;
 		} catch (error) {
-			console.log(error);
+			console.log("qr", error);
 		}
 		return { secret: secret, qr: qr };
 	}

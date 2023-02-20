@@ -10,6 +10,7 @@ export async function unwrap<T>(promise: Promise<T>): Promise<T> {
 	} catch (err: any) {
 		if (err.status === UNAUTHORIZED) {
 			await goto("/account_setup");
+		
 			return promise;
 		}
 	

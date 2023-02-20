@@ -4,11 +4,13 @@
     import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
     import Swal from "sweetalert2";
 	import { page } from "$app/stores";
-    import { CoalitionColors, Role, type User, type ChatRoom, type Member, type Message, Status } from "$lib/types";
+    import type { User, ChatRoom, Member, Message } from "$lib/types";
+	import { CoalitionColors, Role, Status } from "$lib/enums";
     import isURL from "validator/lib/isURL";
     import { BACKEND } from "$lib/constants";
 
 	export let message: Message;
+	export let my_role: Role;
 
 	type Word = {
 		value: string,
@@ -18,14 +20,13 @@
 	const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const status_colors = [ "gray", "yellow", "green" ];
 	const role_colors = Object.values(CoalitionColors);
-	
+
 	const room: ChatRoom = $page.data.room;
-	const my_role: Role = $page.data.role;
-	const self: User = $page.data.user;
+	const me: User = $page.data.user;
 	const member = message.member;
 	const user = member.user;
 
-	const from_self = self.id === user.id;
+	const from_self = me.id === user.id;
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";

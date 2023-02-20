@@ -26,9 +26,8 @@ export const Me = createParamDecorator(
 );
 
 export function validate_id(value: any) {
-// TODO: undecommentify
-//	if (value === null || value === undefined)
-//		throw new Error("id not defined");
+	if (value === null || value === undefined)
+		throw new Error("id not defined");
 	console.dir(value);
 	if (!["string", "number"].includes(typeof value))
 		throw new Error("id must be either a string or a number");
@@ -75,6 +74,18 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 		}
 	};
 	return ParseIDPipe;
+}
+
+export function ParseOptionalIDPipe<T>(type: (new () => T), relations?: FindOptionsRelations<T>) {
+	@Injectable()
+	class ParseOptionalIDPipe extends ParseIDPipe(type, relations) {
+		async transform(value: any, metadata: ArgumentMetadata) {
+			if (value === null || value === undefined)
+				return undefined;
+			return await super.transform(value, metadata);
+		}
+	};
+	return ParseOptionalIDPipe;
 }
 
 @Injectable()

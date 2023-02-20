@@ -1,7 +1,7 @@
 import { Net } from "../Net";
 import type { Event as NetEvent } from "../Net";
 import {intersection, Vector, paddleBounce} from "../lib2D/Math2D";
-import type { VectorObject, Line } from "../lib2D/Math2D";
+import type { VectorObject, Line, CollisionLine } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
 import { WIDTH, HEIGHT, UPS, border, paddleHeight, linethickness, paddleWidth, FIELDWIDTH, FIELDHEIGHT } from "./Constants";
 import type { GAME, field} from "./Constants";
@@ -19,7 +19,7 @@ export interface MouseEvent extends NetEvent {
 	mouse: VectorObject;
 }
 
-function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
+function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: Ball) {
 
 	const ballLine: Line = {p0: ball.position, p1: ball.position.add(paddleVelo), name: "ballLine"};
 	let closest: [Line, Vector, number] | null = null;
@@ -31,11 +31,10 @@ function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 		{
 			if (closest === null || t0 < closest[2]) {
 				const pos = ball.position.add(paddleVelo.scale(t0));
-				closest = [line, pos, t0];
+				let newLine: Line = {p0: line.p0, p1: line.p1, name: line.name};
+				closest = [newLine, pos, t0];
 			}
 		}
-
-
 	}
 	if (closest !== null) {
 		return {closest: closest, other: other}
@@ -59,6 +58,7 @@ export class Game extends Net {
 	public canvas: HTMLCanvasElement;
 	public level: field;
 	public score: Score;
+	public scores: number[];
 
 	//TODO now only works with rot of 0 for paddle
 	private debugBall() {
@@ -89,6 +89,10 @@ export class Game extends Net {
 		this.offscreenContext = offscreenCanvas.getContext("2d")!;
 		this.goals = [];
 		this.score = new Score();
+		this.scores = [];
+		for (let i = 0; i < this.level.players; i++) {
+			this.scores.push(0);
+		}
 		
 
 		this.level.paddles.forEach((paddle, index) => {
@@ -131,6 +135,7 @@ export class Game extends Net {
 				let otherclosest = [];
 				let ballpos = [];
 				if (closest && closest[2] < 1) {
+					console.log("bouncing ball");
 					this.bounceBall(closest, paddleMovement);
 					ballpos.push(this.ball.position);
 					let i = 0;
@@ -139,6 +144,7 @@ export class Game extends Net {
 						const col = moveCollision(paddle.getCollisionLines(), this.ball.velocity, this.ball).closest;
 						otherclosest.push(col);
 						if (col && col[2] < 1) {
+							console.log("bouncing ball");
 							this.bounceBall(col, paddleMovement);
 							ballpos.push(this.ball.position);
 							// this.debugBall();
@@ -150,7 +156,6 @@ export class Game extends Net {
 				if (closest)
 					console.log(closest, otherclosest, ballpos);
 			}
-			console.log("debug");
 			this.debugBall();
 			
 		});
@@ -172,6 +177,16 @@ export class Game extends Net {
 		this.ball.velocity = this.ball.velocity.normalize().scale(magnitude);
 		this.ball.velocity = this.ball.velocity.add(vel.scale(1 / UPS));
 		this.ball.position = this.ball.position.add(vel.scale(1.001));
+		if (!this.field.isInField(this.ball.position)) {
+			console.log("outside field");
+			debugger;
+		}
+		for (let paddle of this.paddles) {
+			if (paddle.isInPaddle(this.ball.position)) {
+				console.log("in paddle");
+				// debugger;
+			}
+		}
 	}
 
 	private resizeOffscreenCanvas() {
@@ -220,7 +235,7 @@ export class Game extends Net {
 		this.ball.render(context);
 		this.paddles.forEach(paddle => paddle.render(context));
 		this.paddles.forEach(paddle => paddle.renderCollisionLines(context)); //DEBUG for collisions
-		this.score.render(context);
+		this.score.render(context, this.scores);
 	}
 
 	//this function is seperate for scaling issues....
@@ -234,7 +249,7 @@ export class Game extends Net {
 		let time = 1;
 		const maxSpeed = 30;
 		while (time > 0) {
-			let collisionLines = [];
+			let collisionLines: CollisionLine[] = [];
 			collisionLines.push(...this.level.collisions);
 			this.paddles.forEach((paddle) => {
 				collisionLines.push(...paddle.getCollisionLines());
@@ -247,6 +262,7 @@ export class Game extends Net {
 				/* TODO: Point to correct side according to map */
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(2, 0);
+				
 				break;
 			} else if (collision[0].name.startsWith("goal2")) {
 				/* TODO: Point to correct side according to map */

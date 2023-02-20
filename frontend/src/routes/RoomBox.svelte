@@ -3,21 +3,20 @@
     import { page } from "$app/stores";
     import { unwrap } from "$lib/Alert";
     import { icon_path } from "$lib/constants";
-	import { Access, Gamemode, type Room, type User, type GameRoomMember, type Team } from "$lib/types";
-    import { get, post, remove, patch } from "$lib/Web";
+	import type { User, Team, Room, GameRoomMember } from "$lib/types";
+	import { Access, type Gamemode } from "$lib/enums";
+    import { post, remove, patch } from "$lib/Web";
     import Invite from "./Invite.svelte";
 
 	type T = Room & {
 		gamemode?: Gamemode,
 		member?: GameRoomMember,
 		teamsLocked?: boolean,
-		teams: Team[],
+		teams?: Team[],
 	};
 
 	export let room: T;
 
-	const users: User[] = $page.data.users;
-	
     const lock = `${icon_path}/lock.svg`;
 	const crown = `${icon_path}/crown.svg`;
 	const gamemode_icons = [
@@ -33,7 +32,7 @@
 	let password = "";
 
 	$: user = $page.data.user;
-	
+
 	async function join(room: T) {
 		await unwrap(post(`/${url_type}/id/${room.id}/members`, { password }));
 
@@ -76,9 +75,7 @@
 	<div class="grow"/>
 	{#if room.joined}
 		{#if room.owner.id === user.id}
-			{#await get(`/${url_type}/id/${room.id}/members`) then members}
-				<Invite {room} {members} {users}/>
-			{/await}
+			<Invite {room}/>
 			<button class="button red" on:click={() => erase(room)}>Delete</button>
 		{:else}
 			<button class="button red" on:click={() => leave(room)}>Leave</button>
@@ -89,11 +86,13 @@
 			{#if !room.teamsLocked || room.member?.player === null}
 				<button class="button blue" on:click={() => joinTeam(room, null)}>Spectate</button>
 			{/if}
-			{#each room.teams as team}
-				{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
-					<button class="button blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
-				{/if}
-			{/each}
+			{#if room.teams} 
+				{#each room.teams as team}
+					{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
+						<button class="button blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
+					{/if}
+				{/each}
+			{/if}
 		{/if}
 	{:else}
 		{#if room.access === Access.PROTECTED}

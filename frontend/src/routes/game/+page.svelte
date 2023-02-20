@@ -1,7 +1,8 @@
 <script lang="ts">
 	import { post } from "$lib/Web";
 	import { unwrap } from "$lib/Alert";
-	import { Action, Subject, type UpdatePacket } from "$lib/types";
+	import type { UpdatePacket } from "$lib/types";
+	import { Subject, Action } from "$lib/enums";
 	import type { PageData } from "./$types";
 	import { Checkbox, Select } from "flowbite-svelte";
     import { onDestroy, onMount } from "svelte";
@@ -26,7 +27,7 @@
 	});
 
 	function updateRooms(update: UpdatePacket) {
-		// if (update.value.type === "GameRoom") {
+		if (update.value.type === "GameRoom") {
 			switch (update.action) {
 				case Action.ADD:
 					rooms = [...rooms, update.value];
@@ -46,7 +47,7 @@
 					rooms = rooms.filter((room) => room.id !== update.id);
 					break;
 			}
-		// }
+		}
 	}
 
 	async function createGame() {

@@ -1,9 +1,7 @@
-import { error } from '@sveltejs/kit';
 import type { PageLoad } from "./$types"
-import { type User, type Achievement, type Invite, Subject, Action, Status } from "$lib/types"
+import type { User, Achievement } from "$lib/types"
+import { Status } from "$lib/enums";
 import { get, remove } from '$lib/Web';
-import { BACKEND, BACKEND_ADDRESS } from '$lib/constants';
-import { io } from 'socket.io-client';
 
 export const ssr = false;
 

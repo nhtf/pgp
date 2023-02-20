@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { unwrap } from "$lib/Alert";
-	import { Action, Subject, type UpdatePacket } from "$lib/types";
+	import type { UpdatePacket } from "$lib/types";
+	import { Subject, Action } from "$lib/enums";
 	import { post } from "$lib/Web";
 	import type { PageData } from "./$types";
 	import { Checkbox } from "flowbite-svelte";
@@ -10,7 +11,9 @@
 
 	export let data: PageData;
 
-	$: rooms = data.rooms;
+	let rooms = new Map(data.rooms.map((room) => [room.id, room]));
+
+	$: rooms;
 
 	const room: {
 		name?: string;
@@ -46,21 +49,12 @@
 		if (update.value.type === "ChatRoom") {
 			switch (update.action) {
 				case Action.ADD:
-					rooms = [...rooms, update.value];
-					break ;
 				case Action.SET:
-					if (rooms.map((room) => room.id).includes(update.id)) {
-						if (update.value.is_private && !update.value.joined) {
-							rooms = rooms.filter((room) => room.id !== update.id);
-						} else {
-							rooms = rooms.map((room) => room.id === update.id ? update.value : room);
-						}
-					} else {
-						rooms = [...rooms, update.value];
-					}
+					rooms = rooms.set(update.id, update.value);
 					break ;
 				case Action.REMOVE:
-					rooms = rooms.filter((room) => room.id !== update.id);
+					rooms.delete(update.id);
+					rooms = rooms;
 					break;
 			}
 		}
@@ -90,7 +84,7 @@
 		<button class="button button-create" on:click={createChatRoom}>Create</button>
 	</div>
 	{#key rooms}
-		{#each rooms as room}
+		{#each [...rooms] as [id, room] }
 			<RoomBox {room}/>
 		{/each}
 	{/key}
@@ -118,7 +112,7 @@
 	}
 
 	.button {
-		width: 80px;
+		max-width: 80px;
 		text-align: center;
 	}
 

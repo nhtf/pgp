@@ -12,11 +12,10 @@ import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
 import { Role } from "src/enums/Role";
 import { FindOptionsRelations, Repository } from "typeorm";
-import { ParseIDPipe } from "src/util";
+import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Me } from "src/util"
-import { instanceToPlain } from "class-transformer"
 
 class CreateGameRoomDTO extends CreateRoomDTO {
 	@IsEnum(Gamemode)
@@ -53,6 +52,22 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		room.gamemode = dto.gamemode;
 	}
 
+	async get_joined_info(room: GameRoom): Promise<GameRoom> {
+		return await this.room_repo.findOne({
+			where: {
+				id: room.id,
+			},
+			relations: {
+				members: {
+					user: true,
+				},
+				state: {
+					teams: true,
+				},
+			},
+		});
+	}
+
 	@Get("joined")
 	async joined(@Me() me: User) {
 		const members = await this.member_repo.find({
@@ -81,8 +96,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	async change_team(
 		@GetMember() member: GameRoomMember,
 		@GetRoom() room: GameRoom,
-		@Param("target", ParseIDPipe(GameRoomMember, { room: true, user: true } as FindOptionsRelations<GameRoomMember>)) target: GameRoomMember,
-		@Body("team", ParseIDPipe(Team)) team?: Team, // TODO: Option<Team>, as we say in rust
+		@Param("target", ParseIDPipe(GameRoomMember, { user: true })) target: GameRoomMember,
+		@Body("team", ParseOptionalIDPipe(Team)) team?: Team,
 	) {
 		if (member.room.id !== room.id) {
 			throw new BadRequestException(ERR_NOT_MEMBER);
@@ -112,11 +127,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			}
 		}
 		
-		if (!team) {
-			member.player.team = null;
-		} else {
-			member.player.team = team;
-		}
+		member.player.team = team ? team : null;
 	
 		return await this.member_repo.save(member);
 	}

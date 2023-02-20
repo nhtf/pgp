@@ -17,10 +17,9 @@
 		NavUl,
 		Toggle,
 	} from "flowbite-svelte";
-	import { goto } from "$app/navigation";
+	import { goto, invalidate } from "$app/navigation";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
 	import { userStore } from "../stores";
-	import type { User } from "$lib/types";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
 
@@ -36,10 +35,9 @@
 
 	onMount(() => {
 		if (user) {
-			userStore.subscribe((users) => {
-				user = users.get(user!.id!) as User;
-			});
+			userStore.subscribe((users) => user = users.get(user!.id!)!);
 		}
+	
 		applyTheme();
 		window
 			.matchMedia(DARK_PREFERENCE)
@@ -64,17 +62,9 @@
 		applyTheme();
 	};
 
-	async function logoutfn() {
+	async function logout() {
 		await unwrap(post(`/oauth/logout`));
-
-		userStore.update((users) => {
-			users.delete(data.user!.id);
-
-			return users;
-		});
-	
-		data.user = null;
-	
+		await invalidate(`${BACKEND}/user/me`);
 		await goto(`/`);
 	}
 
@@ -157,7 +147,7 @@
 				>dark
 				</Toggle>
 			</DropdownItem>
-			<DropdownItem on:click={logoutfn}>sign out</DropdownItem>
+			<DropdownItem on:click={logout}>sign out</DropdownItem>
 		</Dropdown>
 	{/if}
 	<NavUl {hidden} class="navbar-bg">

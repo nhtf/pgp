@@ -1,22 +1,16 @@
 import type { PageLoad } from "./$types"
 import { get } from "$lib/Web";
+import { unwrap } from "$lib/Alert";
 import type { GameRoom } from "$lib/types";
-import { error } from '@sveltejs/kit';
 
 export const ssr = false;
 
-export const load: PageLoad = (async ({ fetch, parent }) => {
+export const load: PageLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	const { user } = await parent();
-
-	if (!user) {
-		throw error(401, "Unauthorized");
-	}
-
-	const joined = await get(`/game/joined`);
-	const joinable = await get(`/game?member=false`);
-	const rooms = [];
+	const joined = await unwrap(get(`/game/joined`));
+	const joinable = await unwrap(get(`/game?member=false`));
+	const rooms: GameRoom[] = [];
 
 	for (let member of joined) {
 		member.room.joined = true;
@@ -28,11 +22,8 @@ export const load: PageLoad = (async ({ fetch, parent }) => {
 		room.joined = false;
 		rooms.push(room);
 	}
+
 	console.log(rooms);
 	
 	return { rooms };
 }) satisfies PageLoad;
-
-function setJoined(rooms: GameRoom[], joined: boolean): GameRoom[] {
-    return rooms.map((room) => { room.joined = joined; return room });
-}

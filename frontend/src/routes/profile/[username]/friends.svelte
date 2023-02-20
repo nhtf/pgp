@@ -1,7 +1,8 @@
 <script lang="ts">
     import { get, post, remove } from '$lib/Web';
     import { io } from 'socket.io-client';
-    import { Action, Status, Subject, type User } from "$lib/types";
+    import type { User } from "$lib/types";
+	import { Subject, Action, Status } from "$lib/enums";
     import Swal from "sweetalert2";
     import { page } from '$app/stores';
     import { BACKEND_ADDRESS } from '$lib/constants';

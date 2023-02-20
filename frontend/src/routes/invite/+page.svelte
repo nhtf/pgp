@@ -1,16 +1,18 @@
 <script lang="ts">
 	import { respond } from "$lib/invites";
 	import { Tabs, TabItem } from "flowbite-svelte";
-	import type { Invite, User } from "$lib/types";
+	import { inviteStore } from "../../stores";
 	import type { PageData } from "./$types";
 
 	export let data: PageData;
 
-	$: user = data.user!;
-	$: invites = data.invites!;
+	let open = [true, false];
+
+	$: user = data.user;
+	$: invites = Array.from($inviteStore.values());
 	$: send = invites.filter((invite) => invite.from.id === user.id);
 	$: received = invites.filter((invite) => invite.to.id === user.id);
-
+	
 </script>
 
 <div class="invite_list">
@@ -20,14 +22,14 @@
 		defaultClass="flex flex-wrap space-x-2 bg-c rounded"
 		contentClass="tab-content-background"
 	>
-		<TabItem
-			open={true}
-			class="bg-c rounded"
-			defaultClass="rounded"
-			title="send"
-		>
-			<div>
-				{#key send}
+		{#key invites}
+			<TabItem
+				bind:open={open[0]}
+				class="bg-c rounded"
+				defaultClass="rounded"
+				title="send"
+			>
+				<div>
 					{#each send as invite}
 						<div class="invite">
 							<div>
@@ -57,18 +59,16 @@
 							</div>
 						</div>
 					{/each}
-				{/key}
-			</div>
-		</TabItem>
+				</div>
+			</TabItem>
 
-		<TabItem
-			open={false}
-			class="bg-c rounded"
-			defaultClass="rounded"
-			title="received"
-		>
-			<div>
-				{#key received}
+			<TabItem
+				bind:open={open[1]}
+				class="bg-c rounded"
+				defaultClass="rounded"
+				title="received"
+			>
+				<div>
 					{#each received as invite}
 						<div class="invite">
 							<div>
@@ -103,9 +103,9 @@
 							</div>
 						</div>
 					{/each}
-				{/key}
-			</div>
-		</TabItem>
+				</div>
+			</TabItem>
+		{/key}
 	</Tabs>
 </div>
 

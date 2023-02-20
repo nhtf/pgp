@@ -1,5 +1,5 @@
 import { Vector, intersection } from "../lib2D/Math2D";
-import type { VectorObject, Line } from "../lib2D/Math2D";
+import type { VectorObject, Line, CollisionLine } from "../lib2D/Math2D";
 import { FIELDWIDTH, FIELDHEIGHT, size, paddleStrokeC, paddleFillC, linethickness } from "./Constants";
 import type { BallObject } from "../lib2D/interfaces";
 
@@ -52,7 +52,7 @@ export class Ball {
 		context.stroke();
 	}
 
-	public collision(lines: Line[]): [Line, Vector, number] | null {
+	public collision(lines: CollisionLine[]): [Line, Vector, number] | null {
 		let closest: [Line, Vector, number] | null = null;
 
 		for (let line of lines) {

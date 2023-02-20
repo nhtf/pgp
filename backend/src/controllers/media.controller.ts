@@ -19,7 +19,7 @@ export class MediaController {
 		try {
 			return new StreamableFile((await axios.get(`https://media.tenor.com/${path}`, { responseType: "stream" })).data);
 		} catch (error) {
-			console.log(error);
+			console.log("tenor", error);
 			throw new HttpException(error.response.statusText, error.response.status);
 		}
 		/*const tmp = this.httpService.get(`https://media.tenor.com/${a}/${b}`, { responseType: "stream" })

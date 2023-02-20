@@ -1,33 +1,37 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte";
-    import Swal from "sweetalert2";
     import { roomSocket } from "../websocket";
     import { unwrap } from "$lib/Alert";
     import type { PageData } from "./$types";
-    import { post, remove } from "$lib/Web";
+    import { patch, remove } from "$lib/Web";
     import MessageBox from "./MessageBox.svelte";
     import { goto } from "$app/navigation";
-    import { Role, Subject, type Message, type Room, type UpdatePacket, type User } from "$lib/types";
+    import type { Message, Room, RoomDTO, UpdatePacket } from "$lib/types";
+	import { Subject, Role, Access } from "$lib/enums";
     import { updateManager } from "$lib/updateSocket";
     import { userStore } from "../../../stores";
     import Invite from "../../Invite.svelte";
-    import { Dropdown, DropdownItem } from "flowbite-svelte";
+    import { Checkbox, Dropdown, DropdownItem } from "flowbite-svelte";
 
 	export let data: PageData;
 
-	$: users = data.users!;
 	$: members = data.members;
 	$: room = data.room;
 	$: self = members.find((member) => member.user.id === data.user!.id)!;
 	$: messages = sortByDate(data.messages);
 	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
-	$: invitable = data.users!.filter(notMember);
-	$: matches = invitable.filter(match);
 
-	let content: string = "";
-	let invitee: string = "";
+	let content = "";
+	let roomDTO: RoomDTO = {
+		name: "",
+		is_private: false,
+		password: "",
+	}
 
 	onMount(() => {
+		roomDTO.name = room.name;
+		roomDTO.is_private = (room.access === Access.PRIVATE);
+	
 		userStore.update((users) => {
 			members.forEach((member) => {
 				users.set(member.user.id, member.user);
@@ -42,8 +46,6 @@
 			
 				return message;
 			});
-
-			invitable = [...users.values()].filter(notMember);
 		})
 
 		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
@@ -63,17 +65,9 @@
 		roomSocket.emit("join", String(room.id));
 	});
 
-	function notMember(user: User) {
-		return !members.map((member) => member.user.id).includes(user.id);
-	}
-
-	function match(user: User) {
-		return user.username.includes(invitee);
-	}
-
 	onDestroy(() => {
 		updateManager.remove(Subject.MEMBER);
-	})
+	});
 
 	roomSocket.on("message", (message: Message) => {
 		messages = sortByDate([...messages, message]);
@@ -104,27 +98,6 @@
 		content = "";
 	}
 
-	function updateInput() {
-		matches = invitable.filter(match);
-	}
-
-    async function invite(room: Room) {
-		if (!invitee.length) {
-			return Swal.fire({
-                icon: "warning",
-                text: "Please enter a username",
-				timer: 3000,
-            });
-		}
-
-		await unwrap(post(`/chat/id/${room.id}/invite`, { username: invitee }));
-		
-		Swal.fire({
-			icon: "success",
-			timer: 1000,
-		});
-    }
-
 	async function leave(room: Room) {
 		await unwrap(remove(`/chat/id/${room.id}/leave`));
 		await goto(`/chat`);
@@ -135,31 +108,50 @@
 		await goto(`/chat`);
     }
 
+	async function edit(room: Room) {
+		if (!roomDTO.name) {
+			delete roomDTO.name;
+		}
+
+		if (!roomDTO.password) {
+			delete roomDTO.password;
+		}
+
+		if (!roomDTO.name) {
+			delete roomDTO.password;
+		}
+
+		await unwrap(patch(`/chat/id/${room.id}`, roomDTO));
+	}
+
 </script>
 
 <div class="room-container">
 	<div class="room-title">
 		<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
 		<div class="room-name">{room.name}</div>
-		{#if data.role >= Role.ADMIN}
-			<Invite {room} {members} {users}/>
+		{#if self.role >= Role.ADMIN}
+			<Invite {room}/>
 		{/if}
-		<button class="button">Settings</button>
+		<button class="button red">Settings</button>
+		<!-- TODO: Add colors to buttons -->
 		<Dropdown>
-			<DropdownItem>
-				{#if data.role >= Role.OWNER}
-					<button class="button red" on:click={() => erase(room)}>Delete</button>
-				{:else}
-					<button class="button red" on:click={() => leave(room)}>Leave</button>
-				{/if}
-			</DropdownItem>
+			{#if self.role >= Role.OWNER}
+				<input class="input" placeholder="name" bind:value={roomDTO.name}/>
+				<input class="input" placeholder="password" bind:value={roomDTO.password}/>
+				<Checkbox bind:checked={roomDTO.is_private} class="checkbox">Private</Checkbox>
+				<DropdownItem on:click={() => edit(room)}>Edit</DropdownItem>
+				<DropdownItem on:click={() => erase(room)}>Delete</DropdownItem>
+			{:else}
+				<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
+			{/if}
 		</Dropdown>
 	</div>
 
 	<div class="messages">
 		{#key messages}
 			{#each messages as message}
-				<MessageBox {message}/>
+				<MessageBox {message} my_role={self.role}/>
 			{/each}
 		{/key}
 	</div>
@@ -221,10 +213,9 @@
 		border-radius: 6px;
 		padding: 2px 8px;
 		margin: 0.25rem;
-		width: 80px;
 		text-align: center;
 	}	
-	
+
 	.red {
 		border-color: var(--red);
 	}

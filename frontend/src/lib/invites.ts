@@ -1,12 +1,12 @@
 import type { Invite } from "./types";
 import { post, remove } from "./Web";
 
-export async function respond(invite: Invite, action: string) {
-	const url_type = invite.type.replace("Room", "").toLowerCase();
-
+export async function respond(invite: Invite, action: "accept" | "deny") {
 	switch (invite.type) {
 		case "ChatRoom":
 		case "GameRoom":
+			const url_type = invite.type.replace("Room", "").toLowerCase();
+		
 			if (action === "deny") {
 				await remove(`/${url_type}/id/${invite.room?.id}/invite/${invite.id}`);
 			} else {

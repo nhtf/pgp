@@ -75,3 +75,7 @@ export interface Line {
 	p1: Vector,
 	name: string,
 }
+
+export interface CollisionLine extends Line {
+	normal: Vector;
+}

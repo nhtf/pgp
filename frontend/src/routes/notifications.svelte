@@ -1,19 +1,57 @@
 <script lang="ts">
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import type { Invite } from "$lib/types";
+	import type { Invite, User } from "$lib/types";
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
-	import { onDestroy, onMount } from "svelte";
-	import { Subject, Action } from "$lib/types";
-	import type { UpdatePacket } from "$lib/types";
-	import { updateManager } from "$lib/updateSocket";
 	import { afterUpdate } from "svelte";
 	import { backIn as anim } from "svelte/easing";
+    import { inviteStore } from "../stores";
 
 	enum Status {
 		UNREAD,
 		READ,
 		REMOVED,
+	}
+
+	let user: User;
+	let notifMap = new Map<Invite, Status>();
+	let timer: NodeJS.Timeout | undefined;
+	
+	$: user = $page.data.user;
+	$: invites = Array.from($inviteStore.values());
+	$: notifications = invites.filter((invite) => invite.to.id === user.id);
+	$: notifMap = new Map(notifications.map((invite) => [invite, !notifMap.has(invite) ? Status.UNREAD : notifMap.get(invite)!]));
+	$: newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
+
+	afterUpdate(() => {
+		if (timer) {
+			clearTimeout(timer);
+		}
+	});
+
+	async function removeNotification(invite: Invite) {
+		//the timer is so that it waits a bit before removing it so that you don't click behind the dropdown menu
+		timer = setTimeout(() => {
+			notifMap = notifMap.set(invite, Status.REMOVED);
+		}, 75);
+	}
+
+	async function acceptInvite(invite: Invite) {
+		removeNotification(invite);
+		respond(invite, "accept");
+	}
+
+	function markAllRead() {
+		notifMap.forEach((value, key) => {
+			if (value !== Status.REMOVED) {
+				notifMap.set(key, Status.READ);
+			}
+		});
+		notifMap = notifMap;
+	}
+
+	function mark(key: Invite, status: Status) {
+		notifMap = notifMap.set(key, status);
 	}
 
 	function spin(node: any, { duration }: { duration: number }) {
@@ -30,125 +68,21 @@
 		};
 	}
 
-	$: notifications = $page.data.invites_received as Invite[];
-	$: send = $page.data.invites_send as Invite[];
-	$: user = $page.data.user;
-	$: notifMap = new Map<Invite, Status>();
-	$: newNotifs = true;
-	$: length = countNotifs();
-
-	onMount(() => {
-		updateManager.set(Subject.INVITE, updateInvite);
-		notifications.forEach((notif) => notifMap.set(notif, Status.UNREAD));
-		length = countNotifs();
-		if (length === 0) newNotifs = false;
-	});
-
-	onDestroy(() => {
-		updateManager.remove(Subject.INVITE);
-	});
-
-	afterUpdate(() => {
-		if (timer) {
-			clearTimeout(timer);
-		}
-	});
-
-	function countNotifs(): number {
-		let notifs = 0;
-		notifMap.forEach((value, key) => {
-			if (value !== Status.REMOVED) notifs += 1;
-		});
-		return notifs;
-	}
-
-	let timer: NodeJS.Timeout | undefined;
-
-	async function removeNotification(invite: Invite) {
-		//the timer is so that it waits a bit before removing it so that you don't click behind the dropdown menu
-		timer = setTimeout(() => {
-			notifMap.set(invite, Status.REMOVED);
-			notifMap = notifMap;
-			length = length - 1;
-			if (length === 0) newNotifs = false;
-		}, 75);
-	}
-
-	async function acceptInvite(invite: Invite) {
-		removeNotification(invite);
-		respond(invite, "accept");
-	}
-
-	async function updateInvite(update: UpdatePacket) {
-		switch (update.action) {
-			case Action.ADD:
-				if (update.value.from.id !== user?.id) {
-					notifications = [...notifications, update.value];
-					notifMap = notifMap.set(update.value, Status.UNREAD);
-					length += 1;
-					newNotifs = true;
-				} else {
-					send = [...send, update.value];
-				}
-				break;
-			case Action.REMOVE:
-				if (update.value.from.id !== user?.id) {
-					notifications = notifications.filter((invite) => invite.id !== update.id);
-					notifMap.delete(update.value);
-					length -= 1;
-					notifMap = notifMap;
-				} else {
-					send = send.filter((invite) => invite.id !== update.id);
-				}
-				break;
-		}
-	}
-
-	function markAllRead() {
-		notifMap.forEach((value, key: Invite) => {
-			if (value !== Status.REMOVED) notifMap.set(key, Status.READ);
-		});
-		notifMap = notifMap;
-		newNotifs = false;
-	}
-	function markRead(key: Invite) {
-		notifMap.set(key, Status.READ);
-		notifMap = notifMap;
-		hasUnread();
-	}
-	function markUnRead(key: Invite) {
-		notifMap.set(key, Status.UNREAD);
-		notifMap = notifMap;
-		newNotifs = true;
-	}
-	function hasUnread() {
-		let unread = false;
-		notifMap.forEach((value, key) => {
-			if (value === Status.UNREAD) {
-				unread = true;
-			}
-		});
-		newNotifs = unread;
-	}
 </script>
 
 <!-- //TODO sound for notification? -->
 <!-- //TODO have the unread and read look different -->
 <div id="bell" class="bell">
-	{#key newNotifs && length}
-		<img
-			src="/Assets/icons/bell.svg"
-			class="bell-icon"
-			alt="bell"
-			in:spin={{ duration: 250 }}
-		/>
-	{/key}
+	<img
+		src="/Assets/icons/bell.svg"
+		class="bell-icon"
+		alt="bell"
+		in:spin={{ duration: 250 }}
+	/>
 	<div class="flex relative">
-		{#key newNotifs}
-			{#if newNotifs}
-				<div class="new-notifications" />
-			{/if}
-		{/key}
+		{#if newNotifs}
+			<div class="new-notifications" />
+		{/if}
 	</div>
 </div>
 <Dropdown
@@ -160,41 +94,41 @@
 	<div slot="header" class="text-center py-2 font-bold text-center ">
 		Notifications
 	</div>
-	{#each [...notifMap] as [key, value]}
-		{#if value !== Status.REMOVED}
+	{#each [...notifMap] as [invite, status]}
+		{#if status !== Status.REMOVED}
 			<DropdownItem class="flex space-x-4">
-				<Avatar src={key.from.avatar} />
+				<Avatar src={invite.from.avatar} />
 				<div class="pl-3 w-full">
 					<div
 						class="text-gray-500 text-sm mb-1.5 dark:text-gray-400"
 					>
-						New {key.type} invite from
+						New {invite.type} invite from
 						<span
 							class="font-semibold text-gray-900 dark:text-white"
-							>{key.from.username}</span
+							>{invite.from.username}</span
 						>
 					</div>
 					<div class="flex flex-row justify-between items-center">
 						<div
 							class="block text-xs text-blue-600 dark:text-blue-500 accept"
-							on:click={() => acceptInvite(key)}
-							on:keypress={() => acceptInvite(key)}
+							on:click={() => acceptInvite(invite)}
+							on:keypress={() => acceptInvite(invite)}
 						>
 							accept invite
 						</div>
-						{#if value === Status.UNREAD}
+						{#if status === Status.UNREAD}
 							<div
 								class="block text-xs text-blue-600 dark:text-blue-500 accept"
-								on:click={() => markRead(key)}
-								on:keypress={() => markRead(key)}
+								on:click={() => mark(invite, Status.READ)}
+								on:keypress={() => mark(invite, Status.READ)}
 							>
 								mark as read
 							</div>
 						{:else}
 							<div
 								class="block text-xs text-blue-600 dark:text-blue-500 accept"
-								on:click={() => markUnRead(key)}
-								on:keypress={() => markUnRead(key)}
+								on:click={() => mark(invite, Status.UNREAD)}
+								on:keypress={() => mark(invite, Status.UNREAD)}
 							>
 								mark as unread
 							</div>
@@ -206,8 +140,8 @@
 						fill="currentColor"
 						width="20"
 						height="20"
-						on:click={() => removeNotification(key)}
-						on:keypress={() => removeNotification(key)}
+						on:click={() => removeNotification(invite)}
+						on:keypress={() => removeNotification(invite)}
 					>
 						<path
 							d="M13.42 12L20 18.58 18.58 20 12 13.42
@@ -219,7 +153,7 @@
 			</DropdownItem>
 		{/if}
 	{/each}
-	{#if length}
+	{#if newNotifs}
 		<DropdownItem class="space-x-4 flex" on:click={markAllRead}
 			><div class="pl-3 w-full text-center">
 				mark all as read

@@ -12,27 +12,29 @@ export class RoomMiddleware implements NestMiddleware {
 
 	//TODO use types for req and res
 	async use(req: any, res: any, next: (error?: any) => void) {
-		try {
-			if (req.params.id) {
-				const id = validate_id(req.params.id);
-			
-				const room = await this.repo.findOne({
-					relations: {
-						members: {
-							user: true
-						},
-						invites: true,
-						banned_users: true,
-					},
-					where: {
-						id: id,
-					},
-				});
-				req.room = room;
+		if (req.params.id) {
+			let id: number;
+		
+			try {
+				id = validate_id(req.params.id);
+			} catch (error) {
+				throw new BadRequestException(error.message);
 			}
-		} catch (error) {
-			throw new BadRequestException(error.message);
+		
+			req.room = await this.repo.findOne({
+				relations: {
+					members: {
+						user: true
+					},
+					invites: true,
+					banned_users: true,
+				},
+				where: {
+					id: id,
+				},
+			});
 		}
+	
 		next();
 	}
 }

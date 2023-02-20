@@ -20,12 +20,6 @@ import { instanceToPlain } from "class-transformer";
 import type { Response } from "express";
 import { genName } from "src/namegen";
 
-export class PasswordDTO {
-	@IsString()
-	@Length(1, 200)
-	password: string;
-}
-
 export class CreateRoomDTO {
 	@Length(3, 20)
 	@IsString()
@@ -33,6 +27,7 @@ export class CreateRoomDTO {
 	name: string;
 
 	@IsBoolean()
+	@IsOptional()
 	is_private: boolean;
 
 	@IsString()
@@ -61,8 +56,9 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 		) {}
 
 		async create(name?: string, is_private?: boolean, password?: string): Promise<T> {
-			if (!name)
+			if (!name) {
 				name = randomBytes(30).toString("hex");
+			}
 
 			if (is_private === false && await this.room_repo.findOneBy({ name: name, is_private: false} as FindOptionsWhere<T>))
 				throw new ForbiddenException(`A room with the name "${name}" already exists`);
@@ -344,6 +340,10 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		async setup_room(room: T, dto: C) {}
 
+		async get_joined_info(room: T): Promise<T> {
+			return room;
+		}
+
 		@Get("id/:id")
 		@RequiredRole(Role.MEMBER)
 		async get_room(@GetRoom() room: T) {
@@ -354,23 +354,35 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		@RequiredRole(Role.OWNER)
 		async edit_room(
 			@GetRoom() room: T,
-			@Body() dto?: PasswordDTO,
+			@Body() dto: CreateRoomDTO,
 		) {
-			if (room.is_private)
-				throw new UnprocessableEntityException("A private room cannot have a password");
-
-			if (dto === undefined)
-				room.password = undefined;
-			else
+			console.log(dto);
+		
+			if (dto.name) {
+				room.name = dto.name;
+			}
+		
+			if (dto.password) {
 				room.password = await argon2.hash(dto.password);
-			await this.room_repo.save(room);
-			return {};
-		}
+			}
 
-		@Get("id/:id/role")
-		@RequiredRole(Role.MEMBER)
-		async role(@Me() me: User, @GetRoom() room: T) {
-			return room.members.find((member) => member.user.id === me.id).role;
+			if (dto.is_private) {
+				room.is_private = dto.is_private;
+
+				if (dto.password) {
+					throw new UnprocessableEntityException("A private room cannot have a password");
+				}
+			}
+		
+			await this.room_repo.save(room);
+			await room.send_update({
+				subject: Subject.ROOM,
+				id: room.id,
+				action: Action.SET,
+				value: instanceToPlain(room),
+			}, !room.is_private);
+
+			return {};
 		}
 
 		@Post("id/:id/member(s)?")
@@ -408,15 +420,20 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 					}
 				}
 			}
-		
-			await this.service.add_member(room, me);
+
+			const member = await this.service.add_member(room, me);
 			await this.invite_repo.remove(invites);
+			room = await this.get_joined_info(room);
 
 			await this.update_service.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.SET,
-				value: { ...instanceToPlain(room), joined: true },
+				value: {
+					...instanceToPlain(room),
+					joined: true,
+					member: instanceToPlain(member)
+				},
 			}, me);
 
 			return {};

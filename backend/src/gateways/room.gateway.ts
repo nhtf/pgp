@@ -54,7 +54,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		const request: any = client.request;
 
 		if (!client.room) {
-			throw new WsException("Missing room id, did you join?");
+			throw new WsException("Missing room id");
 		}
 	
 		const member = await this.memberRepo.findOne({
@@ -86,7 +86,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 			try {
 				const res = await axios.head(link.href);
 				//TODO find out how revolt detects embed type
-				console.log(res);
+				console.log("axios", res);
 			} catch {}
 		}
 
