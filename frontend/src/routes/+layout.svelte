@@ -3,7 +3,7 @@
 	import { onMount } from "svelte";
 	import type { LayoutData } from "./$types";
 	import { page } from "$app/stores";
-	import Notifications from "./notifications.svelte";
+	import Notifications from "$lib/components/Notifications.svelte";
 	import { BACKEND } from "$lib/constants";
 	import {
 		Dropdown,

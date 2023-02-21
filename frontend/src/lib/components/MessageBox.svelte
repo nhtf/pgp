@@ -1,21 +1,16 @@
 <script lang="ts">
+    import type { User, ChatRoom, Member, Message } from "$lib/entities";
+	import { BOUNCER } from "$lib/constants";
     import { unwrap } from "$lib/Alert";
     import { patch, post, remove } from "$lib/Web";
     import { Avatar, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
-    import Swal from "sweetalert2";
 	import { page } from "$app/stores";
-    import type { User, ChatRoom, Member, Message } from "$lib/types";
-	import { CoalitionColors, Role, Status } from "$lib/enums";
-    import isURL from "validator/lib/isURL";
-    import { BACKEND } from "$lib/constants";
+	import { CoalitionColors, Role } from "$lib/enums";
+    import Swal from "sweetalert2";
+    import { memberStore, userStore } from "../../stores"
 
 	export let message: Message;
-	export let my_role: Role;
-
-	type Word = {
-		value: string,
-		link: boolean,
-	}
+	export let self: Member;
 
 	const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const status_colors = [ "gray", "yellow", "green" ];
@@ -23,15 +18,17 @@
 
 	const room: ChatRoom = $page.data.room;
 	const me: User = $page.data.user;
-	const member = message.member;
-	const user = member.user;
+
+	let member = message.member;
+	let user = member.user;
+
+	$: member = $memberStore.get(member.id)!;
+	$: user = $userStore.get(user.id)!;
 
 	const from_self = me.id === user.id;
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";
-
-	let words: Word[] = splitIfLink(message.content);
 
 	async function edit(target: Member, role: Role) {
 		await unwrap(patch(`/chat/id/${room.id}/members/${target.id}`, { role }));
@@ -42,6 +39,7 @@
 
 		Swal.fire({
 			icon: "success",
+			timer: 3000,
 		});
 	}
 
@@ -52,21 +50,11 @@
 	
 		Swal.fire({
 			icon: "success",
+			timer: 3000,
 		});
 	}
 
-	function splitIfLink(value: string) {
-		const split = message.content.split(/\s/);
-		const containsLink = split.some((word) => isURL(word));
-		let words: Word[] = [];
-
-		if (containsLink) {
-			words = split.map((value) => { return { value, link: isURL(value) } });
-		}
-
-		return words;
-	}
-
+	message.embeds = message.embeds || [];
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
@@ -83,32 +71,37 @@
 				<a href={`/profile/${user.username}`}>Profile</a>
 			</DropdownItem>
 			{#if user.id !== $page.data.user.id}
-				{#if my_role >= Role.OWNER && member.role < Role.OWNER}
+				{#if self.role >= Role.OWNER && member.role < Role.OWNER}
 					<DropdownDivider/>
 					<DropdownItem on:click={() => edit(member, member.role + 1)}>Promote</DropdownItem>
 					{#if message.member.role > 0}
 						<DropdownItem on:click={() => edit(member, member.role - 1)}>Demote</DropdownItem>
 					{/if}
 				{/if}
-				{#if my_role >= Role.ADMIN && member.role < my_role}
+				{#if self.role >= Role.ADMIN && member.role < self.role}
 					<DropdownDivider/>
 					<DropdownItem on:click={() => kick(member, true)}>Ban</DropdownItem>
 					<DropdownItem on:click={() => kick(member, false)}>Kick</DropdownItem>
-					<DropdownItem on:click={() => mute(member, 1)}>Mute</DropdownItem>
 					{#if member.is_muted}
 						<DropdownItem on:click={() => mute(member, 0)}>Unmute</DropdownItem>
+					{:else}
+						<DropdownItem on:click={() => mute(member, 1)}>Mute</DropdownItem>
 					{/if}
 				{/if}
 			{/if}
 		</Dropdown>
 	<div class="message-box">
 		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${role_colors[member.role]}`}>{user.username}</div>
-		<!--- TODO probably extremely unsafe -->
+		<!--- TODO probably extremely unsafe
 		{#if tenor_regex.test(message.content)}
 			<img class="message-image" src={`${BACKEND}/proxy?url=${message.content}`} alt="embedded content">
 		{:else}
 			<div class="message-content">{message.content}</div>
-		{/if}
+			{/if} -->
+		<div class="message-content">{message.content}</div>
+		{#each message.embeds as embed}
+		<img class="message-image" src={`${BOUNCER}/${embed.digest}/proxy?${new URLSearchParams({ url: embed.url })}`} alt="embed">
+		{/each}
 	</div>
 </div>
 

@@ -1,11 +1,11 @@
 <script lang="ts">
+	import type { Invite, User } from "$lib/entities";
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import type { Invite, User } from "$lib/types";
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
 	import { afterUpdate } from "svelte";
 	import { backIn as anim } from "svelte/easing";
-    import { inviteStore } from "../stores";
+    import { inviteStore } from "../../stores";
 
 	enum Status {
 		UNREAD,
@@ -94,7 +94,7 @@
 	<div slot="header" class="text-center py-2 font-bold text-center ">
 		Notifications
 	</div>
-	{#each [...notifMap] as [invite, status]}
+	{#each [...notifMap] as [invite, status] (invite.id)}
 		{#if status !== Status.REMOVED}
 			<DropdownItem class="flex space-x-4">
 				<Avatar src={invite.from.avatar} />

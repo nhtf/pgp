@@ -1,7 +1,7 @@
-import { unwrap } from "$lib/Alert";
-import type { ChatRoom } from "$lib/types";
-import { get } from "$lib/Web";
+import type { ChatRoom } from "$lib/entities";
 import type { PageLoad } from "./$types"
+import { unwrap } from "$lib/Alert";
+import { get } from "$lib/Web";
 
 export const load: PageLoad = (async ({ fetch }) => {
     window.fetch = fetch;

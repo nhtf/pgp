@@ -30,7 +30,7 @@
 				title="send"
 			>
 				<div>
-					{#each send as invite}
+					{#each send as invite (invite.id)}
 						<div class="invite">
 							<div>
 								{#if invite.to && invite.to.avatar}
@@ -69,7 +69,7 @@
 				title="received"
 			>
 				<div>
-					{#each received as invite}
+					{#each received as invite (invite.id)}
 						<div class="invite">
 							<div>
 								{#if invite.from && invite.from.avatar}

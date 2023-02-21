@@ -1,39 +1,41 @@
-import type { UpdatePacket, User, Invite } from "$lib/types";
+import type { User, Member, Invite } from "$lib/entities"
+import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
-import { writable } from "svelte/store";
+import { writable, type Writable } from "svelte/store";
 
 export const userStore = writable(new Map<number, User>);
+export const memberStore = writable(new Map<number, Member>);
 export const inviteStore = writable(new Map<number, Invite>);
 
-updateManager.set(Subject.USER, (update: UpdatePacket) => {
-	userStore.update((users) => {
-		switch (update.action) {
-			case Action.ADD:
-			case Action.SET:
-				users.set(update.id, update.value);
-				break ;
-			case Action.REMOVE:
-				users.delete(update.id );
-				break;
-		}
-			
-		return users;
+function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
+	updateManager.set(subject, (update: UpdatePacket) => {
+		store.update((entities) => {
+			switch (update.action) {
+				case Action.ADD:
+				case Action.SET:
+					entities.set(update.id, update.value);
+					break ;
+				case Action.REMOVE:
+					entities.delete(update.id );
+					break;
+			}
+				
+			return entities;
+		});
 	});
-});
+}
 
-updateManager.set(Subject.INVITE, (update: UpdatePacket) => {
-	inviteStore.update((invites) => {
-		switch (update.action) {
-			case Action.ADD:
-			case Action.SET:
-				invites.set(update.id, update.value);
-				break ;
-			case Action.REMOVE:
-				invites.delete(update.id );
-				break;
-		}
-			
-		return invites;
-	});
-});
+export function updateStore<T extends { id: number }>(store: Writable<Map<number, T>>, entities: T[]) {
+	store.update((old) => {
+		entities.forEach((entity) => {
+			old.set(entity.id, entity)
+		})
+
+		return old;
+	})
+}
+
+setUpdate(userStore, Subject.USER);
+setUpdate(memberStore, Subject.MEMBER);
+setUpdate(inviteStore, Subject.INVITE);

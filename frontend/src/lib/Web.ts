@@ -10,7 +10,7 @@ export async function json(
 	const data = await response.json();
 
 	if (!response.ok) {
-		throw {	status,	message: data.message };
+		throw { status, message: data.message };
 	} else {
 		return data;
 	}
@@ -62,7 +62,7 @@ export async function put(pathname: string, body: any, stringify: boolean) {
 			body: body,
 		});
 	}
-	
+
 }
 
 export async function remove(pathname: string, body?: any) {

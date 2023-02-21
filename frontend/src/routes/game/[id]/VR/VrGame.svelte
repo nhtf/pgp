@@ -19,7 +19,14 @@
 		container.append(world.renderer.domElement);
 		container.append(VRButton.createButton(world.renderer));
 
-		await world.start({ container, room: $page.data.params.id, user: $page.data.user });
+		await world.start({
+			container,
+			room: $page.data.params.id,
+			member: {
+				user: $page.data.user,
+				...$page.data.member,
+			}
+		});
 	});
 
 	onDestroy(() => {

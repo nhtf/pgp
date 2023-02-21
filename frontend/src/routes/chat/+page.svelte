@@ -1,29 +1,22 @@
 <script lang="ts">
-	import { unwrap } from "$lib/Alert";
 	import type { UpdatePacket } from "$lib/types";
+	import type { PageData } from "./$types";
+	import { unwrap } from "$lib/Alert";
 	import { Subject, Action } from "$lib/enums";
 	import { post } from "$lib/Web";
-	import type { PageData } from "./$types";
 	import { Checkbox } from "flowbite-svelte";
 	import { onDestroy, onMount } from "svelte";
 	import { updateManager } from "$lib/updateSocket";
-    import RoomBox from "../RoomBox.svelte";
+    import RoomBox from "$lib/components/RoomBox.svelte";
 
 	export let data: PageData;
 
 	let rooms = new Map(data.rooms.map((room) => [room.id, room]));
+	let name = "";
+	let password = "";
+	let is_private = false;
 
 	$: rooms;
-
-	const room: {
-		name?: string;
-		password?: string;
-		is_private: boolean;
-	} = {
-		name: "",
-		password: "",
-		is_private: false,
-	};
 
 	onMount(() => {
 		updateManager.set(Subject.ROOM, updateRooms);
@@ -34,13 +27,11 @@
 	});
 
 	async function createChatRoom() {
-		if (!room.password?.length) {
-			delete room.password;
-		}
-
-		if (!room.name?.length) {
-			delete room.name;
-		}
+		const room: any = {};
+	
+		room.name = name ? name : null;
+		room.password = password ? password : null;
+		room.is_private = is_private;
 
 		await unwrap(post(`/chat`, room));
 	};
@@ -68,27 +59,24 @@
 			class="input"
 			type="text"
 			placeholder="Room name"
-			bind:value={room.name}
+			bind:value={name}
 		/>
 		<input
 			class="input"
 			type="password"
 			autocomplete="off"
 			placeholder="Room password"
-			bind:value={room.password}
-			disabled={room.is_private}
+			bind:value={password}
+			disabled={is_private}
 		/>
-		<Checkbox bind:checked={room.is_private} class="checkbox"></Checkbox>
+		<Checkbox bind:checked={is_private} class="checkbox"></Checkbox>
 		<span class="label">Private</span>
 		<div class="grow"/>
-		<button class="button button-create" on:click={createChatRoom}>Create</button>
+		<button class="button button-green" on:click={createChatRoom}>Create</button>
 	</div>
-	{#key rooms}
-		{#each [...rooms] as [id, room] }
-			<RoomBox {room}/>
-		{/each}
-	{/key}
-	
+	{#each [...rooms] as [id, room] (id)}
+		<RoomBox {room}/>
+	{/each}
 </div>
 
 <style>
@@ -98,6 +86,7 @@
 		flex-direction: column;
 		gap: 10px;
 		padding: 10px 10px;
+		flex-wrap: wrap;
 	}
 
 	.room {
@@ -128,7 +117,7 @@
 		opacity: 0.25;
 	}
 
-	.button-create{
+	.button-green {
 		border-color: var(--green);
 	}
 

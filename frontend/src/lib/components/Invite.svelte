@@ -1,20 +1,21 @@
 <script lang="ts">
 	import { unwrap } from "$lib/Alert";
-	import type { Member, Room, User } from "$lib/types";
+	import type { Member, Room, User } from "$lib/entities";
 	import { get, post } from "$lib/Web";
 	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
 	import Swal from "sweetalert2";
-	import { userStore } from "../stores";
+	import { userStore } from "../../stores";
 
 	export let room: Room;
 
-	let members: Member[] = [];
-	let open = false;
-
-	const ids = members.map((member) => member.user.id);
 	const url_type = room.type.replace("Room", "").toLowerCase();
 
-	$: invitee = "";
+	let members: Member[] = [];
+	let invitee = "";
+	let open = false;
+	
+	$: members;
+	$: ids = members.map((member) => member.user.id);
 	$: invitable = [...$userStore]
 		.map(([id, user]) => user)
 		.filter((user) => !ids.includes(user.id));
@@ -29,11 +30,9 @@
 			});
 		}
 
-		await unwrap(
-			post(`/${url_type}/id/${room.id}/invite`, { username: invitee })
-		);
+		await unwrap(post(`/${url_type}/id/${room.id}/invite`, { username: invitee }));
 
-		Swal.fire({ icon: "success" });
+		Swal.fire({ icon: "success", timer: 1000 });
 	}
 
 	function match(user: User) {
@@ -41,9 +40,7 @@
 	}
 
 	async function fetchMembers() {
-		if (!members.length) {
-			members = await unwrap(get(`/${url_type}/id/${room.id}/members`));
-		}
+		members = await unwrap(get(`/${url_type}/id/${room.id}/members`));
 	}
 </script>
 
@@ -52,10 +49,10 @@
 	placeholder="Username"
 	bind:value={invitee}
 	on:input={() => matches = invitable.filter(match)}
-	on:focus={fetchMembers}
+	on:focus|once={fetchMembers}
 />
 <Dropdown bind:open={open}>
-	{#each matches as { username, avatar }}
+	{#each matches as { id, username, avatar } (id)}
 		<DropdownItem on:click={() => { invitee = username; open = false; }} class="flex gap-1">
 			<Avatar class="avatar" src={avatar} />
 			<div>{username}</div>

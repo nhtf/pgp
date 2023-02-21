@@ -1,14 +1,12 @@
 <script lang="ts">
 	import { put } from "$lib/Web";
-    import { goto, invalidate } from '$app/navigation';
+    import { goto } from '$app/navigation';
     import { unwrap } from "$lib/Alert";
-    import { BACKEND } from "$lib/constants";
 
 	let username = "";
 
 	async function set_username() {
 		await unwrap(put('/user/me/username', { username }, true));
-		await invalidate(`${BACKEND}/user/me`);
 		await goto(`/profile/${encodeURIComponent(username)}`);
 	}
 

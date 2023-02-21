@@ -1,11 +1,13 @@
 import { Net } from "../Net";
-import type { BallObject, PaddleObject, MouseEvent, Snapshot, Options } from "../lib2D/interfaces";
+import type { BallObject, PaddleObject, PingEvent, MouseEvent, Snapshot, Options } from "../lib2D/interfaces";
 import { Vector, intersection, paddleBounce } from "../lib2D/Math2D";
-import type {  Line } from "../lib2D/Math2D";
+import type { Line } from "../lib2D/Math2D";
 
 export const WIDTH = 160;
 export const HEIGHT = 90;
 export const UPS = 60;
+export const PADDLE_PING_TIMEOUT = 120;
+export const PADDLE_PING_INTERVAL = 60;
 
 export class Ball {
 	public position: Vector;
@@ -51,19 +53,33 @@ export class Ball {
 	}
 }
 
+export class Team {
+	public score: number;
+	public id: number;
+
+	public constructor(id: number) {
+		this.score = 0;
+		this.id = id;
+	}
+}
+
 export class Paddle {
 	public position: Vector;
 	public height: number;
 	public userID?: number;
+	public ping: number;
+	public team: Team;
 
-	public constructor(side: "left" | "right") {
+	public constructor(team: Team, side: "left" | "right") {
 		if (side === "left") {
 			this.position = new Vector(8, HEIGHT / 2);
 		} else {
 			this.position = new Vector(WIDTH - 8, HEIGHT / 2);
 		}
 
+		this.team = team;
 		this.height = 20;
+		this.ping = 0;
 	}
 
 	public render(context: CanvasRenderingContext2D) {
@@ -77,6 +93,7 @@ export class Paddle {
 			height: this.height,
 			userID: this.userID,
 			width: 0, //width only needed for the modern pong
+			ping: this.ping,
 		};
 	}
 
@@ -84,26 +101,47 @@ export class Paddle {
 		this.position = Vector.load(object.position);
 		this.height = object.height;
 		this.userID = object.userID;
+		this.ping = object.ping;
 	}
 }
 
 export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
+	public teams: Array<Team>;
 
 	public constructor() {
 		super();
 
 		this.ball = new Ball();
-		this.paddles = [new Paddle("left"), new Paddle("right")];
+		this.paddles = [];
+		this.teams = [];
 
 		this.on("move", netEvent => {
 			const event = netEvent as MouseEvent;
-			let paddle = this.getPaddle(event.u) ?? this.getPaddle();
+			let paddle = this.getPaddle(event.u);
+
+			if (paddle === null) {
+				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
+
+				if (paddle?.userID !== undefined) {
+					paddle = null;
+				}
+			}
 
 			if (paddle !== null) {
 				paddle.userID = event.u;
+				paddle.ping = this.time;
 				paddle.position.y = event.y;
+			}
+		});
+
+		this.on("ping", netEvent => {
+			const event = netEvent as PingEvent;
+			const paddle = this.getPaddle(event.u);
+
+			if (paddle !== null) {
+				paddle.ping = this.time;
 			}
 		});
 	}
@@ -180,8 +218,28 @@ export class Game extends Net {
 				time -= collision[2];
 			}
 		}
+		
+		for (let paddle of this.paddles) {
+			if (paddle.ping + PADDLE_PING_TIMEOUT < this.time) {
+				paddle.userID = undefined;
+			}
+		}
 
 		super.lateTick();
+	}
+
+	public async start(options: Options) {
+		this.teams = [
+			new Team((options.member as any).room.teams[0].id),
+			new Team((options.member as any).room.teams[1].id),
+		];
+
+		this.paddles = [
+			new Paddle(this.teams[0], "left"),
+			new Paddle(this.teams[1], "right"),
+		];
+
+		super.start(options);
 	}
 }
 
@@ -190,6 +248,7 @@ export class Classic {
 	private context: CanvasRenderingContext2D;
 	private game: Game;
 	private lastTime?: number;
+	private interval?: NodeJS.Timer;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
@@ -245,12 +304,25 @@ export class Classic {
 			const x = Math.floor((ev.offsetX - xOffset) / minScale);
 			const y = Math.floor((ev.offsetY - yOffset) / minScale);
 
-			this.game.send("move", {
-				u: options.user.id,
-				y,
-			});
+			if (options.member.player != null) {
+				this.game.send("move", {
+					u: options.member.user.id,
+					t: options.member.player?.team?.id,
+					y,
+				});
+			}
 		});
 
+		this.interval = setInterval(() => {
+			this.game.send("ping", {
+				u: options.member.user.id,
+			});
+		}, 1000 / PADDLE_PING_INTERVAL);
+
 		await this.game.start(options);
+	}
+
+	public async stop() {
+		clearInterval(this.interval);
 	}
 }

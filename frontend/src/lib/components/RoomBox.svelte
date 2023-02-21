@@ -1,10 +1,11 @@
 <script lang="ts">
+	import type { User, Team, Room, GameRoomMember } from "$lib/entities";
+	import type { Gamemode } from "$lib/enums";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { unwrap } from "$lib/Alert";
     import { icon_path } from "$lib/constants";
-	import type { User, Team, Room, GameRoomMember } from "$lib/types";
-	import { Access, type Gamemode } from "$lib/enums";
+	import { Access } from "$lib/enums";
     import { post, remove, patch } from "$lib/Web";
     import Invite from "./Invite.svelte";
 
@@ -122,6 +123,7 @@
 		font-size: 1.25em;
 		align-items: center;
 		gap: inherit;
+		white-space: nowrap;
 	}
 
 	.icon {
@@ -157,8 +159,8 @@
 	}	
 	
 	.button {
-		max-width: 80px;
 		text-align: center;
+		white-space: nowrap;
 	}
 
 	.red {

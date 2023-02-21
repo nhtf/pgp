@@ -1,7 +1,7 @@
 <script lang="ts">
 	import VrGame from "./VR/VrGame.svelte";
 	import ClassicGame from "./Classic/ClassicGame.svelte";
-	import { Gamemode } from "$lib/types";
+	import { Gamemode } from "$lib/enums";
     import type { PageData } from "./$types";
     import ModernGame from "./Modern/ModernGame.svelte";
 

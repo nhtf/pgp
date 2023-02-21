@@ -14,7 +14,13 @@
 
 		console.log(classic);
 
-		await classic.start({ room: $page.data.params.id, user: $page.data.user });
+		await classic.start({
+			room: $page.data.params.id,
+			member: {
+				user: $page.data.user,
+				...$page.data.member,
+			},
+		});
 
 		window.requestAnimationFrame(function render(time) {
 			classic.update(time);
@@ -23,7 +29,7 @@
 	});
 
 	onDestroy(() => {
-		classic?.game.stop();
+		classic?.stop();
 	});
 </script>
 

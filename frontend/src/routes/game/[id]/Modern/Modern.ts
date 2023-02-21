@@ -1,22 +1,33 @@
 import { Net } from "../Net";
 import type { Event as NetEvent } from "../Net";
-import {intersection, Vector, paddleBounce} from "../lib2D/Math2D";
+import {intersection, Vector, paddleBounce, isInConvexHull} from "../lib2D/Math2D";
 import type { VectorObject, Line, CollisionLine } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
-import { WIDTH, HEIGHT, UPS, border, paddleHeight, linethickness, paddleWidth, FIELDWIDTH, FIELDHEIGHT } from "./Constants";
+import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT } from "./Constants";
 import type { GAME, field} from "./Constants";
 import { Ball } from "./Ball";
-import type { Snapshot, Options } from "../lib2D/interfaces";
+import type { Snapshot, Options, PingEvent } from "../lib2D/interfaces";
 import { Field } from "./Field";
 import { Goal } from "./Goal";
 import { Background } from "./Background";
-import { levels } from "./Constants";
 import { Score } from "./Score";
+
+export class Team {
+	public score: number;
+	public id: number;
+
+	public constructor(id: number) {
+		this.score = 0;
+		this.id = id;
+	}
+}
 
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
-	userID: number;
-	mouse: VectorObject;
+	u: number;
+	x: number;
+	y: number;
+	t: number;
 }
 
 function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: Ball) {
@@ -42,10 +53,6 @@ function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: B
 	return {closest: null, other: other};
 }
 
-
-
-//TODO render score and big win screen or something
-//TODO make it so only when all players press enter for example that they are able to move and the ball starts
 export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
@@ -59,23 +66,16 @@ export class Game extends Net {
 	public level: field;
 	public score: Score;
 	public scores: number[];
+	public teams: Array<Team>;
 
-	//TODO now only works with rot of 0 for paddle
 	private debugBall() {
 		const b = this.ball.position;
-		this.paddles.forEach((paddle) => {
-		const p = paddle.position;
-		if (paddle.angle !== 0)
-			return;
-		if (b.x > (p.x - 2) &&  b.x < (p.x + 2) &&
-			b.y > (p.y - 6) && b.y < (p.y + 6)) {
-				//ball in paddle
-				console.log(paddle.owner);
-				console.log("ballv", this.ball.velocity);
+		for (let paddle of this.paddles) {
+			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(), false)) {
+				console.log("in paddle");
 				debugger;
-				// (this.ball, paddle);
+			}
 		}
-	});
 	}
 
 	public constructor(players: GAME, offscreenCanvas: HTMLCanvasElement, canvas: HTMLCanvasElement, level: field) {
@@ -90,14 +90,16 @@ export class Game extends Net {
 		this.goals = [];
 		this.score = new Score();
 		this.scores = [];
+		this.teams = [];
 		for (let i = 0; i < this.level.players; i++) {
 			this.scores.push(0);
 		}
 		
 
-		this.level.paddles.forEach((paddle, index) => {
-			this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, paddle.cf, paddle.cs, index));
-		});
+		// this.level.paddles.forEach((paddle, index) => {
+		// 	this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, paddle.cf, paddle.cs, index));
+		// });
+		this.paddles = [];
 		this.field = new Field(this.level);
 		
 		this.level.goals.forEach((goal, index) => {
@@ -107,26 +109,26 @@ export class Game extends Net {
 		this.resizeOffscreenCanvas();
 
 		this.on("mousemove", netEvent => {
-			this.debugBall();
 			const event = netEvent as MouseEvent;
-			let paddle = this.getPaddle(event.userID) ?? this.getPaddle();
-			
+			let paddle = this.getPaddle(event.u);
+
+			if (paddle === null) {
+				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
+				if (paddle?.userID !== undefined) {
+					paddle = null;
+				}
+			}
 			
 			if (paddle !== null) {
+				paddle.userID = event.u;
+				paddle.ping = this.time;
+
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
 				const oldLines = paddle.getCollisionLines();
-				paddle.userID = event.userID;
-				paddle.position.y = event.mouse.y;
-				paddle.position.x = event.mouse.x;
-				//TODO fix this for different fields
-				if (paddle.position.y > FIELDHEIGHT - paddleHeight / 2 - border)
-					paddle.position.y = FIELDHEIGHT - paddleHeight / 2 - border;
-				if (paddle.position.y < paddleHeight / 2 + border + linethickness)
-					paddle.position.y = paddleHeight / 2 + border + linethickness;
-				if (paddle.position.x < paddleWidth / 2 + border + linethickness)
-					paddle.position.x = paddleWidth / 2 + border + linethickness;
-				if (paddle.position.x > FIELDWIDTH - paddleWidth / 2 - border - linethickness)
-					paddle.position.x = FIELDWIDTH - paddleWidth / 2 - border - linethickness;
+				if (paddle.isInPlayerArea(new Vector(event.x, paddle.position.y), this.field.getPlayerAreas()[paddle.owner]))
+					paddle.position.x = event.x;
+				if (paddle.isInPlayerArea(new Vector(paddle.position.x, event.y), this.field.getPlayerAreas()[paddle.owner]))
+					paddle.position.y = event.y;
 				
 				const paddleMovement = new Vector((paddle.position.x - oldPos.x), (paddle.position.y - oldPos.y));
 				const negvelocity = paddleMovement.scale(-1);
@@ -135,7 +137,6 @@ export class Game extends Net {
 				let otherclosest = [];
 				let ballpos = [];
 				if (closest && closest[2] < 1) {
-					console.log("bouncing ball");
 					this.bounceBall(closest, paddleMovement);
 					ballpos.push(this.ball.position);
 					let i = 0;
@@ -144,30 +145,31 @@ export class Game extends Net {
 						const col = moveCollision(paddle.getCollisionLines(), this.ball.velocity, this.ball).closest;
 						otherclosest.push(col);
 						if (col && col[2] < 1) {
-							console.log("bouncing ball");
 							this.bounceBall(col, paddleMovement);
 							ballpos.push(this.ball.position);
 							// this.debugBall();
 						}
 						else break;
 					}
-					console.log(i);
 				}
-				if (closest)
-					console.log(closest, otherclosest, ballpos);
 			}
-			this.debugBall();
-			
 		});
 
 		this.on("resize", (resize) => {
 			this.resizeOffscreenCanvas();
-		})
+		});
+
+		this.on("ping", netEvent => {
+			const event = netEvent as PingEvent;
+			const paddle = this.getPaddle(event.u);
+
+			if (paddle !== null) {
+				paddle.ping = this.time;
+			}
+		});
 	}
 
 	private bounceBall(closest: [Line, Vector, number], vel: Vector) {	
-		//TODO fix that one paddle collision can have the ball position be set in another paddle
-		//TODO have a check for where the ball will be placed somewhere not allowed (inside paddle, outside wall etc)
 		this.ball.position = closest[1];
 		this.ball.velocity = this.ball.velocity.reflect(closest[0].p1.sub(closest[0].p0));
 
@@ -177,14 +179,19 @@ export class Game extends Net {
 		this.ball.velocity = this.ball.velocity.normalize().scale(magnitude);
 		this.ball.velocity = this.ball.velocity.add(vel.scale(1 / UPS));
 		this.ball.position = this.ball.position.add(vel.scale(1.001));
-		if (!this.field.isInField(this.ball.position)) {
-			console.log("outside field");
-			debugger;
+		if (!isInConvexHull(this.ball.position, this.field.getConvexFieldBoxLines(), true)) {
+			console.log("ERROR: ball outside field. Resetting position.");
+			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
+			this.ball.velocity = this.ball.velocity.tangent();
 		}
 		for (let paddle of this.paddles) {
-			if (paddle.isInPaddle(this.ball.position)) {
-				console.log("in paddle");
-				// debugger;
+			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(), false)) {
+				if (isInConvexHull(closest[1], paddle.getCollisionLines(), false))
+				{
+					console.log("ERROR: ball in paddle. Resetting Position.");
+					this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
+					this.ball.velocity = this.ball.velocity.tangent();
+				}
 			}
 		}
 	}
@@ -245,7 +252,6 @@ export class Game extends Net {
 
 	//TODO send to the backend for score update
 	public lateTick() {
-		this.debugBall();
 		let time = 1;
 		const maxSpeed = 30;
 		while (time > 0) {
@@ -255,11 +261,14 @@ export class Game extends Net {
 				collisionLines.push(...paddle.getCollisionLines());
 			});
 			const collision = this.ball.collision(collisionLines);
+			if (collision && collision[2] <= time + 0.001)
+				console.log("collision: ", collision[1], collision?.[0]);
 			if (collision === null || collision[2] > time + 0.001) {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name.startsWith("goal1")) { //TODO make it work with more goals
 				/* TODO: Point to correct side according to map */
+				console.log("collision with goal: ", this.ball.position, collision[0]);
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(2, 0);
 				
@@ -286,8 +295,27 @@ export class Game extends Net {
 		}
 		if (this.ball.velocity.magnitude() > maxSpeed)
 				this.ball.velocity = this.ball.velocity.scale(maxSpeed / this.ball.velocity.magnitude());
-		this.debugBall();
+
+		for (let paddle of this.paddles) {
+			if (paddle.ping + PADDLE_PING_TIMEOUT < this.time) {
+				paddle.userID = undefined;
+			}
+		}
 		super.lateTick();
+	}
+
+	public async start(options: Options) {
+		//TODO make this work for more than 2 players
+		this.teams = [
+			new Team((options.member as any).room.teams[0].id),
+			new Team((options.member as any).room.teams[1].id),
+		];
+
+		let index = 0;
+		for (let paddle of this.level.paddles) {
+			this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, paddle.cf, paddle.cs, index, this.teams[index]))
+			index +=1;
+		}
 	}
 }
 
@@ -299,6 +327,7 @@ export class Modern {
 	private players: GAME;
 	private offscreenCanvas: HTMLCanvasElement;
 	private field: field | null;
+	private interval?: NodeJS.Timer;
 
 	public async init() {
 		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
@@ -366,25 +395,38 @@ export class Modern {
 			const xScale = Math.floor(this.canvas.width / WIDTH);
 			const yScale = Math.floor(this.canvas.height / HEIGHT);
 			const minScale = Math.min(xScale, yScale);
-			const xOffset = Math.floor((this.canvas.width - WIDTH * minScale) / 2);
-			const yOffset = Math.floor((this.canvas.height - HEIGHT * minScale) / 2);
+			const xOffset = Math.floor((this.canvas.width - FIELDWIDTH * minScale) / 2);
+			const yOffset = Math.floor((this.canvas.height - FIELDHEIGHT * minScale) / 2);
 
 			const x = (ev.offsetX - xOffset) / minScale;
 			const y = (ev.offsetY - yOffset) / minScale;
 
 			this.game?.send("mousemove", {
-				userID: options.user.id,
-				mouse: { x, y },
+				u: options.member.user.id,
+				x: x,
+				y: y,
+				t: options.member.player?.team?.id,
 			});
 		});
 		//this event is for resizing the offscreen canvas
 		window.addEventListener("resize", (ev) => {
-			console.log("resize event?", ev); 
+			// console.log("resize event?", ev); 
 			this.game?.send("resize", {
 				
 			});
 		});
 
+		this.interval = setInterval(() => {
+			this.game?.send("ping", {
+				u: options.member.user.id,
+			});
+		}, 1000 / PADDLE_PING_INTERVAL);
+
 		await this.game?.start(options);
+	}
+
+	public stop() {
+		this.game?.stop();
+		clearInterval(this.interval);
 	}
 }

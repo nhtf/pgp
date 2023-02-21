@@ -1,6 +1,7 @@
 import { Vector } from "../lib2D/Math2D";
-import { goalWidth, goalHeight, linethickness } from "./Constants";
-
+import { goalWidth, goalHeight, 
+    linethickness
+ } from "./Constants";
 
 export class Goal {
     public width: number;

@@ -1,13 +1,13 @@
 <script lang="ts">
+	import type { UpdatePacket } from "$lib/types";
+	import type { PageData } from "./$types";
 	import { post } from "$lib/Web";
 	import { unwrap } from "$lib/Alert";
-	import type { UpdatePacket } from "$lib/types";
 	import { Subject, Action } from "$lib/enums";
-	import type { PageData } from "./$types";
 	import { Checkbox, Select } from "flowbite-svelte";
     import { onDestroy, onMount } from "svelte";
     import { updateManager } from "$lib/updateSocket";
-    import RoomBox from "../RoomBox.svelte";
+    import RoomBox from "$lib/components/RoomBox.svelte";
 
 	export let data: PageData;
 
@@ -16,7 +16,9 @@
 	let password = "";
 	let gamemode = 0;
 
-	$: rooms = data.rooms;
+	let rooms = new Map(data.rooms.map((room) => [room.id, room]));
+
+	$: rooms;
 
 	onMount(() => {
 		updateManager.set(Subject.ROOM, updateRooms);
@@ -30,21 +32,12 @@
 		if (update.value.type === "GameRoom") {
 			switch (update.action) {
 				case Action.ADD:
-					rooms = [...rooms, update.value];
-					break ;
 				case Action.SET:
-					if (rooms.map((room) => room.id).includes(update.id)) {
-						if (update.value.is_private && !update.value.joined) {
-							rooms = rooms.filter((room) => room.id !== update.id);
-						} else {
-							rooms = rooms.map((room) => room.id === update.id ? update.value : room);
-						}
-					} else {
-						rooms = [...rooms, update.value];
-					}
+					rooms = rooms.set(update.id, update.value);
 					break ;
 				case Action.REMOVE:
-					rooms = rooms.filter((room) => room.id !== update.id);
+					rooms.delete(update.id);
+					rooms = rooms;
 					break;
 			}
 		}
@@ -53,17 +46,10 @@
 	async function createGame() {
 		const room: any = {};
 
-		room.name = name;
+		room.name = name.length ? name : null;
+		room.password = password.length ? password : null;
 		room.is_private = is_private;
 		room.gamemode = gamemode;
-
-		if (!is_private && password.length > 0) {
-			room.password = password;
-		}
-
-		if (!room.name.length) {
-			delete room.name;
-		}
 
 		await unwrap(post("/game", room));
 	}
@@ -87,11 +73,9 @@
 		</div>
 		<button class="button button-create" on:click={createGame}>Create</button>
 	</div>
-	{#key rooms}
-		{#each rooms as room}
-			<RoomBox {room}/>
-		{/each}
-	{/key}
+	{#each [...rooms] as [id, room] (id)}
+		<RoomBox {room}/>
+	{/each}
 </div>
 
 <style>

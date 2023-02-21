@@ -1,85 +1,63 @@
 <script lang="ts">
-    import { onDestroy, onMount } from "svelte";
-    import { roomSocket } from "../websocket";
-    import { unwrap } from "$lib/Alert";
-    import type { PageData } from "./$types";
-    import { patch, remove } from "$lib/Web";
-    import MessageBox from "./MessageBox.svelte";
-    import { goto } from "$app/navigation";
-    import type { Message, Room, RoomDTO, UpdatePacket } from "$lib/types";
+	import type { Room, Message } from "$lib/entities";
+	import type { UpdatePacket } from "$lib/types";
+	import type { PageData } from "./$types";
+	import { onDestroy, onMount } from "svelte";
+	import { roomSocket } from "../websocket";
+	import { unwrap } from "$lib/Alert";
+	import { patch, remove } from "$lib/Web";
+	import { goto } from "$app/navigation";
 	import { Subject, Role, Access } from "$lib/enums";
-    import { updateManager } from "$lib/updateSocket";
-    import { userStore } from "../../../stores";
-    import Invite from "../../Invite.svelte";
-    import { Checkbox, Dropdown, DropdownItem } from "flowbite-svelte";
+	import { updateManager } from "$lib/updateSocket";
+	import { Button, Checkbox, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
+	import { memberStore } from "../../../stores";
+    import { icon_path } from "$lib/constants";
+	import Invite from "$lib/components/Invite.svelte"
+	import MessageBox from "$lib/components/MessageBox.svelte"
+    import MemberBox from "$lib/components/MemberBox.svelte";
 
 	export let data: PageData;
 
-	$: members = data.members;
-	$: room = data.room;
-	$: self = members.find((member) => member.user.id === data.user!.id)!;
-	$: messages = sortByDate(data.messages);
+	const send_icon = `${icon_path}/send.svg`;
+
+	let room = data.room;
+	let messages = data.messages.sort(dateCmp)
+	let self = data.members.find((member) => member.user.id === data.user!.id)!;
+
+	
+	$: room;
+	$: messages;
+	$: self = $memberStore.get(self.id)!;
 	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
 
 	let content = "";
-	let roomDTO: RoomDTO = {
-		name: "",
-		is_private: false,
-		password: "",
-	}
+	let name = "";
+	let password = "";
+	let is_private = (room?.access === Access.PRIVATE);
 
 	onMount(() => {
-		roomDTO.name = room.name;
-		roomDTO.is_private = (room.access === Access.PRIVATE);
-	
-		userStore.update((users) => {
-			members.forEach((member) => {
-				users.set(member.user.id, member.user);
-			});
-
-			return users;
+		updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
+			if (update.id === room.id) {
+				room = update.value;
+			}
 		});
-	
-		userStore.subscribe((users) => {
-			messages = messages.map((message) => {
-				message.member.user = users.get(message.member.user.id)!;
-			
-				return message;
-			});
-		})
 
-		updateManager.set(Subject.MEMBER, (update: UpdatePacket) => {
-			messages = messages.map((message) => {
-				if (message.member.id === update.id) {
-					const user = message.member.user;
-					
-					message.member = update.value;
-
-					message.member.user = user;
-				}
-			
-				return message;
-			});
-		});
-	
 		roomSocket.emit("join", String(room.id));
 	});
 
 	onDestroy(() => {
-		updateManager.remove(Subject.MEMBER);
+		updateManager.remove(Subject.ROOM);
 	});
 
 	roomSocket.on("message", (message: Message) => {
-		messages = sortByDate([...messages, message]);
+		messages = [...messages, message].sort(dateCmp);
 	});
 
-	function sortByDate(messages: Message[]): Message[] {
-		return messages.sort((first, second) => {
-			const a = new Date(first.created).getTime();
-			const b = new Date(second.created).getTime();
-		
-			return a - b;
-		});
+	function dateCmp(first: Message, second: Message): number {
+		const a = new Date(first.created).getTime();
+		const b = new Date(second.created).getTime();
+
+		return a - b;
 	}
 
 	function handleKeyPress(event: KeyboardEvent) {
@@ -90,11 +68,10 @@
 	}
 
 	function sendMessage() {
-		if (!content.length)
-           return;
-	
+		if (!content.length) return;
+
 		roomSocket.emit("message", content);
-	
+
 		content = "";
 	}
 
@@ -103,86 +80,138 @@
 		await goto(`/chat`);
 	}
 
-    async function erase(room: Room) {
-        await unwrap(remove(`/chat/id/${room.id}`));
+	async function erase(room: Room) {
+		await unwrap(remove(`/chat/id/${room.id}`));
 		await goto(`/chat`);
-    }
-
-	async function edit(room: Room) {
-		if (!roomDTO.name) {
-			delete roomDTO.name;
-		}
-
-		if (!roomDTO.password) {
-			delete roomDTO.password;
-		}
-
-		if (!roomDTO.name) {
-			delete roomDTO.password;
-		}
-
-		await unwrap(patch(`/chat/id/${room.id}`, roomDTO));
 	}
 
+	async function edit(room: Room) {
+		const edit: any = {};
+
+		edit.name = name.length ? name : null;
+		edit.password = password.length ? password : null;
+		edit.is_private = is_private;
+
+		await unwrap(patch(`/chat/id/${room.id}`, edit));
+	}
 </script>
 
-<div class="room-container">
-	<div class="room-title">
-		<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
-		<div class="room-name">{room.name}</div>
-		{#if self.role >= Role.ADMIN}
-			<Invite {room}/>
-		{/if}
-		<button class="button red">Settings</button>
-		<!-- TODO: Add colors to buttons -->
-		<Dropdown>
-			{#if self.role >= Role.OWNER}
-				<input class="input" placeholder="name" bind:value={roomDTO.name}/>
-				<input class="input" placeholder="password" bind:value={roomDTO.password}/>
-				<Checkbox bind:checked={roomDTO.is_private} class="checkbox">Private</Checkbox>
-				<DropdownItem on:click={() => edit(room)}>Edit</DropdownItem>
-				<DropdownItem on:click={() => erase(room)}>Delete</DropdownItem>
-			{:else}
-				<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
+<div class="room">
+	<div class="room-container">
+		<div class="room-title">
+			<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
+			<div class="room-name">{room.name}</div>
+			{#if self?.role >= Role.ADMIN}
+				<Invite {room} />
 			{/if}
-		</Dropdown>
-	</div>
 
-	<div class="messages">
-		{#key messages}
-			{#each messages as message}
-				<MessageBox {message} my_role={self.role}/>
+			<!-- TODO: dont scroll when opening -->
+			<!-- TODO: Add colors to buttons -->
+			<button class="button red">Settings</button>
+			<Dropdown>
+				{#if self?.role >= Role.OWNER}
+					<input
+						class="input"
+						placeholder={room.name}
+						bind:value={name}
+					/>
+					<input
+						class="input"
+						placeholder="password"
+						bind:value={password}
+					/>
+					<Checkbox bind:checked={is_private} class="checkbox"
+						>Private</Checkbox
+					>
+					<DropdownItem on:click={() => edit(room)}>Edit</DropdownItem>
+					<DropdownDivider/>
+					<DropdownItem on:click={() => erase(room)}>Delete</DropdownItem>
+				{:else}
+					<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
+				{/if}
+			</Dropdown>
+			{#if self?.role >= Role.OWNER}
+				<button class="button red" on:click={() => erase(room)}>Delete</button>
+			{:else}
+				<button class="button red" on:click={() => leave(room)}>Leave</button>
+			{/if}
+		</div>
+
+		<div class="messages">
+			{#each messages as message (message.id)}
+				<MessageBox {message} {self} />
 			{/each}
-		{/key}
-	</div>
-	<div class="message-input">
-		<div class="message-box">
-			{#key self}
-				<textarea
-					bind:value={content}
-					on:keypress={handleKeyPress}
-					wrap="hard"
-					disabled={self?.is_muted ? self.is_muted : false}
-					rows="{rows}"
-					class="w-full space-x-4"
-					placeholder={self?.is_muted ? "You are muted" : "message..."}
-				/>
-			{/key}
 		</div>
-		<div class="send-button"
-			on:click|preventDefault={sendMessage}
-			on:keypress|preventDefault={sendMessage}
+		<div class="message-input">
+			<div class="message-box">
+				{#key self}
+					<textarea
+						bind:value={content}
+						on:keypress={handleKeyPress}
+						wrap="hard"
+						disabled={self?.is_muted}
+						{rows}
+						class="w-full space-x-4"
+						placeholder={self?.is_muted
+							? "You are muted"
+							: "message..."}
+					/>
+				{/key}
+			</div>
+			<div
+				class="send-button"
+				on:click|preventDefault={sendMessage}
+				on:keypress|preventDefault={sendMessage}
 			>
-			<img src="/Assets/icons/send.svg" alt="chat" class="icon">
+				<img src={send_icon} alt="chat" class="icon" />
+			</div>
 		</div>
+	</div>
+	<div class="member-container">
+		<div class="member-group">
+			<MemberBox member={[...$memberStore].map(([id, member]) => member).find((member) => member.role === Role.OWNER)}/>
+		</div>
+		<div/>
+		<div class="member-group">
+			{#each [...$memberStore].filter(([id, member]) => member.role === Role.ADMIN) as [id, member] (id)}
+				<MemberBox {member}/>
+			{/each}
+		</div>
+		<div/>
+		<div class="member-group">
+			{#each [...$memberStore].filter(([id, member]) => member.role === Role.MEMBER) as [id, member] (id)}
+				<MemberBox {member}/>
+			{/each}
+		</div>
+
 	</div>
 </div>
-	
+
 <style>
+	.room {
+		display: flex;
+		flex-direction: row;
+	}
+
+	.member-container {
+		display: flex;
+		flex-direction: column;
+		padding: 0.5rem;
+		margin: 0.5rem;
+		background-color: var(--box-color);
+		border-radius: 1em;
+		gap: 1em;
+	}
+
+	.member-group {
+		display: flex;
+		flex-direction: column;
+	}
 
 	.room-container {
 		display: flex;
 		flex-direction: column;
+		flex-grow: 1;
 		gap: 10px;
 		height: calc(100vh - 80px);
 		padding: 0 0 3rem 0;
@@ -204,6 +233,7 @@
 		font-size: 1.5rem;
 		padding: 3px;
 		margin: 0 auto;
+		white-space: nowrap;
 	}
 
 	.button {
@@ -214,7 +244,7 @@
 		padding: 2px 8px;
 		margin: 0.25rem;
 		text-align: center;
-	}	
+	}
 
 	.red {
 		border-color: var(--red);
@@ -236,11 +266,11 @@
 	}
 
 	.icon {
-        width: 30px;
-        height: 30px;
-        -webkit-filter: var(--invert);
+		width: 30px;
+		height: 30px;
+		-webkit-filter: var(--invert);
 		filter: var(--invert);
-    }
+	}
 
 	.messages {
 		display: flex;
@@ -276,5 +306,4 @@
 		height: auto;
 		max-height: 75vh;
 	}
-
 </style>

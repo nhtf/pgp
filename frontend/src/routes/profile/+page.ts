@@ -8,5 +8,4 @@ export const load: PageLoad = (async ({ fetch, parent }: any) => {
 	const URL = user ? `/profile/${user.username}` : `/account_setup`;
 	
 	throw redirect(302, URL);
-
 }) satisfies PageLoad;

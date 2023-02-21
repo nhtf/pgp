@@ -1,11 +1,12 @@
-import { Vector, intersection, type CollisionLine } from "../lib2D/Math2D";
+import { Vector, isInConvexHull } from "../lib2D/Math2D";
 import type { PaddleObject } from "../lib2D/interfaces";
 import {
     linethickness,
     paddleHeight, 
     paddleWidth,
 } from "./Constants";
-import type { Line } from "../lib2D/Math2D";
+import type { Line, CollisionLine } from "../lib2D/Math2D";
+import type { Team } from "../Classic/Classic";
 
 
 /*
@@ -24,8 +25,10 @@ export class Paddle {
 	public strokeColor: string;
 	public fillColor: string;
 	public owner: number;
+	public ping: number;
+	public team: Team;
 
-	public constructor(position: Vector, angle: number, cf: string, cs: string, owner: number) {
+	public constructor(position: Vector, angle: number, cf: string, cs: string, owner: number, team: Team) {
 		
 		this.position = new Vector(position.x, position.y);
 		this.height = paddleHeight;
@@ -34,6 +37,8 @@ export class Paddle {
 		this.strokeColor = cs;
 		this.fillColor = cf;
 		this.owner = owner;
+		this.ping = 0;
+		this.team = team;
 	}
 
 	public render(context: CanvasRenderingContext2D) {
@@ -71,6 +76,7 @@ export class Paddle {
 			height: this.height,
             width: this.width,
 			userID: this.userID,
+			ping: this.ping,
 		};
 	}
 
@@ -79,6 +85,7 @@ export class Paddle {
 		this.height = object.height;
         this.width = object.width;
 		this.userID = object.userID;
+		this.ping = object.ping;
 	}
 
 	public getCollisionLines(): CollisionLine[] {
@@ -94,10 +101,9 @@ export class Paddle {
 
 		// console.log("owner: ", this.owner);
 		const lineTop: Line = {	p0: new Vector(A.x, A.y), p1: new Vector(B.x, B.y), name: `paddle-${this.owner}-top`}
-		const lineBottom: Line = {p0: new Vector(C.x, C.y), p1: new Vector(D.x, D.y), name: `paddle-${this.owner}-bottom`};
+		const lineBottom: Line = {p0: new Vector(D.x, D.y), p1: new Vector(C.x, C.y), name: `paddle-${this.owner}-bottom`};
 		const lineLeft: Line = {p0: new Vector(A.x, A.y), p1: new Vector(C.x, C.y), name: `paddle-${this.owner}-left`};
-		const lineRight: Line = {p0: new Vector(B.x, B.y), p1: new Vector(D.x, D.y), name: `paddle-${this.owner}-right`};
-
+		const lineRight: Line = {p0: new Vector(D.x, D.y), p1: new Vector(B.x, B.y), name: `paddle-${this.owner}-right`};
 
 		return [
 			{	p0: lineTop.p0, p1: lineTop.p1, name: lineTop.name,
@@ -118,38 +124,32 @@ export class Paddle {
         context.strokeStyle = "red";
 		context.lineJoin = "round";
 
-		context.beginPath();
-		context.moveTo(collisionLines[0].p0.x, collisionLines[0].p0.y);
 		for (let line of collisionLines) {
+			context.beginPath();
+			context.moveTo(line.p0.x, line.p0.y);
 			context.lineTo(line.p1.x, line.p1.y);
+			context.stroke();
 		}
-		context.lineTo(collisionLines[0].p0.x, collisionLines[0].p0.y);
-		// context.lineTo(B.x, B.y);
-		// context.lineTo(D.x, D.y);
-		// context.lineTo(C.x, C.y);
-		// context.lineTo(A.x, A.y);
         context.stroke();
         context.restore();
 	}
 
-	public isInPaddle(entityPos: Vector): boolean {
-		const collisionLines = this.getCollisionLines();
-		for (let line of collisionLines) {
-			const maxY = Math.max(line.p0.y, line.p1.y);
-			const minY = Math.min(line.p0.y, line.p1.y);
-			const maxX = Math.max(line.p0.x, line.p1.x);
-			const minX = Math.min(line.p0.x, line.p1.x);
+	public isInPlayerArea(pos: Vector, area: CollisionLine[]) {
+		const crot = Math.cos(this.angle);
+        const srot = Math.sin(this.angle);
+        const w = this.width;
+        const h = this.height / 2;
 
-			if (line.normal.x > 0 && entityPos.x > line.p0.x && entityPos.y >= minY && entityPos.y <= maxY)
-				return false;
-			else if (line.normal.x < 0 && entityPos.x < line.p0.x && entityPos.y >= minY && entityPos.y <= maxY)
-				return false;
-			if (line.normal.y > 0 && entityPos.y > line.p0.y && entityPos.x >= minX && entityPos.x <= maxX)
-				return false;
-			else if (line.normal.y < 0 && entityPos.y < line.p0.y && entityPos.x >= minX && entityPos.x <= maxX)
+		let points = []
+		points.push(new Vector((crot * -w + srot * -h) + pos.x, (-srot * -w + crot * -h) + pos.y));
+		points.push(new Vector((crot * w + srot * -h) + pos.x, (-srot * w + crot * -h) + pos.y));
+		points.push(new Vector((crot * -w + srot * h) + pos.x, (-srot * -w + crot * h) + pos.y));
+		points.push(new Vector((crot * w + srot * h) + pos.x, (-srot * w + crot * h) + pos.y));
+
+		for (let point of points) {
+			if (!isInConvexHull(point, area, true))
 				return false;
 		}
-		console.log("paddlePos: ", JSON.stringify(this.position), "ballpos: ", JSON.stringify(entityPos));
 		return true;
 	}
 }

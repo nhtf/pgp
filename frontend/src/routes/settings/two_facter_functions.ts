@@ -35,6 +35,7 @@ export async function enable_2fa() {
                     return "OTP must be 6 characters long";
                 if (!validator.isInt(code, { min: 0, max: 999999 }))
                     return "OTP consist of only numbers";
+                return null;
             },
             preConfirm: (code) => {
                 return fetch(`${BACKEND}/otp/setup_verify`, {

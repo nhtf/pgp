@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
-	import Friends from "./friends.svelte";
-	import Info from "./info.svelte";
+	import Friends from "$lib/components/Friends.svelte";
+	import Info from "$lib/components/Info.svelte";
 
 	export let data: PageData;
 </script>

@@ -79,3 +79,83 @@ export interface Line {
 export interface CollisionLine extends Line {
 	normal: Vector;
 }
+
+function compare(a: Vector, b: Vector): number {
+	if (a.x == b.x)
+		return a.y < b.y ? -1 : 1;
+	return a.x < b.x ? -1 : 1;
+}
+
+function ccw(a: Vector, b: Vector, c: Vector) {
+	let p = a.x * (b.y - c.y)
+		+ b.x * (c.y - a.y)
+		+ c.x * (a.y - b.y);
+	return p > 0;
+}
+
+function cw(a: Vector, b: Vector, c: Vector) {
+	let p = a.x * (b.y - c.y)
+		+ b.x * (c.y - a.y)
+		+ c.x * (a.y - b.y);
+	return p < 0;
+}
+
+function convexHull(points: Vector[]) {
+	points.sort((a, b) => {
+		return compare(a, b);
+	});
+	let n = points.length;
+	if (n <= 3)
+		return points;
+	
+	let p1 = points[0];
+	let p2 = points[n - 1];
+	let up = [], down = [];
+	up.push(p1);
+	down.push(p1);
+
+	for (let i = 0; i < n; i++) {
+		if (i == n - 1 || !ccw(p1, points[i], p2)) {
+			while (up.length > 1 && ccw(up[up.length - 2], up[up.length - 1], points[i])) {
+				up.pop();
+			}
+		
+			up.push(points[i]);
+		}
+		
+		if (i == n - 1 || !cw(p1, points[i], p2)) {
+		
+		while (down.length > 1 && cw(down[down.length - 2],down[down.length - 1],points[i])) {
+			down.pop();
+		}
+		down.push(points[i]);
+		}
+	}
+
+	for (let i = down.length - 2; i > 0; i--)
+		up.push(down[i]);
+	let sup = new Set(up);
+	up = Array.from(sup);
+	return up;
+}
+
+//Also for lines themselves now
+export function isInConvexHull(entityPos: Vector, lines: CollisionLine[], linePartOfHull: boolean) {
+		let points = [];
+		points.push(entityPos);
+		for (let line of lines) {
+			if ((entityPos.x === line.p0.x || entityPos.x === line.p1.x) && !linePartOfHull)
+				return false; //On the line not inside
+			if ((entityPos.y === line.p0.y || entityPos.y === line.p1.y) && !linePartOfHull)
+				return false; //On the line not inside
+			points.push(line.p0);
+			points.push(line.p1);
+		}
+		points = convexHull(points);
+		for (let p of points) {
+			if (p === entityPos) {
+				return false;
+			}
+		}
+		return true;
+}

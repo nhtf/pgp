@@ -1,14 +1,14 @@
 <script lang="ts">
+    import type { User } from "$lib/entities";
 	import { page } from "$app/stores";
-	import Avatar from "./avatar.svelte";
-	import Achievements from "./achievements.svelte";
+	import Avatar from "./Avatar.svelte";
+	import Achievements from "./Achievements.svelte";
 	import { put } from "$lib/Web";
 	import { goto, invalidate,  } from "$app/navigation";
 	import Swal from "sweetalert2";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
 	import { BACKEND } from "$lib/constants";
-    import type { User } from "$lib/types";
 
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)
@@ -34,6 +34,7 @@
 		await Swal.fire({
 			title: "Change username",
 			input: "text",
+			color: "var(--text-color)",
 			showCancelButton: true,
 			confirmButtonText: "Set username",
 			confirmButtonColor: "var(--confirm-color)",

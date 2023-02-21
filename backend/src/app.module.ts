@@ -56,6 +56,7 @@ const entityFiles = [
 	"./entities/Team",
 	"./entities/Player",
 	"./entities/GameState",
+	"./entities/Embed",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({

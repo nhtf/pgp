@@ -70,14 +70,16 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		
 		await this.member_repo.save(target);
 	
-		setTimeout(() => {
-			room.send_update({
-				subject: Subject.MEMBER,
-				action: Action.SET,
-				id: target.id,
-				value: instanceToPlain(target),
-			});
-		}, duration);
+		if (target.mute > new Date) {
+			setTimeout(() => {
+				room.send_update({
+					subject: Subject.MEMBER,
+					action: Action.SET,
+					id: target.id,
+					value: instanceToPlain(target),
+				});
+			}, duration);
+		}
 
 		return {};
 	}

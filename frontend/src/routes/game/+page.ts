@@ -1,7 +1,7 @@
+import type { GameRoom } from "$lib/entities";
 import type { PageLoad } from "./$types"
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
-import type { GameRoom } from "$lib/types";
 
 export const ssr = false;
 

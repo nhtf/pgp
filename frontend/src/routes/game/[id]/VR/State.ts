@@ -1,3 +1,5 @@
+import type { Team as Team2 } from "$lib/entities";
+
 export interface PlayerObject {
 	user: number;
 	team: number;
@@ -5,6 +7,7 @@ export interface PlayerObject {
 
 export interface TeamObject {
 	score: number;
+	id: number;
 }
 
 export interface Snapshot {
@@ -19,20 +22,22 @@ export class Player {
 	public user: number;
 	public team: Team;
 
-	public constructor(state: State, user: number, team: number) {
+	public constructor(state: State, user: number, team: Team) {
 		this.state = state;
 		this.user = user;
-		this.team = state.teams[team];
+		this.team = team;
 	}
 }
 
 export class Team {
 	public state: State;
 	public score: number;
+	public id: number;
 
-	public constructor(state: State) {
+	public constructor(state: State, id: number) {
 		this.state = state;
 		this.score = 0;
+		this.id = id;
 	}
 
 	public get players(): Player[] {
@@ -50,11 +55,11 @@ export class State {
 	public state: string;
 	public current: Team;
 
-	public constructor() {
+	public constructor(teams: Team2[]) {
 		this.players = [];
 		this.teams = [];
-		this.teams.push(new Team(this));
-		this.teams.push(new Team(this));
+		this.teams.push(new Team(this, teams[0].id));
+		this.teams.push(new Team(this, teams[1].id));
 		this.state = "serve-ball";
 		this.current = this.teams[0];
 	}
@@ -73,6 +78,7 @@ export class State {
 		for (let team of this.teams) {
 			teams.push({
 				score: team.score,
+				id: team.id,
 			});
 		}
 
@@ -89,13 +95,13 @@ export class State {
 		this.teams = [];
 
 		for (let teamObject of snapshot.teams) {
-			const team = new Team(this);
+			const team = new Team(this, teamObject.id);
 			team.score = teamObject.score;
 			this.teams.push(team);
 		}
 
 		for (let playerObject of snapshot.players) {
-			const player = new Player(this, playerObject.user, playerObject.team);
+			const player = new Player(this, playerObject.user, this.teams.find(team => team.id == playerObject.team)!);
 			this.players.push(player);
 		}
 

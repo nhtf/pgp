@@ -16,6 +16,10 @@
 		const { value: file } = await Swal.fire({
 				title: "Select image",
 				input: "file",
+				color: "var(--text-color)",
+				background: "var(--box-color)",
+				confirmButtonColor: "var(--confirm-color)",
+				cancelButtonColor: "var(--cancel-color)",
 				showCancelButton: true,
 				confirmButtonText: "Select",
 				inputAttributes: {
@@ -34,6 +38,10 @@
 			reader.onload = async (e) => {
 				await Swal.fire({
 					title: "Change avatar?",
+					color: "var(--text-color)",
+					background: "var(--box-color)",
+					confirmButtonColor: "var(--confirm-color)",
+					cancelButtonColor: "var(--cancel-color)",
 					imageUrl: (e.target?.result as string),
 					imageWidth: 400,
 					imageHeight: 400,

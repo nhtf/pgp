@@ -5,7 +5,6 @@
 	import type { PageData } from "./$types";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
 	import { fly } from 'svelte/transition';
-	import { Button, Dropdown, DropdownItem, Avatar, DropdownHeader, DropdownDivider } from 'flowbite-svelte'
     import { invalidate } from "$app/navigation";
 
 	export let data: PageData;

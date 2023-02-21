@@ -6,6 +6,8 @@ export const HEIGHT = 225;
 export const FIELDWIDTH = 320;
 export const FIELDHEIGHT = 180;
 export const UPS = 60;
+export const PADDLE_PING_TIMEOUT = 120;
+export const PADDLE_PING_INTERVAL = 60;
 
 export const linethickness = 1.5;
 
@@ -93,6 +95,8 @@ export type field = {
     arcs: renderArc[];
     gradientIndexs: boolean[];
     collisions: CollisionLine[];
+    convexFieldBoxLines: CollisionLine[];
+    playerAreas: CollisionLine[][];
 }
 
 export const levels = ["/Assets/game/twoplayerLevel.json"];

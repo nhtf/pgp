@@ -14,7 +14,7 @@ import * as THREE from "three";
 
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
-import type { User } from "$lib/types";
+import type { GameRoomMember } from "$lib/entities";
 
 export interface Snapshot extends WorldSnapshot {
 	state: StateSnapshot;
@@ -22,6 +22,7 @@ export interface Snapshot extends WorldSnapshot {
 
 export interface PaddleObject extends EntityObject {
 	userID: number;
+	teamID: number;
 }
 
 export interface BallEvent extends NetEvent {
@@ -29,7 +30,7 @@ export interface BallEvent extends NetEvent {
 }
 
 export interface Options extends WorldOptions {
-	user: User;
+	member: GameRoomMember;
 }
 
 export type PaddleUpdate = Partial<PaddleObject>;
@@ -162,7 +163,7 @@ export class Ball extends Entity {
 
 	public earlyTick() {
 		if (this.position.y < 0) {
-			(this.world as Pong).state.onFloorHit();
+			(this.world as Pong).state!.onFloorHit();
 			this.removed = true;
 		}
 	}
@@ -177,12 +178,12 @@ export class Ball extends Entity {
 	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {
 		if (other?.name == "table") {
 			if (p1.y > 0.785) {
-				this.removed ||= !(this.world as Pong).state.onTableHit(null);
+				this.removed ||= !(this.world as Pong).state!.onTableHit(null);
 			} else {
-				this.removed ||= !(this.world as Pong).state.onTableHit(p1.x > 0 ? 1 : 0);
+				this.removed ||= !(this.world as Pong).state!.onTableHit(p1.x > 0 ? 1 : 0);
 			}
 		} else if (other?.name == "paddle") {
-			this.removed ||= !(this.world as Pong).state.onPaddleHit((other as Paddle).userID);
+			this.removed ||= !(this.world as Pong).state!.onPaddleHit((other as Paddle).userID);
 		}
 	}
 }
@@ -195,14 +196,16 @@ export class Paddle extends Entity {
 	public name = "paddle";
 	public dynamic = true;
 	public userID: number;
+	public teamID: number;
 
-	public constructor(world: Pong, uuid: string, userID: number) {
+	public constructor(world: Pong, uuid: string, userID: number, teamID: number) {
 		const shape = createShape(world.paddleModel!);
 		const physicsObject = createPhysicsObject(shape, Paddle.MASS);
 
 		physicsObject.setRestitution(Paddle.RESTITUTION);
 		super(world, uuid, world.paddleModel!.clone(), physicsObject);
 		this.userID = userID;
+		this.teamID = teamID;
 
 		if (uuid != world.paddleUUID) {
 			this.interpolation = 0.25;
@@ -221,12 +224,16 @@ export class Paddle extends Entity {
 		return {
 			...super.save(),
 			userID: this.userID,
+			teamID: this.teamID,
 		};
 	}
 
 	public load(entity: PaddleUpdate) {
 		if (entity.userID !== undefined)
 			this.userID = entity.userID;
+
+		if (entity.teamID !== undefined)
+			this.teamID = entity.teamID;
 
 		super.load(entity);
 	}
@@ -240,15 +247,14 @@ export class Pong extends World {
 	public leftGamepad?: Gamepad;
 	public tableModel?: THREE.Object3D;
 	public paddleModel?: THREE.Object3D;
-	public userID?: number;
-	public state: State;
+	public member?: GameRoomMember;
+	public state?: State;
 	private mainControllerIndex: number = 0;
 
 	public constructor() {
 		super();
 
 		this.paddleUUID = "paddle-" + randomHex(8);
-		this.state = new State();
 
 		this.rightController = this.renderer.xr.getController(0);
 		this.leftController = this.renderer.xr.getController(1);
@@ -262,11 +268,11 @@ export class Pong extends World {
 
 			if (event.entity.name == "paddle") {
 				const entity = event.entity as PaddleObject;
-				const team = this.state.teams[0].players.length > this.state.teams[1].players.length ? 1 : 0;
-				const player = this.state.players.find(p => p.user == entity.userID);
+				const team = this.state!.teams.find(team => team.id == entity.teamID)!;
+				const player = this.state!.players.find(p => p.user == entity.userID);
 
 				if (player === undefined) {
-					this.state.players.push(new Player(this.state, entity.userID, team));
+					this.state!.players.push(new Player(this.state!, entity.userID, team));
 				}
 			}
 		});
@@ -277,9 +283,9 @@ export class Pong extends World {
 			const paddle = this.get(event.paddle);
 
 			if (ball === null && paddle !== null && paddle instanceof Paddle) {
-				const team = this.state.players.find(player => player.user == paddle.userID)!.team;
+				const team = this.state!.players.find(player => player.user == paddle.userID)!.team;
 
-				if (this.state.current == team) {
+				if (this.state!.current == team) {
 					this.create({
 						name: "ball",
 						uuid: Ball.UUID,
@@ -296,7 +302,10 @@ export class Pong extends World {
 		});
 
 		this.register("ball", object => new Ball(this, object.uuid));
-		this.register("paddle", object => new Paddle(this, object.uuid, (object as PaddleObject).userID));
+		this.register("paddle", obj => {
+			const object = obj as PaddleObject;
+			return new Paddle(this, object.uuid, object.userID, object.teamID);
+		});
 	}
 
 	private controllerConnected(event: any) {
@@ -318,10 +327,11 @@ export class Pong extends World {
 	}
 
 	public earlyTick() {
-		if (this.time >= this.maxTime) {
+		if (this.time >= this.maxTime && this.member!.player != null) {
 			this.sendCreateOrUpdate({
 				name: "paddle",
-				userID: this.userID!,
+				userID: this.member!.user.id,
+				teamID: this.member!.player?.team?.id,
 			}, {
 				uuid: this.paddleUUID,
 				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),
@@ -356,7 +366,7 @@ export class Pong extends World {
 	}
 
 	public render(deltaTime: number) {
-		const scoreText = `${this.state.teams[0].score} - ${this.state.teams[1].score}`;
+		const scoreText = `${this.state!.teams[0].score} - ${this.state!.teams[1].score}`;
 
 		for (let object of this.scene.getObjectsByProperty("name", "score")) {
 			const text = object.userData as DynamicText;
@@ -368,13 +378,13 @@ export class Pong extends World {
 	
 	public save(): Snapshot {
 		return {
-			state: this.state.save(),
+			state: this.state!.save(),
 			...super.save(),
 		};
 	}
 
 	public load(snapshot: Snapshot) {
-		this.state.load(snapshot.state);
+		this.state!.load(snapshot.state);
 		super.load(snapshot);
 	}
 
@@ -385,7 +395,8 @@ export class Pong extends World {
 			translate: new Vector(0, 0.02, -0.04),
 		};
 
-		this.userID = options.user.id;
+		this.member = options.member;
+		this.state = new State((this.member as any).room.teams);
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
 

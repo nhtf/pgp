@@ -1,4 +1,4 @@
-import type { Invite } from "./types";
+import type { Invite } from "./entities";
 import { post, remove } from "./Web";
 
 export async function respond(invite: Invite, action: "accept" | "deny") {

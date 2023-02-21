@@ -1,5 +1,5 @@
 import { get } from "$lib/Web";
-import type {  User, Invite } from "$lib/types";
+import type { User, Invite } from "$lib/entities";
 import type { LayoutLoad } from "./$types";
 import { userStore, inviteStore } from "../stores";
 
@@ -18,9 +18,7 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 		user = await get(`/user/me`);
 		users = await get(`/users`);
 		invites = await get(`/user/me/invites`);
-		const { auth_req } = await get(`/user/me/auth_req`);
-	
-		user!.auth_req = auth_req;
+		user!.auth_req = (await get(`/user/me/auth_req`)).auth_req;
 	
 		userStore.update((_) => new Map(users!.map((user) => [user.id, user])));
 		inviteStore.update((_) => new Map(invites!.map((invite) => [invite.id, invite])));

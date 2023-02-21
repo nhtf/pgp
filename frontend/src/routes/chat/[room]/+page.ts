@@ -1,7 +1,8 @@
-import type { ChatRoom, Member, Message } from "$lib/types";
+import type { ChatRoom, Member, Message } from "$lib/entities";
+import type { PageLoad } from "./$types"
+import { userStore, memberStore, updateStore  } from "../../../stores";
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
-import type { PageLoad } from "./$types"
 
 export const load: PageLoad = (async ({ fetch, params }) => {
 	window.fetch = fetch;
@@ -10,6 +11,8 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 	const members: Member[] = await unwrap(get(`/chat/id/${params.room}/members`));
 	const messages: Message[] = await unwrap(get(`/chat/id/${params.room}/messages`));
 
+	updateStore(memberStore, members);
+	updateStore(userStore, members.map((member) => member.user));
+
     return { room, members, messages };
 }) satisfies PageLoad;
-

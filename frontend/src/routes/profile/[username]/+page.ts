@@ -1,7 +1,10 @@
 import type { PageLoad } from "./$types"
-import type { User, Achievement } from "$lib/types"
+import type { User } from "$lib/entities"
+import type { Achievement } from "$lib/types"
 import { Status } from "$lib/enums";
 import { get, remove } from '$lib/Web';
+import { unwrap } from '$lib/Alert';
+import { updateStore, userStore } from "../../../stores"
 
 export const ssr = false;
 
@@ -128,7 +131,7 @@ export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	window.fetch = fetch;
 
 	const { user } = await parent();
-	const profile: User = await get(`/user/${encodeURIComponent(params.username)}`);
+	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 	const self = (user?.id === profile.id);
 	
 	let friends: User[] | null = null;
@@ -143,6 +146,8 @@ export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	if (self) {
 		friends = await get(`/user/me/friends`);
 		friendlist = await getFriendList(user.username, drop);
+
+		updateStore(userStore, friends!);
 	}
 
 	console.log("load return: ", { self, friends, friendlist, drop, profile });

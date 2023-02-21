@@ -1,4 +1,4 @@
-import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Inject } from "@nestjs/common";
+import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Inject, ParseIntPipe } from "@nestjs/common";
 import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
 import { IsEnum } from "class-validator";
@@ -74,7 +74,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			where: {
 				user: {
 					id: me.id,
-				}
+				},
 			},
 			relations: {
 				room: {
@@ -83,8 +83,34 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 					},
 					state: {
 						teams: true,
-					}
-				}
+					},
+				},
+			},
+		});
+
+		return members;
+	}
+
+	@Get("joined/id/:id")
+	async joined_id(@Me() me: User, @Param("id", ParseIntPipe) id: number) {
+		const members = await this.member_repo.findOne({
+			where: {
+				room: {
+					id,
+				},
+				user: {
+					id: me.id,
+				},
+			},
+			relations: {
+				room: {
+					members: {
+						user: true,
+					},
+					state: {
+						teams: true,
+					},
+				},
 			},
 		});
 
@@ -107,27 +133,31 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			throw new ForbiddenException(ERR_PERM);
 		}
 
-		if (!member.player) {
-			let player = await this.player_repo.findOneBy({ 
-				user: { 
-					id: member.user.id
-				},
-				team: {
-					state: {
-						id: room.state.id
+		if (team) {
+			if (!member.player) {
+				let player = await this.player_repo.findOneBy({ 
+					user: { 
+						id: member.user.id
+					},
+					team: {
+						state: {
+							id: room.state.id
+						}
 					}
-				}
-			});
+				});
 
-			if (player) {
-				member.player = player;
-			} else {
-				member.player = new Player();
-				member.player.user = member.user;
+				if (player) {
+					member.player = player;
+				} else {
+					member.player = new Player();
+					member.player.user = member.user;
+				}
 			}
+
+			member.player.team = team;
+		} else {
+			member.player = null;
 		}
-		
-		member.player.team = team ? team : null;
 	
 		return await this.member_repo.save(member);
 	}

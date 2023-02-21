@@ -16,10 +16,13 @@ import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { validate_id } from "src/util";
 import { HttpService } from "@nestjs/axios";
 import { catchError, firstValueFrom } from "rxjs";
-import { TENOR_KEY } from "src/vars";
+import { TENOR_KEY, BOUNCER_KEY } from "src/vars";
 import * as linkify from "linkifyjs";
 import axios from "axios";
 import { instanceToPlain } from "class-transformer"
+import { ClientRequest } from "node:http";
+import { createHmac } from "node:crypto";
+import { Embed } from "src/entities/Embed";
 
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
@@ -81,12 +84,29 @@ export class RoomGateway extends ProtectedGateway("room") {
 
 		const links = linkify.find(content, "url");
 		const embeds = [];
+		console.log(links);
 
 		for (const link of links) {
+			if (embeds.length > 3)
+				break;
 			try {
-				const res = await axios.head(link.href);
+				//TODO set maxContentLength to something sane
+				const res = await axios.head(link.href, { maxContentLength: 1000000000 });
 				//TODO find out how revolt detects embed type
-				console.log("axios", res);
+
+				const client = res.request as ClientRequest;
+				const address = client.socket.remoteAddress;
+				//TODO check if address is not a local address
+				//console.log(client.socket.localAddress);
+				const type = res.headers["content-type"];
+				if (typeof type !== "string" || (!type.startsWith("image/") && !type.startsWith("video/")))
+					continue;
+
+				
+				const embed = new Embed();
+				embed.digest = createHmac("sha256", BOUNCER_KEY).update(link.href).digest("hex");
+				embed.url = link.href;
+				embeds.push(embed);
 			} catch {}
 		}
 
@@ -106,6 +126,8 @@ export class RoomGateway extends ProtectedGateway("room") {
 		message.content = content;
 		message.member = member;
 		message.room = { id: Number(client.room)} as ChatRoom;
+		//TODO send the link raw with digest?
+		message.embeds = embeds;
 		
 		message = await this.messageRepo.save(message);
 	

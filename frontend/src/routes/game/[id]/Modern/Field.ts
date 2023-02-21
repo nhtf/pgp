@@ -14,9 +14,11 @@ export class Field {
 	public height: number;
 	public renderLines: Line[];
 	public collisionLines: CollisionLine[];
+	public convexFieldBoxLines: CollisionLine[];
 	public arcs: renderArc[];
 	public gradients: gradient[];
 	public gradientIndexs: boolean[];
+	public playerAreas: CollisionLine[][];
 
 	public constructor(field: field) {
 		this.width = FIELDWIDTH;
@@ -26,6 +28,8 @@ export class Field {
 		this.gradients = field.gradients;
 		this.gradientIndexs = field.gradientIndexs;
 		this.collisionLines = field.collisions;
+		this.convexFieldBoxLines = field.convexFieldBoxLines;
+		this.playerAreas = field.playerAreas;
 	}
 
 	private drawBorder(context: CanvasRenderingContext2D) {
@@ -69,6 +73,18 @@ export class Field {
 	public render(context: CanvasRenderingContext2D) {
 		context.lineCap = 'round';
 		this.drawBorder(context);
+	}
+
+	public getCollisionLines() {
+		return this.collisionLines;
+	}
+
+	public getConvexFieldBoxLines() {
+		return this.convexFieldBoxLines;
+	}
+
+	public getPlayerAreas() {
+		return this.playerAreas;
 	}
 
 	public isInField(entityPos: Vector): boolean {

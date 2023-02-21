@@ -1,17 +1,16 @@
 <script lang="ts">
+    import type { User } from "$lib/entities";
     import { get, post, remove } from '$lib/Web';
     import { io } from 'socket.io-client';
-    import type { User } from "$lib/types";
 	import { Subject, Action, Status } from "$lib/enums";
     import Swal from "sweetalert2";
     import { page } from '$app/stores';
     import { BACKEND_ADDRESS } from '$lib/constants';
     import { onDestroy, onMount } from 'svelte/internal';
-    import type { simpleuser } from "./+page";
     import { Button, Dropdown, DropdownItem, Avatar } from 'flowbite-svelte'
     import { updateManager } from "$lib/updateSocket";
-    import { userStore } from '../../../stores';
 	import "@sweetalert2/theme-dark/dark.scss";
+    import type { simpleuser } from "../../routes/profile/[username]/+page";
 
     const friend_icon = "/Assets/icons/add-friend.png";
 	const status_colors = [ "gray", "yellow", "green" ];
@@ -22,23 +21,12 @@
 
 	let profile: User = $page.data.profile;
     let friends: User[];
+
+    // TODO: user store
     $: friends = $page.data.friends;
     $: placement = window.innerWidth < 750 ? "top" : "left-end";
 
     onMount(() => {
-		userStore.update((users) => {
-			users.set(profile.id, profile);
-			friends.forEach((friend) => {
-				users.set(friend.id, friend);
-			});
-		
-			return users;
-		});
-
-		userStore.subscribe((users) => {
-			friends = friends.map((friend) => users.get(friend.id)!);
-		})
-
         updateManager.set(Subject.FRIEND, updateFriends);
     });
 
@@ -76,6 +64,7 @@
 		await Swal.fire({
 			title: "Add friend",
 			input: "text",
+            color: "var(--text-color)",
 			showCancelButton: true,
 			confirmButtonText: "Add friend",
 			confirmButtonColor: "var(--confirm-color)",
@@ -251,7 +240,7 @@
     <div class="block-vert width-available">
         {#if friends}
         {#key friends}
-            {#each friends as { username, avatar, status, in_game, id }, index}
+            {#each friends as { username, avatar, status, in_game, id }, index (id)}
                 <Button color="alternative" id="avatar_with_name{index}"
                     class="friend-button">
                     <Avatar

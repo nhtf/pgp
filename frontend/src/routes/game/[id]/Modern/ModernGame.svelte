@@ -1,23 +1,29 @@
 <script lang="ts">
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
 	import { page } from "$app/stores";
 	import { Modern } from "./Modern";
 	import { GAME, levels } from "./Constants";
 
 	let canvas: HTMLCanvasElement;
+	
+	let modern: Modern;
 
 	//TODO implement powerups
 	//TODO maybe add sound effects
 	onMount(async () => {
-		const modern = new Modern(canvas, GAME.TWOPLAYERS);
+		modern = new Modern(canvas, GAME.TWOPLAYERS);
 		await modern.init();
-		await modern.start({ room: $page.data.params.id, user: $page.data.user });
+		await modern.start({ room: $page.data.params.id, member: {user: $page.data.user, ...$page.data.member }});
 
 		window.requestAnimationFrame(function render(time) {
 			modern.update(time);
 			window.requestAnimationFrame(render);
 		});
 
+	});
+
+	onDestroy(() => {
+		modern.stop();
 	});
 </script>
 
