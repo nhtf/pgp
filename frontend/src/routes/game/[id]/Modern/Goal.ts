@@ -39,6 +39,13 @@ export class Goal {
         const B = {x: crot * (w + linethickness / 2) + srot * -h, y: -srot * (w + linethickness / 2) + crot * -h};
         const C = {x: crot * (w + linethickness / 2) + srot * h, y: -srot * (w + linethickness / 2) + crot * h};
         const D = {x: crot * (-w -linethickness / 2) + srot * h, y: -srot * (-w -linethickness / 2) + crot * h};
+        
+        console.log("pos: ", this.position);
+        console.log("corners: ", new Vector(A.x + this.position.x, A.y + this.position.y), 
+        new Vector(B.x + this.position.x, B.y + this.position.y), 
+        new Vector(C.x + this.position.x, C.y + this.position.y), 
+        new Vector(D.x + this.position.x, D.y + this.position.y), 
+        );
 
         context.beginPath();
         context.lineJoin = "round";

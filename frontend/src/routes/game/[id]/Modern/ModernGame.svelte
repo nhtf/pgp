@@ -11,7 +11,7 @@
 	//TODO implement powerups
 	//TODO maybe add sound effects
 	onMount(async () => {
-		modern = new Modern(canvas, GAME.TWOPLAYERS);
+		modern = new Modern(canvas, GAME.FOURPLAYERS);
 		await modern.init();
 		await modern.start({ room: $page.data.params.id, member: {user: $page.data.user, ...$page.data.member }});
 

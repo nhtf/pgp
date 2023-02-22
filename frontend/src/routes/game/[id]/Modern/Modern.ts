@@ -243,6 +243,9 @@ export class Game extends Net {
 		this.paddles.forEach(paddle => paddle.render(context));
 		this.paddles.forEach(paddle => paddle.renderCollisionLines(context)); //DEBUG for collisions
 		this.score.render(context, this.scores);
+		// this.field.renderCollisionLines(context);
+		// this.field.renderPlayerAreas(context);
+		// this.field.renderConvexFieldBoxLines(context);
 	}
 
 	//this function is seperate for scaling issues....
@@ -332,6 +335,7 @@ export class Modern {
 	public async init() {
 		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
 			this.field = data;
+			console.log(this.field);
 			this.game = new Game(this.players, this.offscreenCanvas, this.canvas, this.field!);
 		});
 	}

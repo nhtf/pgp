@@ -8,6 +8,13 @@ services:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     expose:
       - "${POSTGRES_PORT}"
+        #  backend:
+        #    image: backend/
+        #    env_file: .env
+        #    ports:
+        #      - "${BACKEND_PORT}:${BACKEND_PORT}"
+        #    expose:
+        #      - "${BACKEND_PORT}"
   proxy:
     image: 'hyxogen/bouncer:latest'
     restart: always

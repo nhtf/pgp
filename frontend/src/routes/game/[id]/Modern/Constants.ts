@@ -38,7 +38,7 @@ export const color_l_s = 'rgba(213, 172, 28, 0.9)';
 export const color_r_f = 'rgba(65, 190, 220, 0.7)';
 export const color_r_s = 'rgba(65, 190, 220, 0.9)';
 export const color_stop = "rgba(50,50,50, 0.95)";
-export const color_border = `rgba(222, 229, 19, 0.9)`;
+export const color_border = `rgba(222, 229, 19, 0.95)`;
 
 export enum players {
     PLAYERONE,
@@ -89,7 +89,7 @@ export type renderArc = {
 export type field = {
     players: number;
     goals: goal[];
-    lines: Line[];
+    lines: Line[][];
     paddles: paddle[];
     gradients: gradient[];
     arcs: renderArc[];
@@ -99,7 +99,7 @@ export type field = {
     playerAreas: CollisionLine[][];
 }
 
-export const levels = ["/Assets/game/twoplayerLevel.json"];
+export const levels = ["/Assets/game/twoplayerLevel.json", "/Assets/game/fourPlayerLevel.json"];
 
 // const field1 = {
 //     players: 2,
@@ -149,3 +149,22 @@ export const levels = ["/Assets/game/twoplayerLevel.json"];
 // };
 
 // export const fields: field[] = [field1,];
+
+
+// 0: (-r/2, r * sqrt(3) / 2) + (x,y)
+// 1: (-r, 0) + (x,y)
+// 2: (-r /2, -r * sqrt(3) / 2) + (x,y)
+// 3: (r/ 2, -r * sqrt(3) / 2) + (x, y)
+// 4: (r, 0) + (x, y)
+// 5: (r/2, r * sqrt(3) / 2) + (x, y)
+// 6: (x,y)
+
+// 0: (115, 12)
+// 1: (70, 90)
+// 2: (115, 168)
+// 3: (205, 168)
+// 4: (250, 90)
+// 5: (205, 12)
+// 6: (160, 90)
+// 7: (160, 12)
+// 8: (160, 168)

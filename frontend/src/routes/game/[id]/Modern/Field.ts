@@ -12,7 +12,7 @@ import type { CollisionLine, Line, Vector } from "../lib2D/Math2D"
 export class Field {
 	public width: number;
 	public height: number;
-	public renderLines: Line[];
+	public renderLines: Line[][];
 	public collisionLines: CollisionLine[];
 	public convexFieldBoxLines: CollisionLine[];
 	public arcs: renderArc[];
@@ -30,49 +30,104 @@ export class Field {
 		this.collisionLines = field.collisions;
 		this.convexFieldBoxLines = field.convexFieldBoxLines;
 		this.playerAreas = field.playerAreas;
+		console.log("field.lines: ", field.lines);
+	}
+
+	//TODO use the renderlines for the gradient and then for border just use the convexFieldBoxLines
+	private drawGradients(context: CanvasRenderingContext2D) {
+		context.lineJoin = "round";
+		let i = 0;
+		let k = 0;
+		console.log(this.renderLines);
+		this.renderLines.forEach((area, j) => {
+			console.log(area);
+			context.beginPath();
+			context.moveTo(area[0].p0.x, area[0].p0.y);
+			area.forEach((line) => {
+				context.lineTo(line.p1.x, line.p1.y);
+				if (this.gradientIndexs[i]) {
+					console.log("gradient: ", i);
+					const gradient = context.createRadialGradient(this.gradients[j].x0, this.gradients[j].y0, this.gradients[j].r0, this.gradients[j].x1, this.gradients[j].y1, this.gradients[j].r1);
+					gradient.addColorStop(1, this.gradients[j].c1);
+					gradient.addColorStop(0, this.gradients[j].c0);
+					context.fillStyle = gradient;
+					context.fill();
+				}
+				k = j;
+				i += 1;
+			})
+		});
+		const gradient = context.createRadialGradient(this.gradients[k].x0, this.gradients[k].y0, this.gradients[k].r0, this.gradients[k].x1, this.gradients[k].y1, this.gradients[k].r1);
+		gradient.addColorStop(1, this.gradients[k].c1);
+		gradient.addColorStop(0, this.gradients[k].c0);
+		context.fillStyle = gradient;
+		context.fill();
 	}
 
 	private drawBorder(context: CanvasRenderingContext2D) {
-		context.lineWidth = linethickness;
 		context.strokeStyle = color_border;
 		context.lineJoin = "round";
-		context.beginPath();
-		let move = true;
-		let j = 0;
-		this.renderLines.forEach((line, i) => {
-			if (move) {
-				context.moveTo(line.p0.x, line.p0.y);
-				move = false;
-			}
+		this.convexFieldBoxLines.forEach((line, i) => {
+			context.lineWidth = 2;
+			context.beginPath();
+			context.moveTo(line.p0.x, line.p0.y);
 			context.lineTo(line.p1.x, line.p1.y);
-			if (this.arcs[i].angle1 > 0 || this.arcs[i].angle2 > 0)
-				context.arc(this.arcs[i].pos.x, this.arcs[i].pos.y, b_r, this.arcs[i].angle1, this.arcs[i].angle2);
-			if (this.gradientIndexs[i]) {
-				const gradient = context.createRadialGradient(this.gradients[j].x0, this.gradients[j].y0, this.gradients[j].r0, this.gradients[j].x1, this.gradients[j].y1, this.gradients[j].r1);
-				gradient.addColorStop(1, this.gradients[j].c1);
-				gradient.addColorStop(0, this.gradients[j].c0);
-				context.fillStyle = gradient;
-				context.closePath();
-				context.stroke();
-				context.fill();
-				context.beginPath();
-				move = true;
-				j += 1;
-			}
+			context.stroke();
 		});
-		//This is the last gradient
-		const gradient = context.createRadialGradient(this.gradients[j].x0, this.gradients[j].y0, this.gradients[j].r0, this.gradients[j].x1, this.gradients[j].y1, this.gradients[j].r1);
-		gradient.addColorStop(1, this.gradients[j].c1);
-		gradient.addColorStop(0, this.gradients[j].c0);
-		context.fillStyle = gradient;
-		context.closePath();
-		context.stroke();
-		context.fill();
+
+		this.arcs.forEach((arc) => {
+			context.lineWidth = 1.8;
+			context.beginPath();
+			context.arc(arc.pos.x, arc.pos.y, b_r, arc.angle1, arc.angle2);
+			context.stroke();
+		});
 	}
 
 	public render(context: CanvasRenderingContext2D) {
 		context.lineCap = 'round';
+		this.drawGradients(context);
 		this.drawBorder(context);
+	}
+
+	public renderCollisionLines(context: CanvasRenderingContext2D) {
+		context.lineCap = 'round';
+		context.strokeStyle = "red";
+		this.collisionLines.forEach((line, i) => {
+			context.beginPath();
+			context.moveTo(line.p0.x, line.p0.y);
+			context.lineTo(line.p1.x, line.p1.y);
+			context.stroke();
+		});
+	}
+
+	private renderPlayerArea(context: CanvasRenderingContext2D, area: CollisionLine[]) {
+		context.lineCap = 'round';
+		context.strokeStyle = "white";
+		area.forEach((line) => {
+			context.beginPath();
+			context.moveTo(line.p0.x, line.p0.y);
+			context.lineTo(line.p1.x, line.p1.y);
+			context.stroke();
+		});
+	}
+
+	public renderPlayerAreas(context: CanvasRenderingContext2D) {
+		
+		this.playerAreas.forEach((area) => {
+			this.renderPlayerArea(context, area);
+		});
+
+	}
+
+	public renderConvexFieldBoxLines(context: CanvasRenderingContext2D) {
+		context.lineCap = 'round';
+		context.strokeStyle = "orange";
+		this.convexFieldBoxLines.forEach((line, i) => {
+			context.beginPath();
+			context.moveTo(line.p0.x, line.p0.y);
+			context.lineTo(line.p1.x, line.p1.y);
+			context.stroke();
+		});
 	}
 
 	public getCollisionLines() {

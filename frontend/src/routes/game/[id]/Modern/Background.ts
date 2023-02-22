@@ -130,6 +130,6 @@ export class Background {
         this.drawGrid(context);
         this.goals.forEach((goal) => goal.render(context));
         this.field.render(context);
-        this.drawMiddleLine(context);
+        // this.drawMiddleLine(context);
     }
 }
