@@ -1,4 +1,4 @@
-import type { GameRoom } from "$lib/entities";
+import type { GameRoom, Member } from "$lib/entities";
 import type { PageLoad } from "./$types"
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
@@ -8,8 +8,8 @@ export const ssr = false;
 export const load: PageLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	const joined = await unwrap(get(`/game/joined`));
-	const joinable = await unwrap(get(`/game?member=false`));
+	const joined: any[] = await unwrap(get(`/game/joined`));
+	const joinable: GameRoom[] = await unwrap(get(`/game?member=false`));
 	const rooms: GameRoom[] = [];
 
 	for (let member of joined) {
@@ -23,7 +23,7 @@ export const load: PageLoad = (async ({ fetch }) => {
 		rooms.push(room);
 	}
 
-	console.log(rooms);
+	// console.log(rooms);
 	
 	return { rooms };
 }) satisfies PageLoad;

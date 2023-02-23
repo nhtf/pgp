@@ -7,21 +7,18 @@ export async function respond(invite: Invite, action: "accept" | "deny") {
 		case "GameRoom":
 			const url_type = invite.type.replace("Room", "").toLowerCase();
 		
-			if (action === "deny") {
-				await remove(`/${url_type}/id/${invite.room?.id}/invite/${invite.id}`);
-			} else {
+			if (action === "accept") {
 				await post(`/${url_type}/id/${invite.room?.id}/members`);
+			} else {
+				await remove(`/${url_type}/id/${invite.room?.id}/invite/${invite.id}`);
 			}
 			break;
 		case "Friend":
-			if (action === "deny") {
-				await remove(`/user/me/friends/requests/${invite.id}`);
-			} else {
+			if (action === "accept") {
 				await post(`/user/me/friends/requests/`, { id: invite.from.id });
+			} else {
+				await remove(`/user/me/friends/requests/${invite.id}`);
 			}
 			break;
 	}
-
-	//TODO this one probably not needed anymore
-	// await invalidate(`${BACKEND}/user/me/invites`); //TODO thanks chen en daan for this stupid function that makes it properly update a component when it's data changes
 }

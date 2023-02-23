@@ -58,6 +58,7 @@
 		{ value: 0, name: "Classic" },
 		{ value: 1, name: "VR" },
 		{ value: 2, name: "Modern" },
+		{ value: 3, name: "Modern 4p" },
 	];
 
 </script>

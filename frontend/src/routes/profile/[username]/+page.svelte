@@ -8,7 +8,7 @@
 
 <div class="block-container">
 	<Info/>
-	{#if data.self}
+	{#if data.user?.id === data.profile.id}
 		<Friends/>
 	{/if}
 </div>

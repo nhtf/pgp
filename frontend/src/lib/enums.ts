@@ -27,7 +27,8 @@ export enum Access {
 export enum Gamemode {
 	REGULAR,
 	VR,
-	MODERN
+	MODERN,
+	MODERN4P
 };
 
 export enum Status {

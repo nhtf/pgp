@@ -1,10 +1,9 @@
-import { BACKEND } from "./constants";
+import { BACKEND, BOUNCER } from "./constants";
 
 export async function json(
 	input: RequestInfo | URL,
 	info?: RequestInit | undefined,
 ): Promise<any> {
-
 	const response = await window.fetch(input, info);
 	const status = response.status;
 	const data = await response.json();
@@ -17,7 +16,7 @@ export async function json(
 }
 
 export async function get(pathname: string, query?: any) {
-	return await json(`${BACKEND}${pathname}${query ? `?${new URLSearchParams(query).toString()}` : ''}`, {
+	return await json(`${BACKEND}${pathname}${query ? `?${new URLSearchParams(query)}` : ''}`, {
 		credentials: "include",
 	});
 }
@@ -54,15 +53,13 @@ export async function put(pathname: string, body: any, stringify: boolean) {
 			},
 			body: JSON.stringify(body),
 		});
-	}
-	else {
+	} else {
 		return await json(`${BACKEND}${pathname}`, {
 			credentials: "include",
 			method: "PUT",
 			body: body,
 		});
 	}
-
 }
 
 export async function remove(pathname: string, body?: any) {
@@ -74,4 +71,8 @@ export async function remove(pathname: string, body?: any) {
 		},
 		body: JSON.stringify(body),
 	});
+}
+
+export async function bounceEmbed(digest: string, url: string) {
+	return await json(`${BOUNCER}/${digest}/embed?${new URLSearchParams({ url })}`);
 }

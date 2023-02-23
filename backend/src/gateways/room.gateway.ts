@@ -99,13 +99,22 @@ export class RoomGateway extends ProtectedGateway("room") {
 				//TODO check if address is not a local address
 				//console.log(client.socket.localAddress);
 				const type = res.headers["content-type"];
-				if (typeof type !== "string" || (!type.startsWith("image/") && !type.startsWith("video/")))
+
+				if (typeof type !== "string")
 					continue;
 
-				
 				const embed = new Embed();
 				embed.digest = createHmac("sha256", BOUNCER_KEY).update(link.href).digest("hex");
 				embed.url = link.href;
+				
+				if (type.startsWith("text/html")) {
+					embed.rich = true;
+				} else if (type.startsWith("image/") || type.startsWith("video/")) {
+					embed.rich = false;
+				} else {
+					continue;
+				}
+				
 				embeds.push(embed);
 			} catch {}
 		}

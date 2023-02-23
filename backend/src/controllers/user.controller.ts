@@ -238,19 +238,10 @@ export function GenericUserController(route: string, options: { param: string, c
 
 			user.friends.splice(friend_idx, 1);
 			friend.friends.splice(user_idx, 1);
-			await this.user_repo.save([user, friend]);
-			await this.update_service.send_update({
-				subject: Subject.FRIEND,
-				id: user.id,
-				action: Action.REMOVE,
-				value: instanceToPlain(friend)
-			}, user);
-			await this.update_service.send_update({
-				subject: Subject.FRIEND,
-				id: friend.id,
-				action: Action.REMOVE,
-				value: instanceToPlain(user)
-			}, friend);
+			[user, friend] = await this.user_repo.save([user, friend]);
+
+			user.send_friend_update(friend, Action.REMOVE);
+			friend.send_friend_update(user, Action.REMOVE);
 
 			return {};
 		}
@@ -316,22 +307,10 @@ export function GenericUserController(route: string, options: { param: string, c
 				target.add_friend(user);
 
 				await this.request_repo.remove(request);
-				await this.user_repo.save([user, target]);
+				[user, target] = await this.user_repo.save([user, target]);
 
-				delete user.friends;
-				delete target.friends;
-				await this.update_service.send_update({
-					subject: Subject.FRIEND,
-					id: user.id,
-					action: Action.ADD,
-					value: instanceToPlain(target)
-				}, user);
-				await this.update_service.send_update({
-					subject: Subject.FRIEND,
-					id: target.id,
-					action: Action.ADD,
-					value: instanceToPlain(user)
-				}, target);
+				await user.send_friend_update(target, Action.ADD);
+				await target.send_friend_update(user, Action.ADD);
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;

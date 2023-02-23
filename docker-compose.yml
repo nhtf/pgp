@@ -15,11 +15,11 @@ services:
         #      - "${BACKEND_PORT}:${BACKEND_PORT}"
         #    expose:
         #      - "${BACKEND_PORT}"
-  proxy:
-    image: 'hyxogen/bouncer:latest'
-    restart: always
-    env_file: .env
-    ports:
-      - "${BOUNCER_PORT}:${BOUNCER_PORT}"
-    expose:
-      - "${BOUNCER_PORT}"
+  # proxy:
+  #   image: 'hyxogen/bouncer:latest'
+  #   restart: always
+  #   env_file: .env
+  #   ports:
+  #     - "${BOUNCER_PORT}:${BOUNCER_PORT}"
+  #   expose:
+  #     - "${BOUNCER_PORT}"

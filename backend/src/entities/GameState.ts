@@ -1,11 +1,15 @@
 import { Team } from "./Team";
-import { Exclude, Expose } from "class-transformer";
+import { Exclude } from "class-transformer";
 import { Column, OneToMany, OneToOne, PrimaryGeneratedColumn, Entity, JoinColumn } from "typeorm";
 import { Gamemode } from "src/enums/Gamemode";
 import { GameRoom } from "./GameRoom";
 
 @Entity()
 export class GameState {
+	constructor(gamemode?: Gamemode) {
+		this.gamemode = gamemode ?? null;
+	}
+
 	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;

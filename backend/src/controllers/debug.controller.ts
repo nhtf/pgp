@@ -201,6 +201,17 @@ export class DebugController {
 		return await this.memberRepo.save(member);
 	}
 
+	@Get("room/demote")
+	async demote(@Query("id") id: string) {
+		const member = await this.memberRepo.findOneBy({ id: Number(id) });
+	
+		if (member.role > 0) {
+			member.role -= 1;
+		}
+
+		return await this.memberRepo.save(member);
+	}
+
 	@Get("test")
 	@UseGuards(HttpAuthGuard)
 	async test() {

@@ -1,4 +1,3 @@
-import { FriendRequest } from "./FriendRequest";
 import { Member } from "./Member";
 import { AuthLevel } from "../enums/AuthLevel";
 import {
@@ -12,6 +11,7 @@ import {
 	BeforeRemove,
 	AfterInsert,
 	CreateDateColumn,
+	RelationId,
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
@@ -69,6 +69,9 @@ export class User {
 	@JoinTable()
 	friends: User[];
 
+	// TODO: check if used
+	invites: Invite[];
+
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
 	members: Member[];
@@ -100,25 +103,23 @@ export class User {
 
 	@Expose()
 	get avatar(): string {
-		return BACKEND_ADDRESS + "/" + this.avatar_path;
+		return `${BACKEND_ADDRESS}/${this.avatar_path}`;
 	}
 
 	get avatar_basename(): string {
-		return this.avatar_base + AVATAR_EXT;
+		return `${this.avatar_base}${AVATAR_EXT}`;
 	}
 
 	get avatar_path(): string {
-		return join(AVATAR_DIR, this.avatar_basename);
+		return `${AVATAR_DIR}/${this.avatar_basename}`;
 	}
 
 	async add_friend(target: User) {
-		const user_friends = this.friends;
-	
-		if (user_friends) {
-			user_friends.push(target);
-		} else {
-			this.friends = [target];
+		if (!this.friends) {
+			this.friends = [];
 		}
+	
+		this.friends.push(target);
 	}
 
 	async send_update(action: Action) {
@@ -130,16 +131,25 @@ export class User {
 		});
 	}
 
+	async send_friend_update(friend: User, action: Action) {
+		await UpdateGateway.instance.send_update({
+			subject: Subject.FRIEND,
+			id: friend.id,
+			action,
+			value: instanceToPlain(friend),
+		}, this);
+	}
+
 	@AfterInsert()
 	async afterInsert() {
 		await this.send_update(Action.ADD);
 	}
 
-	@AfterUpdate()
-	async afterUpdate() {
-		// TODO: reduce amount
-		// await this.send_update(Action.SET);
-	}
+	// Waaay to many updates, do not use
+	// @AfterUpdate()
+	// async afterUpdate() {
+	// 	await this.send_update(Action.SET);
+	// }
 
 	@BeforeRemove()
 	async beforeRemove() {

@@ -426,3 +426,8 @@ table {
 	border-bottom-color: var(--border-color) !important;
 	border-bottom-width: 2px !important;
 }
+
+@font-face {
+	font-family: "pong";
+	src: url("/Assets/fonts/Pixeled.ttf");
+}

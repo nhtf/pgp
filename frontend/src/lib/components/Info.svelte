@@ -10,6 +10,12 @@
 	import * as validator from "validator";
 	import { BACKEND } from "$lib/constants";
 
+	const edit_icon = "/Assets/icons/pen.png";
+
+	let profile: User;
+
+	$: profile = $page.data.profile;
+
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)
 			return;
@@ -22,13 +28,6 @@
 			}
 		}
 	}
-
-	let profile: User;
-
-	$: profile = $page.data.profile;
-	$: username = profile.username;
-
-	const edit_icon = "/Assets/icons/pen.png";
 
 	async function changeUsername() {
 		await Swal.fire({
@@ -51,8 +50,8 @@
 					return "Username may not contain tabs, newlines etc.";
 				return null;
 			},
-			preConfirm: (username) => {
-				return put("/user/me/username", { username }, true).catch(error => {
+			preConfirm: async (username) => {
+				return await put("/user/me/username", { username }, true).catch(error => {
 						Swal.showValidationMessage(error.message);
 					});
 			},
@@ -60,8 +59,6 @@
 			if (result.isConfirmed) {
 				const newUsername = result.value.username;
 				profile = newUsername;
-				username = newUsername;
-				console.log($page.data.user.username, $page.data.profile.username);
 				await goto(`/profile/${encodeURIComponent(newUsername)}`);
 				
 				Swal.fire({
@@ -85,8 +82,8 @@
 	<div class="block-hor" id="user-block">
 		<div class="block-cell" id="user-name-block">
 			<div class="block-hor">
-				<h1>{$page.params.username}</h1>
-				{#if username === profile.username}
+				<h1>{profile.username}</h1>
+				{#if $page.data.user.id === profile.id}
 					<img src={edit_icon} alt="edit icon" id="edit-icon"
 					on:click={changeUsername}
 					on:keypress={changeUsername}
@@ -131,11 +128,11 @@
 		</div>
 	</div>
 	{#if !$page.data.user?.in_game}
-	<div class="block-hor">
-		<div class="block-cell">
-			<p>Current game stats</p>
+		<div class="block-hor">
+			<div class="block-cell">
+				<p>Current game stats</p>
+			</div>
 		</div>
-	</div>
 	{/if}
 </div>
 

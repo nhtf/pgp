@@ -8,6 +8,7 @@
 	//TODO cap the speed of the ball
 
 	let classic: Classic;
+	let frame: number;
 
 	onMount(async () => {
 		classic = new Classic(canvas);
@@ -22,14 +23,15 @@
 			},
 		});
 
-		window.requestAnimationFrame(function render(time) {
+		frame = window.requestAnimationFrame(function render(time) {
 			classic.update(time);
-			window.requestAnimationFrame(render);
+			frame = window.requestAnimationFrame(render);
 		});
 	});
 
 	onDestroy(() => {
 		classic?.stop();
+		cancelAnimationFrame(frame);
 	});
 </script>
 

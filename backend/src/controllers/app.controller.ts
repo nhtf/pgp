@@ -13,7 +13,7 @@ import {
 	genName
 } from "../namegen";
 import validator from "validator";
-import axios from "axios";
+import axios, { AxiosResponse } from "axios";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";
 
@@ -38,7 +38,7 @@ export class AppController {
 			throw new BadRequestException("Invalid URL");
 		}
 
-		let response;
+		let response: AxiosResponse;
 
 		try {
 			response = await axios.get(url, { responseType: "stream" });

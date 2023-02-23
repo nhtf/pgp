@@ -71,7 +71,7 @@ export class State {
 		for (let player of this.players) {
 			players.push({
 				user: player.user,
-				team: this.teams.indexOf(player.team),
+				team: player.team.id,
 			});
 		}
 

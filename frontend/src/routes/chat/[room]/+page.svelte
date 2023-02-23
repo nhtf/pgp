@@ -9,7 +9,7 @@
 	import { goto } from "$app/navigation";
 	import { Subject, Role, Access } from "$lib/enums";
 	import { updateManager } from "$lib/updateSocket";
-	import { Button, Checkbox, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
+	import { Checkbox, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
 	import { memberStore } from "../../../stores";
     import { icon_path } from "$lib/constants";
 	import Invite from "$lib/components/Invite.svelte"
@@ -24,10 +24,15 @@
 	let messages = data.messages.sort(dateCmp)
 	let self = data.members.find((member) => member.user.id === data.user!.id)!;
 
-	
 	$: room;
-	$: messages;
+	$: members = [...$memberStore].map(([id, member]) => member).filter((member) => member.roomId === room.id);
 	$: self = $memberStore.get(self.id)!;
+
+	$: owner = members.find((member) => member.role === Role.OWNER)!;
+	$: admins = members.filter((member) => member.role === Role.ADMIN);
+	$: plebs = members.filter((member) => member.role === Role.MEMBER);
+
+	$: messages;
 	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
 
 	let content = "";
@@ -107,34 +112,33 @@
 
 			<!-- TODO: dont scroll when opening -->
 			<!-- TODO: Add colors to buttons -->
-			<button class="button red">Settings</button>
-			<Dropdown>
-				{#if self?.role >= Role.OWNER}
-					<input
-						class="input"
-						placeholder={room.name}
-						bind:value={name}
-					/>
-					<input
-						class="input"
-						placeholder="password"
-						bind:value={password}
-					/>
-					<Checkbox bind:checked={is_private} class="checkbox"
-						>Private</Checkbox
-					>
-					<DropdownItem on:click={() => edit(room)}>Edit</DropdownItem>
-					<DropdownDivider/>
-					<DropdownItem on:click={() => erase(room)}>Delete</DropdownItem>
-				{:else}
-					<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
-				{/if}
-			</Dropdown>
-			{#if self?.role >= Role.OWNER}
-				<button class="button red" on:click={() => erase(room)}>Delete</button>
+			{#if self?.role > Role.MEMBER}
+				<button class="button red">Settings</button>
+				<Dropdown>
+					{#if self?.role >= Role.OWNER}
+						<input
+							class="input"
+							placeholder={room.name}
+							bind:value={name}
+						/>
+						<input
+							class="input"
+							placeholder="password"
+							bind:value={password}
+						/>
+						<Checkbox bind:checked={is_private} class="checkbox"
+							>Private</Checkbox
+						>
+						<DropdownItem on:click={() => edit(room)}>Edit</DropdownItem>
+						<DropdownDivider/>
+						<DropdownItem on:click={() => erase(room)}>Delete</DropdownItem>
+					{:else}
+						<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
+					{/if}
+				</Dropdown>
 			{:else}
 				<button class="button red" on:click={() => leave(room)}>Leave</button>
-			{/if}
+			{/if}				
 		</div>
 
 		<div class="messages">
@@ -169,21 +173,20 @@
 	</div>
 	<div class="member-container">
 		<div class="member-group">
-			<MemberBox member={[...$memberStore].map(([id, member]) => member).find((member) => member.role === Role.OWNER)}/>
+			<MemberBox target={owner} {self}/>
 		</div>
 		<div/>
 		<div class="member-group">
-			{#each [...$memberStore].filter(([id, member]) => member.role === Role.ADMIN) as [id, member] (id)}
-				<MemberBox {member}/>
+			{#each admins as member (member.id)}
+				<MemberBox target={member} {self}/>
 			{/each}
 		</div>
 		<div/>
 		<div class="member-group">
-			{#each [...$memberStore].filter(([id, member]) => member.role === Role.MEMBER) as [id, member] (id)}
-				<MemberBox {member}/>
+			{#each plebs as member (member.id)}
+				<MemberBox target={member} {self}/>
 			{/each}
 		</div>
-
 	</div>
 </div>
 
@@ -206,6 +209,7 @@
 	.member-group {
 		display: flex;
 		flex-direction: column;
+		gap: 1em;
 	}
 
 	.room-container {

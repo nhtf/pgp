@@ -104,32 +104,11 @@ export class Background {
         }
     }
 
-    private drawMiddleLine(context: CanvasRenderingContext2D) {
-        context.save();
-        context.lineCap = 'square';
-        context.strokeStyle = `rgba(200,200,200,0.9)`;
-        context.fillStyle = 'rgba(100,100,100,1)';
-        context.lineWidth = linethickness;
-        context.beginPath();
-        context.moveTo(this.width / 2, border);
-        context.lineTo(this.width / 2, this.height / 2 - this.r);
-        context.arc(this.width / 2, this.height / 2, this.r, 1.5 * Math.PI,  0.5 * Math.PI);
-        context.moveTo(this.width / 2, this.height / 2 - this.r);
-        context.arc(this.width / 2, this.height / 2, this.r, 1.5 * Math.PI,  0.5 * Math.PI, true);
-        context.fill();
-        context.moveTo(this.width / 2, this.height / 2 + this.r);
-        context.lineTo(this.width / 2, this.height - border);
-        context.closePath();
-        context.stroke();
-        context.restore();
-    }
-
     public render(context: CanvasRenderingContext2D) {
         context.lineCap = 'round';
         this.drawStars(context);
         this.drawGrid(context);
         this.goals.forEach((goal) => goal.render(context));
-        this.field.render(context);
-        // this.drawMiddleLine(context);
+        this.field.render(context);        
     }
 }

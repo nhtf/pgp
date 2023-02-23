@@ -258,8 +258,8 @@ export class Pong extends World {
 
 		this.rightController = this.renderer.xr.getController(0);
 		this.leftController = this.renderer.xr.getController(1);
-		this.rightController.addEventListener("connected", e => this.controllerConnected(e));
-		this.leftController.addEventListener("connected", e => this.controllerConnected(e));
+		this.rightController.addEventListener("connected", e => this.controllerConnected(e, 0));
+		this.leftController.addEventListener("connected", e => this.controllerConnected(e, 1));
 		this.cameraGroup.add(this.rightController);
 		this.cameraGroup.add(this.leftController);
 
@@ -285,6 +285,8 @@ export class Pong extends World {
 			if (ball === null && paddle !== null && paddle instanceof Paddle) {
 				const team = this.state!.players.find(player => player.user == paddle.userID)!.team;
 
+				console.log(this.state);
+
 				if (this.state!.current == team) {
 					this.create({
 						name: "ball",
@@ -308,13 +310,21 @@ export class Pong extends World {
 		});
 	}
 
-	private controllerConnected(event: any) {
-		if (event.data.gamepad.hand === "left") {
-			this.leftController = event.target;
-			this.leftGamepad = event.data.gamepad;
-		} else if (event.data.gamepad.hand === "right") {
-			this.rightController = event.target;
-			this.rightGamepad = event.data.gamepad;
+	private controllerConnected(event: any, index: number) {
+		if (!event.data.gamepad) {
+			if (index === 0) {
+				this.leftController = event.target;
+			} else {
+				this.rightController = event.target;
+			}
+		} else {
+			if (event.data.gamepad.hand === "left") {
+				this.leftController = event.target;
+				this.leftGamepad = event.data.gamepad;
+			} else if (event.data.gamepad.hand === "right") {
+				this.rightController = event.target;
+				this.rightGamepad = event.data.gamepad;
+			}
 		}
 	}
 

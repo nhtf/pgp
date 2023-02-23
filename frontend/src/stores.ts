@@ -1,4 +1,4 @@
-import type { User, Member, Invite } from "$lib/entities"
+import type { Entity, User, Member, Invite } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -26,7 +26,7 @@ function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 	});
 }
 
-export function updateStore<T extends { id: number }>(store: Writable<Map<number, T>>, entities: T[]) {
+export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T[]) {
 	store.update((old) => {
 		entities.forEach((entity) => {
 			old.set(entity.id, entity)

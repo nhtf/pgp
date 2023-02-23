@@ -24,6 +24,7 @@
 		`${icon_path}/pong-classic.svg`,
 		`${icon_path}/vr.svg`,
 		`${icon_path}/hexagon.svg`,
+		`${icon_path}/hexagon4p.svg`,
 	];
 	
 	const icon = gamemode_icons[room.gamemode as Gamemode];
@@ -55,6 +56,11 @@
 
 		await goto(`/${url_type}/${room.id}`);
 	}
+
+	function byId(first: Team, second: Team) {
+		return first.id - second.id;
+	}
+
 </script>
 
 <div class="room">
@@ -88,7 +94,7 @@
 				<button class="button blue" on:click={() => joinTeam(room, null)}>Spectate</button>
 			{/if}
 			{#if room.teams} 
-				{#each room.teams as team}
+				{#each room.teams.sort(byId) as team}
 					{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
 						<button class="button blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
 					{/if}
@@ -127,8 +133,8 @@
 	}
 
 	.icon {
-		width: 20px;
-		height: 20px;
+		width: 25px;
+		height: 25px;
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
 		margin-left: 0.5rem;

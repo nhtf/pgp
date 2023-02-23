@@ -173,6 +173,18 @@ export class Game extends Net {
 	public render(context: CanvasRenderingContext2D) {
 		context.fillStyle = "black";
 		context.fillRect(0, 0, WIDTH, HEIGHT);
+		context.lineWidth = .75;
+		context.beginPath();
+		context.setLineDash([2,2]);
+		context.moveTo(WIDTH / 2, 0);
+		context.lineTo(WIDTH / 2, HEIGHT);
+		context.strokeStyle = "white";
+		context.stroke();
+		context.closePath();
+		context.fillStyle = "white";
+		context.font = "8px pong";
+		context.fillText(this.teams[0].score.toString(), WIDTH / 4, 14);
+		context.fillText(this.teams[1].score.toString(), 3 * WIDTH / 4, 14);
 	
 		this.ball.render(context);
 		this.paddles.forEach(paddle => paddle.render(context));
@@ -195,12 +207,12 @@ export class Game extends Net {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name == "wall-left") {
-				/* TODO: Point to team right */
+				/* Point to team right */
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(1, 0);
 				break;
 			} else if (collision[0].name == "wall-right") {
-				/* TODO: Point to team left */
+				/* Point to team left */
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(-1, 0);
 				break;
@@ -224,7 +236,6 @@ export class Game extends Net {
 				paddle.userID = undefined;
 			}
 		}
-
 		super.lateTick();
 	}
 
@@ -291,6 +302,8 @@ export class Classic {
 		this.context.fillText(`down: ${Math.floor(this.game.bandwidthDownload.averageOverTime())}Bps`, 0, 32);
 		this.context.fillText(`up: ${Math.floor(this.game.bandwidthUpload.averageOverTime())}Bps`, 0, 48);
 		this.context.fillText(`tick: ${Math.floor(this.game.tickCounter.averageOverTime())}ps`, 0, 64);
+
+		
 	}
 
 	public async start(options: Options) {
@@ -303,7 +316,6 @@ export class Classic {
 
 			const x = Math.floor((ev.offsetX - xOffset) / minScale);
 			const y = Math.floor((ev.offsetY - yOffset) / minScale);
-
 			if (options.member.player != null) {
 				this.game.send("move", {
 					u: options.member.user.id,

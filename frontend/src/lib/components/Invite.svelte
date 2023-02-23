@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { page } from "$app/stores";
 	import { unwrap } from "$lib/Alert";
 	import type { Member, Room, User } from "$lib/entities";
 	import { get, post } from "$lib/Web";
@@ -10,15 +11,19 @@
 
 	const url_type = room.type.replace("Room", "").toLowerCase();
 
+	let self: User = $page.data.user;
 	let members: Member[] = [];
 	let invitee = "";
 	let open = false;
-	
-	$: members;
-	$: ids = members.map((member) => member.user.id);
-	$: invitable = [...$userStore]
+
+	$: self = $userStore.get(self.id)!;
+	$: friends = [...$userStore]
 		.map(([id, user]) => user)
-		.filter((user) => !ids.includes(user.id));
+		.filter((user) =>
+			self.friends?.map((friend) => friend.id).includes(user.id)
+		);
+	$: member_user_ids = members.map((member) => member.user.id);
+	$: invitable = friends.filter((user) => !member_user_ids.includes(user.id));
 	$: matches = invitable.filter(match);
 
 	async function invite(room: Room) {
@@ -30,7 +35,9 @@
 			});
 		}
 
-		await unwrap(post(`/${url_type}/id/${room.id}/invite`, { username: invitee }));
+		await unwrap(
+			post(`/${url_type}/id/${room.id}/invite`, { username: invitee })
+		);
 
 		Swal.fire({ icon: "success", timer: 1000 });
 	}
@@ -48,12 +55,18 @@
 	class="input"
 	placeholder="Username"
 	bind:value={invitee}
-	on:input={() => matches = invitable.filter(match)}
+	on:input={() => (matches = invitable.filter(match))}
 	on:focus|once={fetchMembers}
 />
-<Dropdown bind:open={open}>
+<Dropdown bind:open>
 	{#each matches as { id, username, avatar } (id)}
-		<DropdownItem on:click={() => { invitee = username; open = false; }} class="flex gap-1">
+		<DropdownItem
+			on:click={() => {
+				invitee = username;
+				open = false;
+			}}
+			class="flex gap-1"
+		>
 			<Avatar class="avatar" src={avatar} />
 			<div>{username}</div>
 		</DropdownItem>

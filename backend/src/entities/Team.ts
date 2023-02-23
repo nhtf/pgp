@@ -5,6 +5,10 @@ import { Player } from "./Player";
 
 @Entity()
 export class Team {
+	constructor(name?: string) {
+		this.name = name ?? null;
+	}
+
 	@PrimaryGeneratedColumn()
 	id: number;
 

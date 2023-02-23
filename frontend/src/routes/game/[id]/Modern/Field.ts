@@ -4,6 +4,7 @@ import {
 	linethickness,
 	color_border,
 	b_r,
+	border,
 } from "./Constants";
 
 import type { field, renderArc, gradient } from "./Constants";
@@ -17,51 +18,34 @@ export class Field {
 	public convexFieldBoxLines: CollisionLine[];
 	public arcs: renderArc[];
 	public gradients: gradient[];
-	public gradientIndexs: boolean[];
 	public playerAreas: CollisionLine[][];
 
 	public constructor(field: field) {
-		this.width = FIELDWIDTH;
-		this.height = FIELDHEIGHT;
+		this.width = field.width;
+		this.height = field.height;
 		this.renderLines = field.lines;
 		this.arcs = field.arcs;
 		this.gradients = field.gradients;
-		this.gradientIndexs = field.gradientIndexs;
 		this.collisionLines = field.collisions;
 		this.convexFieldBoxLines = field.convexFieldBoxLines;
 		this.playerAreas = field.playerAreas;
-		console.log("field.lines: ", field.lines);
 	}
 
-	//TODO use the renderlines for the gradient and then for border just use the convexFieldBoxLines
 	private drawGradients(context: CanvasRenderingContext2D) {
 		context.lineJoin = "round";
-		let i = 0;
-		let k = 0;
-		console.log(this.renderLines);
 		this.renderLines.forEach((area, j) => {
 			console.log(area);
 			context.beginPath();
 			context.moveTo(area[0].p0.x, area[0].p0.y);
 			area.forEach((line) => {
 				context.lineTo(line.p1.x, line.p1.y);
-				if (this.gradientIndexs[i]) {
-					console.log("gradient: ", i);
-					const gradient = context.createRadialGradient(this.gradients[j].x0, this.gradients[j].y0, this.gradients[j].r0, this.gradients[j].x1, this.gradients[j].y1, this.gradients[j].r1);
-					gradient.addColorStop(1, this.gradients[j].c1);
-					gradient.addColorStop(0, this.gradients[j].c0);
-					context.fillStyle = gradient;
-					context.fill();
-				}
-				k = j;
-				i += 1;
-			})
+			});
+			const gradient = context.createRadialGradient(this.gradients[j].x0, this.gradients[j].y0, this.gradients[j].r0, this.gradients[j].x1, this.gradients[j].y1, this.gradients[j].r1);
+			gradient.addColorStop(1, this.gradients[j].c1);
+			gradient.addColorStop(0, this.gradients[j].c0);
+			context.fillStyle = gradient;
+			context.fill();
 		});
-		const gradient = context.createRadialGradient(this.gradients[k].x0, this.gradients[k].y0, this.gradients[k].r0, this.gradients[k].x1, this.gradients[k].y1, this.gradients[k].r1);
-		gradient.addColorStop(1, this.gradients[k].c1);
-		gradient.addColorStop(0, this.gradients[k].c0);
-		context.fillStyle = gradient;
-		context.fill();
 	}
 
 	private drawBorder(context: CanvasRenderingContext2D) {
@@ -83,10 +67,33 @@ export class Field {
 		});
 	}
 
+	private drawMiddleLine(context: CanvasRenderingContext2D) {
+        context.save();
+        context.lineCap = 'square';
+        context.strokeStyle = `rgba(200,200,200,0.9)`;
+        context.fillStyle = 'rgba(100,100,100,1)';
+        context.lineWidth = linethickness;
+		const r = 16;
+		const offset = (FIELDHEIGHT - this.height) / 2;
+        context.beginPath();
+        context.moveTo(this.width / 2, offset);
+        context.lineTo(this.width / 2, FIELDHEIGHT / 2 - r);
+        context.arc(this.width / 2, FIELDHEIGHT / 2, r, 1.5 * Math.PI,  0.5 * Math.PI);
+        context.moveTo(this.width / 2, FIELDHEIGHT / 2 - r);
+        context.arc(this.width / 2, FIELDHEIGHT / 2, r, 1.5 * Math.PI,  0.5 * Math.PI, true);
+        context.fill();
+        context.moveTo(this.width / 2, FIELDHEIGHT / 2 + r);
+        context.lineTo(this.width / 2, this.height + offset);
+        context.closePath();
+        context.stroke();
+        context.restore();
+    }
+
 	public render(context: CanvasRenderingContext2D) {
 		context.lineCap = 'round';
 		this.drawGradients(context);
 		this.drawBorder(context);
+		this.drawMiddleLine(context);
 	}
 
 	public renderCollisionLines(context: CanvasRenderingContext2D) {

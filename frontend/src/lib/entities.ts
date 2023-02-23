@@ -1,6 +1,10 @@
 import type { Achievement } from "./types";
 import type { Access, Role, Status, Gamemode } from "./enums";
 
+export type Entity = {
+	id: number,
+}
+
 export type User = {
 	id: number,
 	auth_req?: number,
@@ -9,7 +13,8 @@ export type User = {
 	avatar: string,
 	in_game: boolean,
 	achievements?: Achievement[],
-	invites?: any[],
+	invites?: Invite[],
+	friends?: User[],
 };
 
 export type Room = {
@@ -43,6 +48,8 @@ export type Member = {
 	user: User,
 	role: Role,
 	is_muted: boolean,
+	userId: number,
+	roomId: number,
 };
 
 export type GameRoomMember = Member & {

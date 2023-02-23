@@ -61,7 +61,6 @@ export type gradient = {
     r1: number;
     c0: string;
     c1: string;
-    last: boolean;
 }
 
 export type goal = {
@@ -93,71 +92,42 @@ export type field = {
     paddles: paddle[];
     gradients: gradient[];
     arcs: renderArc[];
-    gradientIndexs: boolean[];
     collisions: CollisionLine[];
     convexFieldBoxLines: CollisionLine[];
     playerAreas: CollisionLine[][];
+    width: number;
+    height:number;
 }
 
 export const levels = ["/Assets/game/twoplayerLevel.json", "/Assets/game/fourPlayerLevel.json"];
 
-// const field1 = {
-//     players: 2,
-//     goals: [{x: -linethickness, y: HEIGHT / 2, angle: Math.PI, cf: 'rgba(213, 172, 28, 0.7)', cs: 'rgba(213, 172, 28, 0.9)'},
-//             {x: WIDTH  + linethickness, y: HEIGHT / 2, angle: 0, cf: 'rgba(65, 190, 220, 0.7)', cs: 'rgba(65, 190, 220, 0.9)'},
-//             ],
-//     lines: [
-//         {p0: new Vector(WIDTH / 2, HEIGHT - border), p1: new Vector(border + b_r, HEIGHT - border), name: "render1"},
-//         {p0: new Vector(border, HEIGHT - border), p1: new Vector(border, border + b_r), name: "render2"},
-//         {p0: new Vector(border, border), p1: new Vector(WIDTH / 2, border), name: "render3"}, //After this a gradient
-//         {p0: new Vector(WIDTH / 2, border), p1: new Vector(WIDTH - border - b_r, border), name: "render4"},
-//         {p0: new Vector(WIDTH - border, border), p1: new Vector(WIDTH - border, HEIGHT - border - b_r), name: "render5"},
-//         {p0: new Vector(WIDTH - border, HEIGHT - border), p1: new Vector(WIDTH / 2, HEIGHT - border), name: "render6"},
-//     ],
-//     arcs: [
-//         {pos: new Vector(border + b_r, HEIGHT - border - b_r), angle1: 0.5 * Math.PI, angle2: 1.0 * Math.PI},
-//         {pos: new Vector(border + b_r, border + b_r), angle1: 1.0 * Math.PI, angle2: 1.5 * Math.PI},
-//         {pos: new Vector(0,0), angle1: 0.0 * Math.PI, angle2: 0.0 * Math.PI}, //no arc for this line
-//         {pos: new Vector(WIDTH - border - b_r, border + b_r ), angle1: 1.5 * Math.PI, angle2: 0.0 * Math.PI},
-//         {pos: new Vector(WIDTH - border - b_r, HEIGHT - border - b_r), angle1: 0.0 * Math.PI, angle2: 0.5 * Math.PI},
-//         {pos: new Vector(0,0), angle1: 0.0 * Math.PI, angle2: 0.0 * Math.PI}, //no arc for this line
-//     ],
-//     gradients: [
-//         {x0: border, y0: HEIGHT / 2, x1: border, y1: HEIGHT / 2, r0: field_radius, r1: 0, c1: color_l_f, c0: color_stop, last: false},
-//         {x0: WIDTH, y0: HEIGHT / 2, x1: WIDTH, y1: HEIGHT / 2, r0: field_radius, r1: 0, c1: color_r_f, c0: color_stop, last: true}
-//     ],
-//     gradientIndexs: [false, false, true, false, false, false],
-//     collisions: [
-//         {p0: new Vector(border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(border, border), name: "field1"},
-//         {p0: new Vector(border, border), p1: new Vector(WIDTH - border, border), name: "field2"},
-//         {p0: new Vector(WIDTH - border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(WIDTH - border, border), name: "field3"},
-//         {p0: new Vector(WIDTH - border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(WIDTH - border, HEIGHT - border), name: "field4"},
-//         {p0: new Vector(border, HEIGHT - border), p1: new Vector(WIDTH - border, HEIGHT - border), name: "field5"},
-//         {p0: new Vector(border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(border, HEIGHT - border), name: "field6"},
-    
-//         {p0: new Vector(border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(border - goalWidth, HEIGHT / 2 - goalHeight / 2 - border), name: "goal1-1"},
-//         {p0: new Vector(border - goalWidth, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(border - goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal1-2"},
-//         {p0: new Vector(border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(border - goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal1-3"},
-    
-//         {p0: new Vector(WIDTH - border, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 - goalHeight / 2 - border), name: "goal2-1"},
-//         {p0: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 - goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal2-2"},
-//         {p0: new Vector(WIDTH - border, HEIGHT / 2 + goalHeight / 2 - border), p1: new Vector(WIDTH - border + goalWidth, HEIGHT / 2 + goalHeight / 2 - border), name: "goal2-3"},
-//     ],
+export const scorePositions = [
+    [{x: FIELDWIDTH / 4, y: -15}, {x: 3 * FIELDWIDTH / 4, y: -15}],
+    [{x: FIELDWIDTH / 4, y: -15}, {x: FIELDWIDTH / 4, y: 195}, {x: 3 * FIELDWIDTH / 4, y: 195}, {x: 3 * FIELDWIDTH / 4, y: -15}]
+];
 
-//     paddles: [{x: 10, y: HEIGHT / 2, angle: 0, cf: 'rgba(213, 172, 28, 0.7)', cs: 'rgba(213, 172, 28, 0.9)'},
-//     {x: WIDTH  - 10, y: HEIGHT / 2, angle: 0, cf: 'rgba(65, 190, 220, 0.7)', cs: 'rgba(65, 190, 220, 0.9)'}]
-// };
+export const scoreColors = [
+    [
+        {cf: "rgba(213, 172, 28, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
+        {cf: "rgba(65, 190, 220, 0.7)", cs: "rgba(65, 190, 220, 0.9)"}
+    ],
+    [
+        {cf: "rgba(213, 172, 28, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
+        {cf: "rgba(65, 190, 220, 0.7)", cs: "rgba(65, 190, 220, 0.9)"},
+        {cf: "rgba(175, 25, 25, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
+        {cf: "rgba(28, 220, 25, 0.7)", cs: "rgba(28, 220, 25, 0.9)"}
+    ]
+];
 
-// export const fields: field[] = [field1,];
+export const ballVelociy = [
+    [{x: 2, y: 0}, {x: -2, y: 0}],
+    [{x: 2, y: 2}, {x: 2, y: -2},{x: -2, y: -2}, {x: -2, y: 2}]
+];
 
 
-// 0: (-r/2, r * sqrt(3) / 2) + (x,y)
-// 1: (-r, 0) + (x,y)
-// 2: (-r /2, -r * sqrt(3) / 2) + (x,y)
-// 3: (r/ 2, -r * sqrt(3) / 2) + (x, y)
-// 4: (r, 0) + (x, y)
-// 5: (r/2, r * sqrt(3) / 2) + (x, y)
-// 6: (x,y)
+
+
+// stuff for the 4 player field
 
 // 0: (115, 12)
 // 1: (70, 90)
@@ -168,3 +138,13 @@ export const levels = ["/Assets/game/twoplayerLevel.json", "/Assets/game/fourPla
 // 6: (160, 90)
 // 7: (160, 12)
 // 8: (160, 168)
+
+/*
+    arcs
+0: 7pi/6 -> 9pi/6
+1: 5pi/6 -> 7pi/6
+2: 3pi/6 -> 5pi/6
+3: 1pi/6 -> 3pi /6
+4: 11pi/6 -> 1pi/6
+5: 9pi/6 -> 11pi/6
+*/

@@ -2,6 +2,7 @@ send heartbeat for chat messages
 highlight links in chat (linkify)
 add ability to mention in chat (and invite with it)
 fix duplicate status updates being send
+title bar does not get updated correctly when logging in
 
 Fix chatroom options size
 fix gameroom updates
@@ -9,3 +10,6 @@ find out how revolt detects embed type and do something similar
 
 random team names
 darker offline color in friend list
+
+AMMOERROR
+Canvas fullscreen for VR and escape to exit vr

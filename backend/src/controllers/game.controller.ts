@@ -11,7 +11,7 @@ import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
 import { Role } from "src/enums/Role";
-import { FindOptionsRelations, Repository } from "typeorm";
+import { Repository } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
@@ -21,6 +21,15 @@ class CreateGameRoomDTO extends CreateRoomDTO {
 	@IsEnum(Gamemode)
 	gamemode: Gamemode;
 }
+
+const playerNumbers = new Map([
+	[Gamemode.REGULAR, 2],
+	[Gamemode.VR, 2],
+	[Gamemode.MODERN, 2],
+	[Gamemode.MODERN4P, 4],
+])
+
+const numbers = [ "one", "two", "three", "four"];
 
 export class GameController extends GenericRoomController<GameRoom, GameRoomMember>(GameRoom, GameRoomMember, "game", CreateGameRoomDTO) {
 	// ODOT: copied from room.service.ts (what is even the point)
@@ -41,15 +50,15 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	}
 
 	async setup_room(room: GameRoom, dto: CreateGameRoomDTO) {
-		const teamOne = new Team();
-		const teamTwo = new Team();
+		const state = new GameState(dto.gamemode);
 
-		teamOne.name = "team one";
-		teamTwo.name = "team two";
+		state.teams = [];
 
-		room.state = new GameState();
-		room.teams = [teamOne, teamTwo];
-		room.gamemode = dto.gamemode;
+		for (let i = 0; i < playerNumbers.get(state.gamemode)!; i++) {
+			state.teams.push(new Team(`team ${numbers[i]}`));
+		}
+
+		room.state = state;
 	}
 
 	async get_joined_info(room: GameRoom): Promise<GameRoom> {

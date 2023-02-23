@@ -3,7 +3,7 @@ import type { Event as NetEvent } from "../Net";
 import {intersection, Vector, paddleBounce, isInConvexHull} from "../lib2D/Math2D";
 import type { VectorObject, Line, CollisionLine } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
-import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT } from "./Constants";
+import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT, ballVelociy } from "./Constants";
 import type { GAME, field} from "./Constants";
 import { Ball } from "./Ball";
 import type { Snapshot, Options, PingEvent } from "../lib2D/interfaces";
@@ -11,6 +11,11 @@ import { Field } from "./Field";
 import { Goal } from "./Goal";
 import { Background } from "./Background";
 import { Score } from "./Score";
+
+const hit = new Audio("/Assets/sounds/laser.wav");
+const score = new Audio("/Assets/sounds/teleportation.mp3");
+const wall = new Audio("/Assets/sounds/wall.wav");
+const music = new Audio("/Assets/sounds/zetauri.wav");
 
 export class Team {
 	public score: number;
@@ -53,6 +58,7 @@ function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: B
 	return {closest: null, other: other};
 }
 
+
 export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
@@ -64,9 +70,9 @@ export class Game extends Net {
 	public offscreenCanvas: HTMLCanvasElement;
 	public canvas: HTMLCanvasElement;
 	public level: field;
-	public score: Score;
-	public scores: number[];
+	public score?: Score;
 	public teams: Array<Team>;
+	
 
 	private debugBall() {
 		const b = this.ball.position;
@@ -88,17 +94,7 @@ export class Game extends Net {
 		this.canvas = canvas;
 		this.offscreenContext = offscreenCanvas.getContext("2d")!;
 		this.goals = [];
-		this.score = new Score();
-		this.scores = [];
 		this.teams = [];
-		for (let i = 0; i < this.level.players; i++) {
-			this.scores.push(0);
-		}
-		
-
-		// this.level.paddles.forEach((paddle, index) => {
-		// 	this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, paddle.cf, paddle.cs, index));
-		// });
 		this.paddles = [];
 		this.field = new Field(this.level);
 		
@@ -118,17 +114,17 @@ export class Game extends Net {
 					paddle = null;
 				}
 			}
-			
 			if (paddle !== null) {
 				paddle.userID = event.u;
 				paddle.ping = this.time;
 
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
 				const oldLines = paddle.getCollisionLines();
-				if (paddle.isInPlayerArea(new Vector(event.x, paddle.position.y), this.field.getPlayerAreas()[paddle.owner]))
-					paddle.position.x = event.x;
-				if (paddle.isInPlayerArea(new Vector(paddle.position.x, event.y), this.field.getPlayerAreas()[paddle.owner]))
-					paddle.position.y = event.y;
+				//TODO maybe limit the max amount of movement allowed for the paddle
+				if (paddle.isInPlayerArea(new Vector(paddle.position.x + event.x, paddle.position.y), this.field.getPlayerAreas()[paddle.owner]))
+					paddle.position.x += event.x;
+				if (paddle.isInPlayerArea(new Vector(paddle.position.x, paddle.position.y + event.y), this.field.getPlayerAreas()[paddle.owner]))
+					paddle.position.y += event.y;
 				
 				const paddleMovement = new Vector((paddle.position.x - oldPos.x), (paddle.position.y - oldPos.y));
 				const negvelocity = paddleMovement.scale(-1);
@@ -147,7 +143,6 @@ export class Game extends Net {
 						if (col && col[2] < 1) {
 							this.bounceBall(col, paddleMovement);
 							ballpos.push(this.ball.position);
-							// this.debugBall();
 						}
 						else break;
 					}
@@ -170,6 +165,7 @@ export class Game extends Net {
 	}
 
 	private bounceBall(closest: [Line, Vector, number], vel: Vector) {	
+		hit.play();
 		this.ball.position = closest[1];
 		this.ball.velocity = this.ball.velocity.reflect(closest[0].p1.sub(closest[0].p0));
 
@@ -189,8 +185,8 @@ export class Game extends Net {
 				if (isInConvexHull(closest[1], paddle.getCollisionLines(), false))
 				{
 					console.log("ERROR: ball in paddle. Resetting Position.");
-					this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
-					this.ball.velocity = this.ball.velocity.tangent();
+					// this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
+					// this.ball.velocity = this.ball.velocity.tangent();
 				}
 			}
 		}
@@ -241,11 +237,11 @@ export class Game extends Net {
 	public render(context: CanvasRenderingContext2D) {
 		this.ball.render(context);
 		this.paddles.forEach(paddle => paddle.render(context));
-		this.paddles.forEach(paddle => paddle.renderCollisionLines(context)); //DEBUG for collisions
-		this.score.render(context, this.scores);
-		// this.field.renderCollisionLines(context);
-		// this.field.renderPlayerAreas(context);
-		// this.field.renderConvexFieldBoxLines(context);
+		// this.paddles.forEach(paddle => paddle.renderCollisionLines(context)); //DEBUG for collisions
+		this.score?.render(context);
+		// this.field.renderCollisionLines(context); //debug function
+		// this.field.renderPlayerAreas(context); //debug function
+		// this.field.renderConvexFieldBoxLines(context); //debug function
 	}
 
 	//this function is seperate for scaling issues....
@@ -269,17 +265,21 @@ export class Game extends Net {
 			if (collision === null || collision[2] > time + 0.001) {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
-			} else if (collision[0].name.startsWith("goal1")) { //TODO make it work with more goals
-				/* TODO: Point to correct side according to map */
-				console.log("collision with goal: ", this.ball.position, collision[0]);
+			} else if (collision[0].name.startsWith("goal")) {
+				score.play();
+				//TODO also send update to backend for score
+				const goal: number = +collision[0].name.charAt(4);
+				if (this.level.players === 4) {
+					this.teams[goal].score -=1;
+				}
+				else if (goal === 1){
+					this.teams[0].score +=1;
+				}
+				else
+					this.teams[1].score += 1;
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
-				this.ball.velocity = new Vector(2, 0);
+				this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
 				
-				break;
-			} else if (collision[0].name.startsWith("goal2")) {
-				/* TODO: Point to correct side according to map */
-				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
-				this.ball.velocity = new Vector(-2, 0);
 				break;
 			} else {
 				if (collision[0].name.startsWith("paddle")) {
@@ -287,6 +287,7 @@ export class Game extends Net {
 					this.bounceBall(collision,  new Vector(0, 0));
 				}
 				else {
+					wall.play();
 					this.ball.position = collision[1];
 					this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
 				}
@@ -304,21 +305,35 @@ export class Game extends Net {
 				paddle.userID = undefined;
 			}
 		}
+
+		if (this.ball.position.x < -2 * border || this.ball.position.x > this.field.width + 2 * border ||
+			this.ball.position.y < 90 - this.field.height / 2 - border || this.ball.position.y > 90 + this.field.height / 2 + border)
+		{
+			console.log("pos: ", this.ball.position.x);
+			console.log("ERROR: ball outside field. Resetting position.");
+			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
+			this.ball.velocity = this.ball.velocity.tangent();
+		}
 		super.lateTick();
 	}
 
 	public async start(options: Options) {
-		//TODO make this work for more than 2 players
-		this.teams = [
-			new Team((options.member as any).room.teams[0].id),
-			new Team((options.member as any).room.teams[1].id),
-		];
+		this.teams = [];
+		for (let i = 0; i < this.level.players; i++) {
+			this.teams.push(new Team((options.member as any).room.teams[i].id));
+		}
 
 		let index = 0;
 		for (let paddle of this.level.paddles) {
 			this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, paddle.cf, paddle.cs, index, this.teams[index]))
 			index +=1;
 		}
+		this.score = new Score(this.teams);
+		super.start(options);
+		music.loop = true;
+		music.muted = false;
+		music.volume = 0.5;
+		music.play();
 	}
 }
 
@@ -399,24 +414,17 @@ export class Modern {
 			const xScale = Math.floor(this.canvas.width / WIDTH);
 			const yScale = Math.floor(this.canvas.height / HEIGHT);
 			const minScale = Math.min(xScale, yScale);
-			const xOffset = Math.floor((this.canvas.width - FIELDWIDTH * minScale) / 2);
-			const yOffset = Math.floor((this.canvas.height - FIELDHEIGHT * minScale) / 2);
-
-			const x = (ev.offsetX - xOffset) / minScale;
-			const y = (ev.offsetY - yOffset) / minScale;
-
+			
 			this.game?.send("mousemove", {
 				u: options.member.user.id,
-				x: x,
-				y: y,
+				x: ev.movementX/ minScale,
+				y: ev.movementY/ minScale,
 				t: options.member.player?.team?.id,
 			});
 		});
 		//this event is for resizing the offscreen canvas
 		window.addEventListener("resize", (ev) => {
-			// console.log("resize event?", ev); 
 			this.game?.send("resize", {
-				
 			});
 		});
 
@@ -430,7 +438,9 @@ export class Modern {
 	}
 
 	public stop() {
-		this.game?.stop();
+		this.game!.stop();
 		clearInterval(this.interval);
+		music.loop = false;
+		music.muted = true;
 	}
 }

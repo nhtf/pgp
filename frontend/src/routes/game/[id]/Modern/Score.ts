@@ -1,11 +1,14 @@
-import { a, border, FIELDWIDTH, color_l_f, color_l_s, color_r_f, color_r_s } from "./Constants";
+import { a, FIELDWIDTH, scoreColors, scorePositions } from "./Constants";
+import type { Team } from "./Modern";
 
 export class Score {
 
     private r: number;
+    private teams: Array<Team>
 
-    public constructor() {
+    public constructor(teams: Array<Team>) {
         this.r = 15;
+        this.teams = teams;
     }
 
     private drawHexagon(x: number, y: number, context: CanvasRenderingContext2D) {
@@ -20,19 +23,19 @@ export class Score {
     }
 
     //TODO need to check the field for where to place the score?
-    public render(context: CanvasRenderingContext2D, score: number[]) {
-        context.strokeStyle = color_l_s;
-        context.fillStyle = color_l_f;
-        this.drawHexagon(FIELDWIDTH / 4, - this.r, context);
-        context.textAlign = "center";
-        context.fillStyle = "white";
-		context.fillText(score[0].toString(), FIELDWIDTH / 4, - 3 * this.r / 4, 150);
-        context.strokeStyle = color_r_s;
-        context.fillStyle = color_r_f;
-        this.drawHexagon(3 * FIELDWIDTH / 4, - this.r, context);
-
-        context.fillStyle = "white";
-        context.fillText(score[0].toString(), 3 * FIELDWIDTH / 4, - 3 * this.r / 4, 150);
+    public render(context: CanvasRenderingContext2D) {
+        let index = 0;
+        if (this.teams.length === 4)
+            index = 1;
+        this.teams.forEach((team, i) => {
+            context.strokeStyle = scoreColors[index][i].cs;
+            context.fillStyle = scoreColors[index][i].cf;
+            this.drawHexagon(scorePositions[index][i].x, scorePositions[index][i].y, context);
+            context.textAlign = "center";
+            context.fillStyle = "white";
+            context.fillText(team.score.toString(), scorePositions[index][i].x, scorePositions[index][i].y + this.r / 4, 150);
+        });
+        
 
         context.font = "24px helvetica";
         context.textBaseline = "middle";

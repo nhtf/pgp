@@ -17,4 +17,7 @@ export class Embed {
 
 	@Column()
 	digest: string;
+
+	@Column()
+	rich: boolean;
 }
