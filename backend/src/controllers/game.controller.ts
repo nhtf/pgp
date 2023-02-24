@@ -1,7 +1,7 @@
 import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Inject, ParseIntPipe } from "@nestjs/common";
 import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
-import { IsEnum } from "class-validator";
+import { IsEnum, IsNumber } from "class-validator";
 import { Gamemode } from "src/enums/Gamemode";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { GameState } from "src/entities/GameState";
@@ -20,10 +20,13 @@ import { Me } from "src/util"
 class CreateGameRoomDTO extends CreateRoomDTO {
 	@IsEnum(Gamemode)
 	gamemode: Gamemode;
+
+	@IsNumber()
+	players: number;
 }
 
 const playerNumbers = new Map([
-	[Gamemode.REGULAR, 2],
+	[Gamemode.CLASSIC, 2],
 	[Gamemode.VR, 2],
 	[Gamemode.MODERN, 2],
 	[Gamemode.MODERN4P, 4],
@@ -54,7 +57,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 
 		state.teams = [];
 
-		for (let i = 0; i < playerNumbers.get(state.gamemode)!; i++) {
+		for (let i = 0; i < dto.players; i++) {
 			state.teams.push(new Team(`team ${numbers[i]}`));
 		}
 

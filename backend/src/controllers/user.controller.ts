@@ -204,7 +204,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
-			return { auth_req: user.auth_req };
+			return user.auth_req; 
 		}
 
 		@Get(options.cparam + "/friend(s)?")
@@ -240,8 +240,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			friend.friends.splice(user_idx, 1);
 			[user, friend] = await this.user_repo.save([user, friend]);
 
-			user.send_friend_update(friend, Action.REMOVE);
-			friend.send_friend_update(user, Action.REMOVE);
+			user.send_update(Action.SET);
+			friend.send_update(Action.SET);
 
 			return {};
 		}
@@ -309,8 +309,8 @@ export function GenericUserController(route: string, options: { param: string, c
 				await this.request_repo.remove(request);
 				[user, target] = await this.user_repo.save([user, target]);
 
-				await user.send_friend_update(target, Action.ADD);
-				await target.send_friend_update(user, Action.ADD);
+				await user.send_update(Action.SET);
+				await target.send_update(Action.SET);
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;

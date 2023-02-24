@@ -1,4 +1,4 @@
-import type { GameRoom, Member } from "$lib/entities";
+import type { GameRoom } from "$lib/entities";
 import type { PageLoad } from "./$types"
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";

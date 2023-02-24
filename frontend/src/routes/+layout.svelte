@@ -19,13 +19,14 @@
 	} from "flowbite-svelte";
 	import { goto, invalidate } from "$app/navigation";
 	import { disable_2fa, enable_2fa } from "./two_facter_functions";
-	import { userStore } from "../stores";
+	import { userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
 
 	export let data: LayoutData;
 
-	$: user = data.user;
+	$: user = data.user ? $userStore.get(data.user.id)! : null;
+	$: twofa_enabled = user ? user.auth_req === 2 : false;
 
 	let currentTheme: string;
 	const THEMES = {
@@ -33,11 +34,7 @@
 		LIGHT: "light",
 	};
 
-	onMount(() => {
-		if (user) {
-			userStore.subscribe((users) => user = users.get(user!.id!)!);
-		}
-	
+	onMount(() => {	
 		applyTheme();
 		window
 			.matchMedia(DARK_PREFERENCE)
@@ -47,7 +44,6 @@
 	const STORAGE_KEY = "theme";
 	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
 	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
-	$: twofa_enabled = data.user?.auth_req === 2 || false;
 
 	const toggleTheme = () => {
 		const stored = localStorage.getItem(STORAGE_KEY);
@@ -130,12 +126,9 @@
 			<DropdownHeader>
 				<span class="block text-sm"> {user.username} </span>
 			</DropdownHeader>
-			<DropdownItem href="/profile/{encodeURIComponent(user.username)}"
-				>profile</DropdownItem
-			>
+			<DropdownItem href="/profile/{encodeURIComponent(user.username)}">profile</DropdownItem>
 			{#if twofa_enabled}
-				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem
-				>
+				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
 			{:else}
 				<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
 			{/if}

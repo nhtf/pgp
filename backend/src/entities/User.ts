@@ -7,7 +7,6 @@ import {
 	ManyToMany,
 	JoinTable,
 	OneToMany,
-	AfterUpdate,
 	BeforeRemove,
 	AfterInsert,
 	CreateDateColumn,
@@ -15,7 +14,6 @@ import {
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
-import { join } from "path";
 import { Room } from "./Room";
 import { Status } from "../enums/Status";
 import { Invite } from "./Invite";
@@ -69,8 +67,8 @@ export class User {
 	@JoinTable()
 	friends: User[];
 
-	// TODO: check if used
-	invites: Invite[];
+	@RelationId((user: User) => user.friends)
+	friendsIds: number[];
 
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
@@ -129,15 +127,6 @@ export class User {
 			action,
 			value: instanceToPlain(this),
 		});
-	}
-
-	async send_friend_update(friend: User, action: Action) {
-		await UpdateGateway.instance.send_update({
-			subject: Subject.FRIEND,
-			id: friend.id,
-			action,
-			value: instanceToPlain(friend),
-		}, this);
 	}
 
 	@AfterInsert()

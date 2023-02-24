@@ -12,9 +12,7 @@ export type User = {
 	status: Status,
 	avatar: string,
 	in_game: boolean,
-	achievements?: Achievement[],
-	invites?: Invite[],
-	friends?: User[],
+	friendsIds: number[],
 };
 
 export type Room = {
@@ -75,8 +73,9 @@ export type Invite = {
 };
 
 export type Embed = {
-	digest: string;
-	url: string;
+	digest: string,
+	url: string,
+	rich: boolean,
 };
 
 export type Message = {

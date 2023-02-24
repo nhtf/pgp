@@ -1,39 +1,29 @@
 <script lang="ts">
 	import type { User } from "$lib/entities";
 	import { get, post, remove } from "$lib/Web";
-	import { Subject, Action, Status } from "$lib/enums";
+	import { Action, Status } from "$lib/enums";
 	import Swal from "sweetalert2";
 	import { page } from "$app/stores";
-	import { onDestroy, onMount } from "svelte/internal";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import { updateManager } from "$lib/updateSocket";
 	import "@sweetalert2/theme-dark/dark.scss";
-	import { inviteStore, userStore } from "../../stores";
+	import { inviteStore, userStore } from "$lib/stores";
 	import { icon_path } from "$lib/constants";
 
+	let self: User = $page.data.user;
 	let profile: User = $page.data.profile;
-	let friends: User[] = $page.data.friends;
 
 	const friend_icon = `${icon_path}/add-friend.png`;
 	const status_colors = ["gray", "yellow", "green"];
 
 	let score = new Map();
-	let invitee = "";
 	let all: User[] | null = null;
 
+	$: self = $userStore.get(self.id)!;
 	$: profile = $userStore.get(profile.id)!;
 	$: friends = [...$userStore]
 		.map(([id, user]) => user)
-		.filter((user) => friends.map((friend) => friend.id).includes(user.id));
+		.filter((user) => self.friendsIds.includes(user.id));
 	$: placement = window.innerWidth < 750 ? "top" : "left-end";
-
-	onMount(() => {
-		updateManager.set(Subject.FRIEND, updateFriends);
-	});
-
-	onDestroy(() => {
-		updateManager.remove(Subject.FRIEND);
-	});
 
 	function byName(first: User, second: User) {
 		return first.username.localeCompare(second.username);
@@ -49,7 +39,7 @@
 					invite.from.id === $page.data.user.id
 			);
 
-		all = all ?? (await get(`/users`));
+		all = all ?? await get(`/users`);
 		return new Map(
 			all!
 				.filter((user) => $page.data.user.id !== user.id)
@@ -61,10 +51,6 @@
 				.sort(byName)
 				.map((user) => [user.id, user.username])
 		);
-	}
-
-	async function matches(users: User[]) {
-		return users.filter((user) => user.username.includes(invitee));
 	}
 
 	async function toggleAddfriend() {
@@ -105,18 +91,15 @@
 		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
-	function updateFriends(update: any) {
-		switch (update.action) {
-			case Action.ADD:
-				friends = [...friends, update.value];
-				break;
-			case Action.REMOVE:
-				friends = friends.filter((friend) => friend.id !== update.id);
-				break;
-		}
+	function changePlacement() {
+		placement = window.innerWidth < 750 ? "top" : "left-end";
 	}
+
 </script>
 
+<svelte:window on:resize={changePlacement}/>
+
+<!-- //TODO have the player status also update for in-game correctly -->
 <div class="block-cell self-flex-start bg-c bordered" id="friend-block">
 	<div class="block-hor">
 		<div class="block-cell">
@@ -143,15 +126,17 @@
 					<Button
 						color="alternative"
 						id="avatar_with_name{index}"
-						class="friend-button"
+						class="friend-button avatar-status{status}"
 					>
+					<!-- //TODO try and use the indicator instead of dot so it's possible to have custom colors -->
 						<Avatar
 							src={avatar}
 							dot={{
 								placement: "bottom-right",
 								color: status_colors[status],
+								
 							}}
-							class="mr-2"
+							class="mr-2 bg-c"
 						/>
 						<div class="block-cell">
 							<div class="block-hor">{username}</div>
@@ -168,6 +153,7 @@
 						</div>
 					</Button>
 					<div class="spacing" />
+					{#key placement}
 					<Dropdown
 						{placement}
 						inline
@@ -190,6 +176,7 @@
 							slot="footer">unfriend</DropdownItem
 						>
 					</Dropdown>
+					{/key}
 				{/each}
 			{/key}
 		{/if}
@@ -208,74 +195,6 @@
 
 	.spacing {
 		padding-top: 1px;
-	}
-
-	.input-field {
-		border-radius: 6px;
-		width: 300px;
-		font-size: 35px;
-		background: var(--bkg-color);
-		color: var(--text-color);
-		border-color: var(--border-color);
-	}
-
-	.add-friend-window {
-		display: flex;
-		position: fixed;
-		flex-direction: column;
-		z-index: 25;
-		top: calc(50% - 201px);
-		left: calc(50% - 176px);
-		background: var(--box-color);
-		border-radius: 6px;
-		border-width: 1px;
-		border-color: var(--border-color);
-		border-style: solid;
-		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-		width: 400px;
-		height: 350px;
-		justify-content: space-between;
-		align-items: center;
-		text-align: center;
-		align-self: flex-end;
-	}
-
-	.close-button {
-		display: flex;
-		position: relative;
-		align-self: flex-end;
-		align-items: center;
-		justify-content: center;
-		top: 10px;
-		right: 10px;
-		cursor: pointer;
-		margin-bottom: unset;
-		left: unset;
-	}
-
-	.close-button:hover {
-		box-shadow: 0 0 3px 2px var(--shadow-color);
-		border-radius: 6px;
-	}
-
-	.image-selector {
-		display: flex;
-		position: relative;
-		height: 30px;
-		width: 100px;
-		align-self: center;
-		align-items: center;
-		justify-content: center;
-		border-radius: 6px;
-		border-width: 1px;
-		border-color: var(--scrollbar-thumb);
-		border-style: solid;
-		bottom: 20px;
-		cursor: pointer;
-	}
-
-	.image-selector:hover {
-		background: var(--tab-active-color);
 	}
 
 	.block-vert {

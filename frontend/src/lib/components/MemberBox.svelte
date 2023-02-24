@@ -2,15 +2,16 @@
 	import { unwrap } from "$lib/Alert";
 	import type { Member } from "$lib/entities";
 	import { Role } from "$lib/enums";
+    import { userStore } from "$lib/stores";
 	import { patch, post, remove } from "$lib/Web";
 	import {
 		Avatar,
 		Dropdown,
 		DropdownDivider,
+		DropdownHeader,
 		DropdownItem,
 	} from "flowbite-svelte";
-	import Swal from "sweetalert2";
-	import { userStore } from "../../stores";
+    import Swal from "sweetalert2";
 
 	export let target: Member;
 	export let self: Member;
@@ -113,9 +114,10 @@
 	}}
 />
 <Dropdown>
-	<DropdownItem>
-		<a href={`/profile/${user.username}`}>Profile</a>
-	</DropdownItem>
+	<DropdownHeader>
+		{user.username}
+	</DropdownHeader>
+	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
 	{#if self.id !== target.id}
 		{#each Object.values(Role).reverse().filter((role) => typeof role === "number" && role > 0) as role}
 			{#if self.role >= role && target.role < self.role}

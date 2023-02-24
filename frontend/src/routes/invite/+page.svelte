@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { respond } from "$lib/invites";
 	import { Tabs, TabItem } from "flowbite-svelte";
-	import { inviteStore } from "../../stores";
+	import { inviteStore } from "$lib/stores";
 	import type { PageData } from "./$types";
 
 	export let data: PageData;

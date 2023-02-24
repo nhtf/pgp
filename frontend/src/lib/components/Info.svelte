@@ -83,7 +83,7 @@
 		<div class="block-cell" id="user-name-block">
 			<div class="block-hor">
 				<h1>{profile.username}</h1>
-				{#if $page.data.user.id === profile.id}
+				{#if $page.data.user?.id === profile.id}
 					<img src={edit_icon} alt="edit icon" id="edit-icon"
 					on:click={changeUsername}
 					on:keypress={changeUsername}

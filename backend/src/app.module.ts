@@ -17,7 +17,7 @@ import { RoomGateway } from "./gateways/room.gateway";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
-import { User} from "./entities/User";
+import { User } from "./entities/User";
 import { GameController } from "./controllers/game.controller";
 import { SessionService } from "src/services/session.service";
 import * as Pool from "pg-pool";
@@ -84,14 +84,11 @@ export const dataSource = new DataSource({
 	username: DB_USER,
 	password: DB_PASS,
 	database: "dev",
-	entities: entityFiles.map<Function>(
-		(value: string, index: number, array: string[]) => {
-			const entity = require(value);
-			const clazz = Object.values(entity)[0] as Function;
-			return clazz;
-		},
-	),
-	subscribers: [ ],
+	entities: entityFiles.map((file: string) => {
+		const entity = require(file);
+		return Object.values(entity)[0] as Function;
+	}),
+	subscribers: [],
 	synchronize: true, //TODO disable and test before turning in
 	// logging: true,
 	// TODO enable cache? (cache: true)
@@ -121,11 +118,10 @@ const entityProviders = entityFiles.map<{
 	provide: any;
 	useFactory: any;
 	inject: any;
-}>((value: string, index: number, array: string[]) => {
+}>((value: string) => {
 	const entity = require(value);
 	const clazz = Object.values(entity)[0] as Function;
 	const name = Object.keys(entity)[0].toUpperCase() + "_REPO";
-	const repo = dataSource.getRepository(clazz);
 	return {
 		provide: name,
 		useFactory: (dataSource: DataSource) => dataSource.getRepository(clazz),
@@ -183,17 +179,20 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
 		consumer.apply(SessionExpiryMiddleware).exclude(
-			{ path: "debug(.*)", method: RequestMethod.ALL 
-		}).forRoutes("*");
+			{
+				path: "debug(.*)", method: RequestMethod.ALL
+			}).forRoutes("*");
 		consumer.apply(UserMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
-			{ path: "debug(.*)", method: RequestMethod.ALL 
-		}).forRoutes("*");
+			{
+				path: "debug(.*)", method: RequestMethod.ALL
+			}).forRoutes("*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
 		consumer.apply(ActivityMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
-			{ path: "debug(.*)", method: RequestMethod.ALL 
-		}).forRoutes("*");
+			{
+				path: "debug(.*)", method: RequestMethod.ALL
+			}).forRoutes("*");
 	}
 }

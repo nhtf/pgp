@@ -3,9 +3,9 @@
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
-	import { afterUpdate } from "svelte";
 	import { backIn as anim } from "svelte/easing";
-    import { inviteStore } from "../../stores";
+    import { inviteStore } from "$lib/stores";
+    import { onMount } from "svelte";
 
 	enum Status {
 		UNREAD,
@@ -13,31 +13,21 @@
 		REMOVED,
 	}
 
+	const notificationSound = new Audio("/Assets/sounds/notification.mp3");
+
 	let user: User;
 	let notifMap = new Map<Invite, Status>();
-	let timer: NodeJS.Timeout | undefined;
 	
 	$: user = $page.data.user;
 	$: invites = Array.from($inviteStore.values());
 	$: notifications = invites.filter((invite) => invite.to.id === user.id);
-	$: notifMap = new Map(notifications.map((invite) => [invite, !notifMap.has(invite) ? Status.UNREAD : notifMap.get(invite)!]));
+	$: notifMap = new Map(notifications.map((invite) => [invite, notifMap.has(invite) ? notifMap.get(invite)! : Status.UNREAD]));
 	$: newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
-
-	afterUpdate(() => {
-		if (timer) {
-			clearTimeout(timer);
-		}
-	});
-
-	async function removeNotification(invite: Invite) {
-		//the timer is so that it waits a bit before removing it so that you don't click behind the dropdown menu
-		timer = setTimeout(() => {
-			notifMap = notifMap.set(invite, Status.REMOVED);
-		}, 75);
-	}
+	let oldLength: number;
+	$: newlength = [...notifMap.values()].filter((status) => status === Status.UNREAD).length;
 
 	async function acceptInvite(invite: Invite) {
-		removeNotification(invite);
+		mark(invite, Status.REMOVED)
 		respond(invite, "accept");
 	}
 
@@ -48,37 +38,45 @@
 			}
 		});
 		notifMap = notifMap;
+		newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
 	}
 
 	function mark(key: Invite, status: Status) {
 		notifMap = notifMap.set(key, status);
+		newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
 	}
 
 	function spin(node: any, { duration }: { duration: number }) {
 		return {
 			duration,
 			css: (t: number) => {
-				const rot_eased = Math.sin(t * 2 * Math.PI);
+				const rot_eased = Math.sin(t * 4 * 2 * Math.PI);
 				const scal_eased = anim(t) + 0.5;
-				if (!newNotifs) {
+				if (!newNotifs || oldLength >= newlength) {
+					oldLength = newlength;
 					return "";
 				}
+				notificationSound.play();
 				return `transform: rotate(${rot_eased * 45}deg);`;
 			},
 		};
 	}
 
+	onMount(() => {
+		oldLength = [...notifMap.values()].filter((status) => status === Status.UNREAD).length;
+	})
 </script>
 
-<!-- //TODO sound for notification? -->
-<!-- //TODO have the unread and read look different -->
 <div id="bell" class="bell">
+	{#key notifMap}
 	<img
 		src="/Assets/icons/bell.svg"
 		class="bell-icon"
 		alt="bell"
-		in:spin={{ duration: 250 }}
+		id="bell-img"
+		in:spin={{ duration: 1000 }}
 	/>
+	{/key}
 	<div class="flex relative">
 		{#if newNotifs}
 			<div class="new-notifications" />
@@ -95,8 +93,8 @@
 		Notifications
 	</div>
 	{#each [...notifMap] as [invite, status] (invite.id)}
-		{#if status !== Status.REMOVED}
-			<DropdownItem class="flex space-x-4">
+	<DropdownItem class="flex space-x-4 status{status}">
+				{#if status !== Status.REMOVED}
 				<Avatar src={invite.from.avatar} />
 				<div class="pl-3 w-full">
 					<div
@@ -140,8 +138,8 @@
 						fill="currentColor"
 						width="20"
 						height="20"
-						on:click={() => removeNotification(invite)}
-						on:keypress={() => removeNotification(invite)}
+						on:click={() => mark(invite, Status.REMOVED)}
+								on:keypress={() => mark(invite, Status.REMOVED)}
 					>
 						<path
 							d="M13.42 12L20 18.58 18.58 20 12 13.42
@@ -150,8 +148,8 @@
 						/>
 					</svg>
 				</div>
+				{/if}
 			</DropdownItem>
-		{/if}
 	{/each}
 	{#if newNotifs}
 		<DropdownItem class="space-x-4 flex" on:click={markAllRead}

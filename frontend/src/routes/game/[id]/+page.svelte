@@ -12,7 +12,7 @@
 <!-- //TODO make it possible to also select the 4 player option -->
 {#if data.room.gamemode === Gamemode.VR}
 	<VrGame />
-{:else if data.room.gamemode === Gamemode.REGULAR}
+{:else if data.room.gamemode === Gamemode.CLASSIC}
 	<ClassicGame />
 {:else if data.room.gamemode === Gamemode.MODERN}
 	<ModernGame gameMode={GAME.TWOPLAYERS} />

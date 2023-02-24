@@ -1,9 +1,9 @@
 <script lang="ts">
-    import type { User, ChatRoom, Member, Message } from "$lib/entities";
+    import type { User, Member, Message } from "$lib/entities";
 	import { BOUNCER } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
-    import { memberStore, userStore } from "../../stores"
+    import { memberStore, userStore } from "$lib/stores"
     import MemberBox from "./MemberBox.svelte";
 	import Embed from "./Embed.svelte";
 

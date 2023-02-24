@@ -9,7 +9,7 @@ export async function loadFont(): Promise<Font> {
 	return await loader.loadAsync("/Assets/fonts/helvetiker_regular.typeface.json");
 }
 
-export const HELVETIKER_REGULAR = await loadFont();
+export const HELVETIKER_CLASSIC = await loadFont();
 
 export function createText(text: string, font: Font): TextGeometry {
 	return new TextGeometry(text, {
@@ -28,7 +28,7 @@ export class DynamicText {
 	public constructor(world: World, material: THREE.Material, text: string) {
 		this.world = world;
 
-		const geometry = this.world.addThreeObject(createText(text, HELVETIKER_REGULAR));
+		const geometry = this.world.addThreeObject(createText(text, HELVETIKER_CLASSIC));
 
 		this.lastText = text;
 		this.mesh = new THREE.Mesh(geometry, material);
@@ -37,7 +37,7 @@ export class DynamicText {
 
 	public set text(text: string) {
 		if (this.lastText !== text) {
-			const geometry = this.world.addThreeObject(createText(text, HELVETIKER_REGULAR));
+			const geometry = this.world.addThreeObject(createText(text, HELVETIKER_CLASSIC));
 			const oldMesh = this.mesh;
 
 			this.lastText = text;

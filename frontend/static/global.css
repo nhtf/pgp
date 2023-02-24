@@ -399,6 +399,14 @@ table {
 	border-radius: 6px;
 }
 
+.flowbite-input {
+	display: inline-block !important;
+	width: 2.3em;
+	height: 2em !important;
+	background-color: var(--box-color) !important;
+	border-radius: 0.25rem !important;
+}
+
 .checkbox {
 	width: 30px !important;
 	height: 30px !important;
@@ -430,4 +438,36 @@ table {
 @font-face {
 	font-family: "pong";
 	src: url("/Assets/fonts/Pixeled.ttf");
+}
+
+.text-red {
+	color: var(--red);
+}
+
+.text-green {
+	color: var(--green);
+}
+
+.text-blue {
+	color: var(--blue);
+}
+
+.status0 {
+	background-color: var(--box-color)!important;
+}
+
+.status1 {
+	--bg-opacity: 0.7;
+	background-color: var(--box-color)!important;
+	color: var(--text-color) * 0.6 !important;
+	filter: opacity(0.3);
+}
+
+/* This is so that the dropdown menu doesn't get clicked away if an element gets removed */
+.status2{
+	padding: 0 !important;
+}
+
+.avatar-status0 {
+	filter: opacity(0.3);
 }

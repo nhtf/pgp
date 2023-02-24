@@ -1,5 +1,7 @@
 import { a, FIELDWIDTH, scoreColors, scorePositions } from "./Constants";
-import type { Team } from "./Modern";
+import type { Team } from "../lib2D/Team";
+
+
 
 export class Score {
 
