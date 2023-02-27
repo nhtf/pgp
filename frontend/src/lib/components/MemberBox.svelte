@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { unwrap } from "$lib/Alert";
+	import { status_colors } from "$lib/constants";
 	import type { Member } from "$lib/entities";
 	import { Role } from "$lib/enums";
 	import { patch, post, remove } from "$lib/Web";
@@ -17,7 +18,6 @@
 
 	// minutes
 	const mute_duration = 1;
-	const status_colors = ["gray", "yellow", "green"];
 
 	type Action = {
 		role: Role;
@@ -117,13 +117,21 @@
 		<a href={`/profile/${user.username}`}>Profile</a>
 	</DropdownItem>
 	{#if self.id !== target.id}
-		{#each Object.values(Role).reverse().filter((role) => typeof role === "number" && role > 0) as role}
+		{#each Object.values(Role)
+			.reverse()
+			.filter((role) => typeof role === "number" && role > 0) as role}
 			{#if self.role >= role && target.role < self.role}
 				<DropdownDivider />
 				{#each actions.filter((action) => action.role === role) as { condition, fun, param, name }}
 					{#if !condition || condition(target)}
 						<DropdownItem
-							on:click={() => fun(target, (typeof param === "function") ? param(target) : param)}>{name}</DropdownItem
+							on:click={() =>
+								fun(
+									target,
+									typeof param === "function"
+										? param(target)
+										: param
+								)}>{name}</DropdownItem
 						>
 					{/if}
 				{/each}

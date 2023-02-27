@@ -5,7 +5,7 @@
 	import { respond } from "$lib/invites";
 	import { afterUpdate } from "svelte";
 	import { backIn as anim } from "svelte/easing";
-    import { inviteStore } from "../../stores";
+	import { inviteStore, userStore } from "../../stores";
 
 	enum Status {
 		UNREAD,
@@ -13,15 +13,21 @@
 		REMOVED,
 	}
 
-	let user: User;
 	let notifMap = new Map<Invite, Status>();
 	let timer: NodeJS.Timeout | undefined;
-	
-	$: user = $page.data.user;
-	$: invites = Array.from($inviteStore.values());
+
+	$: user = $userStore.get($page.data.user?.id)!;
+	$: invites = [...$inviteStore].map(([_, invite]) => invite);
 	$: notifications = invites.filter((invite) => invite.to.id === user.id);
-	$: notifMap = new Map(notifications.map((invite) => [invite, !notifMap.has(invite) ? Status.UNREAD : notifMap.get(invite)!]));
-	$: newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
+	$: notifMap = new Map(
+		notifications.map((invite) => [
+			invite,
+			!notifMap.has(invite) ? Status.UNREAD : notifMap.get(invite)!,
+		])
+	);
+	$: newNotifs = [...notifMap.values()].some(
+		(status) => status === Status.UNREAD
+	);
 
 	afterUpdate(() => {
 		if (timer) {
@@ -67,7 +73,6 @@
 			},
 		};
 	}
-
 </script>
 
 <!-- //TODO sound for notification? -->
@@ -94,64 +99,59 @@
 	<div slot="header" class="text-center py-2 font-bold text-center ">
 		Notifications
 	</div>
-	{#each [...notifMap] as [invite, status] (invite.id)}
-		{#if status !== Status.REMOVED}
-			<DropdownItem class="flex space-x-4">
-				<Avatar src={invite.from.avatar} />
-				<div class="pl-3 w-full">
-					<div
-						class="text-gray-500 text-sm mb-1.5 dark:text-gray-400"
+	{#each [...notifMap].filter(([_, status]) => status !== Status.REMOVED) as [invite, status] (invite.id)}
+		<DropdownItem class="flex space-x-4">
+			<Avatar src={invite.from.avatar} />
+			<div class="pl-3 w-full">
+				<div class="text-gray-500 text-sm mb-1.5 dark:text-gray-400">
+					New {invite.type} invite from
+					<span class="font-semibold text-gray-900 dark:text-white"
+						>{invite.from.username}</span
 					>
-						New {invite.type} invite from
-						<span
-							class="font-semibold text-gray-900 dark:text-white"
-							>{invite.from.username}</span
-						>
+				</div>
+				<div class="flex flex-row justify-between items-center">
+					<div
+						class="block text-xs text-blue-600 dark:text-blue-500 accept"
+						on:click={() => acceptInvite(invite)}
+						on:keypress={() => acceptInvite(invite)}
+					>
+						accept invite
 					</div>
-					<div class="flex flex-row justify-between items-center">
+					{#if status === Status.UNREAD}
 						<div
 							class="block text-xs text-blue-600 dark:text-blue-500 accept"
-							on:click={() => acceptInvite(invite)}
-							on:keypress={() => acceptInvite(invite)}
+							on:click={() => mark(invite, Status.READ)}
+							on:keypress={() => mark(invite, Status.READ)}
 						>
-							accept invite
+							mark as read
 						</div>
-						{#if status === Status.UNREAD}
-							<div
-								class="block text-xs text-blue-600 dark:text-blue-500 accept"
-								on:click={() => mark(invite, Status.READ)}
-								on:keypress={() => mark(invite, Status.READ)}
-							>
-								mark as read
-							</div>
-						{:else}
-							<div
-								class="block text-xs text-blue-600 dark:text-blue-500 accept"
-								on:click={() => mark(invite, Status.UNREAD)}
-								on:keypress={() => mark(invite, Status.UNREAD)}
-							>
-								mark as unread
-							</div>
-						{/if}
-					</div>
+					{:else}
+						<div
+							class="block text-xs text-blue-600 dark:text-blue-500 accept"
+							on:click={() => mark(invite, Status.UNREAD)}
+							on:keypress={() => mark(invite, Status.UNREAD)}
+						>
+							mark as unread
+						</div>
+					{/if}
 				</div>
-				<div class="close-button" title="remove notification">
-					<svg
-						fill="currentColor"
-						width="20"
-						height="20"
-						on:click={() => removeNotification(invite)}
-						on:keypress={() => removeNotification(invite)}
-					>
-						<path
-							d="M13.42 12L20 18.58 18.58 20 12 13.42
-					  5.42 20 4 18.58 10.58 12 4 5.42 5.42
-					  4 12 10.58 18.58 4 20 5.42z"
-						/>
-					</svg>
-				</div>
-			</DropdownItem>
-		{/if}
+			</div>
+			<div class="close-button" title="remove notification">
+				<svg
+					fill="currentColor"
+					width="20"
+					height="20"
+					on:click={() => removeNotification(invite)}
+					on:keypress={() => removeNotification(invite)}
+				>
+					<path
+						d="M13.42 12L20 18.58 18.58 20 12 13.42
+					5.42 20 4 18.58 10.58 12 4 5.42 5.42
+					4 12 10.58 18.58 4 20 5.42z"
+					/>
+				</svg>
+			</div>
+		</DropdownItem>
 	{/each}
 	{#if newNotifs}
 		<DropdownItem class="space-x-4 flex" on:click={markAllRead}

@@ -1,11 +1,11 @@
 <script lang="ts">
-    import type { User, ChatRoom, Member, Message } from "$lib/entities";
+    import type { User, Member, Message } from "$lib/entities";
 	import { BOUNCER } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
     import { memberStore, userStore } from "../../stores"
     import MemberBox from "./MemberBox.svelte";
-	import Embed from "./Embed.svelte";
+	import EmbedBox from "$lib/components/EmbedBox.svelte";
 
 	export let message: Message;
 	export let self: Member;
@@ -42,7 +42,7 @@
 		<div class="message-content">{message.content}</div>
 		{#each message.embeds as embed}
 			{#if embed.rich}
-				<Embed digest={embed.digest} url={embed.url} />
+				<EmbedBox digest={embed.digest} url={embed.url} />
 			{:else}
 				<img class="message-image" src={`${BOUNCER}/${embed.digest}/proxy?${new URLSearchParams({ url: embed.url })}`} alt="embed">
 			{/if}

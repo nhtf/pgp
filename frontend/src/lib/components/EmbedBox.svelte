@@ -7,7 +7,7 @@
 
 	const urlInfo = new URL(url);
 
-	function resize(node, ratio) {
+	function resize(node: any, ratio: number) {
 		let frame = requestAnimationFrame(function onResize() {
 			node.height = node.clientWidth / ratio;
 			frame = requestAnimationFrame(onResize);
@@ -22,10 +22,10 @@
 <div class="embed">
 	{#await bounceEmbed(digest, url)}
 		<div class="embed-spinner">
-			<div class="embed-spinner-circle"></div>
-			<div class="embed-spinner-circle"></div>
-			<div class="embed-spinner-circle"></div>
-			<div class="embed-spinner-circle"></div>
+			<div class="embed-spinner-circle" />
+			<div class="embed-spinner-circle" />
+			<div class="embed-spinner-circle" />
+			<div class="embed-spinner-circle" />
 		</div>
 	{:then embed}
 		{#if embed.title}
@@ -35,9 +35,18 @@
 			<p class="embed-description">{embed.description}</p>
 		{/if}
 		{#if ["www.youtube.com", "youtube.com", "youtu.be"].includes(urlInfo.host) && embed.video}
-			<iframe class="embed-iframe" src={embed.video.url.url} use:resize={embed.video.width / embed.video.height} />
+			<iframe
+				class="embed-iframe"
+				src={embed.video.url.url}
+				use:resize={embed.video.width / embed.video.height}
+				title="iframe"
+			/>
 		{:else if embed.image}
-			<img class="embed-image" src={`${BOUNCER}/${embed.image.url.digest}/proxy?${new URLSearchParams({ url: embed.image.url.url })}`}>
+			<img
+				class="embed-image"
+				src={`${BOUNCER}/${embed.image.url.digest}/proxy?${new URLSearchParams({ url: embed.image.url.url })}`}
+				alt="embed"
+			/>
 		{/if}
 	{:catch error}
 		<p class="embed-error">{error}</p>
@@ -70,19 +79,23 @@
 		position: absolute;
 	}
 
-	.embed-spinner-circle:nth-of-type(1), .embed-spinner-circle:nth-of-type(2) {
+	.embed-spinner-circle:nth-of-type(1),
+	.embed-spinner-circle:nth-of-type(2) {
 		top: 0px;
 	}
 
-	.embed-spinner-circle:nth-of-type(3), .embed-spinner-circle:nth-of-type(4) {
+	.embed-spinner-circle:nth-of-type(3),
+	.embed-spinner-circle:nth-of-type(4) {
 		bottom: 0px;
 	}
 
-	.embed-spinner-circle:nth-of-type(1), .embed-spinner-circle:nth-of-type(3) {
+	.embed-spinner-circle:nth-of-type(1),
+	.embed-spinner-circle:nth-of-type(3) {
 		left: 0px;
 	}
 
-	.embed-spinner-circle:nth-of-type(2), .embed-spinner-circle:nth-of-type(4) {
+	.embed-spinner-circle:nth-of-type(2),
+	.embed-spinner-circle:nth-of-type(4) {
 		right: 0px;
 	}
 

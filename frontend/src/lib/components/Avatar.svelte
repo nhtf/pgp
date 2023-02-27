@@ -1,48 +1,43 @@
 <script lang="ts">
-
 	import { page } from "$app/stores";
-    import Swal from "sweetalert2";
-    import { put } from "$lib/Web";
+	import Swal from "sweetalert2";
+	import { put } from "$lib/Web";
+	import { userStore } from "../../stores";
 
-    const edit_icon = "/Assets/icons/pen.png";
-	let show_edit = false;
-	$: avatar = $page.data?.profile?.avatar;
-	let src: string | null;
-	let filevar: FileList;
+	$: user = $userStore.get($page.data.user?.id)!;
 
-	// console.log($page.data.profile.avatar);
+	const edit_icon = "/Assets/icons/pen.png";
 
 	async function changeAvatar() {
 		const { value: file } = await Swal.fire({
-				title: "Select image",
-				input: "file",
-				color: "var(--text-color)",
-				background: "var(--box-color)",
-				confirmButtonColor: "var(--confirm-color)",
-				cancelButtonColor: "var(--cancel-color)",
-				showCancelButton: true,
-				confirmButtonText: "Select",
-				inputAttributes: {
-					"accept": "image/*",
-					"aria-label": "Upload your avatar",
-				},
-				inputValidator: file => {
-					if (!file)
-						return "No file selected";
-					return null;
-				},
-			});
-		
+			title: "Select image",
+			input: "file",
+			color: "var(--text-color)",
+			background: "var(--box-color)",
+			confirmButtonColor: "var(--confirm-color)",
+			cancelButtonColor: "var(--cancel-color)",
+			showCancelButton: true,
+			confirmButtonText: "Select",
+			inputAttributes: {
+				accept: "image/*",
+				"aria-label": "Upload your avatar",
+			},
+			inputValidator: (file) => {
+				if (!file) return "No file selected";
+				return null;
+			},
+		});
+
 		if (file) {
 			const reader = new FileReader();
-			reader.onload = async (e) => {
+			reader.onload = async (event) => {
 				await Swal.fire({
 					title: "Change avatar?",
 					color: "var(--text-color)",
 					background: "var(--box-color)",
 					confirmButtonColor: "var(--confirm-color)",
 					cancelButtonColor: "var(--cancel-color)",
-					imageUrl: (e.target?.result as string),
+					imageUrl: event.target?.result as string,
 					imageWidth: 400,
 					imageHeight: 400,
 					imageAlt: "Uploaded image",
@@ -50,44 +45,34 @@
 					preConfirm: async () => {
 						const form = new FormData();
 						form.append("avatar", file);
-						return await put("/user/me/avatar", form, false).catch(error => {
-							Swal.showValidationMessage(error.message);
-						});
+						return await put("/user/me/avatar", form, false).catch(
+							(error) => {
+								Swal.showValidationMessage(error.message);
+							}
+						);
 					},
-				}).then(result => {
-					if (result.isConfirmed) {
-						const avatars = document.getElementById("avatar-menu") as HTMLImageElement;
-						avatars.src = result.value.avatar;
-						avatar = result.value.avatar;
-						src = null;
-						// Swal.fire({
-						// 	position: "top-end",
-						// 	icon: "success",
-						// 	title: "Set new image",
-						// 	showConfirmButton: false,
-						// 	timer: 1300,
-						// });
-					}
 				});
 			};
 			reader.readAsDataURL(file);
 		}
 	}
-
 </script>
 
 <div class="block-cell" id="avatar-block">
-	<img id="avatar" src={avatar} alt="avatar" />
-    {#if $page.data.user?.username === $page.data.profile?.username}
-        <img src={edit_icon} alt="edit icon" id="edit-icon"
-            on:click={changeAvatar}
-            on:keypress={changeAvatar}
-        />
-    {/if}
+	<img id="avatar" src={user.avatar} alt="avatar" />
+	{#if user.id === $page.data.profile.id}
+		<img
+			src={edit_icon}
+			alt="edit icon"
+			id="edit-icon"
+			on:click={changeAvatar}
+			on:keypress={changeAvatar}
+		/>
+	{/if}
 </div>
 
 <style>
-    .edit-avatar-window {
+	/* .edit-avatar-window {
 		display: flex;
 		position: fixed;
 		flex-direction: column;
@@ -168,16 +153,34 @@
 		object-fit: contain;
 	}
 
-    #avatar-block {
-		height: 100%;
-		padding:0;
-	}
-
-    .hidden {
+	.hidden {
 		display: none;
 	}
 
-    #avatar {
+	@media (max-width: 750px) {
+		.edit-avatar-window {
+			width: 250px;
+			height: 250px;
+			top: calc(50% - 125px);
+			left: calc(50% - 125px);
+		}
+
+		.image-selector {
+			bottom: 5px;
+		}
+
+		.avatar-preview-container {
+			width: 150px;
+			height: 150px;
+		}
+	} */
+
+	#avatar-block {
+		height: 100%;
+		padding: 0;
+	}
+
+	#avatar {
 		width: 120px;
 		border-radius: 50%;
 		z-index: 1;
@@ -205,22 +208,4 @@
 		min-height: 40px;
 		padding: 5px;
 	}
-
-	@media (max-width: 750px) {
-        .edit-avatar-window {
-            width: 250px;
-            height: 250px;
-            top: calc(50% - 125px);
-            left: calc(50% - 125px);
-        }
-
-		.image-selector {
-			bottom: 5px;
-		}
-
-		.avatar-preview-container {
-			width: 150px;
-			height: 150px;
-		}
-    }
 </style>

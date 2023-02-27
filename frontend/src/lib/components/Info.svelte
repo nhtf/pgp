@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { User } from "$lib/entities";
 	import { page } from "$app/stores";
 	import Avatar from "./Avatar.svelte";
 	import Achievements from "./Achievements.svelte";
@@ -9,12 +8,11 @@
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
 	import { BACKEND } from "$lib/constants";
+    import { userStore } from "../../stores";
 
 	const edit_icon = "/Assets/icons/pen.png";
 
-	let profile: User;
-
-	$: profile = $page.data.profile;
+	$: profile = $userStore.get($page.data.profile.id)!;
 
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)

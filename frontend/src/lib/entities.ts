@@ -77,6 +77,7 @@ export type Invite = {
 export type Embed = {
 	digest: string;
 	url: string;
+	rich: boolean,
 };
 
 export type Message = {

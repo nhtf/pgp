@@ -7,3 +7,5 @@ export const BOUNCER = `http://${BOUNCER_ADDRESS}`;
 
 export const asset_path = "/Assets";
 export const icon_path = `${asset_path}/icons`;
+
+export const status_colors = ["gray", "yellow", "green"];

@@ -25,7 +25,7 @@
 	let self = data.members.find((member) => member.user.id === data.user!.id)!;
 
 	$: room;
-	$: members = [...$memberStore].map(([id, member]) => member).filter((member) => member.roomId === room.id);
+	$: members = [...$memberStore].map(([_, member]) => member).filter((member) => member.roomId === room.id);
 	$: self = $memberStore.get(self.id)!;
 
 	$: owner = members.find((member) => member.role === Role.OWNER)!;
