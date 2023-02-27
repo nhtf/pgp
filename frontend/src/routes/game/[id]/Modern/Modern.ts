@@ -4,35 +4,33 @@ import {intersection, Vector, paddleBounce, isInConvexHull} from "../lib2D/Math2
 import type { VectorObject, Line, CollisionLine } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
 import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT, ballVelociy } from "./Constants";
-import type { GAME, field} from "./Constants";
+import { GAME, type field} from "./Constants";
 import { Ball } from "./Ball";
 import type { Snapshot, Options, PingEvent } from "../lib2D/interfaces";
 import { Field } from "./Field";
 import { Goal } from "./Goal";
 import { Background } from "./Background";
 import { Score } from "./Score";
+import { Team } from "../lib2D/Team";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
-const score = new Audio("/Assets/sounds/teleportation.mp3");
+const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
 const wall = new Audio("/Assets/sounds/wall.wav");
 const music = new Audio("/Assets/sounds/zetauri.wav");
 
-export class Team {
-	public score: number;
-	public id: number;
-
-	public constructor(id: number) {
-		this.score = 0;
-		this.id = id;
-	}
-}
-
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
-	u: number;
-	x: number;
-	y: number;
-	t: number;
+	u: number; //userid
+	x: number; //xpos
+	y: number; //ypos
+	t: number; //teamId
+	r: number; //rotation
+}
+
+export interface ScoreEvent extends NetEvent {
+	u: number; //userId
+	t: number; //teamId
+	s: number; //scorechange
 }
 
 function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: Ball) {
@@ -150,6 +148,24 @@ export class Game extends Net {
 			}
 		});
 
+		this.on("mousescroll", netEvent => {
+			const event = netEvent as MouseEvent;
+			let paddle = this.getPaddle(event.u);
+
+			if (paddle === null) {
+				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
+				if (paddle?.userID !== undefined) {
+					paddle = null;
+				}
+			}
+			if (paddle !== null) {
+				paddle.userID = event.u;
+				paddle.ping = this.time;
+
+				paddle.rotation += event.r;
+			}
+		});
+
 		this.on("resize", (resize) => {
 			this.resizeOffscreenCanvas();
 		});
@@ -161,6 +177,36 @@ export class Game extends Net {
 			if (paddle !== null) {
 				paddle.ping = this.time;
 			}
+
+			const team = this.getTeam(event.u);
+
+			if (team !== null) {
+				team.ping = this.time;
+			}
+		});
+
+		//TODO this causes a lot of issues, need to improve this
+		//TODO also need to send message to the update socket
+		this.on("score", netEvent => {
+			const event = netEvent as ScoreEvent;
+
+			let team = this.getTeam(event.u);
+			if (team === null) {
+				team = this.teams.find(t => t.id == event.t) ?? null;
+				console.log("team: ", team, "event: ", event);
+				if (team?.userId !== undefined) {
+					team = null;
+				}
+			}
+			if (team !== null) {
+				team.userId = event.u;
+				team.ping = this.time;
+				team.score = event.s;
+			}
+
+			// console.log("teams: ", this.teams);
+			// console.log("score event get: ", event);
+			// this.teams[event.u].score = event.s;
 		});
 	}
 
@@ -213,6 +259,7 @@ export class Game extends Net {
 		return {
 			ball: this.ball.save(),
 			paddles: this.paddles.map(paddle => paddle.save()),
+			teams: this.teams.map(team => team.save()),
 			...super.save(),
 		};
 	}
@@ -220,6 +267,7 @@ export class Game extends Net {
 	protected load(snapshot: Snapshot) {
 		this.ball.load(snapshot.ball);
 		this.paddles.forEach((paddle, i) => paddle.load(snapshot.paddles[i]));
+		this.teams.forEach((team, i) => team.load(snapshot.teams[i]));
 		super.load(snapshot);
 	}
 
@@ -233,7 +281,17 @@ export class Game extends Net {
 		return null;
 	}
 
-	//TODO lerp/slerp the paddle for smoother motion
+	public getTeam(userID?: number): Team | null {
+		for (let team of this.teams) {
+			if (team.userId === userID) {
+				return team;
+			}
+		}
+
+		return null;
+	}
+
+	//TODO lerp/slerp the paddle (and ball?) for smoother motion
 	public render(context: CanvasRenderingContext2D) {
 		this.ball.render(context);
 		this.paddles.forEach(paddle => paddle.render(context));
@@ -266,24 +324,35 @@ export class Game extends Net {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name.startsWith("goal")) {
-				score.play();
+				scoreSound.play();
 				//TODO also send update to backend for score
-				const goal: number = +collision[0].name.charAt(4);
-				if (this.level.players === 4) {
-					this.teams[goal].score -=1;
+				//TODO better score update
+				let goal: number = +collision[0].name.charAt(4);
+				let score;
+				if (this.level.players > 2)
+					score = this.teams[goal].score - 1;
+				else if (goal === 1) {
+					goal = 0;
+					score = this.teams[goal].score + 1;
 				}
-				else if (goal === 1){
-					this.teams[0].score +=1;
+				else {
+					goal = 1;
+					score = this.teams[goal].score + 1;
 				}
-				else
-					this.teams[1].score += 1;
+				// this.teams[goal].id
+				//TODO It will send this for everyone, even if they are playing back old events....
+				//TODO it also causes other weird issues...????
+				this.send("score", {
+					u: this.teams[goal].userId,
+					s: score,
+					t: this.teams[goal].id,
+				});
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
 				
 				break;
 			} else {
 				if (collision[0].name.startsWith("paddle")) {
-					const paddleIndex: number = +collision[0].name.charAt(7);
 					this.bounceBall(collision,  new Vector(0, 0));
 				}
 				else {
@@ -303,6 +372,12 @@ export class Game extends Net {
 		for (let paddle of this.paddles) {
 			if (paddle.ping + PADDLE_PING_TIMEOUT < this.time) {
 				paddle.userID = undefined;
+			}
+		}
+
+		for (let team of this.teams) {
+			if (team.ping + PADDLE_PING_TIMEOUT < this.time) {
+				team.userId = undefined;
 			}
 		}
 
@@ -422,6 +497,21 @@ export class Modern {
 				t: options.member.player?.team?.id,
 			});
 		});
+
+		//TODO maybe have middleclick or something for resetting rotation?
+		if (this.players === GAME.FOURPLAYERS) {
+			this.canvas.addEventListener("wheel", ev => {
+				const rotation = ev.deltaY / 16 * 2 * 0.01745329;
+				this.game?.send("mousescroll", {
+					u: options.member.user.id,
+					x: 0,
+					y: 0,
+					t: options.member.player?.team?.id,
+					r: rotation
+				});
+			});
+		}
+		
 		//this event is for resizing the offscreen canvas
 		window.addEventListener("resize", (ev) => {
 			this.game?.send("resize", {

@@ -2,7 +2,7 @@
 	import { page } from "$app/stores";
 	import Swal from "sweetalert2";
 	import { put } from "$lib/Web";
-	import { userStore } from "../../stores";
+	import { userStore } from "$lib/stores";
 
 	$: user = $userStore.get($page.data.user?.id)!;
 

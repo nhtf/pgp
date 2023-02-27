@@ -5,11 +5,11 @@
 	import { get, post } from "$lib/Web";
 	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
 	import Swal from "sweetalert2";
-	import { userStore } from "../../stores";
+	import { userStore } from "$lib/stores";
 
 	export let room: Room;
 
-	const url_type = room.type.replace("Room", "").toLowerCase();
+	const route = room.type.replace("Room", "").toLowerCase();
 
 	let self: User = $page.data.user;
 	let members: Member[] = [];
@@ -19,10 +19,8 @@
 	$: self = $userStore.get(self.id)!;
 	$: friends = [...$userStore]
 		.map(([id, user]) => user)
-		.filter((user) =>
-			self.friends?.map((friend) => friend.id).includes(user.id)
-		);
-	$: member_user_ids = members.map((member) => member.user.id);
+		.filter((user) => self.friendsIds.includes(user.id));
+	$: member_user_ids = members.map((member) => member.userId);
 	$: invitable = friends.filter((user) => !member_user_ids.includes(user.id));
 	$: matches = invitable.filter(match);
 
@@ -30,13 +28,13 @@
 		if (!invitee.length) {
 			return Swal.fire({
 				icon: "warning",
-				text: "Please enter a username",
+				text: "Please select a user",
 				timer: 3000,
 			});
 		}
 
 		await unwrap(
-			post(`/${url_type}/id/${room.id}/invite`, { username: invitee })
+			post(`/${route}/id/${room.id}/invite`, { username: invitee })
 		);
 
 		Swal.fire({ icon: "success", timer: 1000 });
@@ -47,7 +45,7 @@
 	}
 
 	async function fetchMembers() {
-		members = await unwrap(get(`/${url_type}/id/${room.id}/members`));
+		members = await unwrap(get(`/${route}/id/${room.id}/members`));
 	}
 </script>
 
@@ -58,20 +56,22 @@
 	on:input={() => (matches = invitable.filter(match))}
 	on:focus|once={fetchMembers}
 />
-<Dropdown bind:open>
-	{#each matches as { id, username, avatar } (id)}
-		<DropdownItem
-			on:click={() => {
-				invitee = username;
-				open = false;
-			}}
-			class="flex gap-1"
-		>
-			<Avatar class="avatar" src={avatar} />
-			<div>{username}</div>
-		</DropdownItem>
-	{/each}
-</Dropdown>
+{#if matches.length}
+	<Dropdown bind:open>
+		{#each matches as { id, username, avatar } (id)}
+			<DropdownItem
+				on:click={() => {
+					invitee = username;
+					open = false;
+				}}
+				class="flex gap-1"
+			>
+				<Avatar class="avatar" src={avatar} />
+				<div>{username}</div>
+			</DropdownItem>
+		{/each}
+	</Dropdown>
+{/if}
 <button class="button green" on:click={() => invite(room)}>Invite</button>
 
 <style>

@@ -12,9 +12,7 @@ export type User = {
 	status: Status,
 	avatar: string,
 	in_game: boolean,
-	achievements?: Achievement[],
-	invites?: Invite[],
-	friends?: User[],
+	friendsIds: number[],
 };
 
 export type Room = {

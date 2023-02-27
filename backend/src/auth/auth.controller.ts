@@ -119,7 +119,7 @@ export class AuthController {
 	) {
 		const access_token = await this.get_access_token(token.code);
 
-		if (!(await this.session_utils.regenerate_session_req(request)))
+		if (!(await this.session_utils.regenerate_session_req(request))) //TODO regenerate session after the identity is validated of the user
 			throw new HttpException(
 				"failed to create session",
 				HttpStatus.SERVICE_UNAVAILABLE,
@@ -127,7 +127,7 @@ export class AuthController {
 
 		const oauth_id = await this.get_id(access_token);
 		if (!oauth_id)
-			throw new HttpException("could not verify identity", HttpStatus.INTERNAL_SERVER_ERROR);
+			throw new HttpException("could not verify identity", HttpStatus.INTERNAL_SERVER_ERROR); //TODO this is probably a unauthorized exeption instead of an internal error, since the user could've just send bs
 
 		let user = await this.userRepo.findOneBy({ oauth_id: oauth_id });
 		if (!user) {

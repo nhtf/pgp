@@ -369,7 +369,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new UnprocessableEntityException("A private room cannot have a password");
 			}
 
-			room.name = dto.name ?? null;
+			room.name = dto.name ?? genName();
 			room.password = dto.password ? await argon2.hash(dto.password) : null;
 			room.is_private = dto.is_private;
 
@@ -606,8 +606,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			}
 
 			return await this.invite_repo.remove(invite);
-
-			//TODO check if invite is properly removed from Room as well
 		}
 
 		@Get("id/:id/ban(s)?")

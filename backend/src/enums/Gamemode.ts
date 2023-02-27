@@ -1,5 +1,5 @@
 export enum Gamemode {
-	REGULAR,
+	CLASSIC,
 	VR,
 	MODERN,
 	MODERN4P

@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { BOUNCER } from "$lib/constants";
 	import { bounceEmbed } from "$lib/Web";
+    import { Spinner } from "flowbite-svelte";
 
 	export let url: string;
 	export let digest: string;
@@ -21,6 +22,7 @@
 
 <div class="embed">
 	{#await bounceEmbed(digest, url)}
+		<Spinner/>
 		<div class="embed-spinner">
 			<div class="embed-spinner-circle" />
 			<div class="embed-spinner-circle" />

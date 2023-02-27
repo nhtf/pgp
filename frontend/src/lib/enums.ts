@@ -1,7 +1,6 @@
 export enum Subject {
 	USER,
 	INVITE,
-	FRIEND,
 	ROOM,
 	MEMBER,
 }
@@ -25,7 +24,7 @@ export enum Access {
 };
 
 export enum Gamemode {
-	REGULAR,
+	CLASSIC,
 	VR,
 	MODERN,
 	MODERN4P

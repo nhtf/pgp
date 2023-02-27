@@ -4,7 +4,7 @@ import type { Achievement } from "$lib/types"
 import { Status } from "$lib/enums";
 import { get, remove } from '$lib/Web';
 import { unwrap } from '$lib/Alert';
-import { updateStore, userStore } from "../../../stores"
+import { updateStore, userStore } from "../../../lib/stores"
 
 export const ssr = false;
 
@@ -45,18 +45,10 @@ export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	const { user } = await unwrap(parent());
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 
-	let friends: User[] | null = null;
-
 	//just for debug
 	if (!profile.achievements) {
 		profile.achievements = dummyachievements
 	}
 
-	if (user?.id === profile.id) {
-		friends = await get(`/user/me/friends`);
-
-		updateStore(userStore, friends!);
-	}
-
-	return { self, friends, profile };
+	return { self, profile };
 }) satisfies PageLoad;

@@ -2,12 +2,17 @@ import { Net } from "../Net";
 import type { BallObject, PaddleObject, PingEvent, MouseEvent, Snapshot, Options } from "../lib2D/interfaces";
 import { Vector, intersection, paddleBounce } from "../lib2D/Math2D";
 import type { Line } from "../lib2D/Math2D";
+import { Team } from "../lib2D/Team";
 
 export const WIDTH = 160;
 export const HEIGHT = 90;
 export const UPS = 60;
 export const PADDLE_PING_TIMEOUT = 120;
 export const PADDLE_PING_INTERVAL = 60;
+
+const paddleHitSound = new Audio("/Assets/sounds/hitClassic.wav");
+const wallHitSound = new Audio("/Assets/sounds/wallClassic.wav");
+const scoreSound = new Audio("/Assets/sounds/buzz.mp3");
 
 export class Ball {
 	public position: Vector;
@@ -53,16 +58,6 @@ export class Ball {
 	}
 }
 
-export class Team {
-	public score: number;
-	public id: number;
-
-	public constructor(id: number) {
-		this.score = 0;
-		this.id = id;
-	}
-}
-
 export class Paddle {
 	public position: Vector;
 	public height: number;
@@ -94,6 +89,7 @@ export class Paddle {
 			userID: this.userID,
 			width: 0, //width only needed for the modern pong
 			ping: this.ping,
+			rotation: 0
 		};
 	}
 
@@ -150,6 +146,7 @@ export class Game extends Net {
 		return {
 			ball: this.ball.save(),
 			paddles: this.paddles.map(paddle => paddle.save()),
+			teams: this.teams.map(team => team.save()),
 			...super.save(),
 		};
 	}
@@ -157,6 +154,7 @@ export class Game extends Net {
 	protected load(snapshot: Snapshot) {
 		this.ball.load(snapshot.ball);
 		this.paddles.forEach((paddle, i) => paddle.load(snapshot.paddles[i]));
+		this.teams.forEach((team, i) => team.load(snapshot.teams[i]));
 		super.load(snapshot);
 	}
 
@@ -208,11 +206,13 @@ export class Game extends Net {
 				break;
 			} else if (collision[0].name == "wall-left") {
 				/* Point to team right */
+				scoreSound.play();
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(1, 0);
 				break;
 			} else if (collision[0].name == "wall-right") {
 				/* Point to team left */
+				scoreSound.play();
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(-1, 0);
 				break;
@@ -221,10 +221,14 @@ export class Game extends Net {
 				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
 
 				if (collision[0].name.startsWith("paddle-")) {
+					paddleHitSound.play();
 					const magnitude = this.ball.velocity.magnitude() + 0.1;
 					this.ball.velocity = this.ball.velocity.normalize();
 					this.ball.velocity = paddleBounce(collision[0], this.ball);
 					this.ball.velocity = this.ball.velocity.normalize().scale(magnitude);
+				}
+				else {
+					wallHitSound.play();
 				}
 
 				time -= collision[2];

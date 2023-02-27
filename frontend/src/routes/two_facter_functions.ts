@@ -60,14 +60,14 @@ export async function enable_2fa() {
 		    allowOutsideClick: () => !Swal.isLoading(),
 		}).then((result) => {
 		    if (result.isConfirmed) {
-			Swal.fire({
-			    position: "top-end",
-			    icon: "success",
-			    title: "Successfully setup 2FA",
-			    showConfirmButton: false,
-			    timer: 1300,
-			});
-			resolve();
+				Swal.fire({
+					position: "top-end",
+					icon: "success",
+					title: "Successfully setup 2FA",
+					showConfirmButton: false,
+					timer: 1300,
+				});
+				resolve(result.value);
 		    }
 		});
 	});
@@ -94,12 +94,12 @@ export async function disable_2fa() {
 			focusCancel: true,
 			preConfirm: async () => {
 			    return fetch(`${BACKEND}/otp/disable`, {
-				method: "POST",
-				credentials: "include",
+					method: "POST",
+					credentials: "include",
 			    })
 				.then((response) => {
 				    if (!response.ok) {
-						throw new (response.statusText);
+						throw (response.statusText);
 					}
 				    return null;
 				})
@@ -117,7 +117,7 @@ export async function disable_2fa() {
 				showConfirmButton: false,
 				timer: 1300,
 			    });
-			    resolve();
+			    resolve(result.value);
 			}
 		});
 	});

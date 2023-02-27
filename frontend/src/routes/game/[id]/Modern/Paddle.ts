@@ -6,7 +6,7 @@ import {
     paddleWidth,
 } from "./Constants";
 import type { Line, CollisionLine } from "../lib2D/Math2D";
-import type { Team } from "../Classic/Classic";
+import type { Team } from "../lib2D/Team";
 
 
 /*
@@ -21,7 +21,7 @@ export class Paddle {
 	public height: number;
     public width: number;
 	public userID?: number;
-	public angle: number;
+	public rotation: number;
 	public strokeColor: string;
 	public fillColor: string;
 	public owner: number;
@@ -33,7 +33,7 @@ export class Paddle {
 		this.position = new Vector(position.x, position.y);
 		this.height = paddleHeight;
         this.width = paddleWidth;
-		this.angle = angle;
+		this.rotation = angle;
 		this.strokeColor = cs;
 		this.fillColor = cf;
 		this.owner = owner;
@@ -49,8 +49,8 @@ export class Paddle {
 		context.lineJoin = "round";
 
 
-		const crot = Math.cos(this.angle);
-        const srot = Math.sin(this.angle);
+		const crot = Math.cos(this.rotation);
+        const srot = Math.sin(this.rotation);
         const w = this.width;
         const h = this.height / 2;
 
@@ -60,10 +60,10 @@ export class Paddle {
 		const D = {x: crot * w + srot * h, y: -srot * w + crot * h};
 		const CD = {x: srot * h, y: crot * h};
 		context.beginPath();
-		context.arc(this.position.x + AB.x , this.position.y + AB.y, this.width, Math.PI - this.angle, -this.angle);
+		context.arc(this.position.x + AB.x , this.position.y + AB.y, this.width, Math.PI - this.rotation, -this.rotation);
         context.lineTo(this.position.x + B.x, this.position.y + B.y);
         context.lineTo(this.position.x + D.x, this.position.y + D.y);
-		context.arc(this.position.x + CD.x , this.position.y + CD.y, this.width, - this.angle, Math.PI - this.angle);
+		context.arc(this.position.x + CD.x , this.position.y + CD.y, this.width, - this.rotation, Math.PI - this.rotation);
 		context.lineTo(this.position.x + A.x, this.position.y + A.y);
         context.fill();
         context.stroke();
@@ -77,6 +77,7 @@ export class Paddle {
             width: this.width,
 			userID: this.userID,
 			ping: this.ping,
+			rotation: this.rotation,
 		};
 	}
 
@@ -86,11 +87,12 @@ export class Paddle {
         this.width = object.width;
 		this.userID = object.userID;
 		this.ping = object.ping;
+		this.rotation = object.rotation;
 	}
 
 	public getCollisionLines(): CollisionLine[] {
-		const crot = Math.cos(this.angle);
-        const srot = Math.sin(this.angle);
+		const crot = Math.cos(this.rotation);
+        const srot = Math.sin(this.rotation);
         const w = this.width;
         const h = this.height / 2;
 
@@ -135,8 +137,8 @@ export class Paddle {
 	}
 
 	public isInPlayerArea(pos: Vector, area: CollisionLine[]) {
-		const crot = Math.cos(this.angle);
-        const srot = Math.sin(this.angle);
+		const crot = Math.cos(this.rotation);
+        const srot = Math.sin(this.rotation);
         const w = this.width;
         const h = this.height / 2;
 

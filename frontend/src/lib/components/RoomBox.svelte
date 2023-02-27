@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { User, Team, Room, GameRoomMember } from "$lib/entities";
+	import type { Team, Room, GameRoomMember } from "$lib/entities";
 	import type { Gamemode } from "$lib/enums";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
@@ -8,6 +8,7 @@
 	import { Access } from "$lib/enums";
     import { post, remove, patch } from "$lib/Web";
     import Invite from "./Invite.svelte";
+    import { userStore } from "$lib/stores";
 
 	type T = Room & {
 		gamemode?: Gamemode,
@@ -28,33 +29,33 @@
 	];
 	
 	const icon = gamemode_icons[room.gamemode as Gamemode];
-	const url_type = room.type.replace("Room", "").toLowerCase();
+	const route = room.type.replace("Room", "").toLowerCase();
 
-	let user: User;
+	let user = $page.data.user;
 	let password = "";
 
-	$: user = $page.data.user;
+	$: user = $userStore.get(user.id)!;
 
 	async function join(room: T) {
-		await unwrap(post(`/${url_type}/id/${room.id}/members`, { password }));
+		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
 
 		password = "";
 	}
 
 	async function leave(room: T) {
-		await unwrap(remove(`/${url_type}/id/${room.id}/members/me`));
+		await unwrap(remove(`/${route}/id/${room.id}/members/me`));
 	}
 	
 	async function erase(room: T) {
-        await unwrap(remove(`/${url_type}/id/${room.id}`));
+        await unwrap(remove(`/${route}/id/${room.id}`));
 	}
 	
 	async function joinTeam(room: T, team: Team | null) {
 		if (room.member?.player?.team?.id !== team?.id) {
-			await unwrap(patch(`/${url_type}/id/${room.id}/team/${room.member?.id}`, { team: team?.id }));
+			await unwrap(patch(`/${route}/id/${room.id}/team/${room.member?.id}`, { team: team?.id }));
 		}
 
-		await goto(`/${url_type}/${room.id}`);
+		await goto(`/${route}/${room.id}`);
 	}
 
 	function byId(first: Team, second: Team) {
@@ -88,7 +89,7 @@
 			<button class="button red" on:click={() => leave(room)}>Leave</button>
 		{/if}
 		{#if room.type !== "GameRoom" || room.teamsLocked}
-			<a class="button blue" href={`/${url_type}/${room.id}`}>Enter</a>
+			<a class="button blue" href={`/${route}/${room.id}`}>Enter</a>
 		{:else}
 			{#if !room.teamsLocked || room.member?.player === null}
 				<button class="button blue" on:click={() => joinTeam(room, null)}>Spectate</button>

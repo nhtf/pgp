@@ -7,22 +7,25 @@
 	import { unwrap } from "$lib/Alert";
 	import { patch, remove } from "$lib/Web";
 	import { goto } from "$app/navigation";
-	import { Subject, Role, Access } from "$lib/enums";
+	import { Subject, Role } from "$lib/enums";
 	import { updateManager } from "$lib/updateSocket";
-	import { Checkbox, Dropdown, DropdownDivider, DropdownItem } from "flowbite-svelte";
-	import { memberStore } from "../../../stores";
+	import { Dropdown, DropdownItem, MenuButton, Toggle } from "flowbite-svelte";
+	import { memberStore } from "$lib/stores";
     import { icon_path } from "$lib/constants";
 	import Invite from "$lib/components/Invite.svelte"
 	import MessageBox from "$lib/components/MessageBox.svelte"
     import MemberBox from "$lib/components/MemberBox.svelte";
+    import RoomInput from "$lib/components/RoomInput.svelte";
 
 	export let data: PageData;
 
 	const send_icon = `${icon_path}/send.svg`;
 
 	let room = data.room;
+	let self = data.member;
 	let messages = data.messages.sort(dateCmp)
-	let self = data.members.find((member) => member.user.id === data.user!.id)!;
+	let content = "";
+	let checked = false;
 
 	$: room;
 	$: members = [...$memberStore].map(([_, member]) => member).filter((member) => member.roomId === room.id);
@@ -34,11 +37,6 @@
 
 	$: messages;
 	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
-
-	let content = "";
-	let name = "";
-	let password = "";
-	let is_private = (room?.access === Access.PRIVATE);
 
 	onMount(() => {
 		updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
@@ -73,11 +71,10 @@
 	}
 
 	function sendMessage() {
-		if (!content.length) return;
-
-		roomSocket.emit("message", content);
-
-		content = "";
+		if (content.length) {
+			roomSocket.emit("message", content);
+			content = "";
+		}
 	}
 
 	async function leave(room: Room) {
@@ -90,19 +87,21 @@
 		await goto(`/chat`);
 	}
 
-	async function edit(room: Room) {
-		const edit: any = {};
-
-		edit.name = name.length ? name : null;
-		edit.password = password.length ? password : null;
-		edit.is_private = is_private;
+	async function edit(edit: any, room: Room) {
+		edit.name = edit.name.length ? edit.name : null;
+		edit.password = edit.password.length ? edit.password : null;
 
 		await unwrap(patch(`/chat/id/${room.id}`, edit));
+
+		checked = false;
 	}
 </script>
 
-<div class="room">
+<div class="room my-3">
 	<div class="room-container">
+		{#if checked}
+			<RoomInput type={room.type} click={edit} {room} duration={500}/>
+		{/if}
 		<div class="room-title">
 			<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
 			<div class="room-name">{room.name}</div>
@@ -110,28 +109,16 @@
 				<Invite {room} />
 			{/if}
 
-			<!-- TODO: dont scroll when opening -->
-			<!-- TODO: Add colors to buttons -->
-			{#if self?.role > Role.MEMBER}
-				<button class="button red">Settings</button>
-				<Dropdown>
-					{#if self?.role >= Role.OWNER}
-						<input
-							class="input"
-							placeholder={room.name}
-							bind:value={name}
-						/>
-						<input
-							class="input"
-							placeholder="password"
-							bind:value={password}
-						/>
-						<Checkbox bind:checked={is_private} class="checkbox"
-							>Private</Checkbox
-						>
-						<DropdownItem on:click={() => edit(room)}>Edit</DropdownItem>
-						<DropdownDivider/>
-						<DropdownItem on:click={() => erase(room)}>Delete</DropdownItem>
+			{#if self?.role >= Role.ADMIN}
+				<MenuButton class="bor-c bg-c m-0.5"/>
+				<Dropdown placement="bottom-end" class="bg-c">
+					{#if self?.role === Role.OWNER}
+						<DropdownItem class="text-green">
+							<Toggle bind:checked>
+								Show edit
+							</Toggle>
+						</DropdownItem>
+						<DropdownItem class="text-red" on:click={() => erase(room)}>Delete</DropdownItem>
 					{:else}
 						<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
 					{/if}
@@ -230,6 +217,8 @@
 		top: 0.5rem;
 		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
 		margin-bottom: 0.5rem;
+		padding: 0.25rem;
+		border-radius: 1em;
 	}
 
 	.room-name {
@@ -245,8 +234,7 @@
 		background: var(--box-color);
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
-		padding: 2px 8px;
-		margin: 0.25rem;
+		padding: 0.25rem 1rem;
 		text-align: center;
 	}
 
@@ -303,11 +291,11 @@
 	}
 
 	textarea {
-		height: 5rem;
 		color: var(--text-color);
 		background-color: var(--input-bkg-color);
 		border-radius: 6px;
 		height: auto;
 		max-height: 75vh;
 	}
+
 </style>
