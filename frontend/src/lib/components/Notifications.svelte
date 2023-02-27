@@ -4,8 +4,8 @@
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
 	import { backIn as anim } from "svelte/easing";
-    import { inviteStore } from "$lib/stores";
-    import { onMount } from "svelte";
+	import { inviteStore, userStore } from "$lib/stores";
+	import { onMount } from "svelte";
 
 	enum Status {
 		UNREAD,
@@ -15,35 +15,43 @@
 
 	const notificationSound = new Audio("/Assets/sounds/notification.mp3");
 
-	let user: User;
 	let notifMap = new Map<Invite, Status>();
-	
-	$: user = $page.data.user;
-	$: invites = Array.from($inviteStore.values());
-	$: notifications = invites.filter((invite) => invite.to.id === user.id);
-	$: notifMap = new Map(notifications.map((invite) => [invite, notifMap.has(invite) ? notifMap.get(invite)! : Status.UNREAD]));
-	$: newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
 	let oldLength: number;
-	$: newlength = [...notifMap.values()].filter((status) => status === Status.UNREAD).length;
+
+	$: user = $userStore.get($page.data.user?.id)!;
+	$: invites = [...$inviteStore].map(([_, invite]) => invite);
+	$: notifications = invites.filter((invite) => invite.to.id === user.id);
+	$: notifMap = new Map(
+		notifications.map((invite) => [
+			invite,
+			notifMap.has(invite) ? notifMap.get(invite)! : Status.UNREAD,
+		])
+	);
+	$: newNotifs = [...notifMap.values()].some(
+		(status) => status === Status.UNREAD
+	);
+	$: newlength = [...notifMap.values()].filter(
+		(status) => status === Status.UNREAD
+	).length;
 
 	async function acceptInvite(invite: Invite) {
-		mark(invite, Status.REMOVED)
+		mark(invite, Status.REMOVED);
 		respond(invite, "accept");
 	}
 
 	function markAllRead() {
-		notifMap.forEach((value, key) => {
-			if (value !== Status.REMOVED) {
-				notifMap.set(key, Status.READ);
-			}
-		});
-		notifMap = notifMap;
-		newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
+		notifMap = new Map(
+			[...notifMap].map(([invite, status]) => [
+				invite,
+				status !== Status.REMOVED ? Status.READ : status,
+			])
+		);
+		// newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
 	}
 
 	function mark(key: Invite, status: Status) {
 		notifMap = notifMap.set(key, status);
-		newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
+		// newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
 	}
 
 	function spin(node: any, { duration }: { duration: number }) {
@@ -63,19 +71,21 @@
 	}
 
 	onMount(() => {
-		oldLength = [...notifMap.values()].filter((status) => status === Status.UNREAD).length;
-	})
+		oldLength = [...notifMap.values()].filter(
+			(status) => status === Status.UNREAD
+		).length;
+	});
 </script>
 
 <div id="bell" class="bell">
 	{#key notifMap}
-	<img
-		src="/Assets/icons/bell.svg"
-		class="bell-icon"
-		alt="bell"
-		id="bell-img"
-		in:spin={{ duration: 1000 }}
-	/>
+		<img
+			src="/Assets/icons/bell.svg"
+			class="bell-icon"
+			alt="bell"
+			id="bell-img"
+			in:spin={{ duration: 1000 }}
+		/>
 	{/key}
 	<div class="flex relative">
 		{#if newNotifs}
@@ -96,44 +106,44 @@
 		<DropdownItem class="flex space-x-4 status{status}">
 			{#if status !== Status.REMOVED}
 				<Avatar src={invite.from.avatar} />
-					<div class="pl-3 w-full">
-						<div
-							class="text-gray-500 text-sm mb-1.5 dark:text-gray-400"
-						/>
+				<div class="pl-3 w-full">
+					<div
+						class="text-gray-500 text-sm mb-1.5 dark:text-gray-400"
+					/>
+				</div>
+				<div class="flex flex-row justify-between items-center">
+					<div
+						class="block text-xs text-blue-600 dark:text-blue-500 accept"
+						on:click={() => acceptInvite(invite)}
+						on:keypress={() => acceptInvite(invite)}
+					>
+						accept invite
 					</div>
-					<div class="flex flex-row justify-between items-center">
+					{#if status === Status.UNREAD}
 						<div
 							class="block text-xs text-blue-600 dark:text-blue-500 accept"
-							on:click={() => acceptInvite(invite)}
-							on:keypress={() => acceptInvite(invite)}
+							on:click={() => mark(invite, Status.READ)}
+							on:keypress={() => mark(invite, Status.READ)}
 						>
-							accept invite
+							mark as read
 						</div>
-						{#if status === Status.UNREAD}
-							<div
-								class="block text-xs text-blue-600 dark:text-blue-500 accept"
-								on:click={() => mark(invite, Status.READ)}
-								on:keypress={() => mark(invite, Status.READ)}
-							>
-								mark as read
-							</div>
-						{:else}
-							<div
-								class="block text-xs text-blue-600 dark:text-blue-500 accept"
-								on:click={() => mark(invite, Status.UNREAD)}
-								on:keypress={() => mark(invite, Status.UNREAD)}
-							>
-								mark as unread
-							</div>
-						{/if}
-					</div>
+					{:else}
+						<div
+							class="block text-xs text-blue-600 dark:text-blue-500 accept"
+							on:click={() => mark(invite, Status.UNREAD)}
+							on:keypress={() => mark(invite, Status.UNREAD)}
+						>
+							mark as unread
+						</div>
+					{/if}
+				</div>
 				<div class="close-button" title="remove notification">
 					<svg
 						fill="currentColor"
 						width="20"
 						height="20"
 						on:click={() => mark(invite, Status.REMOVED)}
-								on:keypress={() => mark(invite, Status.REMOVED)}
+						on:keypress={() => mark(invite, Status.REMOVED)}
 					>
 						<path
 							d="M13.42 12L20 18.58 18.58 20 12 13.42

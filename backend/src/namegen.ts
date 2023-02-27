@@ -104,9 +104,21 @@ export const genAdjectiveSequence = () => choice([
 	() => `${genAdverbAdjective()}, ${genAdjectiveSequence()}`,
 ])();
 
-export const genName = () => choice([
+export const genNameUnlimited = () => choice([
 	() => `The ${genAdjectiveSequence()} ${genRoomSynonym()}`,
 	() => `My ${genAdjectiveSequence()} ${genRoomSynonym()}`,
 	() => `The ${genRoomSynonym()} of the ${genAdjectiveSequence()} ${genCreature()}`,
 	() => `The ${genAdjectiveSequence()} ${genRoomSynonym()} of the ${genCreature()}`,
 ])();
+
+export function genName(limit?: number): string {
+	let name = genNameUnlimited();
+
+	if (limit !== undefined) {
+		while (name.length > limit) {
+			name = genNameUnlimited();
+		}
+	}
+
+	return name;
+}

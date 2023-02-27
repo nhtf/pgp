@@ -7,10 +7,11 @@ import {
 	Column,
 	RelationId,
 } from "typeorm";
-import { Exclude, Expose, Transform } from "class-transformer";
 import { ChatRoom } from "./ChatRoom";
+import { User } from "./User";
 import { Member } from "./Member";
 import { Embed } from "./Embed";
+import { Exclude } from "class-transformer"
 
 @Entity()
 export class Message {
@@ -23,12 +24,20 @@ export class Message {
 	@Column()
 	content: string;
 	
-	@OneToMany(() => Embed, (embed) => embed.message, { eager: true, cascade: true })
-	embeds: Embed[];
-
-	@ManyToOne(() => Member, (member) => member.messages, { onDelete: "CASCADE" })
-	member: Member;
-
+	@Exclude()
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
 	room: ChatRoom;
+	
+	@ManyToOne(() => Member, (member) => member.messages, { nullable: true, onDelete: "SET NULL" })
+	member: Member | null;
+
+	@Exclude()
+	@ManyToOne(() => User, (user) => user.messages, { onDelete: "CASCADE" })
+	user: User;
+
+	@RelationId((message: Message) => message.user)
+	userId: number;
+	
+	@OneToMany(() => Embed, (embed) => embed.message, { eager: true, cascade: true })
+	embeds: Embed[];
 }

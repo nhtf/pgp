@@ -279,14 +279,6 @@ export class Classic {
 			this.lastTime += 1000 / UPS;
 		}
 
-		if (this.canvas.width != this.canvas.clientWidth) {
-			this.canvas.width = this.canvas.clientWidth;
-		}
-
-		if (this.canvas.height != this.canvas.clientHeight) {
-			this.canvas.height = this.canvas.clientHeight;
-		}
-
 		const xScale = Math.floor(this.canvas.width / WIDTH);
 		const yScale = Math.floor(this.canvas.height / HEIGHT);
 		const minScale = Math.min(xScale, yScale);
@@ -306,8 +298,6 @@ export class Classic {
 		this.context.fillText(`down: ${Math.floor(this.game.bandwidthDownload.averageOverTime())}Bps`, 0, 32);
 		this.context.fillText(`up: ${Math.floor(this.game.bandwidthUpload.averageOverTime())}Bps`, 0, 48);
 		this.context.fillText(`tick: ${Math.floor(this.game.tickCounter.averageOverTime())}ps`, 0, 64);
-
-		
 	}
 
 	public async start(options: Options) {

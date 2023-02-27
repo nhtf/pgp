@@ -36,9 +36,8 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 	async get_messages(@GetRoom() room: ChatRoom) {
 		const messages = await this.message_repo.find({
 			relations: {
-				member: {
-					user: true,
-				},
+				member: true,
+				user: true,
 			},
 			where: {
 				room: {
@@ -48,6 +47,33 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		});
 
 		return messages;
+	}
+
+	@Get("id/:id/users")
+	@RequiredRole(Role.MEMBER)
+	async get_users(@GetRoom() room: ChatRoom) {
+		const members: ChatRoomMember[] = await this.member_repo.find({
+			relations: {
+				user: true,
+			},
+			where: {
+				room: {
+					id: room.id,
+				}
+			}
+		});
+		const messages = await this.message_repo.find({
+			relations: {
+				user: true,
+			},
+			where: {
+				room: {
+					id: room.id,
+				},
+			},
+		});
+	
+		return [...new Set([...members.map((member) => member.user), ...messages.map((message) => message.user)])];
 	}
 
 	@Post("id/:id/mute/:target")

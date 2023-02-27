@@ -141,12 +141,16 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 
 				if (user === undefined)
 					console.error("member.user was undefined, please make sure to also load the user relation for the member");
+			
 				user = await this.user_repo.findOneBy({ members: { id: member.id } });
-				if (room.banned_users)
-					room.banned_users.push(user);
-				else
-					room.banned_users = [user];
+			
+				if (!room.banned_users) {
+					room.banned_users = [];
+				}
+			
+				room.banned_users.push(user);
 			}
+
 			await this.room_repo.save(room);
 			await this.member_repo.remove(member);
 
@@ -206,12 +210,13 @@ export class RolesGuard implements CanActivate {
 		const request = context.switchToHttp().getRequest();
 		const room = request.room;
 		const member = request.member;
-		if (!room || (!member && room.is_private))
+		if (!room || (!member && room.is_private)) {
 			throw new NotFoundException(ERR_ROOM_NOT_FOUND);
-		else if (member?.role >= role)
-			return true;
-		else
+		}
+		if (!member || member?.role < role) {
 			throw new ForbiddenException(ERR_PERM);
+		}
+		return true;
 	}
 }
 
@@ -320,8 +325,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		async create_room(@Me() user: User, @Body() dto: C) {
 			const name = dto.name ? dto.name.trim() : genName();
 			const room = await this.service.create(name, dto.is_private, dto.password);
-
 			const member = await this.service.add_member(room, user, Role.OWNER);
+		
 			await this.setup_room(room, dto);
 			await this.room_repo.save(room);//TODO only save one time
 
@@ -478,9 +483,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@GetRoom() room: T,
 			@GetMember() member: U,
 			@Param("target", ParseIDPipe(MemberType, { user: true } as FindOptionsRelations<U>)) target: U,
-			@Body("ban") ban?: string,
+			@Body("ban") ban: boolean,
 		) {
-
 			if (member.room.id !== room.id) {
 				throw new BadRequestException(ERR_NOT_MEMBER);
 			}
@@ -490,7 +494,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException(ERR_PERM);
 			}
 
-			if (ban === "true" && member.role < Role.ADMIN) {
+			if (ban && member.role < Role.ADMIN) {
 				throw new ForbiddenException(ERR_PERM);
 			}
 
@@ -502,7 +506,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				return await this.service.destroy(room);
 			}
 
-			await this.service.del_member(room, target, ban === "true");
+			await this.service.del_member(room, target, ban);
 
 			await this.update_service.send_update({
 				subject: Subject.ROOM,

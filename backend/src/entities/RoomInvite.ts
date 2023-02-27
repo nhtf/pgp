@@ -7,7 +7,7 @@ import { Invite } from "./Invite";
 
 @ChildEntity()
 export class RoomInvite extends Invite {
-	@ManyToOne(() => Room, (room) => room.invites, { cascade: true, onDelete: "CASCADE", eager: true })
+	@ManyToOne(() => Room, (room) => room.invites, { cascade: true, eager: true, onDelete: "CASCADE" })
 	room: Room;
 
 	get type(): string {

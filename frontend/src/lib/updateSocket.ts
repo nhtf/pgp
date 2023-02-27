@@ -7,31 +7,33 @@ const WS = `ws://${BACKEND_ADDRESS}/update`;
 
 class UpdateManager {
 	socket = io(WS, { withCredentials: true });
-	functions: Map<Subject, Function> = new Map();
+	functions: Map<Subject, Function[]> = new Map();
 
 	constructor() {
 		this.socket.on("update", this.execute.bind(this));
 	}
 
 	set(subject: Subject, fun: Function) {
-		if (this.functions.has(subject)) {
-			console.log(`Overwriting existing ${Subject[subject]}; `);
-		}
+		const funs = this.functions.get(subject) || [];
 	
-		this.functions.set(subject, fun);
+		this.functions.set(subject, [...funs, fun]);
+
+		return funs.length;
 	}
 
-	remove(subject: Subject) {
-		if (!this.functions.has(subject)) {
-			console.log(`Attempt to delete nonexistant ${Subject[subject]}; `);
+	remove(subject: Subject, index: number) {
+		const funs = this.functions.get(subject) || [];
+	
+		if (!funs.splice(index)) {
+			console.log(`Attempt to delete nonexistant ${Subject[subject]};`);
 		}
 	
-		this.functions.delete(subject);
+		this.functions.set(subject, funs);
 	}
 
 	async execute(update: UpdatePacket) {
-		const fun = this.functions.get(update.subject);
-		const style = `color: ${fun ? "black" : "gray"}`;
+		const funs = this.functions.get(update.subject);
+		const style = `color: ${funs ? "black" : "gray"}`;
 
 		if (update.subject === Subject.USER) {
 			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value.username}; ${Status[update.value.status]}`, style);
@@ -39,9 +41,9 @@ class UpdateManager {
 			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
 		}
 	
-		if (fun) {
+		funs?.forEach((fun) => {
 			fun(update);
-		}
+		})
 	}
 }
 

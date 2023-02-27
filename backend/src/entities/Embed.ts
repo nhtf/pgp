@@ -9,7 +9,7 @@ export class Embed {
 	id: number;
 
 	@Exclude()
-	@ManyToOne(() => Message, (message) => message.embeds)
+	@ManyToOne(() => Message, (message) => message.embeds, { onDelete: "CASCADE" })
 	message: Message;
 
 	@Column()

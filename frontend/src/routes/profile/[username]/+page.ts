@@ -45,6 +45,8 @@ export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	const { user } = await unwrap(parent());
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 
+	updateStore(userStore, [profile]);
+
 	//just for debug
 	if (!profile.achievements) {
 		profile.achievements = dummyachievements

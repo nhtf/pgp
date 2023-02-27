@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -33,9 +33,11 @@ export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, e
 }
 
 export const userStore = writable(new Map<number, User>);
+export const roomStore = writable(new Map<number, Room>);
 export const memberStore = writable(new Map<number, Member>);
 export const inviteStore = writable(new Map<number, Invite>);
 
 setUpdate(userStore, Subject.USER);
-setUpdate(memberStore, Subject.MEMBER);
+setUpdate(roomStore, Subject.ROOM);
 setUpdate(inviteStore, Subject.INVITE);
+setUpdate(memberStore, Subject.MEMBER);

@@ -1,4 +1,3 @@
-import type { Achievement } from "./types";
 import type { Access, Role, Status, Gamemode } from "./enums";
 
 export type Entity = {
@@ -81,7 +80,8 @@ export type Embed = {
 export type Message = {
 	id: number,
 	content: string,
-	member: Member,
+	member: Member | null,
 	created: string,
 	embeds: Embed[],
+	userId: number,
 };

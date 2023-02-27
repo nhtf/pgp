@@ -1,6 +1,6 @@
 <script lang="ts">
-    import type { User, Member, Message } from "$lib/entities";
-	import { BOUNCER } from "$lib/constants";
+    import type { Member, Message } from "$lib/entities";
+	import { BACKEND, BOUNCER } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
     import { memberStore, userStore } from "$lib/stores"
@@ -13,40 +13,31 @@
 	const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const role_colors = Object.values(CoalitionColors);
 
-	const me: User = $page.data.user;
-
-	let member = message.member;
-	let user = member.user;
-
-	$: member = $memberStore.get(member.id)!;
-	$: user = $userStore.get(user.id)!;
-
-	const from_self = me.id === user.id;
+	const from_self = ($page.data.user?.id === message.userId);
 	const flex_direction = from_self ? "row-reverse" : "row";
 	const align_self = from_self ? "flex-end" : "flex-start";
 	const text_align = from_self ? "right" : "left";
 
-	message.embeds = message.embeds || [];
+	$: user = $userStore.get(message.userId)!;
+	$: member = message.member ? $memberStore.get(message.member.id)! : null;
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
-	<MemberBox target={member} {self}/>
+	<MemberBox {user} {member} {self}/>
 	<div class="message-box">
-		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${role_colors[member.role]}`}>{user.username}</div>
-		<!--- TODO probably extremely unsafe
-		{#if tenor_regex.test(message.content)}
-			<img class="message-image" src={`${BACKEND}/proxy?url=${message.content}`} alt="embedded content">
-		{:else}
-			<div class="message-content">{message.content}</div>
-			{/if} -->
-		<div class="message-content">{message.content}</div>
-		{#each message.embeds as embed}
-			{#if embed.rich}
-				<EmbedBox digest={embed.digest} url={embed.url} />
+		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${member ? role_colors[member.role] : "white"}`}>{user.username}</div>
+			{#if tenor_regex.test(message.content)}
+				<img class="message-image" src={`${BACKEND}/proxy?url=${message.content}`} alt="embedded content">
 			{:else}
-				<img class="message-image" src={`${BOUNCER}/${embed.digest}/proxy?${new URLSearchParams({ url: embed.url })}`} alt="embed">
+				<div class="message-content">{message.content}</div>
 			{/if}
-		{/each}
+			{#each message.embeds as embed}
+				{#if embed.rich}
+					<EmbedBox digest={embed.digest} url={embed.url} />
+				{:else}
+					<img class="message-image" src={`${BOUNCER}/${embed.digest}/proxy?${new URLSearchParams({ url: embed.url })}`} alt="embed">
+				{/if}
+			{/each}
 	</div>
 </div>
 

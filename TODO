@@ -1,11 +1,11 @@
 send heartbeat for chat messages
-highlight links in chat (linkify)
+highlight links in chat (linkify) (<span>)
 add ability to mention in chat (and invite with it)
 fix duplicate status updates being send
 title bar does not get updated correctly when logging in
 
 Fix chatroom options size
-fix gameroom updates
+fix gameroom updates (m: fix what?)
 find out how revolt detects embed type and do something similar
 
 random team names
@@ -21,3 +21,5 @@ Match History page (either on profile or seperate page?)
 chat invite for game (also how to determine which kind of game)
 
 matchmaking system!!
+
+huge text

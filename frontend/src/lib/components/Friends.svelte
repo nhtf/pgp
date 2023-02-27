@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { User } from "$lib/entities";
 	import { get, post, remove } from "$lib/Web";
-	import { Action, Status } from "$lib/enums";
+	import { Status } from "$lib/enums";
 	import Swal from "sweetalert2";
 	import { page } from "$app/stores";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
@@ -11,12 +11,10 @@
 
 	const friend_icon = `${icon_path}/add-friend.png`;
 
-	let friends: User[];
 	let score = new Map();
 	let all: User[] | null = null;
 
 	$: self = $userStore.get($page.data.user?.id)!;
-	$: profile = $userStore.get($page.data.profile?.id)!;
 	$: friends = [...$userStore]
 		.map(([_, user]) => user)
 		.filter((user) => self.friendsIds.includes(user.id));
@@ -251,13 +249,13 @@
 		top: -5px;
 	}
 
-	#friend-hor {
-		min-height: 55px;
-		border: 2px solid var(--border-color);
-	}
-
 	.self-flex-start {
 		align-self: flex-start;
+	}
+
+	/* #friend-hor {
+		min-height: 55px;
+		border: 2px solid var(--border-color);
 	}
 
 	@media (max-width: 750px) {
@@ -271,5 +269,5 @@
 		.input-field {
 			width: 150px;
 		}
-	}
+	} */
 </style>

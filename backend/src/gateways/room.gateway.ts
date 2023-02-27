@@ -82,9 +82,20 @@ export class RoomGateway extends ProtectedGateway("room") {
 			throw new WsException("muted");
 		}
 
+		if (/^\/tenor /.test(content)) {
+			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}`)
+				.pipe(catchError((error) => {
+					console.error("crap");
+					throw "crap";
+			}));
+
+			const { data } = await firstValueFrom(res);
+			content = data.results[0].url;
+		}
+
 		const links = linkify.find(content, "url");
 		const embeds = [];
-		console.log(links);
+		// console.log(links);
 
 		for (const link of links) {
 			if (embeds.length > 3)
@@ -118,23 +129,13 @@ export class RoomGateway extends ProtectedGateway("room") {
 				embeds.push(embed);
 			} catch {}
 		}
-
-		if (/^\/tenor /.test(content)) {
-			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}`)
-				.pipe(catchError((error) => {
-					console.error("crap");
-					throw "crap";
-			}));
-
-			const { data } = await firstValueFrom(res);
-			content = data.results[0].url;
-		}
 		
 		let message = new Message;
 		
 		message.content = content;
 		message.member = member;
 		message.room = { id: Number(client.room)} as ChatRoom;
+		message.user = member.user;
 		//TODO send the link raw with digest?
 		message.embeds = embeds;
 		

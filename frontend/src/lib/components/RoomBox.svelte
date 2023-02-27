@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Team, Room, GameRoomMember } from "$lib/entities";
+	import type { Team, ChatRoom, GameRoom } from "$lib/entities";
 	import type { Gamemode } from "$lib/enums";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
@@ -7,15 +7,10 @@
     import { icon_path } from "$lib/constants";
 	import { Access } from "$lib/enums";
     import { post, remove, patch } from "$lib/Web";
-    import Invite from "./Invite.svelte";
     import { userStore } from "$lib/stores";
+    import Invite from "./Invite.svelte";
 
-	type T = Room & {
-		gamemode?: Gamemode,
-		member?: GameRoomMember,
-		teamsLocked?: boolean,
-		teams?: Team[],
-	};
+	type T = ChatRoom & GameRoom & any;
 
 	export let room: T;
 
@@ -31,10 +26,9 @@
 	const icon = gamemode_icons[room.gamemode as Gamemode];
 	const route = room.type.replace("Room", "").toLowerCase();
 
-	let user = $page.data.user;
 	let password = "";
-
-	$: user = $userStore.get(user.id)!;
+	
+	$: user = $userStore.get($page.data.user?.id)!;
 
 	async function join(room: T) {
 		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));

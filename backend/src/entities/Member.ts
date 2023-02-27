@@ -14,12 +14,14 @@ export class Member {
 	@PrimaryGeneratedColumn()
 	id: number;
 
+	@Exclude()
 	@ManyToOne(() => User, (user) => user.members, { onDelete: "CASCADE" })
 	user: User;
 
 	@RelationId((member: Member) => member.user)
 	userId: number;
 
+	@Exclude()
 	@ManyToOne(() => Room, { onDelete: "CASCADE", cascade: ["insert", "update"] })
 	room: Room;
 

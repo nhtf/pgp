@@ -2,6 +2,7 @@
 	import { onMount, onDestroy } from "svelte";
 	import { page } from "$app/stores";
 	import { Classic } from "./Classic";
+	import { Shader } from "../Shader";
 
 	let canvas: HTMLCanvasElement;
 
@@ -11,9 +12,8 @@
 	let frame: number;
 
 	onMount(async () => {
-		classic = new Classic(canvas);
-
-		console.log(classic);
+		const shader = new Shader(canvas);
+		classic = new Classic(shader.getCanvas());
 
 		await classic.start({
 			room: $page.data.params.id,
@@ -25,6 +25,7 @@
 
 		frame = window.requestAnimationFrame(function render(time) {
 			classic.update(time);
+			shader.update();
 			frame = window.requestAnimationFrame(render);
 		});
 	});

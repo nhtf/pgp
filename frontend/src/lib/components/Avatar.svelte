@@ -23,7 +23,9 @@
 				"aria-label": "Upload your avatar",
 			},
 			inputValidator: (file) => {
-				if (!file) return "No file selected";
+				if (!file) {
+					return "No file selected";
+				}
 				return null;
 			},
 		});

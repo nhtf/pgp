@@ -26,10 +26,10 @@ class CreateGameRoomDTO extends CreateRoomDTO {
 }
 
 const playerNumbers = new Map([
-	[Gamemode.CLASSIC, 2],
-	[Gamemode.VR, 2],
-	[Gamemode.MODERN, 2],
-	[Gamemode.MODERN4P, 4],
+	[Gamemode.CLASSIC, [2]],
+	[Gamemode.VR, [2]],
+	[Gamemode.MODERN, [2, 4]],
+	[Gamemode.MODERN4P, [4]],
 ])
 
 const numbers = [ "one", "two", "three", "four"];
@@ -56,6 +56,12 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		const state = new GameState(dto.gamemode);
 
 		state.teams = [];
+
+		const playerOptions = playerNumbers.get(dto.gamemode);
+
+		if (!playerOptions || !playerOptions.includes(dto.players)) {
+			throw new BadRequestException("Invalid amount of players");
+		}
 
 		for (let i = 0; i < dto.players; i++) {
 			state.teams.push(new Team(`team ${numbers[i]}`));

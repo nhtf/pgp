@@ -227,4 +227,13 @@ export class DebugController {
 	async deleteMessage(@Query("id") id: string) {
 		return await this.messageRepo.delete(Number(id));
 	}
+
+	@Get("room/liberate")
+	async liberate(@Query("id") id: string) {
+		const room = await this.roomRepo.findOneBy({ id: Number(id) });
+
+		room.banned_users = [];
+
+		return await this.roomRepo.save(room);
+	}
 }

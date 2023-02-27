@@ -22,6 +22,7 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { Player } from "./Player";
+import { Message } from "./Message";
 
 @Entity()
 export class User {
@@ -73,6 +74,10 @@ export class User {
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
 	members: Member[];
+
+	@Exclude()
+	@OneToMany(() => Message, (message) => message.user)
+	messages: Message[];
 
 	@Exclude()
 	@ManyToMany(() => Room, (room) => room.banned_users)

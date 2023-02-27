@@ -1,7 +1,6 @@
 <script lang="ts">
 	import { BOUNCER } from "$lib/constants";
 	import { bounceEmbed } from "$lib/Web";
-    import { Spinner } from "flowbite-svelte";
 
 	export let url: string;
 	export let digest: string;
@@ -22,7 +21,6 @@
 
 <div class="embed">
 	{#await bounceEmbed(digest, url)}
-		<Spinner/>
 		<div class="embed-spinner">
 			<div class="embed-spinner-circle" />
 			<div class="embed-spinner-circle" />
@@ -40,6 +38,7 @@
 			<iframe
 				class="embed-iframe"
 				src={embed.video.url.url}
+				width={Math.min(embed.image.width || 320, 640)}
 				use:resize={embed.video.width / embed.video.height}
 				title="iframe"
 			/>
@@ -47,6 +46,8 @@
 			<img
 				class="embed-image"
 				src={`${BOUNCER}/${embed.image.url.digest}/proxy?${new URLSearchParams({ url: embed.image.url.url })}`}
+				width={Math.min(embed.image.width || 320, 640)}
+				use:resize={embed.image.width / embed.image.height}
 				alt="embed"
 			/>
 		{/if}
@@ -62,12 +63,12 @@
 		max-width: 640px;
 		padding: 5px;
 		border-radius: 10px;
+		font-size: 0.75em;
 	}
 
 	.embed-spinner {
 		position: relative;
-		margin: 100px 0px;
-		left: calc(50% - 25px);
+		margin: 100px 100px;
 		width: 25px;
 		height: 25px;
 		animation: spinner 1s linear infinite;

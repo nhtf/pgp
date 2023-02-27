@@ -1,10 +1,11 @@
 <script lang="ts">
+	import type { Member, User } from "$lib/entities";
 	import { unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
-	import type { Member } from "$lib/entities";
 	import { Role } from "$lib/enums";
     import { userStore } from "$lib/stores";
 	import { patch, post, remove } from "$lib/Web";
+	import { page } from "$app/stores";
 	import {
 		Avatar,
 		Dropdown,
@@ -14,31 +15,33 @@
 	} from "flowbite-svelte";
     import Swal from "sweetalert2";
 
-	export let target: Member;
+	export let user: User;
+	export let member: Member | null;
 	export let self: Member;
-
-	// minutes
-	const mute_duration = 1;
 
 	type Action = {
 		role: Role;
-		condition?: (target: Member) => boolean;
-		param: ((target: Member) => any) | any;
+		condition?: (member: Member) => boolean;
+		param: ((member: Member) => any) | any;
 		fun: Function;
 		name: string;
 	};
 
-	$: user = $userStore.get(target.userId)!;
+	// minutes
+	const mute_duration = 1;
 
-	async function edit(target: Member, role: Role) {
+	$: me = $userStore.get($page.data.user?.id)!;
+	$: user = $userStore.get(user.id)!;
+
+	async function edit(member: Member, role: Role) {
 		await unwrap(
-			patch(`/chat/id/${target.roomId}/members/${target.id}`, { role })
+			patch(`/chat/id/${member.roomId}/members/${member.id}`, { role })
 		);
 	}
 
-	async function kick(target: Member, ban: boolean) {
+	async function kick(member: Member, ban: boolean) {
 		await unwrap(
-			remove(`/chat/id/${target.roomId}/members/${target.id}`, { ban })
+			remove(`/chat/id/${member.roomId}/members/${member.id}`, { ban })
 		);
 
 		Swal.fire({
@@ -47,11 +50,11 @@
 		});
 	}
 
-	async function mute(target: Member, minutes: number) {
+	async function mute(member: Member, minutes: number) {
 		const millis = minutes * 60 * 1000;
 
 		await unwrap(
-			post(`/chat/id/${target.roomId}/mute/${target.id}`, {
+			post(`/chat/id/${member.roomId}/mute/${member.id}`, {
 				duration: millis,
 			})
 		);
@@ -66,14 +69,14 @@
 		{
 			role: Role.OWNER,
 			fun: edit,
-			param: (target: Member) => target.role + 1,
+			param: (member: Member) => member.role + 1,
 			name: "Promote",
 		},
 		{
 			role: Role.OWNER,
-			condition: (target: Member) => target.role >= 1,
+			condition: (member: Member) => member.role >= 1,
 			fun: edit,
-			param: (target: Member) => target.role - 1,
+			param: (member: Member) => member.role - 1,
 			name: "Demote",
 		},
 		{
@@ -90,14 +93,14 @@
 		},
 		{
 			role: Role.ADMIN,
-			condition: (target: Member) => !target.is_muted,
+			condition: (member: Member) => !member.is_muted,
 			param: mute_duration,
 			fun: mute,
 			name: "Mute",
 		},
 		{
 			role: Role.ADMIN,
-			condition: (target: Member) => target.is_muted,
+			condition: (member: Member) => member.is_muted,
 			param: 0,
 			fun: mute,
 			name: "Unmute",
@@ -118,20 +121,20 @@
 		{user.username}
 	</DropdownHeader>
 	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
-	{#if self.id !== target.id}
+	{#if me.id !== user.id}
 		{#each Object.values(Role)
 			.reverse()
 			.filter((role) => typeof role === "number" && role > 0) as role}
-			{#if self.role >= role && target.role < self.role}
+			{#if self.role >= role && member && member.role < self.role}
 				<DropdownDivider />
 				{#each actions.filter((action) => action.role === role) as { condition, fun, param, name }}
-					{#if !condition || condition(target)}
+					{#if !condition || condition(member)}
 						<DropdownItem
 							on:click={() =>
 								fun(
-									target,
+									member,
 									typeof param === "function"
-										? param(target)
+										? param(member)
 										: param
 								)}>{name}</DropdownItem
 						>

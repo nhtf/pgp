@@ -1,14 +1,14 @@
 <script lang="ts">
 	import { page } from "$app/stores";
+	import { goto, invalidate,  } from "$app/navigation";
+	import { put } from "$lib/Web";
+	import { BACKEND } from "$lib/constants";
+    import { userStore } from "$lib/stores";
 	import Avatar from "./Avatar.svelte";
 	import Achievements from "./Achievements.svelte";
-	import { put } from "$lib/Web";
-	import { goto, invalidate,  } from "$app/navigation";
 	import Swal from "sweetalert2";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
-	import { BACKEND } from "$lib/constants";
-    import { userStore } from "$lib/stores";
 
 	const edit_icon = "/Assets/icons/pen.png";
 
