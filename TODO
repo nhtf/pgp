@@ -22,4 +22,6 @@ chat invite for game (also how to determine which kind of game)
 
 matchmaking system!!
 
-huge text
+huge text (c: is dit voor de embeds?)
+
+Member entity (en andere?) hebben dubbele IDs in DB, kan beter via relations

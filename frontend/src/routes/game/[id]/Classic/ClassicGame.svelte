@@ -14,6 +14,7 @@
 	onMount(async () => {
 		const shader = new Shader(canvas);
 		classic = new Classic(shader.getCanvas());
+		shader.addEventListener(classic);
 
 		console.log($page.params);
 		await classic.start({

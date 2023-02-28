@@ -25,7 +25,7 @@ export class Ball {
 
 	public render(context: CanvasRenderingContext2D) {
 		context.fillStyle = "white";
-		context.fillRect(this.position.x - 1, this.position.y - 1, 2, 2);
+		context.fillRect(Math.floor(this.position.x) - 1, Math.floor(this.position.y) - 1, 2, 2);
 	}
 
 	public save(): BallObject {
@@ -79,7 +79,7 @@ export class Paddle {
 
 	public render(context: CanvasRenderingContext2D) {
 		context.fillStyle = "white";
-		context.fillRect(this.position.x - 1, this.position.y - this.height / 2, 2, this.height);
+		context.fillRect(Math.floor(this.position.x) - 1, Math.floor(this.position.y) - this.height / 2, 2, this.height);
 	}
 
 	public save(): PaddleObject {
@@ -171,7 +171,7 @@ export class Game extends Net {
 	public render(context: CanvasRenderingContext2D) {
 		context.fillStyle = "black";
 		context.fillRect(0, 0, WIDTH, HEIGHT);
-		context.lineWidth = .75;
+		context.lineWidth = 2;
 		context.beginPath();
 		context.setLineDash([2,2]);
 		context.moveTo(WIDTH / 2, 0);
@@ -180,7 +180,7 @@ export class Game extends Net {
 		context.stroke();
 		context.closePath();
 		context.fillStyle = "white";
-		context.font = "8px pong";
+		context.font = "10px pong"; /* needs to be a multiple of 5 */
 		context.fillText(this.teams[0].score.toString(), WIDTH / 4, 14);
 		context.fillText(this.teams[1].score.toString(), 3 * WIDTH / 4, 14);
 	
@@ -264,9 +264,12 @@ export class Classic {
 	private game: Game;
 	private lastTime?: number;
 	private interval?: NodeJS.Timer;
+	private options?: Options;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.canvas = canvas;
+		this.canvas.width = WIDTH;
+		this.canvas.height = HEIGHT;
 		this.context = canvas.getContext("2d")!;
 		this.game = new Game();
 	}
@@ -292,32 +295,41 @@ export class Classic {
 		this.game.render(this.context);
 		this.context.restore();
 
+		/*
 		this.context.fillStyle = "red";
 		this.context.font = "16px Arial";
 		this.context.fillText(`ping: ${Math.floor(this.game.latencyNetwork.averageOverSamples())}ms`, 0, 16);
 		this.context.fillText(`down: ${Math.floor(this.game.bandwidthDownload.averageOverTime())}Bps`, 0, 32);
 		this.context.fillText(`up: ${Math.floor(this.game.bandwidthUpload.averageOverTime())}Bps`, 0, 48);
 		this.context.fillText(`tick: ${Math.floor(this.game.tickCounter.averageOverTime())}ps`, 0, 64);
+		*/
+	}
+
+	public mousemove(offsetX: number, offsetY: number) {
+		if (!this.options) {
+			return;
+		}
+
+		const xScale = Math.floor(this.canvas.width / WIDTH);
+		const yScale = Math.floor(this.canvas.height / HEIGHT);
+		const minScale = Math.min(xScale, yScale);
+		const xOffset = Math.floor((this.canvas.width - WIDTH * minScale) / 2);
+		const yOffset = Math.floor((this.canvas.height - HEIGHT * minScale) / 2);
+		const x = Math.floor((offsetX - xOffset) / minScale);
+		const y = Math.floor((offsetY - yOffset) / minScale);
+
+		if (this.options.member.player != null) {
+			this.game.send("move", {
+				u: this.options.member.user.id,
+				t: this.options.member.player?.team?.id,
+				y,
+			});
+		}
+
 	}
 
 	public async start(options: Options) {
-		this.canvas.addEventListener("mousemove", ev => {
-			const xScale = Math.floor(this.canvas.width / WIDTH);
-			const yScale = Math.floor(this.canvas.height / HEIGHT);
-			const minScale = Math.min(xScale, yScale);
-			const xOffset = Math.floor((this.canvas.width - WIDTH * minScale) / 2);
-			const yOffset = Math.floor((this.canvas.height - HEIGHT * minScale) / 2);
-
-			const x = Math.floor((ev.offsetX - xOffset) / minScale);
-			const y = Math.floor((ev.offsetY - yOffset) / minScale);
-			if (options.member.player != null) {
-				this.game.send("move", {
-					u: options.member.user.id,
-					t: options.member.player?.team?.id,
-					y,
-				});
-			}
-		});
+		this.options = options;
 
 		this.interval = setInterval(() => {
 			this.game.send("ping", {
