@@ -1,6 +1,6 @@
 import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException, BadRequestException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
-import { Express, Response} from "express";
+import { Express, Response } from "express";
 import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
@@ -45,7 +45,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Inject("INVITE_REPO")
 			readonly invite_repo: Repository<Invite>,
 			readonly update_service: UpdateGateway,
-		) {}
+		) { }
 
 		@Get()
 		@UseGuards(SetupGuard)
@@ -76,7 +76,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			if (await this.user_repo.findOneBy({ username: dto.username })) {
 				throw new ForbiddenException("Username taken");
 			}
-		
+
 			user.username = dto.username;
 			await this.user_repo.save(user);
 			await this.update_service.send_update({
@@ -85,7 +85,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				action: Action.SET,
 				value: instanceToPlain(user),
 			});
-		
+
 			return user;
 		}
 
@@ -124,12 +124,12 @@ export function GenericUserController(route: string, options: { param: string, c
 			// console.log(uploaded_file.buffer instanceof Buffer);
 			const promise = new Promise((resolve, reject) => {
 				gm.subClass({ imageMagick: true })(uploaded_file.buffer)
-				.resize(256, 256, "!")
-				.write(join(AVATAR_DIR, new_base + AVATAR_EXT), error => {
-					if (error)
-						reject(error);
-					resolve("yes");
-				});
+					.resize(256, 256, "!")
+					.write(join(AVATAR_DIR, new_base + AVATAR_EXT), error => {
+						if (error)
+							reject(error);
+						resolve("yes");
+					});
 			});
 
 			try {
@@ -204,7 +204,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
-			return user.auth_req; 
+			return user.auth_req;
 		}
 
 		@Get(options.cparam + "/friend(s)?")
@@ -272,7 +272,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		async create_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Body("id", ParseIDPipe(User, { friends: true })) target: User,
+			@Body("username", ParseUsernamePipe) target: User,
 		) {
 			user = user || me;
 			if (user.id !== me.id)
@@ -331,7 +331,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
-			if (user.id !== (await request.from).id && user.id !== (await request.to).id)
+			if (user.id !== request.from.id && user.id !== request.to.id)
 				throw new NotFoundException();
 			return await this.request_repo.remove(request);
 		}
@@ -359,6 +359,6 @@ class NullPipe implements PipeTransform {
 	}
 }
 
-export class UserMeController extends GenericUserController("user(s)?/", { param: "me", cparam: "me", pipe: NullPipe }) {}
-export class UserIDController extends GenericUserController("user(s)?/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User, { friends: true }) }) {}
-export class UserUsernameController extends GenericUserController("user(s)?/", { param: "username", cparam: ":username", pipe: ParseUsernamePipe }) {}
+export class UserMeController extends GenericUserController("user(s)?/", { param: "me", cparam: "me", pipe: NullPipe }) { }
+export class UserIDController extends GenericUserController("user(s)?/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User, { friends: true }) }) { }
+export class UserUsernameController extends GenericUserController("user(s)?/", { param: "username", cparam: ":username", pipe: ParseUsernamePipe }) { }

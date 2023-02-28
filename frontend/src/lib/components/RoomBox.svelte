@@ -78,20 +78,20 @@
 	{#if room.joined}
 		{#if room.owner.id === user.id}
 			<Invite {room}/>
-			<button class="button red" on:click={() => erase(room)}>Delete</button>
+			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 		{:else}
-			<button class="button red" on:click={() => leave(room)}>Leave</button>
+			<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 		{/if}
 		{#if room.type !== "GameRoom" || room.teamsLocked}
-			<a class="button blue" href={`/${route}/${room.id}`}>Enter</a>
+			<a class="button border-blue" href={`/${route}/${room.id}`}>Enter</a>
 		{:else}
 			{#if !room.teamsLocked || room.member?.player === null}
-				<button class="button blue" on:click={() => joinTeam(room, null)}>Spectate</button>
+				<button class="button border-blue" on:click={() => joinTeam(room, null)}>Spectate</button>
 			{/if}
 			{#if room.teams} 
 				{#each room.teams.sort(byId) as team}
 					{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
-						<button class="button blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
+						<button class="button border-blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
 					{/if}
 				{/each}
 			{/if}
@@ -100,7 +100,7 @@
 		{#if room.access === Access.PROTECTED}
 			<input class="input" placeholder="Password" type="password" bind:value={password}>
 		{/if}
-		<button class="button green" on:click={() => join(room)}>Join</button>
+		<button class="button border-green" on:click={() => join(room)}>Join</button>
 	{/if}
 </div>
 
@@ -149,31 +149,6 @@
 		height: 50px;
 		border-radius: 50%;
 		border: 1px solid var(--border-color);
-	}
-
-	.button, .input {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		padding: 2px 8px;
-	}	
-	
-	.button {
-		text-align: center;
-		white-space: nowrap;
-	}
-
-	.red {
-		border-color: var(--red);
-	}
-
-	.green {
-		border-color: var(--green);
-	}
-
-	.blue {
-		border-color: var(--blue);
 	}
 
 </style>

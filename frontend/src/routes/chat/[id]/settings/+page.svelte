@@ -10,6 +10,7 @@
 	import type { UpdatePacket } from "$lib/types";
 	import { updateManager } from "$lib/updateSocket";
 	import { patch, remove } from "$lib/Web";
+    import { Dropdown } from "flowbite-svelte";
 	import { onDestroy, onMount } from "svelte";
 	import type { PageData } from "./$types";
 
@@ -57,13 +58,23 @@
 
 <div class="room">
 	<div class="room-title">
-		<button class="button blue" on:click={() => goto(`/chat/${$page.params}`)}>Back</button>
+		<a class="button border-blue" href={`/chat/${$page.params.id}`}>Back</a>
 		<div class="room-name">{room.name}</div>
+		<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 	</div>
-	<Invite {room} />
+	<div class="box">
+		<Invite {room} />
+	</div>
 	{#if self.role >= Role.OWNER}
 		<RoomInput {room} click={edit}/>
+		<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 	{/if}
+	<h1>Banned Users</h1>
+	<div class="banned">
+		{#each data.banned as user}
+			<img class="avatar" src={user.avatar} alt="avatar"/>
+		{/each}
+	</div>
 </div>
 
 
@@ -71,33 +82,46 @@
 	.room {
 		display: flex;
 		flex-direction: column;
+		align-items: flex-end;
+		margin: 0.5rem;
+		gap: 0.5rem;
 	}
 
 	.room-title {
 		display: flex;
 		flex-direction: row;
-		justify-content: center;
+		justify-content: space-between;
 		background-color: var(--box-color);
 		position: relative;
 		top: 0.5rem;
 		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
 		margin-bottom: 0.5rem;
 		padding: 0.25rem;
-		border-radius: 1em;
-	}
-
-	.button {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
 		border-radius: 1rem;
-		padding: 0.25rem 1rem;
-		margin: 0.25rem;
-		text-align: center;
+		width: 100%;
 	}
 
-	.blue {
-		border-color: var(--blue);
+	.room-name {
+		text-align: center;
+		font-size: 1.5rem;
+		margin: 0 auto;
+	}
+
+	.box {
+		display: flex;
+		justify-content: space-between;
+		align-items: center;
+		gap: 0.5rem;
+		background: var(--box-color);
+		border: 1px var(--border-color);
+		border-radius: 2rem;
+		padding: 0.5rem;
+	}
+
+	.banned {
+		display: flex;
+		flex-direction: row-reverse;
+		gap: 1rem;
 	}
 
 </style>
