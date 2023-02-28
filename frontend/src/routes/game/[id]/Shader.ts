@@ -65,7 +65,6 @@ highp vec4 gauss(highp vec2 co) {
 
 highp vec4 lanczos(highp vec2 co, highp float sharp) {
 	highp vec2 s = vec2(size.x * sharp, size.y);
-	highp vec2 dx = vec2(1.0 / s.x, 0.0);
 	highp vec2 p = co * s - vec2(0.5, 0.0);
 	highp vec2 c = (floor(p) + vec2(0.5, 0.0)) / s;
 	highp vec2 d = fract(p);
@@ -76,8 +75,7 @@ highp vec4 lanczos(highp vec2 co, highp float sharp) {
 	f /= f.x + f.y + f.z + f.w;
 
 	highp vec4 c1 = pix(c);
-	highp vec4 c2 = pix(c + dx);
-
+	highp vec4 c2 = pix(c + vec2(1.0 / s.x, 0.0));
 	return mat4(c1, c1, c2, c2) * f;
 }
 
