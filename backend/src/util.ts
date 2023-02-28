@@ -28,7 +28,6 @@ export const Me = createParamDecorator(
 export function validate_id(value: any) {
 	if (value === null || value === undefined)
 		throw new Error("id not defined");
-	console.dir(value);
 	if (!["string", "number"].includes(typeof value))
 		throw new Error("id must be either a string or a number");
 	if (typeof value === "string" && !isNumeric(value, { no_symbols: true }))

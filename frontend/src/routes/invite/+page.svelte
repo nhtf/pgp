@@ -1,14 +1,14 @@
 <script lang="ts">
+	import type { PageData } from "./$types";
 	import { respond } from "$lib/invites";
 	import { Tabs, TabItem } from "flowbite-svelte";
-	import { inviteStore } from "$lib/stores";
-	import type { PageData } from "./$types";
+	import { inviteStore, userStore } from "$lib/stores";
 
 	export let data: PageData;
 
 	let open = [true, false];
 
-	$: user = data.user;
+	$: user = $userStore.get(data.user.id)!;
 	$: invites = Array.from($inviteStore.values());
 	$: send = invites.filter((invite) => invite.from.id === user.id);
 	$: received = invites.filter((invite) => invite.to.id === user.id);

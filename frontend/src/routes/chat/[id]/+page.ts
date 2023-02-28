@@ -9,10 +9,10 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	window.fetch = fetch;
 
 	const { user } = await unwrap(parent());
-	const room: ChatRoom = await unwrap(get(`/chat/id/${params.room}`));
-	const users: User[] = await unwrap(get(`/chat/id/${params.room}/users`));
-	const members: Member[] = await unwrap(get(`/chat/id/${params.room}/members`));
-	const messages: Message[] = await unwrap(get(`/chat/id/${params.room}/messages`));
+	const room: ChatRoom = await unwrap(get(`/chat/id/${params.id}`));
+	const users: User[] = await unwrap(get(`/chat/id/${params.id}/users`));
+	const members: Member[] = await unwrap(get(`/chat/id/${params.id}/members`));
+	const messages: Message[] = await unwrap(get(`/chat/id/${params.id}/messages`));
 
 	const member: Member = members.find((member) => member.userId === user!.id)!;
 
@@ -23,7 +23,7 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	let banned: User[] | null = null;
 
 	if (member.role >= Role.ADMIN) {
-		banned = await unwrap(get(`/chat/id/${params.room}/bans`));
+		banned = await unwrap(get(`/chat/id/${params.id}/bans`));
 	
 		updateStore(userStore, banned!);
 	}

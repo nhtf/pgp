@@ -1,67 +1,41 @@
 <script lang="ts">
 	import type { User } from "$lib/entities";
-	import { get, post, remove } from "$lib/Web";
+	import { post, remove } from "$lib/Web";
 	import { Status } from "$lib/enums";
-	import Swal from "sweetalert2";
 	import { page } from "$app/stores";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import "@sweetalert2/theme-dark/dark.scss";
-	import { inviteStore, userStore } from "$lib/stores";
+	import { userStore } from "$lib/stores";
 	import { icon_path, status_colors } from "$lib/constants";
+	import "@sweetalert2/theme-dark/dark.scss";
+	import Swal from "sweetalert2";
 
 	const friend_icon = `${icon_path}/add-friend.png`;
 
 	let score = new Map();
-	let all: User[] | null = null;
 
 	$: self = $userStore.get($page.data.user?.id)!;
 	$: friends = [...$userStore]
 		.map(([_, user]) => user)
-		.filter((user) => self.friendsIds.includes(user.id));
+		.filter((user) => self.friendsIds.includes(user.id)).sort(byName);
 	$: placement = window.innerWidth < 750 ? "top" : "left-end";
 
 	function byName(first: User, second: User) {
 		return first.username.localeCompare(second.username);
 	}
 
-	async function befriendable() {
-		const friendIds = friends.map((friend) => friend.id);
-		const invites = [...$inviteStore]
-			.map(([_, invite]) => invite)
-			.filter(
-				(invite) =>
-					invite.type === "Friend" &&
-					invite.from.id === $page.data.user.id
-			);
-
-		all = all ?? await get(`/users`);
-		return new Map(
-			all!
-				.filter((user) => $page.data.user.id !== user.id)
-				.filter((user) => !friendIds.includes(user.id))
-				.filter(
-					(user) =>
-						!invites.some((invite) => invite.to.id === user.id)
-				)
-				.sort(byName)
-				.map((user) => [user.id, user.username])
-		);
-	}
-
 	async function toggleAddfriend() {
 		await Swal.fire({
 			title: "Add friend",
-			input: "select",
+			input: "text",
 			color: "var(--text-color)",
 			background: "var(--box-color)",
 			confirmButtonColor: "var(--confirm-color)",
 			cancelButtonColor: "var(--cancel-color)",
 			confirmButtonText: "Add friend",
 			showCancelButton: true,
-			inputOptions: befriendable(),
-			inputValidator: async (id) => {
+			inputValidator: async (username) => {
 				try {
-					await post(`/user/me/friends/requests`, { id });
+					await post(`/user/me/friends/requests`, { username });
 				} catch (error: any) {
 					return error.message;
 				}

@@ -16,7 +16,6 @@
 		classic = new Classic(shader.getCanvas());
 		shader.addEventListener(classic);
 
-		console.log($page.params);
 		await classic.start({
 			room: $page.params.id,
 			member: {

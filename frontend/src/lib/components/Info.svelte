@@ -170,15 +170,6 @@
 		background-color: var(--box-hover-color);
 	}
 
-.input {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		padding: 2px 8px;
-		margin: 0 auto;
-	}
-
 .edit-username-window {
 		display: flex;
 		position: fixed;

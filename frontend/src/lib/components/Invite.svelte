@@ -48,48 +48,37 @@
 	}
 </script>
 
-<input
-	class="input"
-	placeholder="Username"
-	bind:value={invitee}
-	on:input={() => (matches = invitable.filter(match))}
-	on:focus|once={fetchMembers}
-/>
-{#if matches.length}
-	<Dropdown bind:open>
-		{#each matches as { id, username, avatar } (id)}
-			<DropdownItem
-				on:click={() => {
-					invitee = username;
-					open = false;
-				}}
-				class="flex gap-1"
-			>
-				<Avatar class="avatar" src={avatar} />
-				<div>{username}</div>
-			</DropdownItem>
-		{/each}
-	</Dropdown>
-{/if}
-<button class="button green" on:click={() => invite(room)}>Invite</button>
+<div class="invite">
+	<input
+		class="input"
+		placeholder="Username"
+		bind:value={invitee}
+		on:input={() => (matches = invitable.filter(match))}
+		on:focus|once={fetchMembers}
+	/>
+	{#if matches.length}
+		<Dropdown bind:open>
+			{#each matches as { id, username, avatar } (id)}
+				<DropdownItem
+					on:click={() => {
+						invitee = username;
+						open = false;
+					}}
+					class="flex gap-1"
+				>
+					<Avatar class="avatar" src={avatar} />
+					<div>{username}</div>
+				</DropdownItem>
+			{/each}
+		</Dropdown>
+	{/if}
+	<button class="button border-green" on:click={() => invite(room)}>Invite</button>
+</div>
 
 <style>
-	.button,
-	.input {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		padding: 0.25rem 1rem;
-		margin: 0.25rem;
+	.invite {
+		display: flex;
+		gap: 0.5rem;
 	}
 
-	.button {
-		width: 80px;
-		text-align: center;
-	}
-
-	.green {
-		border-color: var(--green);
-	}
 </style>

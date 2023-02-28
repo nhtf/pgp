@@ -91,12 +91,12 @@
 </script>
 
 {#if room}
-	<div class="room my-3">
+	<div class="room">
 		<div class="room-container">
 			<div class="room-title">
-				<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
+				<a class="button border-blue" href={`/chat`}>Back</a>
 				<div class="room-name">{room.name}</div>
-				<button class="button red" on:click={() => leave(room)}>Leave</button>
+				<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 
 				{#if self?.role >= Role.ADMIN}
 					<button class="button" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
@@ -156,16 +156,6 @@
 					{/each}
 				</div>
 			{/if}
-			{#if data.banned && data.banned.length}
-				<div/>
-				<div class="member-group">
-					<h1>Banned users</h1>
-					<!-- TODO: dont use memberbox -->
-					{#each data.banned as user}
-						<MemberBox {user} member={null} {self}/>
-					{/each}
-				</div>
-			{/if}
 		</div>
 	</div>
 {/if}
@@ -174,6 +164,7 @@
 	.room {
 		display: flex;
 		flex-direction: row;
+		margin: 0.5rem;
 	}
 
 	.member-container {
@@ -182,8 +173,8 @@
 		padding: 0.5rem;
 		margin: 0.5rem;
 		background-color: var(--box-color);
-		border-radius: 1em;
-		gap: 1em;
+		border-radius: 1rem;
+		gap: 0.5em;
 	}
 
 	.member-group {
@@ -197,7 +188,7 @@
 		flex-direction: column;
 		flex-grow: 1;
 		gap: 10px;
-		height: calc(100vh - 80px);
+		height: calc(100vh - 90px);
 		padding: 0 0 3rem 0;
 	}
 
@@ -211,7 +202,7 @@
 		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
 		margin-bottom: 0.5rem;
 		padding: 0.25rem;
-		border-radius: 1em;
+		border-radius: 2rem;
 	}
 
 	.room-name {
@@ -220,24 +211,6 @@
 		padding: 3px;
 		margin: 0 auto;
 		white-space: nowrap;
-	}
-
-	.button {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		padding: 0.25rem 1rem;
-		margin: 0.25rem;
-		text-align: center;
-	}
-
-	.red {
-		border-color: var(--red);
-	}
-
-	.blue {
-		border-color: var(--blue);
 	}
 
 	.message-input {

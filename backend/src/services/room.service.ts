@@ -258,40 +258,38 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 							.select("\"member\".\"userId\"")
 							.from(Member, "member")
 							.where("\"roomId\" = \"room\".\"id\"")
-							.andWhere("\"userId\" = :user_id")
+							.andWhere("\"userId\" = :userId", { userId: user.id })
 							.getQuery();
-						return "EXISTS (" + subQuery + ")";
+						return `EXISTS (${subQuery})`;
 					})
 					.leftJoinAndSelect("room.members", "member")
 					.leftJoinAndSelect("member.user", "user")
 					.leftJoinAndSelect("room.state", "state")
-					.setParameter("user_id", user.id)
 					.getMany();
 			} else if (member === "false") {
 				return this.room_repo.createQueryBuilder("room")
-					.leftJoinAndSelect("room.banned_users", "banned_user")
-					.where("\"banned_user\" IS NULL")
-					.andWhere("\"room\".\"is_private\" = false")
+					.leftJoinAndSelect("room.banned_users", "banned_users")
+					// .where("\"banned_users\" IS NULL")
+					.andWhere("room.is_private = false")
 					.andWhere((qb) => {
 						const subQuery = qb
 							.subQuery()
-							.select("\"member\".\"roomId\"")
-							.select("\"member\".\"userId\"")
+							.select("member.roomId")
+							.select("member.userId")
 							.from(Member, "member")
-							.where("\"roomId\" = \"room\".\"id\"")
-							.andWhere("\"userId\" = :user_id")
+							.where(`"roomId" = room.id`)
+							.andWhere(`"userId" = :userId`, { userId: user.id })
 							.getQuery();
-						return "NOT EXISTS (" + subQuery + ")";
+						return `NOT EXISTS (${subQuery})`;
 					})
 					.leftJoinAndSelect("room.members", "member")
 					.leftJoinAndSelect("member.user", "user")
 					.leftJoinAndSelect("room.state", "state")
-					.setParameter("user_id", user.id)
 					.getMany();
 			} else {
 				return this.room_repo.createQueryBuilder("room")
-					.leftJoinAndSelect("room.banned_users", "banned_user")
-					.where("\"banned_user\" IS NULL")
+					.leftJoinAndSelect("room.banned_users", "banned_users")
+					.where("banned_users IS NULL")
 					.orWhere((qb) => {
 						const subQuery = qb
 							.subQuery()
@@ -299,14 +297,13 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 							.select("\"member\".\"userId\"")
 							.from(Member, "member")
 							.where("\"roomId\" = \"room\".\"id\"")
-							.andWhere("\"userId\" = :user_id")
+							.andWhere("\"userId\" = :userId", { userId: user.id })
 							.getQuery();
-						return "EXISTS (" + subQuery + ")";
+						return `EXISTS (${subQuery})`;
 					})
 					.leftJoinAndSelect("room.members", "member")
 					.leftJoinAndSelect("member.user", "user")
 					.leftJoinAndSelect("room.state", "state")
-					.setParameter("user_id", user.id)
 					.getMany();
 			}
 		}

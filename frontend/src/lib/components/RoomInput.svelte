@@ -32,7 +32,7 @@
 	}
 </script>
 
-<div class="room room-create">
+<div class="room">
 	<input
 		class="input"
 		type="text"
@@ -68,7 +68,7 @@
 	{/if}
 	<div class="grow" />
 	<button
-		class="button green"
+		class="button border-green"
 		on:click={() =>
 			click({ name, password, is_private, gamemode, players }, room)}
 		>{action}</button
@@ -80,27 +80,11 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 10px;
+		gap: 0.5rem;
 		background: var(--box-color);
-		border: 2px var(--border-color);
-		border-radius: 6px;
-		padding: 25px;
+		border: 1px var(--border-color);
+		border-radius: 2rem;
+		padding: 0.5rem;
 	}
 
-	.button,
-	.input {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		padding: 2px 8px;
-	}
-
-	.green {
-		border-color: var(--green);
-	}
-
-	.input:disabled {
-		opacity: 0.25;
-	}
 </style>
