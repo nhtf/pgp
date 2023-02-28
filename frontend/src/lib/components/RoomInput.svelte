@@ -7,7 +7,6 @@
 	export let click: Function;
 	export let room: Room | null = null;
 	export let type: "ChatRoom" | "GameRoom" | undefined = room?.type;
-	export let duration: number = 0;
 
 	const gamemodes = new Map([
 		[Gamemode.CLASSIC, { name: "Classic", players: [2] }],
@@ -16,10 +15,10 @@
 		[Gamemode.MODERN4P, { name: "Modern4p", players: [4] }],
 	]);
 
-	let gamemode = Gamemode.CLASSIC;
 	let name = room ? room.name : "";
 	let password = "";
 	let is_private = room ? room.access === Access.PRIVATE : false;
+	let gamemode = Gamemode.CLASSIC;
 	let action = `${click.name.charAt(0).toUpperCase()}${click.name.slice(1)}`;
 
 	$: players = gamemodes.get(gamemode)!.players[0];
@@ -33,7 +32,7 @@
 	}
 </script>
 
-<div transition:slide={{ duration }} class="room room-create">
+<div class="room room-create">
 	<input
 		class="input"
 		type="text"

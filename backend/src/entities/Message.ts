@@ -31,6 +31,9 @@ export class Message {
 	@ManyToOne(() => Member, (member) => member.messages, { nullable: true, onDelete: "SET NULL" })
 	member: Member | null;
 
+	@RelationId((message: Message) => message.member)
+	memberId: number
+
 	@Exclude()
 	@ManyToOne(() => User, (user) => user.messages, { onDelete: "CASCADE" })
 	user: User;

@@ -5,6 +5,7 @@ import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Message } from "src/entities/Message";
 import { RoomInvite } from "src/entities/RoomInvite";
+import { User } from "src/entities/User";
 import { Role } from "src/enums/Role";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe } from "src/util";
@@ -23,12 +24,32 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		@Inject("ROOMINVITE_REPO")
 		invite_repo: Repository<RoomInvite>,
 		@Inject("CHATROOM_PGPSERVICE")
-		service: IRoomService<ChatRoom>,
+		service: IRoomService<ChatRoom, ChatRoomMember>,
 		update_service: UpdateGateway,
 		@Inject("MESSAGE_REPO")
 		private readonly message_repo: Repository<Message>,
 	) {
 		super(room_repo, member_repo, invite_repo, service, update_service);
+	}
+
+	async afterJoin(room: ChatRoom, member: ChatRoomMember) {
+		const messages = await this.message_repo.find({
+			where: {
+				room: {
+					id: room.id,
+				},
+				member: null,
+				user: {
+					id: member.userId,
+				},
+			}
+		});
+
+		messages.forEach((message) => {
+			message.member = member;
+		});
+
+		await this.message_repo.save(messages);
 	}
 
 	@Get("id/:id/messages")
@@ -67,13 +88,17 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 				user: true,
 			},
 			where: {
+				member: null,
 				room: {
 					id: room.id,
 				},
 			},
 		});
-	
-		return [...new Set([...members.map((member) => member.user), ...messages.map((message) => message.user)])];
+
+		const users = [...members.map((member) => member.user), ...messages.map((message) => message.user)];
+		const unique = new Map<number, User>(users.map((user) => [user.id, user]));
+
+		return [...unique].map(([_, user]) => user);
 	}
 
 	@Post("id/:id/mute/:target")

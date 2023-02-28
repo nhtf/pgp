@@ -80,7 +80,7 @@
 		background: var(--box-color);
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
-		padding: 2px 8px;
+		padding: 0.25rem 1rem;
 		margin: 0.25rem;
 	}
 

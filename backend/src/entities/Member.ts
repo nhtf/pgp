@@ -21,7 +21,7 @@ export class Member {
 	@RelationId((member: Member) => member.user)
 	userId: number;
 
-	@Exclude()
+	// @Exclude()
 	@ManyToOne(() => Room, { onDelete: "CASCADE", cascade: ["insert", "update"] })
 	room: Room;
 

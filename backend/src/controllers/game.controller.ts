@@ -46,7 +46,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		@Inject("PLAYER_REPO")
 		readonly player_repo: Repository<Player>,
 		@Inject("GAMEROOM_PGPSERVICE")
-		service: IRoomService<GameRoom>,
+		service: IRoomService<GameRoom, GameRoomMember>,
 		update_service: UpdateGateway,
 	) {
 		super(room_repo, member_repo, invite_repo, service, update_service);

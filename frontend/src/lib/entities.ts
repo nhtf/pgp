@@ -81,6 +81,7 @@ export type Message = {
 	id: number,
 	content: string,
 	member: Member | null,
+	memberId: number | null,
 	created: string,
 	embeds: Embed[],
 	userId: number,

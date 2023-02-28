@@ -13,7 +13,6 @@ export const load: PageLoad = (async ({ fetch }) => {
 	const joinable: GameRoom[] = await unwrap(get(`/game?member=false`));
 	const rooms: GameRoom[] = [];
 
-
 	for (let member of joined) {
 		member.room.joined = true;
 		member.room.member = member;

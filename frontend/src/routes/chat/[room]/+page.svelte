@@ -2,20 +2,18 @@
 	import type { Room, Message } from "$lib/entities";
 	import type { PageData } from "./$types";
     import type { UpdatePacket } from "$lib/types";
-	import { onMount } from "svelte";
+	import { onDestroy, onMount } from "svelte";
 	import { roomSocket } from "../websocket";
 	import { unwrap } from "$lib/Alert";
-	import { patch, remove } from "$lib/Web";
+	import { remove } from "$lib/Web";
 	import { goto } from "$app/navigation";
 	import { Action, Role, Subject } from "$lib/enums";
-	import { Dropdown, DropdownItem, MenuButton, Toggle } from "flowbite-svelte";
 	import { memberStore, roomStore, userStore } from "$lib/stores";
     import { icon_path } from "$lib/constants";
     import { updateManager } from "$lib/updateSocket";
-	import Invite from "$lib/components/Invite.svelte"
+    import { page } from "$app/stores";
 	import MessageBox from "$lib/components/MessageBox.svelte"
     import MemberBox from "$lib/components/MemberBox.svelte";
-    import RoomInput from "$lib/components/RoomInput.svelte";
 
 	export let data: PageData;
 
@@ -23,7 +21,7 @@
 
 	let messages = data.messages.sort(dateCmp)
 	let content = "";
-	let checked = false;
+	let indices: number[] = [];
 
 	$: room = $roomStore.get(data.room.id)!;
 	$: members = [...$memberStore]
@@ -40,12 +38,21 @@
 	onMount(() => {
 		roomSocket.emit("join", String(room!.id));
 
-		updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
-			if (update.id === room.id && update.action === Action.REMOVE) {
+		indices.push(onRemove(Subject.ROOM, room!.id));
+		indices.push(onRemove(Subject.MEMBER, self.id));
+	});
+
+	onDestroy(() => {
+		updateManager.remove(indices);
+	});
+
+	function onRemove(subject: Subject, id: number) {
+		return updateManager.set(subject, async (update: UpdatePacket) => {
+			if (update.id === id && update.action === Action.REMOVE) {
 				await goto(`/chat`);
 			}
-		})
-	});
+		});
+	}
 
 	roomSocket.on("message", (message: Message) => {
 		messages = [...messages, message].sort(dateCmp);
@@ -81,49 +88,18 @@
 		await goto(`/chat`);
 	}
 
-	async function erase(room: Room) {
-		await unwrap(remove(`/chat/id/${room.id}`));
-		await goto(`/chat`);
-	}
-
-	async function edit(edit: any, room: Room) {
-		edit.name = edit.name.length ? edit.name : null;
-		edit.password = edit.password.length ? edit.password : null;
-
-		await unwrap(patch(`/chat/id/${room.id}`, edit));
-
-		checked = false;
-	}
 </script>
 
 {#if room}
 	<div class="room my-3">
 		<div class="room-container">
-			{#if checked}
-				<RoomInput {room} click={edit} duration={500}/>
-			{/if}
 			<div class="room-title">
 				<button class="button blue" on:click={() => goto(`/chat`)}>Back</button>
 				<div class="room-name">{room.name}</div>
+				<button class="button red" on:click={() => leave(room)}>Leave</button>
+
 				{#if self?.role >= Role.ADMIN}
-					<Invite {room} />
-				{/if}
-				{#if self?.role >= Role.ADMIN}
-					<MenuButton class="bor-c bg-c m-0.5"/>
-					<Dropdown placement="bottom-end" class="bg-c">
-						{#if self?.role === Role.OWNER}
-							<DropdownItem class="text-green">
-								<Toggle bind:checked>
-									Show edit
-								</Toggle>
-							</DropdownItem>
-							<DropdownItem class="text-red" on:click={() => erase(room)}>Delete</DropdownItem>
-						{:else}
-							<DropdownItem on:click={() => leave(room)}>Leave</DropdownItem>
-						{/if}
-					</Dropdown>
-				{:else}
-					<button class="button red" on:click={() => leave(room)}>Leave</button>
+					<button class="button" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 				{/if}				
 			</div>
 
@@ -160,7 +136,7 @@
 		<div class="member-container">
 			<div class="member-group">
 				<h1>Owner</h1>
-				<!-- <MemberBox user={getUser(owner.userId)} member={owner} {self}/> -->
+				<MemberBox user={getUser(owner.userId)} member={owner} {self}/>
 			</div>
 			{#if admins.length}
 				<div/>
@@ -252,6 +228,7 @@
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
 		padding: 0.25rem 1rem;
+		margin: 0.25rem;
 		text-align: center;
 	}
 

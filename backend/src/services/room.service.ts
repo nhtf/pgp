@@ -41,16 +41,16 @@ export class CreateRoomDTO {
 	password: string | null;
 }
 
-export interface IRoomService<T extends Room> {
+export interface IRoomService<T extends Room, U extends Member> {
 	create(name?: string, is_private?: boolean, password?: string): Promise<T>;
 	destroy(room: number | T): Promise<boolean>;
-	add_member(room: number | T, user: number | User, role?: Role): Promise<Member>;
-	edit_member(room: number | T, role: Role, member: Member | User | number): Promise<Member>;
-	del_member(room: number | T, member: Member | User | number, ban?: boolean): Promise<boolean>;
+	add_member(room: number | T, user: number | User, role?: Role): Promise<U>;
+	edit_member(room: number | T, role: Role, member: U | User | number): Promise<U>;
+	del_member(room: number | T, member: U | User | number, ban?: boolean): Promise<boolean>;
 }
 
 export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
-	class RoomService<T extends Room> implements IRoomService<T> {
+	class RoomService<T extends Room> implements IRoomService<T, U> {
 		constructor(
 			readonly room_repo: Repository<T>,
 			readonly member_repo: Repository<U>,
@@ -117,10 +117,13 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 			member.role = role || Role.MEMBER;
 			member.room = room;
 			member.user = user;
-			if (room.members)
-				room.members.push(member);
-			else
-				room.members = [member];
+
+			if (!room.members) {
+				room.members = [];
+			}
+
+			room.members.push(member);
+
 			return this.member_repo.save(member);
 		}
 
@@ -141,13 +144,13 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 
 				if (user === undefined)
 					console.error("member.user was undefined, please make sure to also load the user relation for the member");
-			
+
 				user = await this.user_repo.findOneBy({ members: { id: member.id } });
-			
+
 				if (!room.banned_users) {
 					room.banned_users = [];
 				}
-			
+
 				room.banned_users.push(user);
 			}
 
@@ -235,7 +238,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@Inject("ROOMINVITE_REPO")
 			readonly invite_repo: Repository<RoomInvite>,
 			@Inject(type.name.toString().toUpperCase() + "_PGPSERVICE")
-			readonly service: IRoomService<T>,
+			readonly service: IRoomService<T, U>,
 			readonly update_service: UpdateGateway,
 		) {
 		}
@@ -326,7 +329,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			const name = dto.name ? dto.name.trim() : genName();
 			const room = await this.service.create(name, dto.is_private, dto.password);
 			const member = await this.service.add_member(room, user, Role.OWNER);
-		
+
 			await this.setup_room(room, dto);
 			await this.room_repo.save(room);//TODO only save one time
 
@@ -369,7 +372,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Patch("id/:id")
 		@RequiredRole(Role.OWNER)
-		async edit_room(@GetRoom() room: T,	@Body() dto: CreateRoomDTO) {
+		async edit_room(@GetRoom() room: T, @Body() dto: CreateRoomDTO) {
 			if (dto.is_private && dto.password) {
 				throw new UnprocessableEntityException("A private room cannot have a password");
 			}
@@ -427,6 +430,9 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 			const member = await this.service.add_member(room, me);
 			await this.invite_repo.remove(invites);
+
+			await this.afterJoin(room, member)
+
 			room = await this.get_joined_info(room);
 
 			await this.update_service.send_update({
@@ -440,8 +446,11 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				},
 			}, me);
 
+
 			return {};
 		}
+
+		async afterJoin(room: T, member: U) { }
 
 		/* deprecated, use id/:id/members/me */
 		//TODO remove

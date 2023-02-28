@@ -1,6 +1,6 @@
 <script lang="ts">
-	import RoomBox from "./RoomBox.svelte";
 	import { roomStore } from "$lib/stores";
+	import RoomBox from "./RoomBox.svelte";
 
 	export let type: "ChatRoom" | "GameRoom";
 

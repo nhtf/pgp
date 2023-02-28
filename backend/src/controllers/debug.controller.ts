@@ -220,7 +220,13 @@ export class DebugController {
 
 	@Get("messages")
 	async messages() {
-		return await this.messageRepo.find();
+		return await this.messageRepo.find({
+			relations: {
+				user: true,
+				member: true,
+				room: true,
+			}
+		});
 	}
 
 	@Get("message(s)?/delete")

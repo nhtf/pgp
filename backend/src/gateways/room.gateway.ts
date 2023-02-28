@@ -138,7 +138,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		message.user = member.user;
 		//TODO send the link raw with digest?
 		message.embeds = embeds;
-		
+
 		message = await this.messageRepo.save(message);
 	
 		this.server.in(client.room).emit("message", instanceToPlain(message));

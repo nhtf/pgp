@@ -1,32 +1,28 @@
-import type { User, ChatRoom, Member, Message } from "$lib/entities";
+import type { User, ChatRoom, Member} from "$lib/entities";
 import type { PageLoad } from "./$types"
 import { userStore, roomStore, memberStore, updateStore  } from "$lib/stores";
 import { Role } from "$lib/enums"
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
+import { error } from "@sveltejs/kit";
 
 export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	window.fetch = fetch;
 
 	const { user } = await unwrap(parent());
 	const room: ChatRoom = await unwrap(get(`/chat/id/${params.room}`));
-	const users: User[] = await unwrap(get(`/chat/id/${params.room}/users`));
 	const members: Member[] = await unwrap(get(`/chat/id/${params.room}/members`));
-	const messages: Message[] = await unwrap(get(`/chat/id/${params.room}/messages`));
+	const banned: User[] = await unwrap(get(`/chat/id/${params.room}/bans`));
 
 	const member: Member = members.find((member) => member.userId === user!.id)!;
 
-	updateStore(roomStore, [room]);
-	updateStore(userStore, users);
-	updateStore(memberStore, members);
-
-	let banned: User[] | null = null;
-
-	if (member.role >= Role.ADMIN) {
-		banned = await unwrap(get(`/chat/id/${params.room}/bans`));
-	
-		updateStore(userStore, banned!);
+	if (member.role < Role.ADMIN) {
+		throw error(401, "Must be admin or owner");
 	}
 
-    return { room, member, members, messages, banned };
+	updateStore(roomStore, [room]);
+	updateStore(memberStore, members);
+	updateStore(userStore, banned);
+
+    return { room, member, members, banned };
 }) satisfies PageLoad;

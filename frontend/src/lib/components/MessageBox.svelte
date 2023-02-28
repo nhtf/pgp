@@ -19,7 +19,7 @@
 	const text_align = from_self ? "right" : "left";
 
 	$: user = $userStore.get(message.userId)!;
-	$: member = message.member ? $memberStore.get(message.member.id)! : null;
+	$: member = message.memberId ? $memberStore.get(message.memberId)! : null;
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
