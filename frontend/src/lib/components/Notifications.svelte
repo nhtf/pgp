@@ -46,12 +46,15 @@
 				status !== Status.REMOVED ? Status.READ : status,
 			])
 		);
-		// newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
 	}
 
 	function mark(key: Invite, status: Status) {
 		notifMap = notifMap.set(key, status);
-		// newNotifs = [...notifMap.values()].some((status) => status === Status.UNREAD);
+		newlength = [...notifMap.values()].filter(
+			(status) => status === Status.UNREAD
+			).length;
+		if (status === Status.UNREAD)
+			oldLength = newlength;
 	}
 
 	function spin(node: any, { duration }: { duration: number }) {
@@ -65,6 +68,7 @@
 					return "";
 				}
 				notificationSound.play();
+				oldLength = newlength;
 				return `transform: rotate(${rot_eased * 45}deg);`;
 			},
 		};
@@ -95,7 +99,7 @@
 </div>
 <Dropdown
 	triggeredBy="#bell"
-	class="w-full max-w-sm rounded divide-y bor-c shadow bg-c bor-c"
+	class="w-full max-w-sm rounded bor-c shadow bg-c"
 	frameClass="bor-c shadow divide-y w-full max-w-sm"
 	placement="bottom"
 >
@@ -103,15 +107,32 @@
 		Notifications
 	</div>
 	{#each [...notifMap] as [invite, status] (invite.id)}
-		<DropdownItem class="flex space-x-4 status{status}">
+		<DropdownItem class="flex space-x-4 status{status} items-center border-b divide-gray-100">
 			{#if status !== Status.REMOVED}
 				<Avatar src={invite.from.avatar} />
-				<div class="pl-3 w-full">
+				<div class="pl-3 w-full !ml-0 !mr-0 py-2">
+					{invite.from.username}
+					{#if invite.type === "Friend"}
 					<div
-						class="text-gray-500 text-sm mb-1.5 dark:text-gray-400"
-					/>
+						class="text-gray-500 text-sm dark:text-gray-400"
+					>
+						wants to be your friend
+					</div>
+					{:else if invite.type === "ChatRoom"}
+					<div
+						class="text-gray-500 text-sm dark:text-gray-400"
+					>
+						invites you to chat in 
+					</div>{invite.room?.name}
+					{:else}
+					<div
+						class="text-gray-500 text-sm dark:text-gray-400"
+					>
+						invites you to game in
+					</div> {invite.room?.name}
+					{/if}
 				</div>
-				<div class="flex flex-row justify-between items-center">
+				<div class="flex flex-row justify-between items-center self-center gap-x-2">
 					<div
 						class="block text-xs text-blue-600 dark:text-blue-500 accept"
 						on:click={() => acceptInvite(invite)}
@@ -121,19 +142,19 @@
 					</div>
 					{#if status === Status.UNREAD}
 						<div
-							class="block text-xs text-blue-600 dark:text-blue-500 accept"
+							class="flex text-xs text-blue-600 dark:text-blue-500 accept"
 							on:click={() => mark(invite, Status.READ)}
 							on:keypress={() => mark(invite, Status.READ)}
 						>
-							mark as read
+							mark read
 						</div>
 					{:else}
 						<div
-							class="block text-xs text-blue-600 dark:text-blue-500 accept"
+							class="flex text-xs text-blue-600 dark:text-blue-500 accept"
 							on:click={() => mark(invite, Status.UNREAD)}
 							on:keypress={() => mark(invite, Status.UNREAD)}
 						>
-							mark as unread
+							mark unread
 						</div>
 					{/if}
 				</div>
@@ -189,11 +210,8 @@
 	.accept {
 		outline: 1px solid var(--border-color);
 		border-radius: 6px;
-		height: 100%;
-		width: 100%;
+		width: fit-content;
 		padding: 2px;
-		margin-left: 5px;
-		margin-right: 5px;
 		text-align: center;
 	}
 	.accept:hover {

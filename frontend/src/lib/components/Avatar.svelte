@@ -193,15 +193,15 @@
 		max-height: 25px;
 		position: relative;
 		top: -10px;
-		right: -35px;
+		right: -45px;
 		cursor: pointer;
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
-		border-radius: 6px;
+		border-radius: 10px;
 	}
 
 	#edit-icon:hover {
-		box-shadow: 1px 1px 1px 1px var(--shadow-color);
+		box-shadow: 0px 0px 1px 1px var(--shadow-color);
 	}
 
 	.block-cell {

@@ -78,7 +78,7 @@
 <style>
 	.invite {
 		display: flex;
-		gap: 0.5rem;
+		column-gap: 0.25rem;
 	}
 
 </style>

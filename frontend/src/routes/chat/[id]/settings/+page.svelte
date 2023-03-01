@@ -94,7 +94,7 @@
 		background-color: var(--box-color);
 		position: relative;
 		top: 0.5rem;
-		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
+		box-shadow: 2px 4px 6px 2px rgba(0, 0, 0, 0.4);
 		margin-bottom: 0.5rem;
 		padding: 0.25rem;
 		border-radius: 1rem;
@@ -111,11 +111,11 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 0.5rem;
 		background: var(--box-color);
 		border: 1px var(--border-color);
 		border-radius: 2rem;
 		padding: 0.5rem;
+		margin-top: 0.25rem;
 	}
 
 	.banned {

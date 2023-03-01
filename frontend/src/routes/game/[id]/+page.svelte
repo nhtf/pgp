@@ -14,7 +14,7 @@
 	<VrGame />
 {:else if data.room.gamemode === Gamemode.CLASSIC}
 	<ClassicGame />
-{:else if data.room.gamemode === Gamemode.MODERN}
+{:else if data.room.gamemode === Gamemode.MODERN && data.room.teams.length === 2}
 	<ModernGame gameMode={GAME.TWOPLAYERS} />
 {:else}
 	<ModernGame gameMode={GAME.FOURPLAYERS} />
