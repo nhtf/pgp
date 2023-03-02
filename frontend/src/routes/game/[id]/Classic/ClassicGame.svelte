@@ -26,7 +26,7 @@
 
 		frame = window.requestAnimationFrame(function render(time) {
 			classic.update(time);
-			shader.update();
+			shader.update(time);
 			frame = window.requestAnimationFrame(render);
 		});
 	});

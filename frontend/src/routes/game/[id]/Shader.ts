@@ -26,14 +26,24 @@ const FRAGMENT_SOURCE = `
 #define MASK_COLOR 2.0
 #define MASK_STRENGTH 0.3
 #define MASK_SIZE 1.0
+#define CURVE_X 4.0
+#define CURVE_Y 4.0
+#define LINES_MAX 256
+#define PI 3.141592653589
 
 uniform sampler2D tex;
 uniform highp vec2 size;
 uniform highp float scale;
+uniform highp vec2 lines_pos[LINES_MAX];
+uniform highp vec4 lines_col[LINES_MAX];
 
 varying highp vec2 coord;
 
 highp vec4 pix(highp vec2 c) {
+	if (c.x < 0.0 || c.y < 0.0 || c.x > 1.0 || c.y > 1.0) {
+		return vec4(0.0, 0.0, 0.0, 0.0);
+	}
+
 	highp vec4 col = texture2D(tex, c);
 	return vec4(pow(col.rgb, vec3(GAMMA)), col.a);
 }
@@ -65,19 +75,17 @@ highp vec4 gauss(highp vec2 co) {
 
 highp vec4 lanczos(highp vec2 co, highp float sharp) {
 	highp vec2 s = vec2(size.x * sharp, size.y);
-	highp vec2 dx = vec2(1.0 / s.x, 0.0);
 	highp vec2 p = co * s - vec2(0.5, 0.0);
 	highp vec2 c = (floor(p) + vec2(0.5, 0.0)) / s;
-	highp vec2 d = fract(p);
-	highp vec4 f = 3.141592653589 * vec4(d.x + 1.0, d.x, d.x - 1.0, d.x - 2.0);
+	highp float d = fract(p.x);
+	highp vec4 f = PI * vec4(d + 1.0, d, d - 1.0, d - 2.0);
 
 	f = max(abs(f), 1e-5);
 	f = 2.0 * sin(f) * sin(f / 2.0) / (f * f);
 	f /= f.x + f.y + f.z + f.w;
 
 	highp vec4 c1 = pix(c);
-	highp vec4 c2 = pix(c + dx);
-
+	highp vec4 c2 = pix(c + vec2(1.0 / s.x, 0.0));
 	return mat4(c1, c1, c2, c2) * f;
 }
 
@@ -100,8 +108,15 @@ highp vec4 mask_weight(highp float x) {
 	}
 }
 
+highp vec2 curve(highp vec2 co) {
+	co = co - vec2(0.5, 0.5);
+	co.x /= cos(co.y * PI / CURVE_X);
+	co.y /= cos(co.x * PI / CURVE_Y);
+	return co + vec2(0.5, 0.5);
+}
+
 void main() {
-	highp vec2 co = coord + vec2(0.0, 0.5 / size.y);
+	highp vec2 co = curve(coord) + vec2(0.0, 0.5 / size.y);
 	highp vec4 glow = gauss(co);
 	highp vec4 image = lanczos(co, SHARP_IMAGE);
 	highp vec4 edges = lanczos(co, SHARP_EDGES);
@@ -113,6 +128,14 @@ void main() {
 	col = mix(col, col * mask_weight(co.x) * MASK_COLOR, MASK_STRENGTH);
 	col += glow * GLOW_DIFFUSION;
 	col *= BRIGHTNESS;
+
+	for (int i = 0; i < LINES_MAX; i++) {
+		highp vec2 v = lines_pos[i];
+
+		if (co.y >= min(v.x, v.y) && co.y - 1.0 / size.y <= max(v.x, v.y)) {
+			col *= lines_col[i];
+		}
+	}
 
 	gl_FragColor = vec4(pow(col.rgb, vec3(1.0 / GAMMA)), col.a);
 }
@@ -170,6 +193,33 @@ export interface Events {
 	mousemove(offsetX: number, offsetY: number): void;
 }
 
+class Line {
+	public x: number = -1;
+	public y: number = -1;
+	public r: number = 0.75;
+	public g: number = 0.75;
+	public b: number = 0.75;
+	public speed: number = 0;
+
+	public update(delta: number) {
+		if (this.x < 0 && this.y < 0) {
+			this.x = Math.random() + 1.0;
+			this.y = Math.random() + 1.0;
+
+			if (Math.random() < 0.001) {
+				this.r = this.g = this.b = 0.75;
+				this.speed = -Math.random() * 0.9 - 0.1;
+			} else {
+				this.r = this.g = this.b = 0.95;
+				this.speed = -Math.random() * 99.9 - 0.1;
+			}
+		}
+
+		this.x += this.speed * delta;
+		this.y += this.speed * delta;
+	}
+}
+
 export class Shader {
 	private gl: WebGLRenderingContext;
 	private outerCanvas: HTMLCanvasElement;
@@ -181,6 +231,10 @@ export class Shader {
 	private uniformTex: WebGLUniformLocation;
 	private uniformSize: WebGLUniformLocation;
 	private uniformScale: WebGLUniformLocation;
+	private uniformLinesPos: WebGLUniformLocation;
+	private uniformLinesCol: WebGLUniformLocation;
+	private lines: Line[];
+	private lastTime?: number;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
@@ -194,9 +248,16 @@ export class Shader {
 		this.uniformTex = this.gl.getUniformLocation(this.program, "tex")!;
 		this.uniformSize = this.gl.getUniformLocation(this.program, "size")!;
 		this.uniformScale = this.gl.getUniformLocation(this.program, "scale")!;
+		this.uniformLinesPos = this.gl.getUniformLocation(this.program, "lines_pos")!;
+		this.uniformLinesCol = this.gl.getUniformLocation(this.program, "lines_col")!;
 		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
 		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 		this.texture = createTexture(this.gl);
+		this.lines = new Array(256);
+
+		for (let i = 0; i < 256; i++) {
+			this.lines[i] = new Line();
+		}
 	}
 
 	private scale(): number {
@@ -231,7 +292,7 @@ export class Shader {
 		return this.innerCanvas;
 	}
 
-	public update() {
+	public update(time: number) {
 		let refresh = false;
 
 		if (this.outerCanvas.clientWidth != this.outerCanvas.width) {
@@ -243,6 +304,16 @@ export class Shader {
 			this.outerCanvas.height = this.outerCanvas.clientHeight;
 			refresh = true;
 		}
+
+		if (this.lastTime !== undefined) {
+			const delta = (time - this.lastTime) / 1000;
+
+			for (let i = 0; i < 64; i++) {
+				this.lines[i].update(delta);
+			}
+		}
+
+		this.lastTime = time;
 
 		this.gl.viewport(0, 0, this.outerCanvas.width, this.outerCanvas.height);
 		this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
@@ -265,6 +336,8 @@ export class Shader {
 		this.gl.uniform1i(this.uniformTex, 0);
 		this.gl.uniform2f(this.uniformSize, this.innerCanvas.width, this.innerCanvas.height);
 		this.gl.uniform1f(this.uniformScale, this.scale());
+		this.gl.uniform2fv(this.uniformLinesPos, this.lines.flatMap(l => [l.x, l.y]));
+		this.gl.uniform4fv(this.uniformLinesCol, this.lines.flatMap(l => [l.r, l.g, l.b, 1.0]));
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 	}
 }
