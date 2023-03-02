@@ -17,6 +17,7 @@ const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
 const wall = new Audio("/Assets/sounds/wall.wav");
 const music = new Audio("/Assets/sounds/zetauri.wav");
+const scale = 1;
 
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
@@ -242,9 +243,9 @@ export class Game extends Net {
 			this.offscreenCanvas.width = this.canvas.width;
 		if (this.offscreenCanvas.height != this.canvas.height)
 			this.offscreenCanvas.height = this.canvas.height;
-		const xScale = Math.floor(this.offscreenCanvas.width / WIDTH);
-		const yScale = Math.floor(this.offscreenCanvas.height / HEIGHT);
-		const minScale = Math.min(xScale, yScale);
+		const xScale = (this.offscreenCanvas.width / Math.floor(WIDTH * scale));
+		const yScale = (this.offscreenCanvas.height / Math.floor(HEIGHT * scale));
+		const minScale = Math.floor(Math.min(xScale, yScale));
 		const xOffset = Math.floor((this.offscreenCanvas.width - FIELDWIDTH * minScale) / 2);
 		const yOffset = Math.floor((this.offscreenCanvas.height - FIELDHEIGHT * minScale) / 2);
 		this.offscreenContext.save();
@@ -412,8 +413,6 @@ export class Game extends Net {
 	}
 }
 
-const scale = 1.25;
-
 export class Modern {
 	private canvas: HTMLCanvasElement;
 	private context: CanvasRenderingContext2D;
@@ -455,15 +454,16 @@ export class Modern {
 			this.lastTime += 1000 / UPS;
 		}
 		this.context.fillStyle = "black";
-		const xScale = Math.floor(this.canvas.width / Math.floor(WIDTH * scale));
-		const yScale = Math.floor(this.canvas.height / Math.floor(HEIGHT * scale));
-		const minScale = Math.min(xScale, yScale);
+		const xScale = (this.canvas.width / Math.floor(WIDTH * scale));
+		const yScale = (this.canvas.height / Math.floor(HEIGHT * scale));
+		const minScale = Math.floor(Math.min(xScale, yScale));
 		const xOffset = Math.floor((this.canvas.width - FIELDWIDTH * minScale) / 2);
 		const yOffset = Math.floor((this.canvas.height - FIELDHEIGHT * minScale) / 2);
 		const posX = Math.floor(xOffset - border * minScale * 8) > 0 ? Math.floor(xOffset - border * minScale * 8) : 0;
 		const posY = Math.floor(yOffset - border * minScale * 8) > 0 ? Math.floor(yOffset - border * minScale * 8) : 0;
 		const width = this.canvas.width - 2 * posX;
 		const height = this.canvas.height - 2 * posY;
+		console.log(width, height, this.canvas.width, this.canvas.height, posX, posY, xOffset, yOffset, minScale);
 		this.context.lineWidth = 5;
 		this.context.fillRect(posX,posY,width, height); //this is for the black background
 		this.game?.renderBackGround(this.context);
@@ -481,6 +481,11 @@ export class Modern {
 
 	public async start(options: Options) {
 		this.options = options;
+
+		//debug for why rendering is weird
+		//TODO find out why rendering is blurry and there is a black rectange
+		this.context.fillStyle = "red";
+		this.context.fillRect(0,0, 50, 50);
 		// this.canvas.addEventListener("mousemove", ev => {
 		// 	const xScale = Math.floor(this.canvas.width / WIDTH);
 		// 	const yScale = Math.floor(this.canvas.height / HEIGHT);
@@ -513,7 +518,6 @@ export class Modern {
 		// 	this.game?.send("resize", {
 		// 	});
 		// });
-
 		this.interval = setInterval(() => {
 			this.game?.send("ping", {
 				u: options.member.user.id,

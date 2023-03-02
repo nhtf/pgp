@@ -549,7 +549,11 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				member.role = Role.ADMIN;
 			}
 
-			return await this.member_repo.save([member, target]);
+			// Note: this prevents a race condition where no one is owner
+			await this.member_repo.save(target);
+			await this.member_repo.save(member);
+
+			return {};
 		}
 
 		@Get("id/:id/invite(s)?")

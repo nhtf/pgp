@@ -11,7 +11,7 @@ uniform highp float scale;
 
 varying highp vec2 coord;
 
-uniform highp vec2 resolution; // Screen resolution
+// uniform highp vec2 resolution; // Screen resolution
 
 void main()
 {

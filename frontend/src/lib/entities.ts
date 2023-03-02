@@ -83,7 +83,7 @@ export type Message = {
 	content: string,
 	member: Member | null,
 	memberId: number | null,
-	created: string,
+	created: number,
 	embeds: Embed[],
 	userId: number,
 };

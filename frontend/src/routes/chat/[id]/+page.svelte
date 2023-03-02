@@ -18,10 +18,13 @@
 	export let data: PageData;
 
 	const send_icon = `${icon_path}/send.svg`;
+	const notTypingInterval = 3000;
 
 	let messages = data.messages.sort(dateCmp)
 	let content = "";
 	let indices: number[] = [];
+	let suggestions: string[] = []
+	let timer: NodeJS.Timeout;
 
 	$: room = $roomStore.get(data.room.id)!;
 	$: members = [...$memberStore]
@@ -46,6 +49,10 @@
 		updateManager.remove(indices);
 	});
 
+	roomSocket.on("message", (message: Message) => {
+		messages = [...messages, message].sort(dateCmp);
+	});
+
 	function onRemove(subject: Subject, id: number) {
 		return updateManager.set(subject, async (update: UpdatePacket) => {
 			if (update.id === id && update.action === Action.REMOVE) {
@@ -54,19 +61,12 @@
 		});
 	}
 
-	roomSocket.on("message", (message: Message) => {
-		messages = [...messages, message].sort(dateCmp);
-	});
-
 	function getUser(id: number) {
 		return $userStore.get(id)!;
 	}
 
 	function dateCmp(first: Message, second: Message): number {
-		const a = new Date(first.created).getTime();
-		const b = new Date(second.created).getTime();
-
-		return a - b;
+		return first.created - second.created;
 	}
 
 	function handleKeyPress(event: KeyboardEvent) {
@@ -74,6 +74,15 @@
 			event.preventDefault();
 			sendMessage();
 		}
+	}
+
+	function keyUp() {
+		clearTimeout(timer);
+		timer = setTimeout(fetchSuggestions, notTypingInterval);
+	}
+
+	function fetchSuggestions() {
+		
 	}
 
 	function sendMessage() {
@@ -114,6 +123,7 @@
 						<textarea
 							bind:value={content}
 							on:keypress={handleKeyPress}
+							on:keyup={keyUp}
 							wrap="hard"
 							disabled={self?.is_muted}
 							{rows}

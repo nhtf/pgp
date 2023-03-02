@@ -11,13 +11,14 @@ import { ChatRoom } from "./ChatRoom";
 import { User } from "./User";
 import { Member } from "./Member";
 import { Embed } from "./Embed";
-import { Exclude } from "class-transformer"
+import { Exclude, Transform } from "class-transformer"
 
 @Entity()
 export class Message {
 	@PrimaryGeneratedColumn()
 	id: number;
 
+	@Transform(({ value }) => value.getTime())
 	@CreateDateColumn({ type: 'timestamptz' })
 	created: Date;
 
