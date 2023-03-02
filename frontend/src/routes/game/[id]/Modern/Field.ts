@@ -34,7 +34,6 @@ export class Field {
 	private drawGradients(context: CanvasRenderingContext2D) {
 		context.lineJoin = "round";
 		this.renderLines.forEach((area, j) => {
-			console.log(area);
 			context.beginPath();
 			context.moveTo(area[0].p0.x, area[0].p0.y);
 			area.forEach((line) => {

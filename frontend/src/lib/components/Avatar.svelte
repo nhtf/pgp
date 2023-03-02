@@ -1,10 +1,13 @@
 <script lang="ts">
+    import type { User } from "$lib/entities";
 	import { page } from "$app/stores";
-	import Swal from "sweetalert2";
 	import { put } from "$lib/Web";
 	import { userStore } from "$lib/stores";
+	import Swal from "sweetalert2";
 
-	$: user = $userStore.get($page.data.user?.id)!;
+	export let user: User = $page.data.user;
+
+	$: user = $userStore.get(user.id)!;
 
 	const edit_icon = "/Assets/icons/pen.png";
 
@@ -62,7 +65,7 @@
 
 <div class="block-cell" id="avatar-block">
 	<img id="avatar" src={user.avatar} alt="avatar" />
-	{#if user.id === $page.data.profile.id}
+	{#if user.id === $page.data.user?.id}
 		<img
 			src={edit_icon}
 			alt="edit icon"

@@ -56,6 +56,7 @@ function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: B
 	return {closest: null, other: other};
 }
 
+import { activateRipple } from "./Shader/RippleShader";
 
 export class Game extends Net {
 	public ball: Ball;
@@ -150,6 +151,7 @@ export class Game extends Net {
 		});
 
 		this.on("mousescroll", netEvent => {
+			console.log("scroll event");
 			const event = netEvent as MouseEvent;
 			let paddle = this.getPaddle(event.u);
 
@@ -236,10 +238,10 @@ export class Game extends Net {
 	}
 
 	private resizeOffscreenCanvas() {
-		if (this.offscreenCanvas.width != this.canvas.clientWidth)
-			this.offscreenCanvas.width = this.canvas.clientWidth;
-		if (this.offscreenCanvas.height != this.canvas.clientHeight)
-			this.offscreenCanvas.height = this.canvas.clientHeight;
+		if (this.offscreenCanvas.width != this.canvas.width)
+			this.offscreenCanvas.width = this.canvas.width;
+		if (this.offscreenCanvas.height != this.canvas.height)
+			this.offscreenCanvas.height = this.canvas.height;
 		const xScale = Math.floor(this.offscreenCanvas.width / WIDTH);
 		const yScale = Math.floor(this.offscreenCanvas.height / HEIGHT);
 		const minScale = Math.min(xScale, yScale);
@@ -250,6 +252,7 @@ export class Game extends Net {
 		this.offscreenContext.scale(minScale, minScale);
 		this.background.render(this.offscreenContext);
 		this.offscreenContext.restore();
+		console.log("resizing offscreencanvas");
 	}
 
 	protected save(): Snapshot {
@@ -342,6 +345,7 @@ export class Game extends Net {
 					s: score,
 					t: this.teams[goal].id,
 				});
+				activateRipple();
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
 				
@@ -408,6 +412,8 @@ export class Game extends Net {
 	}
 }
 
+const scale = 1.25;
+
 export class Modern {
 	private canvas: HTMLCanvasElement;
 	private context: CanvasRenderingContext2D;
@@ -418,6 +424,7 @@ export class Modern {
 	private field: field | null;
 	private interval?: NodeJS.Timer;
 	private id?: number;
+	private options?: Options;
 
 	public async init() {
 		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
@@ -429,14 +436,15 @@ export class Modern {
 
 	public constructor(canvas: HTMLCanvasElement, players: number) {
 		this.canvas = canvas;
+		this.canvas.width = Math.floor(WIDTH * scale);
+		this.canvas.height = Math.floor(HEIGHT * scale);
 		this.context = canvas.getContext("2d")!;
 		this.players = players;
 		this.offscreenCanvas = document.createElement("canvas");
-		this.offscreenCanvas.width = this.canvas.width;
-		this.offscreenCanvas.height = this.canvas.height;
+		this.offscreenCanvas.width = Math.floor(WIDTH * scale);
+		this.offscreenCanvas.height = Math.floor(HEIGHT * scale);
 		this.field = null;
 		this.game = null;
-
 	}
 
 	public update(time: number) {
@@ -446,22 +454,12 @@ export class Modern {
 			this.game?.tick();
 			this.lastTime += 1000 / UPS;
 		}
-
-		if (this.canvas.width != this.canvas.clientWidth) {
-			this.canvas.width = this.canvas.clientWidth;
-		}
-
-		if (this.canvas.height != this.canvas.clientHeight) {
-			this.canvas.height = this.canvas.clientHeight;
-		}
-
-		const xScale = Math.floor(this.canvas.width / WIDTH);
-		const yScale = Math.floor(this.canvas.height / HEIGHT);
+		this.context.fillStyle = "black";
+		const xScale = Math.floor(this.canvas.width / Math.floor(WIDTH * scale));
+		const yScale = Math.floor(this.canvas.height / Math.floor(HEIGHT * scale));
 		const minScale = Math.min(xScale, yScale);
 		const xOffset = Math.floor((this.canvas.width - FIELDWIDTH * minScale) / 2);
 		const yOffset = Math.floor((this.canvas.height - FIELDHEIGHT * minScale) / 2);
-		
-		this.context.fillStyle = "black";
 		const posX = Math.floor(xOffset - border * minScale * 8) > 0 ? Math.floor(xOffset - border * minScale * 8) : 0;
 		const posY = Math.floor(yOffset - border * minScale * 8) > 0 ? Math.floor(yOffset - border * minScale * 8) : 0;
 		const width = this.canvas.width - 2 * posX;
@@ -482,39 +480,39 @@ export class Modern {
 	}
 
 	public async start(options: Options) {
-		
-		this.canvas.addEventListener("mousemove", ev => {
-			const xScale = Math.floor(this.canvas.width / WIDTH);
-			const yScale = Math.floor(this.canvas.height / HEIGHT);
-			const minScale = Math.min(xScale, yScale);
+		this.options = options;
+		// this.canvas.addEventListener("mousemove", ev => {
+		// 	const xScale = Math.floor(this.canvas.width / WIDTH);
+		// 	const yScale = Math.floor(this.canvas.height / HEIGHT);
+		// 	const minScale = Math.min(xScale, yScale);
 			
-			this.game?.send("mousemove", {
-				u: options.member.user.id,
-				x: ev.movementX/ minScale,
-				y: ev.movementY/ minScale,
-				t: options.member.player?.team?.id,
-			});
-		});
+		// 	this.game?.send("mousemove", {
+		// 		u: options.member.user.id,
+		// 		x: ev.movementX/ minScale,
+		// 		y: ev.movementY/ minScale,
+		// 		t: options.member.player?.team?.id,
+		// 	});
+		// });
 
 		//TODO maybe have middleclick or something for resetting rotation?
-		if (this.players === GAME.FOURPLAYERS) {
-			this.canvas.addEventListener("wheel", ev => {
-				const rotation = ev.deltaY / 16 * 2 * 0.01745329;
-				this.game?.send("mousescroll", {
-					u: options.member.user.id,
-					x: 0,
-					y: 0,
-					t: options.member.player?.team?.id,
-					r: rotation
-				});
-			});
-		}
+		// if (this.players === GAME.FOURPLAYERS) {
+		// 	this.canvas.addEventListener("wheel", ev => {
+		// 		const rotation = ev.deltaY / 16 * 2 * 0.01745329;
+		// 		this.game?.send("mousescroll", {
+		// 			u: options.member.user.id,
+		// 			x: 0,
+		// 			y: 0,
+		// 			t: options.member.player?.team?.id,
+		// 			r: rotation
+		// 		});
+		// 	});
+		// }
 		
 		//this event is for resizing the offscreen canvas
-		window.addEventListener("resize", (ev) => {
-			this.game?.send("resize", {
-			});
-		});
+		// window.addEventListener("resize", (ev) => {
+		// 	this.game?.send("resize", {
+		// 	});
+		// });
 
 		this.interval = setInterval(() => {
 			this.game?.send("ping", {
@@ -523,6 +521,47 @@ export class Modern {
 		}, 1000 / PADDLE_PING_INTERVAL);
 
 		await this.game?.start(options);
+	}
+
+	public mousemove(moveX: number, moveY: number) {
+		if (!this.options) {
+			return;
+		}
+		const xScale = Math.floor(this.canvas.width / WIDTH);
+		const yScale = Math.floor(this.canvas.height / HEIGHT);
+		const minScale = Math.min(xScale, yScale);
+		const x = Math.floor((moveX) / minScale);
+		const y = Math.floor((moveY) / minScale);
+			
+			if (this.options.member.player != null) {
+			this.game?.send("mousemove", {
+				u: this.options.member.user.id,
+				x: x,
+				y: y,
+				t: this.options.member.player?.team?.id,
+			});
+		}
+	}
+
+	public mouseWheel(deltaY: number) {
+		if (!this.options) {
+			return;
+		}
+		const rotation = deltaY / 16 * 2 * 0.01745329;
+			
+			if (this.options.member.player != null && this.players === GAME.FOURPLAYERS) {
+				this.game?.send("mousescroll", {
+					u: this.options.member.user.id,
+					x: 0,
+					y: 0,
+					t: this.options.member.player?.team?.id,
+					r: rotation
+				});
+		}
+	}
+
+	public resize() {
+		this.game?.send("resize", {});
 	}
 
 	public stop() {

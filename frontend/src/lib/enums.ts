@@ -3,6 +3,7 @@ export enum Subject {
 	INVITE,
 	ROOM,
 	MEMBER,
+	FRIEND,
 }
 
 export enum Action {

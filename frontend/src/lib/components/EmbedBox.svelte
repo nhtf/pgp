@@ -29,7 +29,7 @@
 		</div>
 	{:then embed}
 		{#if embed.title}
-			<p class="embed-title">{embed.title}</p>
+			<a class="embed-title" href={embed.url}>{embed.title}</a>
 		{/if}
 		{#if embed.description}
 			<p class="embed-description">{embed.description}</p>
@@ -52,7 +52,7 @@
 			/>
 		{/if}
 	{:catch error}
-		<p class="embed-error">{error}</p>
+		<p class="embed-error">{error}</p> <!--TODO Just not display the embed on error?-->
 	{/await}
 </div>
 
@@ -100,6 +100,11 @@
 	.embed-spinner-circle:nth-of-type(2),
 	.embed-spinner-circle:nth-of-type(4) {
 		right: 0px;
+	}
+
+	.embed-title {
+		color: #0dcaf0;
+		text-decoration-line: underline;
 	}
 
 	.embed-description {

@@ -1,9 +1,10 @@
+import type { Response } from "express";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, FindManyOptions, SelectQueryBuilder } from "typeorm";
 import { Access } from "../enums/Access";
 import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res } from "@nestjs/common";
 import { Reflector } from "@nestjs/core";
@@ -17,11 +18,10 @@ import { ERR_NOT_MEMBER, ERR_PERM, ERR_ROOM_NOT_FOUND } from "src/errors";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { instanceToPlain } from "class-transformer";
-import type { Response } from "express";
 import { genName } from "src/namegen";
 
 export function IsNullable(validationOptions?: ValidationOptions) {
-	return ValidateIf((obj, value) => value !== null, validationOptions);
+	return ValidateIf((_, value) => value !== null, validationOptions);
 }
 
 export class CreateRoomDTO {
@@ -247,65 +247,63 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
 		}
 
-		@Get()
-		async get_visible(@Me() user: User, @Query("member") member?: string) {
-			if (member === "true") {
-				return this.room_repo.createQueryBuilder("room")
-					.where((qb) => {
-						const subQuery = qb
-							.subQuery()
-							.select("\"member\".\"roomId\"")
-							.select("\"member\".\"userId\"")
-							.from(Member, "member")
-							.where("\"roomId\" = \"room\".\"id\"")
-							.andWhere("\"userId\" = :userId", { userId: user.id })
-							.getQuery();
-						return `EXISTS (${subQuery})`;
-					})
-					.leftJoinAndSelect("room.members", "member")
-					.leftJoinAndSelect("member.user", "user")
-					.leftJoinAndSelect("room.state", "state")
-					.getMany();
-			} else if (member === "false") {
-				return this.room_repo.createQueryBuilder("room")
-					.leftJoinAndSelect("room.banned_users", "banned_users")
-					// .where("\"banned_users\" IS NULL")
-					.andWhere("room.is_private = false")
-					.andWhere((qb) => {
-						const subQuery = qb
-							.subQuery()
-							.select("member.roomId")
-							.select("member.userId")
-							.from(Member, "member")
-							.where(`"roomId" = room.id`)
-							.andWhere(`"userId" = :userId`, { userId: user.id })
-							.getQuery();
-						return `NOT EXISTS (${subQuery})`;
-					})
-					.leftJoinAndSelect("room.members", "member")
-					.leftJoinAndSelect("member.user", "user")
-					.leftJoinAndSelect("room.state", "state")
-					.getMany();
-			} else {
-				return this.room_repo.createQueryBuilder("room")
-					.leftJoinAndSelect("room.banned_users", "banned_users")
-					.where("banned_users IS NULL")
-					.orWhere((qb) => {
-						const subQuery = qb
-							.subQuery()
-							.select("\"member\".\"roomId\"")
-							.select("\"member\".\"userId\"")
-							.from(Member, "member")
-							.where("\"roomId\" = \"room\".\"id\"")
-							.andWhere("\"userId\" = :userId", { userId: user.id })
-							.getQuery();
-						return `EXISTS (${subQuery})`;
-					})
-					.leftJoinAndSelect("room.members", "member")
-					.leftJoinAndSelect("member.user", "user")
-					.leftJoinAndSelect("room.state", "state")
-					.getMany();
-			}
+		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
+			return qb
+				.subQuery()
+				.from(Member, "member")
+				.select("member.roomId")
+				.select("member.userId")
+				.where(`"roomId" = room.id`)
+				.andWhere(`"userId" = :userId`, { userId: user.id })
+				.getQuery();
+		}
+
+		joinedQuery(user: User) {
+			return this.room_repo.createQueryBuilder("room")
+				.where((qb) => `EXISTS (${this.isMemberQuery(qb, user)})`)
+		}
+
+		// TODO: Check banned users
+		joinableQuery(user: User) {
+			return this.room_repo.createQueryBuilder("room")
+				.where((qb) => `NOT EXISTS (${this.isMemberQuery(qb, user)})`)
+				.andWhere("room.is_private = false")
+		}
+
+		loadRelations(qb: SelectQueryBuilder<T>) {
+			return qb
+				.leftJoinAndSelect("room.members", "member")
+				.leftJoinAndSelect("member.user", "user")
+				.leftJoinAndSelect("member.player", "player")
+				.leftJoinAndSelect("player.team", "playerTeam")
+				.leftJoinAndSelect("room.state", "state")
+				.leftJoinAndSelect("state.teams", "team");
+		}
+
+		@Get("joined")
+		async joined(@Me() me: User) {
+			const qb = this.joinedQuery(me);
+			const rooms = await this.loadRelations(qb).getMany();
+
+			rooms.forEach((room) => {
+				room.self = room.members.find((member) => member.userId === me.id);
+				room.joined = true;
+			});
+
+			return rooms;
+		}
+
+		@Get("joinable")
+		async joinable(@Me() me: User) {
+			const qb = this.joinableQuery(me);
+			const rooms = await this.loadRelations(qb).getMany();
+
+			rooms.forEach((room) => {
+				room.self = room.members.find((member) => member.userId === me.id);
+				room.joined = false;
+			});
+
+			return rooms;
 		}
 
 		// TODO: remove
@@ -336,7 +334,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				action: Action.ADD,
 				value: {
 					...instanceToPlain(room),
-					member: instanceToPlain(member),
 					joined: false,
 				},
 			}, !room.is_private);
@@ -347,7 +344,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				action: Action.SET,
 				value: {
 					...instanceToPlain(room),
-					member: instanceToPlain(member),
+					self: instanceToPlain(member),
 					joined: true,
 				}
 			}, user)
@@ -439,7 +436,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				value: {
 					...instanceToPlain(room),
 					joined: true,
-					member: instanceToPlain(member)
+					self: instanceToPlain(member)
 				},
 			}, me);
 
@@ -632,7 +629,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		) {
 			const index = room.banned_users?.findIndex(user => user.id === target.id);
 
-			if (!index || index < 0) {
+			if (index < 0) {
 				throw new NotFoundException("User not banned");
 			}
 

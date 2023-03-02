@@ -151,7 +151,7 @@
 		align-self: center;
 		align-items: center;
 		justify-content: center;
-		border-radius: 6px;
+		border-radius: 0.375rem;
 		border-width: 1px;
 		border-color: var(--scrollbar-thumb);
 		border-style: solid;

@@ -1,22 +1,18 @@
-import type { ChatRoom } from "$lib/entities";
 import type { PageLoad } from "./$types"
+import type { ChatRoom } from "$lib/entities";
+import { userStore, roomStore, updateStore } from "$lib/stores";
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
-import { roomStore, updateStore } from "$lib/stores";
 
 export const load: PageLoad = (async ({ fetch }) => {
-    window.fetch = fetch;
+	window.fetch = fetch;
 
-    const roomsJoined: ChatRoom[] = setJoined(await unwrap(get(`/chat`, { member: true })), true);
-    const roomsJoinable: ChatRoom[] = setJoined(await unwrap(get(`/chat`, { member: false })), false);
-    const rooms = roomsJoined.concat(roomsJoinable);
+	const joined: ChatRoom[] = await unwrap(get(`/chat/joined`));
+	const joinable: ChatRoom[] = await unwrap(get(`/chat/joinable`));
+	const rooms = joined.concat(joinable);
 
-    updateStore(roomStore, rooms);
+	updateStore(userStore, rooms.map((room) => room.owner));
+	updateStore(roomStore, rooms);
 
-    return { rooms };
+	return { rooms };
 }) satisfies PageLoad;
-
-
-function setJoined(rooms: ChatRoom[], joined: boolean): ChatRoom[] {
-    return rooms.map((room) => { room.joined = joined; return room });
-}

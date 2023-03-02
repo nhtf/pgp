@@ -3,9 +3,12 @@
 	import { BACKEND, BOUNCER } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
-    import { memberStore, userStore } from "$lib/stores"
-    import MemberBox from "./MemberBox.svelte";
+    	import { memberStore, userStore } from "$lib/stores"
+	import MemberBox from "./MemberBox.svelte";
 	import EmbedBox from "$lib/components/EmbedBox.svelte";
+	import * as linkify from "linkifyjs";
+	import linkifyStr from "linkify-string";
+	import "linkify-plugin-mention";
 
 	export let message: Message;
 	export let self: Member;
@@ -26,11 +29,7 @@
 	<MemberBox {user} {member} {self}/>
 	<div class="message-box">
 		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${member ? role_colors[member.role] : "white"}`}>{user.username}</div>
-			{#if tenor_regex.test(message.content)}
-				<img class="message-image" src={`${BACKEND}/proxy?url=${message.content}`} alt="embedded content">
-			{:else}
-				<div class="message-content">{message.content}</div>
-			{/if}
+		<div class="message-content">{@html linkifyStr(message.content, { className: "link", formatHref: { mention: (href) => `/profile${href}`} })}</div>
 			{#each message.embeds as embed}
 				{#if embed.rich}
 					<EmbedBox digest={embed.digest} url={embed.url} />
@@ -71,5 +70,26 @@
 		max-height: 10rem;
 		margin: 0.25rem;
 	}
+
+	.link {
+		color: red;
+	}
+
+	/*
+	.link:link {
+		color: red !important;
+	}
+
+	.link:visited {
+		color: green !important;
+	}
+
+	.link:hover {
+		color: hotpink !important;
+	}
+
+	.link:active {
+		color: blue !important;
+	}*/
 
 </style>

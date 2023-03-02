@@ -4,7 +4,7 @@
 	import { page } from "$app/stores";
 	import { unwrap } from "$lib/Alert";
 	import { get, post } from "$lib/Web";
-	import { userStore } from "$lib/stores";
+	import { friendIdStore, userStore } from "$lib/stores";
 	import Swal from "sweetalert2";
 
 	export let room: Room;
@@ -15,10 +15,7 @@
 	let invitee = "";
 	let open = false;
 
-	$: me = $userStore.get($page.data.user?.id)!;
-	$: friends = [...$userStore]
-		.map(([_, user]) => user)
-		.filter((user) => me.friendsIds.includes(user.id));
+	$: friends = $friendIdStore.map((id) => $userStore.get(id)!);
 	$: member_user_ids = members.map((member) => member.userId);
 	$: invitable = friends.filter((user) => !member_user_ids.includes(user.id));
 	$: matches = invitable.filter(match);

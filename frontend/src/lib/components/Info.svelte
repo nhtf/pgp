@@ -103,7 +103,7 @@
 				</div>
 			</div>
 		</div>
-		<Avatar/>
+		<Avatar user={profile}/>
 	</div>
 	<div class="block-hor">
 		<div class="block-cell">

@@ -1,20 +1,20 @@
 <script lang="ts">
 	import type { Team, ChatRoom, GameRoom } from "$lib/entities";
 	import { Gamemode } from "$lib/enums";
-    import { goto } from "$app/navigation";
-    import { page } from "$app/stores";
-    import { unwrap } from "$lib/Alert";
-    import { icon_path } from "$lib/constants";
+	import { goto } from "$app/navigation";
+	import { page } from "$app/stores";
+	import { unwrap } from "$lib/Alert";
+	import { icon_path } from "$lib/constants";
 	import { Access } from "$lib/enums";
-    import { post, remove, patch } from "$lib/Web";
-    import { userStore } from "$lib/stores";
-    import Invite from "./Invite.svelte";
+	import { post, remove, patch } from "$lib/Web";
+	import { userStore } from "$lib/stores";
+	import Invite from "./Invite.svelte";
 
-	type T = ChatRoom & GameRoom & any;
+	type T = ChatRoom & GameRoom;
 
 	export let room: T;
 
-    const lock = `${icon_path}/lock.svg`;
+	const lock = `${icon_path}/lock.svg`;
 	const crown = `${icon_path}/crown.svg`;
 	const gamemode_icons = [
 		`${icon_path}/pong-classic.svg`,
@@ -22,15 +22,17 @@
 		`${icon_path}/hexagon.svg`,
 		`${icon_path}/hexagon4p.svg`,
 	];
-	
+
+	const route = room.type.replace("Room", "").toLowerCase();
+
 	let icon = gamemode_icons[room.gamemode as Gamemode];
 	if (room.gamemode === Gamemode.MODERN && room.teams?.length === 4)
 		icon = gamemode_icons[3];
-	const route = room.type.replace("Room", "").toLowerCase();
 
 	let password = "";
-	
+
 	$: user = $userStore.get($page.data.user?.id)!;
+	$: owner = $userStore.get(room.owner.id)!;
 
 	async function join(room: T) {
 		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
@@ -43,12 +45,13 @@
 	}
 	
 	async function erase(room: T) {
-        await unwrap(remove(`/${route}/id/${room.id}`));
+		await unwrap(remove(`/${route}/id/${room.id}`));
 	}
 	
 	async function joinTeam(room: T, team: Team | null) {
-		if (room.member?.player?.team?.id !== team?.id) {
-			await unwrap(patch(`/${route}/id/${room.id}/team/${room.member?.id}`, { team: team?.id }));
+		console.log(room.self);
+		if (room.self?.player?.team?.id !== team?.id) {
+			await unwrap(patch(`/${route}/id/${room.id}/team/${room.self?.id}`, { team: team?.id }));
 		}
 
 		await goto(`/${route}/${room.id}`);
@@ -63,10 +66,10 @@
 <div class="room">
 	<div class="room-name">
 		{#if room.type === "ChatRoom"}
-			<img class="avatar" src={room.owner.avatar} alt="avatar"/>
+			<img class="avatar" src={owner.avatar} alt="avatar"/>
 		{/if}
 		<div class="self-center">{room.name}</div>
-		{#if room.type === "ChatRoom" && room.owner.id === user.id}
+		{#if room.type === "ChatRoom" && owner.id === user.id}
 			<img class="owner-icon" src={crown} alt="crown"/>
 		{/if}
 		{#if room.type === "GameRoom"}
@@ -77,7 +80,7 @@
 		{/if}
 	</div>
 	{#if room.joined}
-		{#if room.owner.id === user.id}
+		{#if owner.id === user.id}
 			<Invite {room}/>
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 		{:else}
@@ -86,18 +89,18 @@
 		{#if room.type !== "GameRoom" || room.teamsLocked}
 			<a class="button border-blue" href={`/${route}/${room.id}`}>Enter</a>
 		{:else}
-			{#if !room.teamsLocked || room.member?.player === null}
+			{#if !room.teamsLocked || room.self?.player === null}
 				<button class="button border-blue" on:click={() => joinTeam(room, null)}>Spectate</button>
 			{/if}
-			{#if room.teams}
+			<!-- {#if room.teams} -->
 				<div>
 				{#each room.teams.sort(byId) as team}
-					{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
+					{#if !room.teamsLocked || room.self?.player?.team.id === team.id}
 						<button class="button border-blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
 					{/if}
 				{/each}
 				</div>
-			{/if}
+			<!-- {/if} -->
 		{/if}
 	{:else}
 		{#if room.access === Access.PROTECTED}

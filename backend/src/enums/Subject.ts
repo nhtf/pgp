@@ -3,4 +3,5 @@ export enum Subject {
 	INVITE,
 	ROOM,
 	MEMBER,
+	FRIEND,
 }

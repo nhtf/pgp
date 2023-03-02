@@ -4,7 +4,7 @@
 	import { Status } from "$lib/enums";
 	import { page } from "$app/stores";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import { userStore } from "$lib/stores";
+	import { friendIdStore, userStore } from "$lib/stores";
 	import { icon_path, status_colors } from "$lib/constants";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import Swal from "sweetalert2";
@@ -14,9 +14,7 @@
 	let score = new Map();
 
 	$: self = $userStore.get($page.data.user?.id)!;
-	$: friends = [...$userStore]
-		.map(([_, user]) => user)
-		.filter((user) => self.friendsIds.includes(user.id)).sort(byName);
+	$: friends = $friendIdStore.map((id) => $userStore.get(id)!).sort(byName);
 	$: placement = window.innerWidth < 750 ? "top" : "left-end";
 
 	function byName(first: User, second: User) {
@@ -63,10 +61,9 @@
 	function changePlacement() {
 		placement = window.innerWidth < 750 ? "top" : "left-end";
 	}
-
 </script>
 
-<svelte:window on:resize={changePlacement}/>
+<svelte:window on:resize={changePlacement} />
 
 <!-- //TODO have the player status also update for in-game correctly -->
 <div class="block-cell self-flex-start bg-c bordered" id="friend-block">
@@ -97,13 +94,12 @@
 						id="avatar_with_name{index}"
 						class="friend-button avatar-status{status}"
 					>
-					<!-- //TODO try and use the indicator instead of dot so it's possible to have custom colors -->
+						<!-- //TODO try and use the indicator instead of dot so it's possible to have custom colors -->
 						<Avatar
 							src={avatar}
 							dot={{
 								placement: "bottom-right",
 								color: status_colors[status],
-								
 							}}
 							class="mr-2 bg-c"
 						/>
@@ -123,28 +119,28 @@
 					</Button>
 					<div class="spacing" />
 					{#key placement}
-					<Dropdown
-						{placement}
-						inline
-						triggeredBy="#avatar_with_name{index}"
-						class="bor-c bg-c"
-						frameClass="bor-c bg-c"
-					>
-						<DropdownItem
-							href="/profile/{encodeURIComponent(username)}"
-							>profile</DropdownItem
+						<Dropdown
+							{placement}
+							inline
+							triggeredBy="#avatar_with_name{index}"
+							class="bor-c bg-c"
+							frameClass="bor-c bg-c"
 						>
-						<!-- //TODO make the spectate and invite game actually functional -->
-						{#if in_game}
-							<DropdownItem>spectate</DropdownItem>
-						{:else if status !== Status.OFFLINE}
-							<DropdownItem>invite game</DropdownItem>
-						{/if}
-						<DropdownItem
-							on:click={() => removeFriend(id)}
-							slot="footer">unfriend</DropdownItem
-						>
-					</Dropdown>
+							<DropdownItem
+								href="/profile/{encodeURIComponent(username)}"
+								>profile</DropdownItem
+							>
+							<!-- //TODO make the spectate and invite game actually functional -->
+							{#if in_game}
+								<DropdownItem>spectate</DropdownItem>
+							{:else if status !== Status.OFFLINE}
+								<DropdownItem>invite game</DropdownItem>
+							{/if}
+							<DropdownItem
+								on:click={() => removeFriend(id)}
+								slot="footer">unfriend</DropdownItem
+							>
+						</Dropdown>
 					{/key}
 				{/each}
 			{/key}

@@ -3,6 +3,7 @@
 	import { page } from "$app/stores";
 	import { Modern } from "./Modern";
 	import type { GAME } from "./Constants";
+	import {RippleShader} from "./Shader/RippleShader";
 
 	let canvas: HTMLCanvasElement;
 
@@ -13,17 +14,21 @@
 
 	//TODO implement powerups
 	onMount(async () => {
-		modern = new Modern(canvas, gameMode);
+		const rippleShader = new RippleShader(canvas);
+		modern = new Modern(rippleShader.getCanvas(), gameMode);
+		rippleShader.addEventListener(modern);
 		await modern.init();
 		await modern.start({ room: $page.data.params.id, member: {user: $page.data.user, ...$page.data.member }});
 
 		animation = window.requestAnimationFrame(function render(time) {
 			modern.update(time);
+			rippleShader.update(time);
 			animation = window.requestAnimationFrame(render);
 		});
 		canvas.requestPointerLock();
 
 		//this is to lock the cursor, with this mouse only sends mousemove instead of location
+		//TODO if specator don't do this
 		canvas.addEventListener('click', function() { canvas.requestPointerLock();}, false);
 	});
 

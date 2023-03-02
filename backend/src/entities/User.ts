@@ -68,9 +68,6 @@ export class User {
 	@JoinTable()
 	friends: User[];
 
-	@RelationId((user: User) => user.friends)
-	friendsIds: number[];
-
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
 	members: Member[];
@@ -132,6 +129,15 @@ export class User {
 			action,
 			value: instanceToPlain(this),
 		});
+	}
+
+	async send_friend_update(action: Action, friend: User) {
+		await UpdateGateway.instance.send_update({
+			subject: Subject.FRIEND,
+			id: friend.id,
+			action,
+			value: instanceToPlain(friend),
+		}, this);
 	}
 
 	@AfterInsert()

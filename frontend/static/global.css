@@ -507,3 +507,20 @@ table {
 .input:disabled {
 	opacity: 0.25;
 }
+
+.link:link {
+	color: #0dcaf0;
+}
+
+.link:visited {
+	color: blue;
+}
+
+.link:hover {
+	color: #0d70cc;
+	text-decoration-line: underline;
+}
+
+.link:active {
+	color: blue;
+}

@@ -11,7 +11,6 @@ export type User = {
 	status: Status,
 	avatar: string,
 	in_game: boolean,
-	friendsIds: number[],
 };
 
 export type Room = {
@@ -20,7 +19,8 @@ export type Room = {
 	access: Access,
 	type: "ChatRoom" | "GameRoom",
 	owner: User,
-	joined?: boolean,	
+	self?: Member
+	joined?: boolean,
 };
 
 export type ChatRoom = Room & {
@@ -47,6 +47,7 @@ export type Member = {
 	is_muted: boolean,
 	userId: number,
 	roomId: number,
+	player?: Player,
 };
 
 export type GameRoomMember = Member & {

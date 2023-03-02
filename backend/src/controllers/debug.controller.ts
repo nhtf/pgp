@@ -150,6 +150,30 @@ export class DebugController {
 		});
 	}
 
+	@Get("user(s)?/friend(s)?")
+	async friends() {
+		return this.userRepo.find({
+			relations: {
+				friends: true,
+			},			
+		});
+	}
+
+	@Get("meanGirls")
+	async unfriendAll() {
+		let users = await this.userRepo.find({
+			relations: {
+				friends: true,
+			},			
+		});
+
+		users.forEach((user) => {
+			user.friends = [];
+		});
+
+		return await this.userRepo.save(users);
+	}
+
 	@Get("room(s)?")
 	async rooms() {
 		return this.roomRepo.find({

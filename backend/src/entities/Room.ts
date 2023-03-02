@@ -32,6 +32,9 @@ export class Room {
 	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
 	members: Member[];
 
+	self?: Member;
+	joined?: boolean;
+
 	@Exclude()
 	@ManyToMany(() => User, (user) => user.banned_rooms)
 	@JoinTable()

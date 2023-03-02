@@ -99,7 +99,7 @@
 				<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 
 				{#if self?.role >= Role.ADMIN}
-					<button class="button" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
+					<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 				{/if}				
 			</div>
 

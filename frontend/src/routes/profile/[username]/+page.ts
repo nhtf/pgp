@@ -2,9 +2,9 @@ import type { PageLoad } from "./$types"
 import type { User } from "$lib/entities"
 import type { Achievement } from "$lib/types"
 import { Status } from "$lib/enums";
-import { get, remove } from '$lib/Web';
+import { get } from '$lib/Web';
 import { unwrap } from '$lib/Alert';
-import { updateStore, userStore } from "../../../lib/stores"
+import { updateStore, userStore } from "$lib/stores"
 
 export const ssr = false;
 
@@ -42,7 +42,6 @@ let dummyachievements: Achievement[] = [
 export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	window.fetch = fetch;
 
-	const { user } = await unwrap(parent());
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 
 	updateStore(userStore, [profile]);
@@ -52,5 +51,5 @@ export const load: PageLoad = (async ({ fetch, parent, params }) => {
 		profile.achievements = dummyachievements
 	}
 
-	return { self, profile };
+	return { profile };
 }) satisfies PageLoad;

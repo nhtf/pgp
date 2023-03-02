@@ -11,7 +11,7 @@ import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
 import { Role } from "src/enums/Role";
-import { Repository } from "typeorm";
+import { Repository, SelectQueryBuilder } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
@@ -32,7 +32,7 @@ const playerNumbers = new Map([
 	[Gamemode.MODERN4P, [4]],
 ])
 
-const numbers = [ "one", "two", "three", "four"];
+const numbers = ["one", "two", "three", "four"];
 
 export class GameController extends GenericRoomController<GameRoom, GameRoomMember>(GameRoom, GameRoomMember, "game", CreateGameRoomDTO) {
 	// ODOT: copied from room.service.ts (what is even the point)
@@ -84,6 +84,12 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 				},
 			},
 		});
+	}
+
+	// TODO: remove both, use base joined()
+	@Get("_joined")
+	async _joined(@Me() me: User) {
+		return await super.joined(me);
 	}
 
 	@Get("joined")
@@ -146,15 +152,15 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		if (member.room.id !== room.id) {
 			throw new BadRequestException(ERR_NOT_MEMBER);
 		}
-	
+
 		if ((target.role >= member.role && target.user.id != member.user.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
 			throw new ForbiddenException(ERR_PERM);
 		}
 
 		if (team) {
 			if (!member.player) {
-				let player = await this.player_repo.findOneBy({ 
-					user: { 
+				let player = await this.player_repo.findOneBy({
+					user: {
 						id: member.user.id
 					},
 					team: {
@@ -176,7 +182,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		} else {
 			member.player = null;
 		}
-	
+
 		return await this.member_repo.save(member);
 	}
 }

@@ -36,8 +36,21 @@ export const userStore = writable(new Map<number, User>);
 export const roomStore = writable(new Map<number, Room>);
 export const memberStore = writable(new Map<number, Member>);
 export const inviteStore = writable(new Map<number, Invite>);
+export const friendIdStore = writable<number[]>([]);
 
 setUpdate(userStore, Subject.USER);
 setUpdate(roomStore, Subject.ROOM);
 setUpdate(inviteStore, Subject.INVITE);
 setUpdate(memberStore, Subject.MEMBER);
+
+updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
+	switch (update.action) {
+		case Action.ADD:
+			friendIdStore.update((friendIds) => [...friendIds, update.id]);
+			userStore.update((users) => users.set(update.id, update.value));
+			break;
+		case Action.REMOVE:
+			friendIdStore.update((friendIds) => friendIds.filter((friendId) => friendId !== update.id));
+			break;
+	}
+});

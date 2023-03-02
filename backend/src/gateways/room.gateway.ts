@@ -115,8 +115,9 @@ export class RoomGateway extends ProtectedGateway("room") {
 					continue;
 
 				const embed = new Embed();
-				embed.digest = createHmac("sha256", BOUNCER_KEY).update(link.href).digest("hex");
-				embed.url = link.href;
+				embed.url = new URL(link.href).toString();
+				console.log(embed.url);
+				embed.digest = createHmac("sha256", BOUNCER_KEY).update(embed.url).digest("hex");
 				
 				if (type.startsWith("text/html")) {
 					embed.rich = true;

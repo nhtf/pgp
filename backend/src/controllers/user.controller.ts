@@ -240,9 +240,9 @@ export function GenericUserController(route: string, options: { param: string, c
 			friend.friends.splice(user_idx, 1);
 			[user, friend] = await this.user_repo.save([user, friend]);
 
-			user.send_update(Action.SET);
-			friend.send_update(Action.SET);
-
+			await user.send_friend_update(Action.REMOVE, friend);
+			await friend.send_friend_update(Action.REMOVE, user);
+		
 			return {};
 		}
 
@@ -309,8 +309,9 @@ export function GenericUserController(route: string, options: { param: string, c
 				await this.request_repo.remove(request);
 				[user, target] = await this.user_repo.save([user, target]);
 
-				await user.send_update(Action.SET);
-				await target.send_update(Action.SET);
+				await user.send_friend_update(Action.ADD, target);
+				await target.send_friend_update(Action.ADD, user);
+		
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;

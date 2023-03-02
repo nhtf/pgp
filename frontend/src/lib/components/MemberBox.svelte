@@ -124,9 +124,6 @@
 	triggeredBy="#avatar-{user.username}"
 	class="bor-c bg-c shadow rounded max-w-sm"
 	>
-	<DropdownHeader>
-		{user.username}
-	</DropdownHeader>
 	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
 	{#if me.id !== user.id}
 		{#each Object.values(Role)

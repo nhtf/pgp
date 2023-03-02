@@ -4,15 +4,22 @@
 	import { unwrap } from "$lib/Alert";
 	import Invite from "$lib/components/Invite.svelte";
 	import RoomInput from "$lib/components/RoomInput.svelte";
-	import type { ChatRoom } from "$lib/entities";
+	import type { ChatRoom, User } from "$lib/entities";
 	import { Action, Role, Subject } from "$lib/enums";
 	import { memberStore, roomStore } from "$lib/stores";
 	import type { UpdatePacket } from "$lib/types";
 	import { updateManager } from "$lib/updateSocket";
 	import { patch, remove } from "$lib/Web";
-    import { Dropdown } from "flowbite-svelte";
+	import {
+		Dropdown,
+		Avatar,
+		Tooltip,
+		DropdownHeader,
+		DropdownItem,
+	} from "flowbite-svelte";
 	import { onDestroy, onMount } from "svelte";
 	import type { PageData } from "./$types";
+	import Swal from "sweetalert2";
 
 	export let data: PageData;
 
@@ -20,6 +27,7 @@
 
 	$: self = $memberStore.get(data.member.id)!;
 	$: room = $roomStore.get(data.room.id)!;
+	$: banned = data.banned;
 
 	onMount(() => {
 		indices.push(onRemove(Subject.ROOM, room.id));
@@ -54,29 +62,65 @@
 		await unwrap(remove(`/chat/id/${room.id}`));
 		await goto(`/chat`);
 	}
+
+	async function unban(user: User) {
+		await unwrap(remove(`/chat/id/${room.id}/bans/${user.id}`));
+
+		Swal.fire({
+			icon: "success",
+			timer: 3000,
+		});
+		banned = banned.filter((user) => user.id != user.id);
+	}
 </script>
 
 <div class="room">
 	<div class="room-title">
 		<a class="button border-blue" href={`/chat/${$page.params.id}`}>Back</a>
-		<div class="room-name">{room.name}</div>
-		<button class="button border-red" on:click={() => leave(room)}>Leave</button>
+		<div class="room-name">{room.name} settings</div>
+		{#if self.role < Role.OWNER}
+			<button class="button border-red" on:click={() => leave(room)}
+				>Leave</button
+			>
+		{:else}
+			<button class="button border-red" on:click={() => erase(room)}
+				>Delete</button
+			>
+		{/if}
 	</div>
 	<div class="box">
 		<Invite {room} />
 	</div>
 	{#if self.role >= Role.OWNER}
-		<RoomInput {room} click={edit}/>
-		<button class="button border-red" on:click={() => erase(room)}>Delete</button>
+		<RoomInput {room} click={edit} />
 	{/if}
-	<h1>Banned Users</h1>
-	<div class="banned">
-		{#each data.banned as user}
-			<img class="avatar" src={user.avatar} alt="avatar"/>
-		{/each}
+	<div class="box">
+		<h1>Banned Users</h1>
+		<div class="banned">
+			{#each banned as user}
+				<Avatar
+					src={user.avatar}
+					id="avatar-{user.username}"
+					class="bg-c"
+				/>
+				<Tooltip triggeredBy="#avatar-{user.username}"
+					>{user.username}</Tooltip
+				>
+				<Dropdown
+					triggeredBy="#avatar-{user.username}"
+					class="bor-c bg-c shadow rounded max-w-sm"
+				>
+					<DropdownHeader>
+						{user.username}
+					</DropdownHeader>
+					<DropdownItem on:click={() => unban(user)}
+						>Unban
+					</DropdownItem>
+				</Dropdown>
+			{/each}
+		</div>
 	</div>
 </div>
-
 
 <style>
 	.room {
@@ -97,7 +141,7 @@
 		box-shadow: 2px 4px 6px 2px rgba(0, 0, 0, 0.4);
 		margin-bottom: 0.5rem;
 		padding: 0.25rem;
-		border-radius: 1rem;
+		border-radius: 0.375rem;
 		width: 100%;
 	}
 
@@ -113,9 +157,15 @@
 		align-items: center;
 		background: var(--box-color);
 		border: 1px var(--border-color);
-		border-radius: 2rem;
+		border-radius: 0.375rem;
 		padding: 0.5rem;
 		margin-top: 0.25rem;
+		flex-direction: column;
+		column-gap: 0.5rem;
+	}
+
+	h1 {
+		margin-bottom: 0.5rem;
 	}
 
 	.banned {
@@ -123,5 +173,4 @@
 		flex-direction: row-reverse;
 		gap: 1rem;
 	}
-
 </style>
