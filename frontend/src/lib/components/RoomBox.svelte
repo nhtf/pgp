@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Team, ChatRoom, GameRoom } from "$lib/entities";
-	import type { Gamemode } from "$lib/enums";
+	import { Gamemode } from "$lib/enums";
     import { goto } from "$app/navigation";
     import { page } from "$app/stores";
     import { unwrap } from "$lib/Alert";
@@ -23,7 +23,9 @@
 		`${icon_path}/hexagon4p.svg`,
 	];
 	
-	const icon = gamemode_icons[room.gamemode as Gamemode];
+	let icon = gamemode_icons[room.gamemode as Gamemode];
+	if (room.gamemode === Gamemode.MODERN && room.teams?.length === 4)
+		icon = gamemode_icons[3];
 	const route = room.type.replace("Room", "").toLowerCase();
 
 	let password = "";
@@ -63,7 +65,7 @@
 		{#if room.type === "ChatRoom"}
 			<img class="avatar" src={room.owner.avatar} alt="avatar"/>
 		{/if}
-		<div>{room.name}</div>
+		<div class="self-center">{room.name}</div>
 		{#if room.type === "ChatRoom" && room.owner.id === user.id}
 			<img class="owner-icon" src={crown} alt="crown"/>
 		{/if}
@@ -74,7 +76,6 @@
 			<img class="icon" src={lock} alt="lock"/>
 		{/if}
 	</div>
-	<div class="grow"/>
 	{#if room.joined}
 		{#if room.owner.id === user.id}
 			<Invite {room}/>
@@ -88,12 +89,14 @@
 			{#if !room.teamsLocked || room.member?.player === null}
 				<button class="button border-blue" on:click={() => joinTeam(room, null)}>Spectate</button>
 			{/if}
-			{#if room.teams} 
+			{#if room.teams}
+				<div>
 				{#each room.teams.sort(byId) as team}
 					{#if !room.teamsLocked || room.member?.player?.team.id === team.id}
 						<button class="button border-blue" on:click={() => joinTeam(room, team)}>Join {team.name}</button>
 					{/if}
 				{/each}
+				</div>
 			{/if}
 		{/if}
 	{:else}
@@ -108,23 +111,23 @@
 
 	.room {
 		display: flex;
-		justify-content: space-between;
+		justify-content: flex-end;
 		align-items: center;
-		gap: 10px;
+		row-gap: 0.25rem;
 		background: var(--box-color);
 		border: 2px var(--border-color);
 		border-radius: 6px;
 		padding: 25px;
+		flex-wrap: wrap;
 	}
 
 	.room-name {
 		display: flex;
-		flex-direction: row;
-		flex-grow: 1;
 		font-size: 1.25em;
-		align-items: center;
-		gap: inherit;
 		white-space: nowrap;
+		height: 100%;
+		column-gap: 0.375rem;
+		flex-grow: 1;
 	}
 
 	.icon {
@@ -133,7 +136,7 @@
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
 		margin-left: 0.5rem;
-		margin-top: 5px;
+		margin-right: 0.75rem;
 		align-self: center;
 	}
 
@@ -142,6 +145,7 @@
 		height: 1.5rem;
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
+		align-self: center;
 	}
 
 	.avatar {

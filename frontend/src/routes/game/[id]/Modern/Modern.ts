@@ -28,8 +28,8 @@ export interface MouseEvent extends NetEvent {
 }
 
 export interface ScoreEvent extends NetEvent {
-	u: number; //userId
-	t: number; //teamId
+	u: number; //userId that is sending the event
+	t: number; //teamId of team that is being updated
 	s: number; //scorechange
 }
 
@@ -70,6 +70,7 @@ export class Game extends Net {
 	public level: field;
 	public score?: Score;
 	public teams: Array<Team>;
+	private id?: number;
 	
 
 	private debugBall() {
@@ -185,15 +186,15 @@ export class Game extends Net {
 			}
 		});
 
-		//TODO this causes a lot of issues, need to improve this
+		//TODO this causes a lot of issues, need to improve this because of the snapshot thing
 		//TODO also need to send message to the update socket
 		this.on("score", netEvent => {
 			const event = netEvent as ScoreEvent;
 
 			let team = this.getTeam(event.u);
 			if (team === null) {
+				
 				team = this.teams.find(t => t.id == event.t) ?? null;
-				console.log("team: ", team, "event: ", event);
 				if (team?.userId !== undefined) {
 					team = null;
 				}
@@ -203,10 +204,6 @@ export class Game extends Net {
 				team.ping = this.time;
 				team.score = event.s;
 			}
-
-			// console.log("teams: ", this.teams);
-			// console.log("score event get: ", event);
-			// this.teams[event.u].score = event.s;
 		});
 	}
 
@@ -318,15 +315,14 @@ export class Game extends Net {
 				collisionLines.push(...paddle.getCollisionLines());
 			});
 			const collision = this.ball.collision(collisionLines);
-			if (collision && collision[2] <= time + 0.001)
-				console.log("collision: ", collision[1], collision?.[0]);
 			if (collision === null || collision[2] > time + 0.001) {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name.startsWith("goal")) {
-				scoreSound.play();
+				//TODO because of the snapshot system it will do this multiple times including sound effects etc
 				//TODO also send update to backend for score
 				//TODO better score update
+				scoreSound.play();
 				let goal: number = +collision[0].name.charAt(4);
 				let score;
 				if (this.level.players > 2)
@@ -341,9 +337,8 @@ export class Game extends Net {
 				}
 				// this.teams[goal].id
 				//TODO It will send this for everyone, even if they are playing back old events....
-				//TODO it also causes other weird issues...????
 				this.send("score", {
-					u: this.teams[goal].userId,
+					u: this.id,
 					s: score,
 					t: this.teams[goal].id,
 				});
@@ -393,6 +388,7 @@ export class Game extends Net {
 	}
 
 	public async start(options: Options) {
+		this.id = options.member.user.id;
 		this.teams = [];
 		for (let i = 0; i < this.level.players; i++) {
 			this.teams.push(new Team((options.member as any).room.teams[i].id));
@@ -421,6 +417,7 @@ export class Modern {
 	private offscreenCanvas: HTMLCanvasElement;
 	private field: field | null;
 	private interval?: NodeJS.Timer;
+	private id?: number;
 
 	public async init() {
 		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
@@ -485,6 +482,7 @@ export class Modern {
 	}
 
 	public async start(options: Options) {
+		
 		this.canvas.addEventListener("mousemove", ev => {
 			const xScale = Math.floor(this.canvas.width / WIDTH);
 			const yScale = Math.floor(this.canvas.height / HEIGHT);

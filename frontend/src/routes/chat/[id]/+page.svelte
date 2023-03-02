@@ -117,7 +117,7 @@
 							wrap="hard"
 							disabled={self?.is_muted}
 							{rows}
-							class="w-full space-x-4"
+							class="w-full"
 							placeholder={self?.is_muted
 								? "You are muted"
 								: "message..."}
@@ -171,25 +171,26 @@
 		display: flex;
 		flex-direction: column;
 		padding: 0.5rem;
-		margin: 0.5rem;
+		margin: 0 0.5rem;
 		background-color: var(--box-color);
-		border-radius: 1rem;
+		border-radius: 0.375rem;
 		gap: 0.5em;
+		align-items: center;
 	}
 
 	.member-group {
 		display: flex;
 		flex-direction: column;
 		gap: 1em;
+		align-items: center;
 	}
 
 	.room-container {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
-		gap: 10px;
+		/* gap: 10px; */
 		height: calc(100vh - 90px);
-		padding: 0 0 3rem 0;
 	}
 
 	.room-title {
@@ -198,11 +199,10 @@
 		justify-content: space-between;
 		background-color: var(--box-color);
 		position: relative;
-		top: 0.5rem;
-		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-		margin-bottom: 0.5rem;
+		box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.4);
+		margin-bottom: 0.75rem;
 		padding: 0.25rem;
-		border-radius: 2rem;
+		border-radius: 0.375rem;
 	}
 
 	.room-name {
@@ -222,6 +222,8 @@
 	.message-box {
 		width: 100%;
 		margin-left: 0.375rem;
+		align-items: center;
+		display: flex;
 	}
 
 	.icon {
@@ -250,7 +252,6 @@
 		width: 50px;
 		cursor: pointer;
 		margin-left: 0.375rem;
-		margin-right: 0.375rem;
 	}
 
 	.send-button:hover {
@@ -263,6 +264,9 @@
 		border-radius: 6px;
 		height: auto;
 		max-height: 75vh;
+		resize: none;
+		padding-top: 0.25rem;
+		padding-bottom: 0.25rem;
 	}
 
 </style>

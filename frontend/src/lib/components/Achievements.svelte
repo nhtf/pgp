@@ -242,7 +242,7 @@
 	}
 
 	.icon-block:hover {
-		box-shadow: 0px 0px 10px 10px var(--shadow-color);
+		box-shadow: 0px 0px 8px 8px var(--shadow-color);
 	}
 
 	#icon-block0 {

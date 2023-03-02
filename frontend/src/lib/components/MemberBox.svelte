@@ -12,6 +12,7 @@
 		DropdownDivider,
 		DropdownHeader,
 		DropdownItem,
+		Tooltip,
 	} from "flowbite-svelte";
     import Swal from "sweetalert2";
 
@@ -110,13 +111,19 @@
 
 <Avatar
 	src={user.avatar}
-	title={user.username}
+	id="avatar-{user.username}"
 	dot={{
 		placement: "bottom-right",
 		color: status_colors[user.status],
 	}}
+	class="bg-c"
+	
 />
-<Dropdown>
+<Tooltip triggeredBy="#avatar-{user.username}">{user.username}</Tooltip>
+<Dropdown
+	triggeredBy="#avatar-{user.username}"
+	class="bor-c bg-c shadow rounded max-w-sm"
+	>
 	<DropdownHeader>
 		{user.username}
 	</DropdownHeader>

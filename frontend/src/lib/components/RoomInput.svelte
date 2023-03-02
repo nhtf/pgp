@@ -12,7 +12,6 @@
 		[Gamemode.CLASSIC, { name: "Classic", players: [2] }],
 		[Gamemode.VR, { name: "VR", players: [2] }],
 		[Gamemode.MODERN, { name: "Modern", players: [2, 4] }],
-		[Gamemode.MODERN4P, { name: "Modern4p", players: [4] }],
 	]);
 
 	let name = room ? room.name : "";
@@ -47,8 +46,10 @@
 		bind:value={password}
 		disabled={is_private}
 	/>
+	<div class="private-check">
 	<Checkbox bind:checked={is_private} class="checkbox" />
 	<span class="label">Private</span>
+	</div>
 	{#if type === "GameRoom"}
 		<Select
 			defaultClass="select"
@@ -58,6 +59,7 @@
 			placeholder=""
 			bind:value={gamemode}
 		/>
+		{#if gamemode === Gamemode.MODERN}
 		<Select
 			defaultClass="select"
 			items={playerOptions(gamemode)}
@@ -65,6 +67,7 @@
 			placeholder=""
 			bind:value={players}
 		/>
+		{/if}
 	{/if}
 	<div class="grow" />
 	<button
@@ -80,11 +83,18 @@
 		display: flex;
 		justify-content: space-between;
 		align-items: center;
-		gap: 0.5rem;
+		column-gap: 0.5rem;
 		background: var(--box-color);
 		border: 1px var(--border-color);
-		border-radius: 2rem;
+		border-radius: 0.5rem;
 		padding: 0.5rem;
+		flex-wrap: wrap;
+	}
+
+	.private-check {
+		align-items: center;
+		display: flex;
+		column-gap: 0.375rem;
 	}
 
 </style>

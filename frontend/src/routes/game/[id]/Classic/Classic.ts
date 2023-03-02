@@ -188,9 +188,10 @@ export class Game extends Net {
 		this.paddles.forEach(paddle => paddle.render(context));
 	}
 
+	
+
 	public lateTick() {
 		let time = 1;
-
 		while (time > 0) {
 			const collision = this.ball.collision([
 				{ name: "wall-top", p0: new Vector(0, 0), p1: new Vector(WIDTH, 0) },
@@ -221,7 +222,12 @@ export class Game extends Net {
 				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
 
 				if (collision[0].name.startsWith("paddle-")) {
-					paddleHitSound.play();
+					if (paddleHitSound.currentTime === 0 || paddleHitSound.currentTime === paddleHitSound.duration) {
+						//TODO now it still plays the sound when rewinding
+						console.log(paddleHitSound.currentTime);
+						paddleHitSound.play();
+						console.log("played");
+					}
 					const magnitude = this.ball.velocity.magnitude() + 0.1;
 					this.ball.velocity = this.ball.velocity.normalize();
 					this.ball.velocity = paddleBounce(collision[0], this.ball);
@@ -341,6 +347,7 @@ export class Classic {
 	}
 
 	public async stop() {
+		this.game.stop(); //this is needed otherwise it won't stop properly if you go to other page
 		clearInterval(this.interval);
 	}
 }

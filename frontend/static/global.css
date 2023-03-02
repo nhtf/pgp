@@ -209,7 +209,7 @@ body {
 }
 
 .small-avatars:hover {
-	box-shadow: 2px 2px 5px 5px var(--shadow-color);
+	box-shadow: 0px 0px 4px 4px var(--shadow-color);
 
 }
 
@@ -218,7 +218,7 @@ body {
 }
 
 #avatar-menu:hover {
-	box-shadow: 2px 2px 5px 5px var(--shadow-color);
+	box-shadow: 0px 0px 4px 4px var(--shadow-color);
 }
 
 a {
@@ -419,10 +419,10 @@ table {
 	display: inline-block !important;
 	background: var(--box-color);
 	border: 1px solid var(--border-color);
-	border-radius: 6px;
-	padding-top: 2px !important;
-	padding-bottom: 2px !important;
-	padding-left: 8px !important;
+	border-radius: 0.375rem;
+	padding-top: 0.25rem !important;
+	padding-bottom: 0.25rem !important;
+	padding-left: 0.5rem !important;
 	width: unset !important;
 	font-size: 1rem !important;
 	line-height: 1.5rem !important;
@@ -467,6 +467,7 @@ table {
 /* This is so that the dropdown menu doesn't get clicked away if an element gets removed */
 .status2 {
 	padding: 0 !important;
+	border-bottom-width: 0!important;
 }
 
 .avatar-status0 {
@@ -486,7 +487,7 @@ table {
 	display: inline;
 	background: var(--box-color);
 	border: 1px solid var(--border-color);
-	border-radius: 1rem;
+	border-radius: 0.75rem;
 	padding: 0.25rem 1rem;
 	margin: 0.25rem;
 	text-align: center;
@@ -497,10 +498,10 @@ table {
 	display: inline-block;
 	background: var(--box-color) !important;
 	border: 1px solid var(--border-color) !important;
-	border-radius: 1rem !important;
+	border-radius: 0.5rem !important;
 	padding: 0.25rem 1rem !important;
 	margin: 0.25rem !important;
-	width: 200px;
+	width: 175px;
 }
 
 .input:disabled {

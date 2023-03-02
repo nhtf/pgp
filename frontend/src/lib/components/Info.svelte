@@ -163,7 +163,6 @@
 		width: 50px;
 		cursor: pointer;
 		margin-left: 0.375rem;
-		margin-right: 0.375rem;
 	}
 
 	.send-button:hover {
@@ -192,19 +191,20 @@
 	}
 
 #edit-icon {
-		max-width: 15px;
-		max-height: 15px;
+		max-width: 50px;
+		max-height: 50px;
 		position: relative;
-		top: 10px;
-		/* right: -35px; */
+		top: 0.5rem;
+		right: 0.5rem;
 		cursor: pointer;
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
-		border-radius: 6px;
+		border-radius: 1rem;
+		scale: 0.375;
 	}
 
 	#edit-icon:hover {
-		box-shadow: 1px 1px 1px 1px var(--shadow-color);
+		box-shadow: 0px 0px 1px 1px var(--shadow-color);
 	}
 
 	#user-name-block {
