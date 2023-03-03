@@ -22,30 +22,45 @@
 	import { userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
+    import { updateSocket } from "$lib/updateSocket";
 
 	export let data: LayoutData;
+
+	const THEMES = { DARK: "dark", LIGHT: "light" };
+	const STORAGE_KEY = "theme";
+	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
+	const HEARTBEATCOOLDOWN = 1000;
+
+	let currentTheme: string;
+	let timer: NodeJS.Timeout | null = null;
 
 	$: user = data.user ? $userStore.get(data.user.id)! : null;
 	$: twofa_enabled = user ? user.auth_req === 2 : false;
 
-	let currentTheme: string;
-	const THEMES = {
-		DARK: "dark",
-		LIGHT: "light",
-	};
-
-	onMount(() => {	
+	onMount(() => {
 		applyTheme();
 		window
 			.matchMedia(DARK_PREFERENCE)
 			.addEventListener("change", applyTheme);
 	});
 
-	const STORAGE_KEY = "theme";
-	const DARK_PREFERENCE = "(prefers-color-scheme: dark)";
-	const prefersDarkThemes = () => window.matchMedia(DARK_PREFERENCE).matches;
+	addEventListener("mousemove", heartBeat);
+	addEventListener("keypress", heartBeat);
 
-	const toggleTheme = () => {
+	function heartBeat() {
+		if (!timer) {
+			updateSocket.emit("heartbeat");
+			timer = setTimeout(() => {
+				timer = null;
+			}, HEARTBEATCOOLDOWN);
+		}
+	}
+
+	function prefersDarkThemes() {
+		return window.matchMedia(DARK_PREFERENCE).matches;
+	}
+
+	function toggleTheme () {
 		const stored = localStorage.getItem(STORAGE_KEY);
 		if (stored) {
 			localStorage.removeItem(STORAGE_KEY);
@@ -113,7 +128,7 @@
 			class1="w-full md:flex md:w-auto md:order-1"
 		/>
 		{#if user?.username}
-			<Avatar id="avatar-menu" src={data.user?.avatar} />
+			<Avatar id="avatar-menu" src={user?.avatar} />
 			<Notifications />
 		{/if}
 	</div>
@@ -126,9 +141,12 @@
 			<DropdownHeader>
 				<span class="block text-sm"> {user.username} </span>
 			</DropdownHeader>
-			<DropdownItem href="/profile/{encodeURIComponent(user.username)}">profile</DropdownItem>
+			<DropdownItem href="/profile/{encodeURIComponent(user.username)}"
+				>profile</DropdownItem
+			>
 			{#if twofa_enabled}
-				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
+				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem
+				>
 			{:else}
 				<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
 			{/if}
@@ -137,7 +155,7 @@
 					size="small"
 					checked={currentTheme === THEMES.DARK}
 					on:change={toggleTheme}
-				>dark
+					>dark
 				</Toggle>
 			</DropdownItem>
 			<DropdownItem on:click={logout}>sign out</DropdownItem>
@@ -146,7 +164,9 @@
 	<NavUl {hidden} class="navbar-bg">
 		<NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
 		{#each links as { url, name }}
-			<NavLi href={url} active={$page.url.pathname.includes(url)}>{name}</NavLi>
+			<NavLi href={url} active={$page.url.pathname.includes(url)}
+				>{name}</NavLi
+			>
 		{/each}
 		{#if !user?.username}
 			<NavLi

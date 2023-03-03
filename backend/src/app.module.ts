@@ -28,6 +28,8 @@ import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
 import { RoomInvite } from "./entities/RoomInvite";
 import { HttpModule } from "@nestjs/axios";
+import { MediaController } from "src/controllers/media.controller";
+import { UserSubscriber } from "src/subscribers/user.subscriber"
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -88,7 +90,8 @@ export const dataSource = new DataSource({
 		const entity = require(file);
 		return Object.values(entity)[0] as Function;
 	}),
-	subscribers: [],
+	// entities: ["entities/*"],
+	subscribers: [UserSubscriber],
 	synchronize: true, //TODO disable and test before turning in
 	// logging: true,
 	// TODO enable cache? (cache: true)
@@ -146,7 +149,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		HttpModule.registerAsync({
 			useFactory: () => ({
 				timeout: 5000,
-				maxRedirects: 5,
+				maxRedirects: 10,
 			})
 		}),
 	],
@@ -160,6 +163,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		UserIDController,
 		UserUsernameController,
 		ChatRoomController,
+		MediaController,
 	],
 	providers: [
 		GameGateway,

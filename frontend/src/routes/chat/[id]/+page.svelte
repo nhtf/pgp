@@ -7,7 +7,7 @@
 	import { unwrap } from "$lib/Alert";
 	import { remove } from "$lib/Web";
 	import { goto } from "$app/navigation";
-	import { Action, Role, Subject } from "$lib/enums";
+	import { Action, CoalitionColors, Role, Subject } from "$lib/enums";
 	import { memberStore, roomStore, userStore } from "$lib/stores";
     import { icon_path } from "$lib/constants";
     import { updateManager } from "$lib/updateSocket";
@@ -17,6 +17,7 @@
 
 	export let data: PageData;
 
+	const role_colors = Object.values(CoalitionColors);
 	const send_icon = `${icon_path}/send.svg`;
 	const notTypingInterval = 3000;
 
@@ -145,24 +146,24 @@
 		</div>
 		<div class="member-container">
 			<div class="member-group">
-				<h1>Owner</h1>
-				<MemberBox user={getUser(owner.userId)} member={owner} {self}/>
+				<h1 style={`color: #${role_colors[Role.OWNER]}`}>Owner</h1>
+				<MemberBox user={getUser(owner.userId)} member={owner} {self} memberGroup={true}/>
 			</div>
 			{#if admins.length}
 				<div/>
 				<div class="member-group">
-					<h1>Admins</h1>
+					<h1 style={`color: #${role_colors[Role.ADMIN]}`}>Admins</h1>
 					{#each admins as member (member.id)}
-						<MemberBox user={getUser(member.userId)} {member} {self}/>
+						<MemberBox user={getUser(member.userId)} {member} {self} memberGroup={true}/>
 					{/each}
 				</div>
 			{/if}
 			{#if plebs.length}
 				<div/>
 				<div class="member-group">
-					<h1>Members</h1>
+					<h1 style={`color: #${role_colors[Role.MEMBER]}`}>Members</h1>
 					{#each plebs as member (member.id)}
-						<MemberBox user={getUser(member.userId)} {member} {self}/>
+						<MemberBox user={getUser(member.userId)} {member} {self} memberGroup={true}/>
 					{/each}
 				</div>
 			{/if}
@@ -199,7 +200,6 @@
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
-		/* gap: 10px; */
 		height: calc(100vh - 90px);
 	}
 

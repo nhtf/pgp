@@ -2,17 +2,11 @@ import Swal from "sweetalert2";
 import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
 import { BACKEND } from "$lib/constants";
+import { post } from "$lib/Web"
 
 export async function enable_2fa() {
-    const response = await fetch(`${BACKEND}/otp/setup`, {
-        method: "POST",
-        credentials: "include",
-    });
+    const data = await post(`/otp/setup`);
 
-    if (!response.ok) {
-        console.error(response.statusText);
-    } else {
-        const data = await response.json();
 	const promise = new Promise(async (resolve, reject) => {
 		await Swal.fire({
 		    title: "Setup 2FA",
@@ -31,31 +25,24 @@ export async function enable_2fa() {
 		    inputAutoTrim: true,
 		    inputPlaceholder: "Enter your 2FA code",
 		    inputValidator: (code) => {
-			if (!validator.default.isLength(code, { min: 6, max: 6 }))
-			    return "OTP must be 6 characters long";
-			if (!validator.default.isInt(code, { min: 0, max: 999999 }))
-			    return "OTP consist of only numbers";
-			return null;
-		    },
-		    preConfirm: (code) => {
-			return fetch(`${BACKEND}/otp/setup_verify`, {
-			    method: "POST",
-			    credentials: "include",
-			    headers: {
-				"Content-Type": "application/x-www-form-urlencoded",
-			    },
-			    body: `otp=${code}`,
-			})
-			    .then((response) => {
-				if (!response.ok) {
-				    throw new Error("not ok");
-				}
+				if (!validator.default.isLength(code, { min: 6, max: 6 }))
+					return "OTP must be 6 characters long";
+				if (!validator.default.isInt(code, { min: 0, max: 999999 }))
+					return "OTP consist of only numbers";
 				return null;
-			    })
-			    .catch((error) => {
-				Swal.showValidationMessage(`Could not setup 2FA: ${error}`);
-				reject();
-			    });
+		    },
+		    preConfirm: async (code) => {
+				return post(`/otp/setup_verify`, {	otp: code })
+					.then((response) => {
+						if (!response.ok) {
+							throw new Error("not ok");
+						}
+						return null;
+					})
+					.catch((error) => {
+						Swal.showValidationMessage(`Could not setup 2FA: ${error}`);
+						reject();
+					});
 		    },
 		    allowOutsideClick: () => !Swal.isLoading(),
 		}).then((result) => {
@@ -77,8 +64,6 @@ export async function enable_2fa() {
 	    } catch (error) {
 		    return false;
 	    }
-    }
-    return false;
 }
 
 export async function disable_2fa() {

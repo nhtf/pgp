@@ -5,14 +5,13 @@ import { io } from "socket.io-client";
 
 const WS = `ws://${BACKEND_ADDRESS}/update`;
 
-type UpdateFunction = (update: UpdatePacket) => any;
+type UpdateFunction = (update: UpdatePacket) => void;
 
 class UpdateManager {
-	socket = io(WS, { withCredentials: true });
 	functions: { fun: UpdateFunction, subject: Subject }[] = [];
 
 	constructor() {
-		this.socket.on("update", this.execute.bind(this));
+		updateSocket.on("update", this.execute.bind(this));
 	}
 
 	set(subject: Subject, fun: UpdateFunction) {
@@ -45,4 +44,5 @@ class UpdateManager {
 	}
 }
 
+export const updateSocket = io(WS, { withCredentials: true });
 export const updateManager = new UpdateManager;

@@ -59,7 +59,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 			try {
 				const id = validate_id(value);
 				const entity = await this.repo.findOne({
-					relations: relations,
+					relations,
 					where: {
 						id,
 					} as unknown as FindOptionsWhere<T>,

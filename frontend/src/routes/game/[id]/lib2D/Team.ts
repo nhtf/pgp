@@ -7,25 +7,25 @@ export class Team {
     public userId?: number;
     public ping: number;
 
-	public constructor(id: number) {
-		this.score = 0;
+	public constructor(id: number, score?: number) {
+		this.score = score === undefined ? 0 : score;
 		this.id = id;
         this.ping = 0;
 	}
 
-    public save(): TeamObject{
+    public save(): TeamObject {
         return {
-            s: this.score,
-            i: this.id,
-            u: this.userId,
-            p: this.ping,
+            score: this.score,
+            id: this.id,
+            user: this.userId,
+            ping: this.ping,
         }
     }
 
     public load(object: TeamObject) {
-        this.id = object.i;
-        this.score = object.s;
-        this.userId = object.u;
-        this.ping = object.p;
+        this.id = object.id;
+        this.score = object.score;
+        this.userId = object.user;
+        this.ping = object.ping;
     }
 }

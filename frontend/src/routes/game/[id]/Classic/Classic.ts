@@ -146,7 +146,9 @@ export class Game extends Net {
 		return {
 			ball: this.ball.save(),
 			paddles: this.paddles.map(paddle => paddle.save()),
-			teams: this.teams.map(team => team.save()),
+			state: {
+				teams: this.teams.map(team => team.save()),
+			},
 			...super.save(),
 		};
 	}
@@ -154,7 +156,7 @@ export class Game extends Net {
 	protected load(snapshot: Snapshot) {
 		this.ball.load(snapshot.ball);
 		this.paddles.forEach((paddle, i) => paddle.load(snapshot.paddles[i]));
-		this.teams.forEach((team, i) => team.load(snapshot.teams[i]));
+		this.teams.forEach((team, i) => team.load(snapshot.state.teams[i]));
 		super.load(snapshot);
 	}
 
@@ -188,8 +190,6 @@ export class Game extends Net {
 		this.paddles.forEach(paddle => paddle.render(context));
 	}
 
-	
-
 	public lateTick() {
 		let time = 1;
 		while (time > 0) {
@@ -206,13 +206,13 @@ export class Game extends Net {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name == "wall-left") {
-				/* Point to team right */
+				this.teams[1].score += 1;
 				scoreSound.play();
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(1, 0);
 				break;
 			} else if (collision[0].name == "wall-right") {
-				/* Point to team left */
+				this.teams[0].score += 1;
 				scoreSound.play();
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(-1, 0);
@@ -250,9 +250,11 @@ export class Game extends Net {
 	}
 
 	public async start(options: Options) {
+		const teams = (options.member as any).room.teams;
+
 		this.teams = [
-			new Team((options.member as any).room.teams[0].id),
-			new Team((options.member as any).room.teams[1].id),
+			new Team(teams[0].id, teams[0].score),
+			new Team(teams[1].id, teams[1].score),
 		];
 
 		this.paddles = [

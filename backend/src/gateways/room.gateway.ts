@@ -10,7 +10,7 @@ import type { Socket, Server } from "socket.io";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
 import { User } from "src/entities/User";
-import { Member } from "src/entities/Member";
+import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Repository } from "typeorm";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { validate_id } from "src/util";
@@ -24,6 +24,8 @@ import { ClientRequest } from "node:http";
 import { createHmac } from "node:crypto";
 import { Embed } from "src/entities/Embed";
 
+const embedLimit = 3;
+
 export class RoomGateway extends ProtectedGateway("room") {
 	@WebSocketServer()
 	server: Server;
@@ -34,7 +36,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		@Inject("MESSAGE_REPO")
 		private readonly messageRepo: Repository<Message>,
 		@Inject("MEMBER_REPO")
-		private readonly memberRepo: Repository<Member>,
+		private readonly memberRepo: Repository<ChatRoomMember>,
 		private readonly httpService: HttpService,
 	) {
 		super(userRepo);
@@ -47,7 +49,8 @@ export class RoomGateway extends ProtectedGateway("room") {
 		} catch (error) {
 			throw new WsException(error.message);
 		}
-		client.room = id;
+	
+		client.room = Number(id);
 
 		client.join(id);
 	}
@@ -83,7 +86,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		}
 
 		if (/^\/tenor /.test(content)) {
-			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}`)
+			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}&limit=20&random=true`)
 				.pipe(catchError((error) => {
 					console.error("crap");
 					throw "crap";
@@ -95,14 +98,13 @@ export class RoomGateway extends ProtectedGateway("room") {
 
 		const links = linkify.find(content, "url");
 		const embeds = [];
-		// console.log(links);
-
+	
 		for (const link of links) {
-			if (embeds.length > 3)
+			if (embeds.length > embedLimit)
 				break;
 			try {
 				//TODO set maxContentLength to something sane
-				const res = await axios.head(link.href, { maxContentLength: 1000000000 });
+				const res = await axios.head(link.href, { maxContentLength: 1000000000, maxRedirects: 5 });
 				//TODO find out how revolt detects embed type
 
 				const client = res.request as ClientRequest;
@@ -111,6 +113,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 				//console.log(client.socket.localAddress);
 				const type = res.headers["content-type"];
 
+				console.log(typeof type, type);
 				if (typeof type !== "string")
 					continue;
 
@@ -128,7 +131,9 @@ export class RoomGateway extends ProtectedGateway("room") {
 				}
 				
 				embeds.push(embed);
-			} catch {}
+			} catch (err){
+				console.error("axios:", err);
+			}
 		}
 		
 		let message = new Message;
@@ -142,6 +147,6 @@ export class RoomGateway extends ProtectedGateway("room") {
 
 		message = await this.messageRepo.save(message);
 	
-		this.server.in(client.room).emit("message", instanceToPlain(message));
+		this.server.in(String(client.room)).emit("message", instanceToPlain(message));
 	}
 }

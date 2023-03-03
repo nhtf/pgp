@@ -328,7 +328,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			await this.setup_room(room, dto);
 			await this.room_repo.save(room);//TODO only save one time
 
-			await room.send_update({
+			room.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.ADD,
@@ -338,7 +338,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				},
 			}, !room.is_private);
 
-			await this.update_service.send_update({
+			this.update_service.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.SET,
@@ -359,7 +359,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		}
 
 		@Get("id/:id")
-		@RequiredRole(Role.MEMBER)
+		// TODO
+		// @RequiredRole(Role.MEMBER)
 		async get_room(@GetRoom() room: T) {
 			return room;
 		}

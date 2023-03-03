@@ -2,12 +2,9 @@
     import type { User } from "$lib/entities";
 	import { page } from "$app/stores";
 	import { put } from "$lib/Web";
-	import { userStore } from "$lib/stores";
 	import Swal from "sweetalert2";
 
-	export let user: User = $page.data.user;
-
-	$: user = $userStore.get(user.id)!;
+	export let user: User;
 
 	const edit_icon = "/Assets/icons/pen.png";
 

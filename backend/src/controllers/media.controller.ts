@@ -1,32 +1,59 @@
-import { Controller, Get, UseGuards, Res, Param, StreamableFile, HttpException } from "@nestjs/common";
+import { Controller, Get, UseGuards, Res, Query, StreamableFile, HttpException, HttpStatus } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import type { Response } from "express";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";
-import { catchError, map } from "rxjs";
+import { catchError, map, filter } from "rxjs";
 import axios from "axios";
+import { TENOR_KEY } from "src/vars";
+
+interface MediaObject {
+	url: string;
+	dims: number[];
+	duration: number;
+	size: number;
+}
+
+interface ResponseObject {
+	created: number;
+	hasaudio: boolean;
+	id: string;
+	media_formats: { [content_type: string]: MediaObject }; 
+	tags: string[];
+	title: string;
+	content_description: string;
+	itermurl: string;
+	hascaption: boolean;
+	flags: string;
+	bg_color: string;
+	url: string;
+}
 
 @Controller("media")
 @UseGuards(HttpAuthGuard, SetupGuard)
 export class MediaController {
 
-	constructor(private readonly httpService: HttpService) {}
-	
-	//https://stackoverflow.com/questions/34571784/how-to-use-parameters-containing-a-slash-character
-	//@Get("tenor/:path((?:[A-Za-z0-9+\/]{4})*(?:[A-Za-z0-9+\/]{2}==|[A-Za-z0-9+\/]{3}=)?\/[A-Za-z0-9]+.gif)")
-	@Get("tenor/:path([^/]+/[^/]+)")
-	async pipe_tenor_media(@Param("path") path: string) {
-		try {
-			return new StreamableFile((await axios.get(`https://media.tenor.com/${path}`, { responseType: "stream" })).data);
-		} catch (error) {
-			console.log("tenor", error);
-			throw new HttpException(error.response.statusText, error.response.status);
-		}
-		/*const tmp = this.httpService.get(`https://media.tenor.com/${a}/${b}`, { responseType: "stream" })
-			.pipe(catchError(error =>{
-				throw "shit";
-			})).pipe(map(x => x.data.pipe(response)));
-		tmp.subscribe({complete: () => response.send()});*/
-		//return response.send();
+	constructor(private readonly httpService: HttpService) { }
+
+	@Get("tenor")
+	async tenor(@Query("query") query: string, @Res() response: Response) {
+		const res = this.httpService.get<{ results: ResponseObject[], next: string }>(`https://tenor.googleapis.com/v2/search?q=${query}&key=${TENOR_KEY}&limit=10&media_filter=tinygif`);
+		response.status(HttpStatus.OK).contentType("application/json");
+		res.subscribe(
+			(value) => {
+				response.write(JSON.stringify(value.data.results.map((gif) => {
+					let url = gif.media_formats["tinygif"];
+					return {
+						title: gif.title,
+						desc: gif.content_description,
+						url: url?.url,
+						width: url?.dims[0],
+						height: url?.dims[1],
+					};
+				})));
+			},
+			(error) => console.error(error),
+			() => response.send(),
+		);
 	}
 }

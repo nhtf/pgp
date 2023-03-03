@@ -9,18 +9,20 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
 	let user: User | null = null;
+	let friends: User[] | null = null;
 
 	try {
 		user = await get(`/user/me`);
 		user!.auth_req = await get(`/user/me/auth_req`);
+		friends = await get(`/user/me/friends`);
+	
 		const invites = await get(`/user/me/invites`);
-		const friends: User[] = await get(`/user/me/friends`);
 
-		updateStore(userStore, [user!, ...friends]);
+		updateStore(userStore, [user!, ...friends!]);
 		updateStore(inviteStore, invites!);
-		friendIdStore.set(friends.map((friend) => friend.id));
+		friendIdStore.set(friends!.map((friend) => friend.id));
 
 	} catch (err) { }
 
-	return { user };
+	return { user, friends };
 }) satisfies LayoutLoad;

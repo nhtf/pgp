@@ -1,10 +1,10 @@
-import { Controller, Get, Inject, Param, HttpException, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Inject, Param, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException, BadRequestException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express, Response } from "express";
 import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
-import { Repository } from "typeorm";
+import { Repository, FindManyOptions } from "typeorm";
 import { IsString, Matches } from "class-validator";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe } from "../util";
@@ -14,9 +14,7 @@ import { join } from "path";
 import { AVATAR_DIR, DEFAULT_AVATAR, AVATAR_EXT } from "../vars";
 import { SetupGuard } from "src/guards/setup.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
-import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
-import { instanceToPlain } from "class-transformer";
 import * as gm from "gm";
 
 declare module "express" {
@@ -59,7 +57,16 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Me() me: User,
 			@Param(options.param, options.pipe) user?: User) {
 			user = user || me;
-			return this.user_repo.findOneBy({ id: user.id });
+			user = await this.user_repo.findOne({
+				where: {
+					id: user.id,
+				},
+				relations: {
+					members: true,
+				}
+			});
+
+			return user;
 		}
 
 		@Put(options.cparam + "/username")
@@ -69,6 +76,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Body() dto: UsernameDTO,
 		) {
 			user = user || me;
+
 			if (user.id !== me.id) {
 				throw new ForbiddenException();
 			}
@@ -78,13 +86,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			}
 
 			user.username = dto.username;
+
 			await this.user_repo.save(user);
-			await this.update_service.send_update({
-				subject: Subject.USER,
-				id: user.id,
-				action: Action.SET,
-				value: instanceToPlain(user),
-			});
 
 			return user;
 		}
@@ -138,17 +141,13 @@ export function GenericUserController(route: string, options: { param: string, c
 				console.error(error);
 				throw new UnprocessableEntityException("Corrupted image");
 			}
-			if (user.avatar_base !== DEFAULT_AVATAR)
+			if (user.avatar_base !== DEFAULT_AVATAR) {
 				await rm(user.avatar_path);
+			}
+
 			user.avatar_base = new_base;
-			await this.user_repo.save(user);
-			await this.update_service.send_update({
-				subject: Subject.USER,
-				id: user.id,
-				action: Action.SET,
-				value: instanceToPlain(user),
-			});
-			return user;
+
+			return await this.user_repo.save(user);
 			/*
 			//const transform = sharp().resize(200, 200).gif();
 			const transform = sharp().gif();
@@ -216,7 +215,20 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
-			return this.user_repo.findBy({ friends: { id: user.id } });
+			return this.user_repo.find({ 
+				where: {
+					friends: {
+						id: user.id
+					}
+				},
+				relations: {
+					members: {
+						player: {
+							team: true,
+						}
+					}
+				}
+			} as FindManyOptions<User>);
 		}
 
 		@Delete(options.cparam + "/friend(s)?/:friend_id")
@@ -240,9 +252,9 @@ export function GenericUserController(route: string, options: { param: string, c
 			friend.friends.splice(user_idx, 1);
 			[user, friend] = await this.user_repo.save([user, friend]);
 
-			await user.send_friend_update(Action.REMOVE, friend);
-			await friend.send_friend_update(Action.REMOVE, user);
-		
+			user.send_friend_update(Action.REMOVE, friend);
+			friend.send_friend_update(Action.REMOVE, user);
+
 			return {};
 		}
 
@@ -309,9 +321,9 @@ export function GenericUserController(route: string, options: { param: string, c
 				await this.request_repo.remove(request);
 				[user, target] = await this.user_repo.save([user, target]);
 
-				await user.send_friend_update(Action.ADD, target);
-				await target.send_friend_update(Action.ADD, user);
-		
+				user.send_friend_update(Action.ADD, target);
+				target.send_friend_update(Action.ADD, user);
+
 			} else {
 				const friend_request = new FriendRequest();
 				friend_request.from = user;

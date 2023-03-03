@@ -1,9 +1,12 @@
 <script lang="ts">
+	import type { UpdatePacket } from "$lib/types";
 	import { page } from "$app/stores";
-	import { goto, invalidate,  } from "$app/navigation";
+	import { goto } from "$app/navigation";
 	import { put } from "$lib/Web";
-	import { BACKEND } from "$lib/constants";
     import { userStore } from "$lib/stores";
+    import { onDestroy, onMount } from "svelte";
+    import { updateManager } from "$lib/updateSocket";
+    import { Subject } from "$lib/enums";
 	import Avatar from "./Avatar.svelte";
 	import Achievements from "./Achievements.svelte";
 	import Swal from "sweetalert2";
@@ -12,7 +15,21 @@
 
 	const edit_icon = "/Assets/icons/pen.png";
 
+	let index: number;
+
 	$: profile = $userStore.get($page.data.profile.id)!;
+
+	onMount(() => {
+		index = updateManager.set(Subject.USER, async (update: UpdatePacket) => {
+			if (update.id === profile.id && update.value.username !== $page.params.username) {
+				await goto(`/profile/${encodeURIComponent(update.value.username)}`);
+			}
+		});
+	});
+
+	onDestroy(() => {
+		updateManager.remove(index);
+	})
 
 	function clickfunction(event: MouseEvent) {
 		if (!event || !event.target)
@@ -53,24 +70,7 @@
 						Swal.showValidationMessage(error.message);
 					});
 			},
-		}).then(async (result) => {
-			if (result.isConfirmed) {
-				const newUsername = result.value.username;
-				profile = newUsername;
-				await goto(`/profile/${encodeURIComponent(newUsername)}`);
-				
-				Swal.fire({
-					position: "top-end",
-					icon: "success",
-					title: "Successfully set username",
-					showConfirmButton: false,
-					timer: 1300,
-				});
-				await invalidate(`${BACKEND}/user/me`);
-			}
 		});
-			
-		// src = null;
 	}
 </script>
 
@@ -136,59 +136,6 @@
 
 <style>
 
-	.close {
-		align-self: end;
-		position: relative;
-		bottom: 0.5rem;
-	}
-
-	.username-input {
-		display: flex;
-	}
-
-.icon {
-        width: 30px;
-        height: 30px;
-        -webkit-filter: var(--invert);
-		filter: var(--invert);
-    }
-
-	.send-button {
-		display: flex;
-		background-color: var(--box-color);
-		height: 100%;
-		align-items: center;
-		justify-content: center;
-		border-radius: 6px;
-		width: 50px;
-		cursor: pointer;
-		margin-left: 0.375rem;
-	}
-
-	.send-button:hover {
-		background-color: var(--box-hover-color);
-	}
-
-.edit-username-window {
-		display: flex;
-		position: fixed;
-		flex-direction: column;
-		z-index: 25;
-		top: calc(50% - 40px);
-		left: calc(50% - 176px);
-		background: var(--box-color);
-		border-radius: 6px;
-		border-width: 1px;
-		border-color: var(--border-color);
-		border-style: solid;
-		box-shadow: 2px 8px 16px 2px rgba(0, 0, 0, 0.4);
-		width: 400px;
-		height: 120px;
-		justify-content: space-evenly;
-		align-items: center;
-		text-align: center;
-		align-self: flex-end;
-	}
 
 #edit-icon {
 		max-width: 50px;

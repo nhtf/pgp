@@ -4,6 +4,7 @@
 	import Info from "$lib/components/Info.svelte";
 
 	export let data: PageData;
+
 </script>
 
 <div class="block-container">

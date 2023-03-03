@@ -87,7 +87,7 @@ export class TotpController {
 		} catch (error) {
 			console.log("qr", error);
 		}
-		return { secret: secret, qr: qr };
+		return { secret, qr };
 	}
 
 	@Post("disable")
@@ -140,8 +140,9 @@ export class TotpController {
 	@HttpCode(HttpStatus.CREATED)
 	@UseGuards(HttpAuthGuard, SetupGuard)
 	async setup_verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
-		if (!request.session.secret)
+		if (!request.session.secret) {
 			throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+		}
 
 		const secret = request.session.secret;
 
@@ -149,18 +150,22 @@ export class TotpController {
 
 		user.auth_req = AuthLevel.TWOFA;
 		user.secret = secret;
-		await this.userRepo.save(user);
+
+		return await this.userRepo.save(user);
 	}
 
 	@Post("verify")
 	@HttpCode(HttpStatus.OK)
 	@UseGuards(OAuthGuard, SetupGuard)
 	async verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
-		if (request.session.secret)
+		if (request.session.secret) {
 			throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+		}
 
-		if (user.auth_req !== AuthLevel.TWOFA)
+		if (user.auth_req !== AuthLevel.TWOFA) {
 			throw new HttpException("2fa not setup", HttpStatus.FORBIDDEN);
+		}
+		
 		const secret = user.secret;
 
 		await this.authenticate(otp_dto.otp, secret, request);

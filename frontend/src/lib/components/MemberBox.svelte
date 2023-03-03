@@ -19,6 +19,7 @@
 	export let user: User;
 	export let member: Member | null;
 	export let self: Member;
+	export let memberGroup: boolean;
 
 	type Action = {
 		role: Role;
@@ -111,7 +112,7 @@
 
 <Avatar
 	src={user.avatar}
-	id="avatar-{user.username}"
+	id="avatar-{user.username}box{memberGroup}"
 	dot={{
 		placement: "bottom-right",
 		color: status_colors[user.status],
@@ -119,9 +120,10 @@
 	class="bg-c"
 	
 />
-<Tooltip triggeredBy="#avatar-{user.username}">{user.username}</Tooltip>
+<Tooltip triggeredBy="#avatar-{user.username}box{memberGroup}">{user.username}</Tooltip>
+<!-- //TODO dropdown menu placement is wrong if message is at the bottom (or membergroup at the bottom) -->
 <Dropdown
-	triggeredBy="#avatar-{user.username}"
+	triggeredBy="#avatar-{user.username}box{memberGroup}"
 	class="bor-c bg-c shadow rounded max-w-sm"
 	>
 	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
@@ -130,7 +132,7 @@
 			.reverse()
 			.filter((role) => typeof role === "number" && role > 0) as role}
 			{#if self.role >= role && member && member.role < self.role}
-				<DropdownDivider />
+				<!-- <DropdownDivider /> -->
 				{#each actions.filter((action) => action.role === role) as { condition, fun, param, name }}
 					{#if !condition || condition(member)}
 						<DropdownItem

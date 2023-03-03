@@ -35,6 +35,7 @@ export enum Status {
 	OFFLINE,
 	IDLE,
 	ACTIVE,
+	INGAME,
 }
 
 export enum CoalitionColors {

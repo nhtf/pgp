@@ -46,7 +46,7 @@ export class Room {
 
 	@Expose()
 	get type(): string {
-		return "Generic";
+		return "Room";
 	}
 
 	@Expose()
@@ -63,17 +63,17 @@ export class Room {
 		return this.members?.map(member => member.user);
 	}
 
-	async send_update(packet: UpdatePacket, broadcast?: boolean) {
+	send_update(packet: UpdatePacket, broadcast?: boolean) {
 		if (broadcast === true) {
-			await UpdateGateway.instance.send_update(packet);
+			UpdateGateway.instance.send_update(packet);
 		} else {
-			await UpdateGateway.instance.send_update(packet, ...this.users);
+			UpdateGateway.instance.send_update(packet, ...this.users);
 		}
 	}
 
 	@BeforeRemove()
-	async beforeRemove() {
-		await this.send_update({
+	beforeRemove() {
+		this.send_update({
 			subject: Subject.ROOM,
 			id: this.id,
 			action: Action.REMOVE,

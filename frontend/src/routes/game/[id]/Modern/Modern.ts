@@ -58,6 +58,7 @@ function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: B
 }
 
 import { activateRipple } from "./Shader/RippleShader";
+import { setOriginRipple } from "./Shader/RippleShader";
 
 export class Game extends Net {
 	public ball: Ball;
@@ -72,18 +73,6 @@ export class Game extends Net {
 	public level: field;
 	public score?: Score;
 	public teams: Array<Team>;
-	private id?: number;
-	
-
-	private debugBall() {
-		const b = this.ball.position;
-		for (let paddle of this.paddles) {
-			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(), false)) {
-				console.log("in paddle");
-				debugger;
-			}
-		}
-	}
 
 	public constructor(players: GAME, offscreenCanvas: HTMLCanvasElement, canvas: HTMLCanvasElement, level: field) {
 		super();
@@ -121,7 +110,7 @@ export class Game extends Net {
 
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
 				const oldLines = paddle.getCollisionLines();
-				//TODO maybe limit the max amount of movement allowed for the paddle
+
 				if (paddle.isInPlayerArea(new Vector(paddle.position.x + event.x, paddle.position.y), this.field.getPlayerAreas()[paddle.owner]))
 					paddle.position.x += event.x;
 				if (paddle.isInPlayerArea(new Vector(paddle.position.x, paddle.position.y + event.y), this.field.getPlayerAreas()[paddle.owner]))
@@ -152,7 +141,8 @@ export class Game extends Net {
 		});
 
 		this.on("mousescroll", netEvent => {
-			console.log("scroll event");
+			//TODO do a check for if after rotation ball gets inside paddle
+			//TODO check if rotation causes paddle to get outside player field
 			const event = netEvent as MouseEvent;
 			let paddle = this.getPaddle(event.u);
 
@@ -170,42 +160,12 @@ export class Game extends Net {
 			}
 		});
 
-		this.on("resize", (resize) => {
-			this.resizeOffscreenCanvas();
-		});
-
 		this.on("ping", netEvent => {
 			const event = netEvent as PingEvent;
 			const paddle = this.getPaddle(event.u);
 
 			if (paddle !== null) {
 				paddle.ping = this.time;
-			}
-
-			const team = this.getTeam(event.u);
-
-			if (team !== null) {
-				team.ping = this.time;
-			}
-		});
-
-		//TODO this causes a lot of issues, need to improve this because of the snapshot thing
-		//TODO also need to send message to the update socket
-		this.on("score", netEvent => {
-			const event = netEvent as ScoreEvent;
-
-			let team = this.getTeam(event.u);
-			if (team === null) {
-				
-				team = this.teams.find(t => t.id == event.t) ?? null;
-				if (team?.userId !== undefined) {
-					team = null;
-				}
-			}
-			if (team !== null) {
-				team.userId = event.u;
-				team.ping = this.time;
-				team.score = event.s;
 			}
 		});
 	}
@@ -230,15 +190,13 @@ export class Game extends Net {
 			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(), false)) {
 				if (isInConvexHull(closest[1], paddle.getCollisionLines(), false))
 				{
-					console.log("ERROR: ball in paddle. Resetting Position.");
-					// this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
-					// this.ball.velocity = this.ball.velocity.tangent();
+					console.log("ERROR: ball in paddle.");
 				}
 			}
 		}
 	}
 
-	private resizeOffscreenCanvas() {
+	public resizeOffscreenCanvas() {
 		if (this.offscreenCanvas.width != this.canvas.width)
 			this.offscreenCanvas.width = this.canvas.width;
 		if (this.offscreenCanvas.height != this.canvas.height)
@@ -253,14 +211,14 @@ export class Game extends Net {
 		this.offscreenContext.scale(minScale, minScale);
 		this.background.render(this.offscreenContext);
 		this.offscreenContext.restore();
-		console.log("resizing offscreencanvas");
 	}
 
 	protected save(): Snapshot {
 		return {
 			ball: this.ball.save(),
 			paddles: this.paddles.map(paddle => paddle.save()),
-			teams: this.teams.map(team => team.save()),
+			state: {teams: this.teams.map(team => team.save()),
+			},
 			...super.save(),
 		};
 	}
@@ -268,7 +226,7 @@ export class Game extends Net {
 	protected load(snapshot: Snapshot) {
 		this.ball.load(snapshot.ball);
 		this.paddles.forEach((paddle, i) => paddle.load(snapshot.paddles[i]));
-		this.teams.forEach((team, i) => team.load(snapshot.teams[i]));
+		this.teams.forEach((team, i) => team.load(snapshot.state.teams[i]));
 		super.load(snapshot);
 	}
 
@@ -282,16 +240,7 @@ export class Game extends Net {
 		return null;
 	}
 
-	public getTeam(userID?: number): Team | null {
-		for (let team of this.teams) {
-			if (team.userId === userID) {
-				return team;
-			}
-		}
-
-		return null;
-	}
-
+	//TODO maybe render fully in webgl framebuffer
 	//TODO lerp/slerp the paddle (and ball?) for smoother motion
 	public render(context: CanvasRenderingContext2D) {
 		this.ball.render(context);
@@ -308,7 +257,8 @@ export class Game extends Net {
 		context.drawImage(this.offscreenCanvas, 0, 0);
 	}
 
-	//TODO send to the backend for score update
+	//TODO make a system so it only plays the sound once!!!!
+	//TODO move as much as possible outside of lateTick please
 	public lateTick() {
 		let time = 1;
 		const maxSpeed = 30;
@@ -323,29 +273,19 @@ export class Game extends Net {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name.startsWith("goal")) {
-				//TODO because of the snapshot system it will do this multiple times including sound effects etc
-				//TODO also send update to backend for score
-				//TODO better score update
 				scoreSound.play();
 				let goal: number = +collision[0].name.charAt(4);
-				let score;
 				if (this.level.players > 2)
-					score = this.teams[goal].score - 1;
+					this.teams[goal].score -= 1;
 				else if (goal === 1) {
 					goal = 0;
-					score = this.teams[goal].score + 1;
+					this.teams[goal].score += 1;
 				}
 				else {
 					goal = 1;
-					score = this.teams[goal].score + 1;
+					this.teams[goal].score += 1;
 				}
-				// this.teams[goal].id
-				//TODO It will send this for everyone, even if they are playing back old events....
-				this.send("score", {
-					u: this.id,
-					s: score,
-					t: this.teams[goal].id,
-				});
+				setOriginRipple(this.ball.position.x, this.ball.position.y);
 				activateRipple();
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
@@ -375,12 +315,6 @@ export class Game extends Net {
 			}
 		}
 
-		for (let team of this.teams) {
-			if (team.ping + PADDLE_PING_TIMEOUT < this.time) {
-				team.userId = undefined;
-			}
-		}
-
 		if (this.ball.position.x < -2 * border || this.ball.position.x > this.field.width + 2 * border ||
 			this.ball.position.y < 90 - this.field.height / 2 - border || this.ball.position.y > 90 + this.field.height / 2 + border)
 		{
@@ -393,7 +327,6 @@ export class Game extends Net {
 	}
 
 	public async start(options: Options) {
-		this.id = options.member.user.id;
 		this.teams = [];
 		for (let i = 0; i < this.level.players; i++) {
 			this.teams.push(new Team((options.member as any).room.teams[i].id));
@@ -410,6 +343,7 @@ export class Game extends Net {
 		music.muted = false;
 		music.volume = 0.5;
 		music.play();
+		this.resizeOffscreenCanvas();
 	}
 }
 
@@ -422,7 +356,6 @@ export class Modern {
 	private offscreenCanvas: HTMLCanvasElement;
 	private field: field | null;
 	private interval?: NodeJS.Timer;
-	private id?: number;
 	private options?: Options;
 
 	public async init() {
@@ -448,7 +381,8 @@ export class Modern {
 
 	public update(time: number) {
 		this.lastTime ||= time;
-
+		if (this.offscreenCanvas.width != this.canvas.width || this.offscreenCanvas.height != this.canvas.height)
+			this.game?.resizeOffscreenCanvas();
 		while (time - this.lastTime > 1000 / UPS) {
 			this.game?.tick();
 			this.lastTime += 1000 / UPS;
@@ -463,14 +397,13 @@ export class Modern {
 		const posY = Math.floor(yOffset - border * minScale * 8) > 0 ? Math.floor(yOffset - border * minScale * 8) : 0;
 		const width = this.canvas.width - 2 * posX;
 		const height = this.canvas.height - 2 * posY;
-		console.log(width, height, this.canvas.width, this.canvas.height, posX, posY, xOffset, yOffset, minScale);
 		this.context.lineWidth = 5;
 		this.context.fillRect(posX,posY,width, height); //this is for the black background
-		this.game?.renderBackGround(this.context);
+		this.game!.renderBackGround(this.context);
 		this.context.save();
 		this.context.translate(xOffset, yOffset);
 		this.context.scale(minScale, minScale);
-		this.game?.render(this.context);
+		this.game!.render(this.context);
 		this.context.restore();
 		this.context.strokeStyle = "gray";
 		this.context.lineJoin = "round";
@@ -481,43 +414,7 @@ export class Modern {
 
 	public async start(options: Options) {
 		this.options = options;
-
-		//debug for why rendering is weird
-		//TODO find out why rendering is blurry and there is a black rectange
-		this.context.fillStyle = "red";
-		this.context.fillRect(0,0, 50, 50);
-		// this.canvas.addEventListener("mousemove", ev => {
-		// 	const xScale = Math.floor(this.canvas.width / WIDTH);
-		// 	const yScale = Math.floor(this.canvas.height / HEIGHT);
-		// 	const minScale = Math.min(xScale, yScale);
-			
-		// 	this.game?.send("mousemove", {
-		// 		u: options.member.user.id,
-		// 		x: ev.movementX/ minScale,
-		// 		y: ev.movementY/ minScale,
-		// 		t: options.member.player?.team?.id,
-		// 	});
-		// });
-
-		//TODO maybe have middleclick or something for resetting rotation?
-		// if (this.players === GAME.FOURPLAYERS) {
-		// 	this.canvas.addEventListener("wheel", ev => {
-		// 		const rotation = ev.deltaY / 16 * 2 * 0.01745329;
-		// 		this.game?.send("mousescroll", {
-		// 			u: options.member.user.id,
-		// 			x: 0,
-		// 			y: 0,
-		// 			t: options.member.player?.team?.id,
-		// 			r: rotation
-		// 		});
-		// 	});
-		// }
-		
-		//this event is for resizing the offscreen canvas
-		// window.addEventListener("resize", (ev) => {
-		// 	this.game?.send("resize", {
-		// 	});
-		// });
+		this.game?.resizeOffscreenCanvas();
 		this.interval = setInterval(() => {
 			this.game?.send("ping", {
 				u: options.member.user.id,
@@ -534,11 +431,11 @@ export class Modern {
 		const xScale = Math.floor(this.canvas.width / WIDTH);
 		const yScale = Math.floor(this.canvas.height / HEIGHT);
 		const minScale = Math.min(xScale, yScale);
-		const x = Math.floor((moveX) / minScale);
-		const y = Math.floor((moveY) / minScale);
+		const x = ((moveX) / minScale);
+		const y = ((moveY) / minScale);
 			
 			if (this.options.member.player != null) {
-			this.game?.send("mousemove", {
+			this.game!.send("mousemove", {
 				u: this.options.member.user.id,
 				x: x,
 				y: y,
@@ -547,25 +444,20 @@ export class Modern {
 		}
 	}
 
+	//TODO add a middleclick to reset rotation
 	public mouseWheel(deltaY: number) {
 		if (!this.options) {
 			return;
+		}	
+		if (this.options.member.player != null && this.players === GAME.FOURPLAYERS) {
+			this.game!.send("mousescroll", {
+				u: this.options.member.user.id,
+				x: 0,
+				y: 0,
+				t: this.options.member.player?.team?.id,
+				r: deltaY
+			});
 		}
-		const rotation = deltaY / 16 * 2 * 0.01745329;
-			
-			if (this.options.member.player != null && this.players === GAME.FOURPLAYERS) {
-				this.game?.send("mousescroll", {
-					u: this.options.member.user.id,
-					x: 0,
-					y: 0,
-					t: this.options.member.player?.team?.id,
-					r: rotation
-				});
-		}
-	}
-
-	public resize() {
-		this.game?.send("resize", {});
 	}
 
 	public stop() {

@@ -20,7 +20,9 @@ export interface PaddleObject {
 export interface Snapshot extends NetSnapshot {
 	ball: BallObject;
 	paddles: PaddleObject[];
-	teams: TeamObject[];
+	state: {
+		teams: TeamObject[];
+	};
 }
 
 export interface MouseEvent extends NetEvent {
@@ -39,8 +41,8 @@ export interface Options extends NetOptions {
 }
 
 export interface TeamObject {
-	i: number;//Id
-	s: number;//Score
-	u?: number;//UserID
-	p: number;//Ping
+	id: number;//Id
+	score: number;//Score
+	user?: number;//UserID
+	ping: number;//Ping
 }

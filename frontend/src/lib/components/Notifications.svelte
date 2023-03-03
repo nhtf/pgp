@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Invite, User } from "$lib/entities";
+	import type { Invite } from "$lib/entities";
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
@@ -17,6 +17,8 @@
 
 	let notifMap = new Map<Invite, Status>();
 	let oldLength: number;
+
+	// console.log("A", $inviteStore.unMap());	
 
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: invites = [...$inviteStore].map(([_, invite]) => invite);

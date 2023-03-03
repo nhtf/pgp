@@ -14,6 +14,12 @@ declare module "http" {
 	}
 }
 
+declare module "socket.io" {
+	export interface Socket {
+		room?: number;
+	}
+}
+
 export function ProtectedGateway(namespace?: string) {
 	@WebSocketGateway({
 		namespace: namespace,

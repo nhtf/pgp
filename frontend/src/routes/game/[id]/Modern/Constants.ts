@@ -121,7 +121,7 @@ export const scoreColors = [
 
 export const ballVelociy = [
     [{x: 2, y: 0}, {x: -2, y: 0}],
-    [{x: 2, y: 2}, {x: 2, y: -2},{x: -2, y: -2}, {x: -2, y: 2}]
+    [{x: 1.41, y: 1.41}, {x: 1.41, y: -1.41},{x: -1.41, y: -1.41}, {x: -1.41, y: 1.41}]
 ];
 
 

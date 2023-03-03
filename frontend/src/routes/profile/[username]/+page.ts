@@ -4,7 +4,7 @@ import type { Achievement } from "$lib/types"
 import { Status } from "$lib/enums";
 import { get } from '$lib/Web';
 import { unwrap } from '$lib/Alert';
-import { updateStore, userStore } from "$lib/stores"
+import { updateStore, userStore, roomStore, friendIdStore } from "$lib/stores"
 
 export const ssr = false;
 
@@ -42,9 +42,15 @@ let dummyachievements: Achievement[] = [
 export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	window.fetch = fetch;
 
+	const { friends } = await parent();
+
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 
 	updateStore(userStore, [profile]);
+
+	updateStore(roomStore, await Promise.all(friends!
+		.filter((user) => user.activeMember)
+		.map(async (user) => await get(`/game/id/${user.activeMember!.roomId}`))));
 
 	//just for debug
 	if (!profile.achievements) {

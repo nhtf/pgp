@@ -34,9 +34,9 @@ export class Team {
 	public score: number;
 	public id: number;
 
-	public constructor(state: State, id: number) {
+	public constructor(state: State, id: number, score?: number) {
 		this.state = state;
-		this.score = 0;
+		this.score = score === undefined ? 0 : score;
 		this.id = id;
 	}
 
@@ -58,8 +58,8 @@ export class State {
 	public constructor(teams: Team2[]) {
 		this.players = [];
 		this.teams = [];
-		this.teams.push(new Team(this, teams[0].id));
-		this.teams.push(new Team(this, teams[1].id));
+		this.teams.push(new Team(this, teams[0].id, teams[0].score));
+		this.teams.push(new Team(this, teams[1].id, teams[1].score));
 		this.state = "serve-ball";
 		this.current = this.teams[0];
 	}

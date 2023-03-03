@@ -29,7 +29,8 @@ export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, e
 		})
 
 		return old;
-	})
+	});
+
 }
 
 export const userStore = writable(new Map<number, User>);

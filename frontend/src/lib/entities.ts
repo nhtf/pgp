@@ -11,6 +11,7 @@ export type User = {
 	status: Status,
 	avatar: string,
 	in_game: boolean,
+	activeMember?: GameRoomMember,
 };
 
 export type Room = {
@@ -61,6 +62,7 @@ export type Player = {
 export type Team = {
 	id: number,
 	name: string,
+	score: number,
 };
 
 export type Invite = {

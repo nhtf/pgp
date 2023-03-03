@@ -21,6 +21,7 @@ export const genAdverb = () => choice([
 	() => `sometimes`,
 	() => `surprisingly`,
 	() => `secretly`,
+	() => `increasingly`,
 ])();
 
 export const genCreature = () => choice([

@@ -1,3 +1,6 @@
+import type { VectorObject } from "../../lib2D/Math2D";
+import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "../Constants";
+
 let VERT_RIP_SRC: string;
 let FRAG_RIP_SRC: string;
 let VERT_NOR_SRC: string;
@@ -7,6 +10,11 @@ await fetch(path+"ripple.vert").then(r => r.text().then(d => VERT_RIP_SRC = d));
 await fetch(path+"ripple.frag").then(r => r.text().then(d => FRAG_RIP_SRC = d));
 await fetch(path+"normal.vert").then(r => r.text().then(d => VERT_NOR_SRC = d));
 await fetch(path+"normal.frag").then(r => r.text().then(d => FRAG_NOR_SRC = d));
+
+enum SHADER {
+	NORMAL,
+	RIPPLE
+};
 
 function createShader(gl: WebGLRenderingContext, type: number, source: string): WebGLShader {
 	const shader = gl.createShader(type)!;
@@ -59,47 +67,69 @@ function createTexture(gl: WebGLRenderingContext): WebGLTexture {
 export interface Events {
 	mousemove(moveX: number, moveY: number): void;
     mouseWheel(deltaY: number): void;
-    resize(): void;
 }
 
 let active = false;
 export function activateRipple() {
 	active = true;
 }
+let position: VectorObject = {x: 0, y: 0};
+export function setOriginRipple(x: number, y: number) {
+	position.x = (x + 40) / WIDTH;
+	position.y = 1 - ((y + 22.5) / HEIGHT);
+}
 
 export class RippleShader {
 	private gl: WebGLRenderingContext;
 	private outerCanvas: HTMLCanvasElement;
 	private innerCanvas: HTMLCanvasElement;
-	private ripProgram: WebGLProgram;
-	private norProgram: WebGLProgram;
+	private program: WebGLProgram[] = [];
 	private bufferPos: WebGLBuffer;
 	private bufferCoord: WebGLBuffer;
 	private texture: WebGLTexture;
-	private uniformTex: WebGLUniformLocation;
-	private uniformSize: WebGLUniformLocation;
-	private uniformScale: WebGLUniformLocation;
-    private timeLocation: WebGLUniformLocation;
+	private uniformTex: WebGLUniformLocation[] = [];
+	private uniformSize: WebGLUniformLocation[] = [];
+	private uniformScale: WebGLUniformLocation[] = [];
+    private timeLocation: WebGLUniformLocation[] = [];
+	private originPos: WebGLUniformLocation[] = [];
+	private shockParams: WebGLUniformLocation[] = [];
 	private timer: number;
+	private activeShader: SHADER;
+	private lastTime: number;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
 		this.innerCanvas = document.createElement("canvas");
-		this.gl = canvas.getContext("webgl")!;
+		this.gl = canvas.getContext("webgl2")!;
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 		this.gl.pixelStorei(this.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-		this.ripProgram = createProgram(this.gl, VERT_RIP_SRC, FRAG_RIP_SRC);
-		this.norProgram = createProgram(this.gl, VERT_NOR_SRC, FRAG_NOR_SRC);
-		this.timeLocation = this.gl.getUniformLocation(this.norProgram, "time")!;
-		this.uniformTex = this.gl.getUniformLocation(this.norProgram, "tex")!;
-		this.uniformSize = this.gl.getUniformLocation(this.norProgram, "size")!;
-		this.uniformScale = this.gl.getUniformLocation(this.norProgram, "scale")!;
+
+		this.program.push(createProgram(this.gl, VERT_NOR_SRC, FRAG_NOR_SRC));
+
+		this.program.push(createProgram(this.gl, VERT_RIP_SRC, FRAG_RIP_SRC));
+
+		this.timeLocation.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "time")!);
+		this.uniformTex.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "tex")!);
+		this.uniformSize.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "size")!);
+		this.uniformScale.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "scale")!);
+		this.originPos.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "center")!);
+		this.shockParams.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "shockParams")!);
+
+		this.timeLocation.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "time")!);
+		this.uniformTex.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "tex")!);
+		this.uniformSize.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "size")!);
+		this.uniformScale.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "scale")!);
+		this.originPos.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "center")!);
+		this.shockParams.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "shockParams")!);
+
 		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
 		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 		this.texture = createTexture(this.gl);
 		this.timer = 0;
+		this.activeShader = 0;
+		this.lastTime = 0;
 	}
 
 	private scale(): number {
@@ -122,8 +152,8 @@ export class RippleShader {
 			const xScale = Math.floor(this.outerCanvas.width / this.innerCanvas.width);
 			const yScale = Math.floor(this.outerCanvas.height / this.innerCanvas.height);
 			const minScale = Math.min(xScale, yScale);
-			const x = Math.floor((ev.movementX) / minScale);
-			const y = Math.floor((ev.movementY) / minScale);
+			const x = ((ev.movementX) / minScale);
+			const y = ((ev.movementY) / minScale);
 			events.mousemove(x, y);
 		});
 
@@ -131,10 +161,6 @@ export class RippleShader {
             const rotation = ev.deltaY / 16 * 2 * 0.01745329;
 				events.mouseWheel(rotation);
 			});
-        
-        window.addEventListener("resize", () => {
-            events.resize();
-        });
 	}
 
 	public getCanvas(): HTMLCanvasElement {
@@ -142,27 +168,30 @@ export class RippleShader {
 	}
 
 	public update(time: number) {
+		
 		let refresh = false;
 
 		if (this.outerCanvas.clientWidth != this.outerCanvas.width) {
 			this.outerCanvas.width = this.outerCanvas.clientWidth;
+			this.innerCanvas.width = this.outerCanvas.clientWidth;
 			refresh = true;
 		}
 
 		if (this.outerCanvas.clientHeight != this.outerCanvas.height) {
 			this.outerCanvas.height = this.outerCanvas.clientHeight;
+			this.innerCanvas.height = this.outerCanvas.clientHeight;
 			refresh = true;
 		}
+
 		this.gl.viewport(0, 0, this.outerCanvas.width, this.outerCanvas.height);
 		this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 		this.gl.activeTexture(this.gl.TEXTURE0);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas);
+		this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas); // TODO: deze functie is traaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
 
 		if (refresh) {
-			console.log("refresh");
 			this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.bufferPosData()), this.gl.STATIC_DRAW);
 		}
 		this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
@@ -170,29 +199,28 @@ export class RippleShader {
 		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
 		this.gl.enableVertexAttribArray(0);
 		this.gl.enableVertexAttribArray(1);
-
+		
+		
 		if (active) {
-			this.timeLocation = this.gl.getUniformLocation(this.ripProgram, "time")!;
-			this.uniformTex = this.gl.getUniformLocation(this.ripProgram, "tex")!;
-			this.uniformSize = this.gl.getUniformLocation(this.ripProgram, "size")!;
-			this.uniformScale = this.gl.getUniformLocation(this.ripProgram, "scale")!;
-			this.gl.useProgram(this.ripProgram);
-			this.gl.uniform1f(this.timeLocation, time * 0.01);
-			this.timer += 1;
-			if (this.timer > 50) {
+			this.activeShader = SHADER.RIPPLE;
+			this.timer += time - this.lastTime;
+			if (this.timer > 500) {
 				this.timer = 0;
 				active = false;
+				this.activeShader = SHADER.NORMAL;
 			}
 		}
 		else {
-			this.uniformTex = this.gl.getUniformLocation(this.norProgram, "tex")!;
-			this.uniformSize = this.gl.getUniformLocation(this.norProgram, "size")!;
-			this.uniformScale = this.gl.getUniformLocation(this.norProgram, "scale")!;
-			this.gl.useProgram(this.norProgram);
+			this.activeShader = SHADER.NORMAL;
 		}
-		this.gl.uniform1i(this.uniformTex, 0);
-		this.gl.uniform2f(this.uniformSize, this.innerCanvas.width, this.innerCanvas.height);
-		this.gl.uniform1f(this.uniformScale, this.scale());
+		this.gl.useProgram(this.program[this.activeShader]);
+		this.gl.uniform3f(this.shockParams[this.activeShader], 10.0, 0.9, 0.1);
+		this.gl.uniform1f(this.timeLocation[this.activeShader], this.timer * 0.0025);
+		this.gl.uniform1i(this.uniformTex[this.activeShader], 0);
+		this.gl.uniform2f(this.uniformSize[this.activeShader], this.innerCanvas.width, this.innerCanvas.height);
+		this.gl.uniform2f(this.originPos[this.activeShader], position.x, position.y);
+		this.gl.uniform1f(this.uniformScale[this.activeShader], this.scale());
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+		this.lastTime = time;
 	}
 }

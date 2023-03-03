@@ -4,13 +4,13 @@ import {
 	Entity,
 	PrimaryGeneratedColumn,
 	Column,
+	ManyToOne,
 	ManyToMany,
 	JoinTable,
 	OneToMany,
 	BeforeRemove,
 	AfterInsert,
 	CreateDateColumn,
-	RelationId,
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
@@ -23,6 +23,7 @@ import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { Player } from "./Player";
 import { Message } from "./Message";
+import { GameRoomMember } from "./GameRoomMember"
 
 @Entity()
 export class User {
@@ -35,7 +36,7 @@ export class User {
 
 	@Exclude()
 	@Column({
-		   default: AuthLevel.OAuth
+		default: AuthLevel.OAuth
 	})
 	auth_req: AuthLevel;
 
@@ -55,7 +56,7 @@ export class User {
 	@Column({
 		default: DEFAULT_AVATAR,
 	})
-	avatar_base: string; 
+	avatar_base: string;
 
 	@OneToMany(() => Invite, (invite) => invite.from)
 	sent_invites: Invite[];
@@ -114,16 +115,21 @@ export class User {
 		return `${AVATAR_DIR}/${this.avatar_basename}`;
 	}
 
+	@Expose()
+	get activeMember(): GameRoomMember | undefined {
+		return this.members?.find((member: GameRoomMember) => member.is_playing) as GameRoomMember;
+	}
+
 	async add_friend(target: User) {
 		if (!this.friends) {
 			this.friends = [];
 		}
-	
+
 		this.friends.push(target);
 	}
 
-	async send_update(action: Action) {
-		await UpdateGateway.instance.send_update({
+	send_update(action: Action) {
+		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			id: this.id,
 			action,
@@ -131,8 +137,8 @@ export class User {
 		});
 	}
 
-	async send_friend_update(action: Action, friend: User) {
-		await UpdateGateway.instance.send_update({
+	send_friend_update(action: Action, friend: User) {
+		UpdateGateway.instance.send_update({
 			subject: Subject.FRIEND,
 			id: friend.id,
 			action,
@@ -141,8 +147,8 @@ export class User {
 	}
 
 	@AfterInsert()
-	async afterInsert() {
-		await this.send_update(Action.ADD);
+	afterInsert() {
+		this.send_update(Action.ADD);
 	}
 
 	// Waaay to many updates, do not use
@@ -152,7 +158,7 @@ export class User {
 	// }
 
 	@BeforeRemove()
-	async beforeRemove() {
-		await this.send_update(Action.REMOVE);
+	beforeRemove() {
+		this.send_update(Action.REMOVE);
 	}
 }

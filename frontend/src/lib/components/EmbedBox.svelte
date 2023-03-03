@@ -28,12 +28,12 @@
 			<div class="embed-spinner-circle" />
 		</div>
 	{:then embed}
-		{#if embed.title}
+		<!-- {#if embed.title}
 			<a class="embed-title" href={embed.url}>{embed.title}</a>
 		{/if}
 		{#if embed.description}
 			<p class="embed-description">{embed.description}</p>
-		{/if}
+		{/if} -->
 		{#if ["www.youtube.com", "youtube.com", "youtu.be"].includes(urlInfo.host) && embed.video}
 			<iframe
 				class="embed-iframe"
@@ -102,20 +102,21 @@
 		right: 0px;
 	}
 
-	.embed-title {
+	/* .embed-title {
 		color: #0dcaf0;
 		text-decoration-line: underline;
 	}
 
 	.embed-description {
 		font-size: 0.75em;
-	}
+	} */
 
 	.embed-iframe {
 		width: 100%;
 	}
 
 	.embed-image {
+		max-width: 16rem;
 		border-radius: 5px;
 	}
 

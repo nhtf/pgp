@@ -109,9 +109,9 @@ highp vec4 mask_weight(highp float x) {
 }
 
 highp vec2 curve(highp vec2 co) {
-	co = co - vec2(0.5, 0.5);
-	co.x /= cos(co.y * PI / CURVE_X);
-	co.y /= cos(co.x * PI / CURVE_Y);
+	highp vec2 tmp = co - vec2(0.5, 0.5);
+	co.x = tmp.x / cos(tmp.y * PI / CURVE_X);
+	co.y = tmp.y / cos(tmp.x * PI / CURVE_Y);
 	return co + vec2(0.5, 0.5);
 }
 
@@ -239,7 +239,7 @@ export class Shader {
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
 		this.innerCanvas = document.createElement("canvas");
-		this.gl = canvas.getContext("webgl")!;
+		this.gl = canvas.getContext("webgl2")!;
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 		this.gl.pixelStorei(this.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 		this.gl.enable(this.gl.BLEND);

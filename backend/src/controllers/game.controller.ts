@@ -86,6 +86,13 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		});
 	}
 
+	@Get("id/:id")
+	// TODO
+	// @RequiredRole(Role.MEMBER)
+	async get_room(@GetRoom() room: GameRoom) {
+		return await this.get_joined_info(room);
+	}
+
 	// TODO: remove both, use base joined()
 	@Get("_joined")
 	async _joined(@Me() me: User) {
@@ -133,6 +140,16 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 					},
 					state: {
 						teams: true,
+					},
+				},
+			},
+			order: {
+				room: {
+					state: {
+						teams: {
+							// TODO: ordering the teams by id to make them always appear on the same side is a very fragile solution
+							id: "DSC",
+						},
 					},
 				},
 			},

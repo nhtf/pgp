@@ -57,7 +57,7 @@ export async function put(pathname: string, body: any, stringify: boolean) {
 		return await json(`${BACKEND}${pathname}`, {
 			credentials: "include",
 			method: "PUT",
-			body: body,
+			body,
 		});
 	}
 }

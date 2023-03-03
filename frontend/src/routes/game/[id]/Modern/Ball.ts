@@ -13,7 +13,7 @@ export class Ball {
 
 	public constructor() {
 		this.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
-		this.velocity = new Vector(1, 1);
+		this.velocity = new Vector(1.41, 1.41);
 		this.counter = 0;
 	}
 

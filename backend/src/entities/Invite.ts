@@ -33,8 +33,8 @@ export class Invite {
 		return "Room";
 	}
 
-	async send_update(action: Action) {
-		await UpdateGateway.instance.send_update({
+	send_update(action: Action) {
+		UpdateGateway.instance.send_update({
 			subject: Subject.INVITE,
 			id: this.id,
 			action,
@@ -43,12 +43,12 @@ export class Invite {
 	}
 
 	@AfterInsert()
-	async afterInsert() {
-		await this.send_update(Action.ADD);
+	afterInsert() {
+		this.send_update(Action.ADD);
 	}
 
 	@BeforeRemove()
-	async beforeRemove() {
-		await this.send_update(Action.REMOVE);
+	beforeRemove() {
+		this.send_update(Action.REMOVE);
 	}
 }

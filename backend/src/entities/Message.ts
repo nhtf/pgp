@@ -9,7 +9,7 @@ import {
 } from "typeorm";
 import { ChatRoom } from "./ChatRoom";
 import { User } from "./User";
-import { Member } from "./Member";
+import { ChatRoomMember } from "./ChatRoomMember";
 import { Embed } from "./Embed";
 import { Exclude, Transform } from "class-transformer"
 
@@ -29,8 +29,8 @@ export class Message {
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
 	room: ChatRoom;
 	
-	@ManyToOne(() => Member, (member) => member.messages, { nullable: true, onDelete: "SET NULL" })
-	member: Member | null;
+	@ManyToOne(() => ChatRoomMember, (member) => member.messages, { nullable: true, onDelete: "SET NULL" })
+	member: ChatRoomMember | null;
 
 	@RelationId((message: Message) => message.member)
 	memberId: number

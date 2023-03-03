@@ -10,7 +10,7 @@ import { PURGE_INTERVAL } from "../vars";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { get_status } from "./get_status";
-import { WsException } from "@nestjs/websockets";
+import { WsException, SubscribeMessage, ConnectedSocket } from "@nestjs/websockets";
 
 export type Activity = {
 	last_status: Status,
@@ -68,7 +68,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	
 		if (last_status !== user.status) {
 			console.log(`${user.username}: ${Status[last_status]} -> ${Status[user.status]}`);
-			await this.send_update(this.create_update(user, Status.ACTIVE));
+			this.send_update(this.create_update(user, Status.ACTIVE));
 		}
 
 		
@@ -81,7 +81,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			if (new_status !== activity.last_status) {
 				const user = await this.user_repo.findOneBy({ id });
 
-				await this.send_update(this.create_update(user, new_status));
+				this.send_update(this.create_update(user, new_status));
 			
 				this.activity_map.set(id, { last_status: new_status, last_activity: activity.last_activity });
 			
@@ -95,7 +95,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	async expire(user: User) {
 		this.activity_map.delete(user.id);
 	
-		await this.send_update(this.create_update(user, Status.OFFLINE));
+		this.send_update(this.create_update(user, Status.OFFLINE));
 	}
 
 	async onConnect(client: Socket) {
@@ -139,7 +139,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		}
 	}
 
-	async send_update(packet: UpdatePacket, ...receivers: User[]) {
+	send_update(packet: UpdatePacket, ...receivers: User[]) {
 		if (receivers === undefined || receivers === null || receivers.length === 0) {
 			this.server.emit("update", packet);
 		} else {
@@ -156,7 +156,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		user = await this.setActivity(user);
 	
 		if (last_status !== user.status) {
-			await this.send_update(this.create_update(user, Status.ACTIVE));
+			this.send_update(this.create_update(user, Status.ACTIVE));
 		}
 	
 		await this.user_repo.save(user);
@@ -171,4 +171,13 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	
 		return await this.user_repo.save(user);
 	}
+
+	@SubscribeMessage("heartbeat")
+	async receiveHeartbeat(@ConnectedSocket() client: Socket) {
+		const id = client.request.session.user_id;
+		const user = await this.user_repo.findOneBy({ id });
+
+		await this.heartbeat(user);
+	}
+	
 }

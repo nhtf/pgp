@@ -1,10 +1,10 @@
 <script lang="ts">
-	import type { User } from "$lib/entities";
+	import type { GameRoom, User } from "$lib/entities";
 	import { post, remove } from "$lib/Web";
 	import { Status } from "$lib/enums";
 	import { page } from "$app/stores";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import { friendIdStore, userStore } from "$lib/stores";
+	import { friendIdStore, roomStore, userStore } from "$lib/stores";
 	import { icon_path, status_colors } from "$lib/constants";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import Swal from "sweetalert2";
@@ -19,6 +19,14 @@
 
 	function byName(first: User, second: User) {
 		return first.username.localeCompare(second.username);
+	}
+
+	function getScore(user: User) {
+		const member = user.activeMember;
+		const room = $roomStore.get(member!.roomId) as GameRoom;
+		const teams = room.teams;
+
+		return teams.map((team) => String(team.score)).join(" - ");
 	}
 
 	async function toggleAddfriend() {
@@ -52,18 +60,23 @@
 		});
 	}
 
-	async function removeFriend(id: number) {
-		await remove(`/user/me/friends/${id}`);
+	async function unFriend(user: User) {
+		await remove(`/user/me/friends/${user.id}`);
 
 		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
-	function changePlacement() {
-		placement = window.innerWidth < 750 ? "top" : "left-end";
+	async function invite(user: User) {
+		
 	}
+
+	async function spectate(user: User) {
+		
+	}
+
 </script>
 
-<svelte:window on:resize={changePlacement} />
+<svelte:window />
 
 <!-- //TODO have the player status also update for in-game correctly -->
 <div class="block-cell self-flex-start bg-c bordered" id="friend-block">
@@ -86,65 +99,61 @@
 		</div>
 	</div>
 	<div class="block-vert width-available">
-		{#if friends}
-			{#key friends}
-				{#each friends as { username, avatar, status, in_game, id }, index (id)}
-					<Button
-						color="alternative"
-						id="avatar_with_name{index}"
-						class="friend-button avatar-status{status}"
-					>
-						<!-- //TODO try and use the indicator instead of dot so it's possible to have custom colors -->
-						<Avatar
-							src={avatar}
-							dot={{
-								placement: "bottom-right",
-								color: status_colors[status],
-							}}
-							class="mr-2 bg-c"
-						/>
-						<div class="block-cell">
-							<div class="block-hor">{username}</div>
-							{#if in_game}
-								<div class="block-hor" id="in_game">
-									playing
-								</div>
-								{#if score.has(username)}
-									<div class="block-hor" id="scoredv">
-										{score.get(username)}
-									</div>
-								{/if}
-							{/if}
+		{#each friends as friend (friend.id)}
+			<Button
+				color="alternative"
+				class="friend-button avatar-status{friend.status}"
+			>
+				<!-- //TODO try and use the indicator instead of dot so it's possible to have custom colors -->
+				<Avatar
+					src={friend.avatar}
+					dot={{
+						placement: "bottom-right",
+						color: status_colors[friend.status],
+					}}
+					class="mr-2 bg-c"
+				/>
+				<div class="block-cell">
+					<div class="block-hor">{friend.username}</div>
+					{#if friend.status === Status.INGAME}
+						<div class="block-hor" id="in_game">
+							playing
 						</div>
-					</Button>
-					<div class="spacing" />
-					{#key placement}
-						<Dropdown
-							{placement}
-							inline
-							triggeredBy="#avatar_with_name{index}"
-							class="bor-c bg-c"
-							frameClass="bor-c bg-c"
-						>
-							<DropdownItem
-								href="/profile/{encodeURIComponent(username)}"
-								>profile</DropdownItem
-							>
-							<!-- //TODO make the spectate and invite game actually functional -->
-							{#if in_game}
-								<DropdownItem>spectate</DropdownItem>
-							{:else if status !== Status.OFFLINE}
-								<DropdownItem>invite game</DropdownItem>
-							{/if}
-							<DropdownItem
-								on:click={() => removeFriend(id)}
-								slot="footer">unfriend</DropdownItem
-							>
-						</Dropdown>
-					{/key}
-				{/each}
-			{/key}
-		{/if}
+						{#if score.has(friend.username)}
+							<div class="block-hor" id="scoredv">
+								{score.get(friend.username)}
+							</div>
+						{/if}
+					{/if}
+				</div>
+			</Button>
+			<Dropdown
+				{placement}
+				inline
+				class="bor-c bg-c"
+				frameClass="bor-c bg-c"
+			>
+				<DropdownItem
+					href={`/profile/${encodeURIComponent(friend.username)}`}
+					>profile</DropdownItem
+				>
+				<!-- //TODO make the spectate and invite game actually functional -->
+				{#if friend.status === Status.INGAME}
+					<DropdownItem on:click={() => spectate(friend)}>spectate</DropdownItem>
+				{:else if friend.status !== Status.OFFLINE}
+					<DropdownItem on:click={() => invite(friend)}>invite game</DropdownItem>
+				{/if}
+				<DropdownItem
+					on:click={() => unFriend(friend)}
+					slot="footer">unfriend</DropdownItem
+				>
+			</Dropdown>
+			{#if friend.activeMember}
+				{#key friend.activeMember.roomId}
+					<div>{getScore(friend)}</div>
+				{/key}
+			{/if}
+		{/each}
 	</div>
 </div>
 

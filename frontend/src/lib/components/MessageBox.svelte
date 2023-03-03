@@ -1,19 +1,18 @@
 <script lang="ts">
     import type { Member, Message } from "$lib/entities";
-	import { BACKEND, BOUNCER } from "$lib/constants";
+	import {BOUNCER } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
-    	import { memberStore, userStore } from "$lib/stores"
+    import { memberStore, userStore } from "$lib/stores"
 	import MemberBox from "./MemberBox.svelte";
 	import EmbedBox from "$lib/components/EmbedBox.svelte";
-	import * as linkify from "linkifyjs";
 	import linkifyStr from "linkify-string";
 	import "linkify-plugin-mention";
 
 	export let message: Message;
 	export let self: Member;
 
-	const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
+	// const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const role_colors = Object.values(CoalitionColors);
 
 	const from_self = ($page.data.user?.id === message.userId);
@@ -26,9 +25,9 @@
 </script>
 
 <div class="message" style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}>
-	<MemberBox {user} {member} {self}/>
+	<MemberBox {user} {member} {self} memberGroup={false}/>
 	<div class="message-box">
-		<div class="text-sm underline" style={`text-align: ${text_align}; color: #${member ? role_colors[member.role] : "white"}`}>{user.username}</div>
+		<div class="text-sm underline" style={`text-align: ${text_align}; color: ${member ? `#${role_colors[member.role]}` : "white"}`}>{user.username}</div>
 		<div class="message-content">{@html linkifyStr(message.content, { className: "link", formatHref: { mention: (href) => `/profile${href}`} })}</div>
 			{#each message.embeds as embed}
 				{#if embed.rich}
@@ -66,30 +65,9 @@
 	}
 
 	.message-image {
-		max-width: 10rem;
-		max-height: 10rem;
+		max-width: 5rem;
+		max-height: 5rem;
 		margin: 0.25rem;
 	}
-
-	.link {
-		color: red;
-	}
-
-	/*
-	.link:link {
-		color: red !important;
-	}
-
-	.link:visited {
-		color: green !important;
-	}
-
-	.link:hover {
-		color: hotpink !important;
-	}
-
-	.link:active {
-		color: blue !important;
-	}*/
 
 </style>
