@@ -148,6 +148,7 @@
 					slot="footer">unfriend</DropdownItem
 				>
 			</Dropdown>
+			<!-- TODO: don't-->
 			{#if friend.activeMember}
 				{#key friend.activeMember.roomId}
 					<div>{getScore(friend)}</div>
