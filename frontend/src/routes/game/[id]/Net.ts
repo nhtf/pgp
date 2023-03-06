@@ -234,8 +234,8 @@ export class Net {
 
 		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
 
-		this.socket?.on("connect", () => {
-			this.socket?.emit("join", { "scope": "game", "room": options.room });
+		this.socket!.on("connect", () => {
+			this.socket!.emit("join", { scope: "game", room: options.room });
 		});
 
 		this.socket.on("exception", (err) => {
@@ -248,34 +248,38 @@ export class Net {
 		this.socket.on("broadcast", message => {
 			this.bandwidthDownload.add(JSON.stringify(message).length);
 
-			if (message.name === "update") {
-				this.merge(message.events);
-			} else if (message.name === "synchronize") {
-				if (message.snapshot.time > this.time) {
-					this.minTime = null;
-					this.load(message.snapshot);
-					this.snapshots = [message.snapshot];
-				}
-
-				this.maxTime = Math.max(this.maxTime, message.time);
-				this.merge(message.events);
-				this.forward(message.time);
-			} else if (message.name === "desync-check") {
-				let latest = this.getLatest(message.snapshot.time);
-
-				if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
-					console.log("running desync check");
-
-					this.load(latest);
-					this.forward(message.snapshot.time);
-					const testState = this.save();
-					this.load(this.snapshots[this.snapshots.length - 1]);
-					this.forward(this.maxTime);
-
-					if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
-						debugger;
+			switch (message.name) {
+				case "update":
+					this.merge(message.events);
+					break;
+				case "synchronize":
+					if (message.snapshot.time > this.time) {
+						this.minTime = null;
+						this.load(message.snapshot);
+						this.snapshots = [message.snapshot];
 					}
-				}
+	
+					this.maxTime = Math.max(this.maxTime, message.time);
+					this.merge(message.events);
+					this.forward(message.time);
+					break;
+				case "desync-check":
+					let latest = this.getLatest(message.snapshot.time);
+	
+					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
+						console.log("running desync check");
+	
+						this.load(latest);
+						this.forward(message.snapshot.time);
+						const testState = this.save();
+						this.load(this.snapshots[this.snapshots.length - 1]);
+						this.forward(this.maxTime);
+	
+						if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
+							debugger;
+						}
+					}
+					break;
 			}
 		});
 

@@ -6,10 +6,6 @@ import { GameRoom } from "./GameRoom";
 
 @Entity()
 export class GameState {
-	constructor(gamemode?: Gamemode) {
-		this.gamemode = gamemode ?? null;
-	}
-
 	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;

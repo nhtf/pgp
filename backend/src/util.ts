@@ -11,13 +11,24 @@ import {
 } from "@nestjs/common";
 import { User } from "./entities/User";
 import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
+import { Status } from "src/enums/Status";
+import { IDLE_TIME, OFFLINE_TIME } from "./vars";
 import isNumeric from "validator/lib/isNumeric";
 import isLength from "validator/lib/isLength";
+
+export function get_status(last_activity: Date): Status {
+	const last = Date.now() - last_activity.getTime();
+
+	return last >= OFFLINE_TIME ?
+		Status.OFFLINE : last >= IDLE_TIME ?
+			Status.IDLE : Status.ACTIVE;
+}
+
 
 export const Me = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
 		const user = ctx.switchToHttp().getRequest().user;
-	
+
 		if (!user)
 			throw new HttpException("Unauthorized", HttpStatus.UNAUTHORIZED);
 
@@ -35,8 +46,8 @@ export function validate_id(value: any) {
 	const id = Number(value);
 	if (!isFinite(id))
 		throw new Error("id must be finite");
-	if (id > 2**31-1)
-		throw new Error(`id may not be larger than ${2**31-1}`);
+	if (id > 2 ** 31 - 1)
+		throw new Error(`id may not be larger than ${2 ** 31 - 1}`);
 	return id;
 }
 
@@ -53,7 +64,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelat
 		constructor(
 			@Inject(type.name.toString().toUpperCase() + "_REPO")
 			readonly repo: Repository<T>
-		) {}
+		) { }
 
 		async transform(value: any, metadata: ArgumentMetadata) {
 			try {
@@ -92,7 +103,7 @@ export class ParseUsernamePipe implements PipeTransform {
 	constructor(
 		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>
-	) {}
+	) { }
 
 	async transform(value: any, metadata: ArgumentMetadata) {
 		if (!value || value === null)

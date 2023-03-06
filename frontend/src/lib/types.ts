@@ -16,3 +16,12 @@ export type Achievement = {
 	progress: number,
 	level_cost: number[],
 };
+
+export type Suggestion = {
+	title: string,
+	desc: string,
+	url: string,
+	src: string,
+	width: number,
+	height: number,
+}

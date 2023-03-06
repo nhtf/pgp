@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Team, ChatRoom, GameRoom } from "$lib/entities";
+	import type { Team, GameRoom, Room } from "$lib/entities";
 	import { Gamemode } from "$lib/enums";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
@@ -9,8 +9,9 @@
 	import { post, remove, patch } from "$lib/Web";
 	import { userStore } from "$lib/stores";
 	import Invite from "./Invite.svelte";
+    import { slide } from "svelte/transition";
 
-	type T = ChatRoom & GameRoom;
+	type T = Room & Partial<GameRoom>;
 
 	export let room: T;
 
@@ -63,7 +64,7 @@
 
 </script>
 
-<div class="room">
+<div class="room" style={`filter: brightness(${room.joined ? "100" : "80"}%)`}>
 	<div class="room-name">
 		{#if room.type === "ChatRoom"}
 			<img class="avatar" src={owner.avatar} alt="avatar"/>
@@ -92,7 +93,7 @@
 			{#if !room.teamsLocked || room.self?.player === null}
 				<button class="button border-blue" on:click={() => joinTeam(room, null)}>Spectate</button>
 			{/if}
-			<!-- {#if room.teams} -->
+			{#if room.teams}
 				<div>
 				{#each room.teams.sort(byId) as team}
 					{#if !room.teamsLocked || room.self?.player?.team.id === team.id}
@@ -100,7 +101,7 @@
 					{/if}
 				{/each}
 				</div>
-			<!-- {/if} -->
+			{/if}
 		{/if}
 	{:else}
 		{#if room.access === Access.PROTECTED}

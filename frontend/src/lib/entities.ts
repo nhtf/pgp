@@ -20,8 +20,8 @@ export type Room = {
 	access: Access,
 	type: "ChatRoom" | "GameRoom",
 	owner: User,
+	joined: boolean,
 	self?: Member
-	joined?: boolean,
 };
 
 export type ChatRoom = Room & {

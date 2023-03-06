@@ -1,6 +1,13 @@
 import type { VectorObject } from "../../lib2D/Math2D";
 import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "../Constants";
-import {createFramebufferInfo} from "twgl.js";
+import {
+    createProgramInfo, 
+    createBufferInfoFromArrays,
+    resizeCanvasToDisplaySize,
+    setBuffersAndAttributes,
+    setUniforms,
+    drawBufferInfo,
+} from "twgl.js";
 
 let VERT_RIP_SRC: string;
 let FRAG_RIP_SRC: string;
@@ -81,7 +88,7 @@ export function setOriginRipple(x: number, y: number) {
 }
 
 export class RippleShader {
-	private gl: WebGL2RenderingContext;
+	private gl: WebGLRenderingContext;
 	private outerCanvas: HTMLCanvasElement;
 	private innerCanvas: HTMLCanvasElement;
 	private program: WebGLProgram[] = [];
@@ -95,42 +102,45 @@ export class RippleShader {
 	private originPos: WebGLUniformLocation[] = [];
 	private shockParams: WebGLUniformLocation[] = [];
 	private timer: number;
-	private activeShader: SHADER;
 	private lastTime: number;
+    private programInfo: any;
+    private bufferInfo: any;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
 		this.innerCanvas = document.createElement("canvas");
 		this.gl = canvas.getContext("webgl2")!;
+        this.programInfo = createProgramInfo(this.gl, [VERT_NOR_SRC, FRAG_NOR_SRC]);
+        const arrays = {
+            position: [-1, -1, 0, 1, -1, 0, -1, 1, 0, -1, 1, 0, 1, -1, 0, 1, 1, 0],
+          };
+        this.bufferInfo = createBufferInfoFromArrays(this.gl, arrays);
+
+
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 		this.gl.pixelStorei(this.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 
 		this.program.push(createProgram(this.gl, VERT_NOR_SRC, FRAG_NOR_SRC));
-
 		this.program.push(createProgram(this.gl, VERT_RIP_SRC, FRAG_RIP_SRC));
-
-		this.timeLocation.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "time")!);
-		this.uniformTex.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "tex")!);
-		this.uniformSize.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "size")!);
-		this.uniformScale.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "scale")!);
-		this.originPos.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "center")!);
-		this.shockParams.push(this.gl.getUniformLocation(this.program[SHADER.NORMAL], "shockParams")!);
-
-		this.timeLocation.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "time")!);
-		this.uniformTex.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "tex")!);
-		this.uniformSize.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "size")!);
-		this.uniformScale.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "scale")!);
-		this.originPos.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "center")!);
-		this.shockParams.push(this.gl.getUniformLocation(this.program[SHADER.RIPPLE], "shockParams")!);
+		this.getProgramData(SHADER.NORMAL);
+		this.getProgramData(SHADER.RIPPLE);
 
 		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
 		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 		this.texture = createTexture(this.gl);
 		this.timer = 0;
-		this.activeShader = 0;
 		this.lastTime = 0;
+	}
+
+	private getProgramData(shader: SHADER) {
+		this.timeLocation.push(this.gl.getUniformLocation(this.program[shader], "time")!);
+		this.uniformTex.push(this.gl.getUniformLocation(this.program[shader], "tex")!);
+		this.uniformSize.push(this.gl.getUniformLocation(this.program[shader], "size")!);
+		this.uniformScale.push(this.gl.getUniformLocation(this.program[shader], "scale")!);
+		this.originPos.push(this.gl.getUniformLocation(this.program[shader], "center")!);
+		this.shockParams.push(this.gl.getUniformLocation(this.program[shader], "shockParams")!);
 	}
 
 	private scale(): number {
@@ -140,8 +150,7 @@ export class RippleShader {
 	}
 
 	private bufferPosData(): number[] {
-		// const scale = this.scale();
-		const scale = 1;
+		const scale = this.scale();
 		const xOffset = (this.outerCanvas.width - this.innerCanvas.width * scale) / 2;
 		const yOffset = (this.outerCanvas.height - this.innerCanvas.height * scale) / 2;
 		const x = xOffset / this.outerCanvas.width * 2 - 1;
@@ -169,6 +178,16 @@ export class RippleShader {
 		return this.innerCanvas;
 	}
 
+	private useProgram(shader: SHADER) {
+		this.gl.useProgram(this.program[shader]);
+		this.gl.uniform3f(this.shockParams[shader], 10.0, 0.9, 0.1);
+		this.gl.uniform1f(this.timeLocation[shader], this.timer * 0.0025);
+		this.gl.uniform1i(this.uniformTex[shader], 0);
+		this.gl.uniform2f(this.uniformSize[shader], this.innerCanvas.width, this.innerCanvas.height);
+		this.gl.uniform2f(this.originPos[shader], position.x, position.y);
+		this.gl.uniform1f(this.uniformScale[shader], this.scale());
+	}
+
 	public update(time: number) {
 		
 		let refresh = false;
@@ -185,49 +204,52 @@ export class RippleShader {
 			refresh = true;
 		}
 
-		this.gl.viewport(0, 0, this.outerCanvas.width, this.outerCanvas.height);
-		this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-		this.gl.activeTexture(this.gl.TEXTURE0);
-		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		//TODO slow on firefox not on chromium....
-		this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas); // TODO: deze functie is traaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
-		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
+		// this.gl.viewport(0, 0, this.outerCanvas.width, this.outerCanvas.height);
+		// this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
+		// this.gl.clear(this.gl.COLOR_BUFFER_BIT);
+		// this.gl.activeTexture(this.gl.TEXTURE0);
+		// this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
+		// this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas); // TODO: deze functie is traaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag
+		// this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
 
-		if (refresh) {
-			this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.bufferPosData()), this.gl.STATIC_DRAW);
-		}
-		this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
-		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(0);
-		this.gl.enableVertexAttribArray(1);
+		// if (refresh) {
+		// 	this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.bufferPosData()), this.gl.STATIC_DRAW);
+		// }
+		// this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
+		// this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
+		// this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
+		// this.gl.enableVertexAttribArray(0);
+		// this.gl.enableVertexAttribArray(1);
 		
-		
+		let shader = SHADER.NORMAL;
 		if (active) {
-			this.activeShader = SHADER.RIPPLE;
+			shader = SHADER.RIPPLE;
 			this.timer += time - this.lastTime;
 			if (this.timer > 500) {
 				this.timer = 0;
 				active = false;
-				this.activeShader = SHADER.NORMAL;
+				shader = SHADER.NORMAL;
 			}
 		}
-		else {
-			this.activeShader = SHADER.NORMAL;
-		}
-		this.gl.useProgram(this.program[this.activeShader]);
-		this.gl.uniform3f(this.shockParams[this.activeShader], 10.0, 0.9, 0.1);
-		this.gl.uniform1f(this.timeLocation[this.activeShader], this.timer * 0.0025);
-		this.gl.uniform1i(this.uniformTex[this.activeShader], 0);
-		this.gl.uniform2f(this.uniformSize[this.activeShader], this.outerCanvas.width, this.outerCanvas.height);
-		this.gl.uniform2f(this.originPos[this.activeShader], position.x, position.y);
-		// console.log("scale: ", this.scale());
-		this.gl.uniform1f(this.uniformScale[this.activeShader], this.scale());
-		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
-		console.log("fps: ", 1/ (time -this.lastTime) * 1000);
+		// this.useProgram(shader);
+
+
+		// this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
+
+        resizeCanvasToDisplaySize(this.innerCanvas);
+        this.gl.viewport(0, 0, this.innerCanvas.width, this.innerCanvas.height);
+        const uniforms = {
+            time: time * 0.001,
+            resolution: [this.innerCanvas.width, this.innerCanvas.height],
+          };
+        this.gl.useProgram(this.programInfo.program);
+        setBuffersAndAttributes(this.gl, this.programInfo, this.bufferInfo);
+        setUniforms(this.programInfo, uniforms);
+        drawBufferInfo(this.gl, this.bufferInfo);
+
+
+
+		console.log(1/ (time - this.lastTime) * 1000);
 		this.lastTime = time;
 	}
 }

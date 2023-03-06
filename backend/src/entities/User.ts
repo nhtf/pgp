@@ -4,26 +4,30 @@ import {
 	Entity,
 	PrimaryGeneratedColumn,
 	Column,
-	ManyToOne,
 	ManyToMany,
 	JoinTable,
 	OneToMany,
 	BeforeRemove,
 	AfterInsert,
 	CreateDateColumn,
+	OneToOne,
+	JoinColumn,
+	ManyToOne,
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { Room } from "./Room";
 import { Status } from "../enums/Status";
 import { Invite } from "./Invite";
-import { get_status } from "src/gateways/get_status";
+import { get_status } from "src/util";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
 import { Player } from "./Player";
 import { Message } from "./Message";
 import { GameRoomMember } from "./GameRoomMember"
+import { MatchHistory } from "./MatchHistory"
+import { GameRoom } from "./GameRoom"
 
 @Entity()
 export class User {
@@ -94,12 +98,26 @@ export class User {
 	@OneToMany(() => Player, (player) => player.user)
 	players: Player[];
 
+	@ManyToOne(() => GameRoom, {
+		nullable: true
+	})
+	activeRoom: GameRoom | null;
+
+	@OneToOne(() => MatchHistory)
+	@JoinColumn()
+	matchHistory: MatchHistory;
+
 	@Expose()
 	get status(): Status {
-		if (this.has_session)
-			return get_status(this.last_activity);
-		else
+		if (!this.has_session) {
 			return Status.OFFLINE;
+		}
+
+		if (this.activeRoom) {
+			return Status.INGAME;
+		}
+
+		return get_status(this.last_activity);	
 	}
 
 	@Expose()
@@ -120,7 +138,7 @@ export class User {
 		return this.members?.find((member: GameRoomMember) => member.is_playing) as GameRoomMember;
 	}
 
-	async add_friend(target: User) {
+	add_friend(target: User) {
 		if (!this.friends) {
 			this.friends = [];
 		}
@@ -128,7 +146,7 @@ export class User {
 		this.friends.push(target);
 	}
 
-	send_update(action: Action) {
+	send_update(action: Action = Action.SET) {
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			id: this.id,
@@ -153,8 +171,8 @@ export class User {
 
 	// Waaay to many updates, do not use
 	// @AfterUpdate()
-	// async afterUpdate() {
-	// 	await this.send_update(Action.SET);
+	// afterUpdate() {
+	// 	this.send_update(Action.SET);
 	// }
 
 	@BeforeRemove()

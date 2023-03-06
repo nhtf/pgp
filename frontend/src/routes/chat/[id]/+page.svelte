@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Room, Message } from "$lib/entities";
 	import type { PageData } from "./$types";
-    import type { UpdatePacket } from "$lib/types";
+	import type { UpdatePacket } from "$lib/types";
 	import { onDestroy, onMount } from "svelte";
 	import { roomSocket } from "../websocket";
 	import { unwrap } from "$lib/Alert";
@@ -9,35 +9,29 @@
 	import { goto } from "$app/navigation";
 	import { Action, CoalitionColors, Role, Subject } from "$lib/enums";
 	import { memberStore, roomStore, userStore } from "$lib/stores";
-    import { icon_path } from "$lib/constants";
-    import { updateManager } from "$lib/updateSocket";
-    import { page } from "$app/stores";
+	import { updateManager } from "$lib/updateSocket";
+	import { page } from "$app/stores";
 	import MessageBox from "$lib/components/MessageBox.svelte"
-    import MemberBox from "$lib/components/MemberBox.svelte";
+	import MemberBox from "$lib/components/MemberBox.svelte";
+	import ScratchPad from "$lib/components/ScratchPad.svelte";
 
 	export let data: PageData;
 
 	const role_colors = Object.values(CoalitionColors);
-	const send_icon = `${icon_path}/send.svg`;
-	const notTypingInterval = 3000;
 
 	let messages = data.messages.sort(dateCmp)
 	let content = "";
 	let indices: number[] = [];
-	let suggestions: string[] = []
-	let timer: NodeJS.Timeout;
 
 	$: room = $roomStore.get(data.room.id)!;
-	$: members = [...$memberStore]
-		.map(([_, member]) => member)
+	$: all = [...$memberStore.values()]
 		.filter((member) => member.roomId === room?.id);
 	$: self = $memberStore.get(data.member.id)!;
-	$: rows = (content.match(/\n/g) || []).length + 1 || 1;
 	$: messages;
 
-	$: owner = members.find((member) => member.role === Role.OWNER)!;
-	$: admins = members.filter((member) => member.role === Role.ADMIN);
-	$: plebs = members.filter((member) => member.role === Role.MEMBER);
+	$: owner = all.find((member) => member.role === Role.OWNER)!;
+	$: admins = all.filter((member) => member.role === Role.ADMIN);
+	$: members = all.filter((member) => member.role === Role.MEMBER);
 
 	onMount(() => {
 		roomSocket.emit("join", String(room!.id));
@@ -70,27 +64,13 @@
 		return first.created - second.created;
 	}
 
-	function handleKeyPress(event: KeyboardEvent) {
-		if (event.key === "Enter" && !event.shiftKey) {
-			event.preventDefault();
-			sendMessage();
-		}
-	}
-
-	function keyUp() {
-		clearTimeout(timer);
-		timer = setTimeout(fetchSuggestions, notTypingInterval);
-	}
-
-	function fetchSuggestions() {
-		
-	}
-
-	function sendMessage() {
-		if (content.length) {
-			roomSocket.emit("message", content);
+	function sendMessage(message: string): boolean {
+		if (message.length) {
+			roomSocket.emit("message", message);
 			content = "";
+			return true;
 		}
+		return false;
 	}
 
 	async function leave(room: Room) {
@@ -98,6 +78,14 @@
 		await goto(`/chat`);
 	}
 
+	function scrollToBottom(node: any, _: Message[]) {
+		return {
+			update() {
+				node.scroll({ top: node.scrollHeight, behaviour: "smooth"});
+			},
+		};
+	}
+	
 </script>
 
 {#if room}
@@ -113,36 +101,12 @@
 				{/if}				
 			</div>
 
-			<div class="messages">
+			<div use:scrollToBottom={messages} class="messages">
 				{#each messages as message (message.id)}
 					<MessageBox {message} {self} />
 				{/each}
 			</div>
-			<div class="message-input">
-				<div class="message-box">
-					{#key self}
-						<textarea
-							bind:value={content}
-							on:keypress={handleKeyPress}
-							on:keyup={keyUp}
-							wrap="hard"
-							disabled={self?.is_muted}
-							{rows}
-							class="w-full"
-							placeholder={self?.is_muted
-								? "You are muted"
-								: "message..."}
-						/>
-					{/key}
-				</div>
-				<div
-					class="send-button"
-					on:click|preventDefault={sendMessage}
-					on:keypress|preventDefault={sendMessage}
-				>
-					<img src={send_icon} alt="chat" class="icon" />
-				</div>
-			</div>
+			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
 		</div>
 		<div class="member-container">
 			<div class="member-group">
@@ -158,11 +122,11 @@
 					{/each}
 				</div>
 			{/if}
-			{#if plebs.length}
+			{#if members.length}
 				<div/>
 				<div class="member-group">
 					<h1 style={`color: #${role_colors[Role.MEMBER]}`}>Members</h1>
-					{#each plebs as member (member.id)}
+					{#each members as member (member.id)}
 						<MemberBox user={getUser(member.userId)} {member} {self} memberGroup={true}/>
 					{/each}
 				</div>
@@ -223,60 +187,13 @@
 		white-space: nowrap;
 	}
 
-	.message-input {
-		display: flex;
-		position: relative;
-		align-items: center;
-	}
-
-	.message-box {
-		width: 100%;
-		margin-left: 0.375rem;
-		align-items: center;
-		display: flex;
-	}
-
-	.icon {
-		width: 30px;
-		height: 30px;
-		-webkit-filter: var(--invert);
-		filter: var(--invert);
-	}
-
 	.messages {
 		display: flex;
-		height: 100%;
 		flex-direction: column;
+		height: 100%;
 		position: relative;
 		/* top: 1.25rem; */
 		overflow-y: auto;
-	}
-
-	.send-button {
-		display: flex;
-		background-color: var(--box-color);
-		height: 100%;
-		align-items: center;
-		justify-content: center;
-		border-radius: 6px;
-		width: 50px;
-		cursor: pointer;
-		margin-left: 0.375rem;
-	}
-
-	.send-button:hover {
-		background-color: var(--box-hover-color);
-	}
-
-	textarea {
-		color: var(--text-color);
-		background-color: var(--input-bkg-color);
-		border-radius: 6px;
-		height: auto;
-		max-height: 75vh;
-		resize: none;
-		padding-top: 0.25rem;
-		padding-bottom: 0.25rem;
 	}
 
 </style>

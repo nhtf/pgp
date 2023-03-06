@@ -29,7 +29,6 @@ import { Repository } from "typeorm";
 import { RoomInvite } from "./entities/RoomInvite";
 import { HttpModule } from "@nestjs/axios";
 import { MediaController } from "src/controllers/media.controller";
-import { UserSubscriber } from "src/subscribers/user.subscriber"
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -59,6 +58,7 @@ const entityFiles = [
 	"./entities/Player",
 	"./entities/GameState",
 	"./entities/Embed",
+	"./entities/MatchHistory",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({
@@ -91,7 +91,6 @@ export const dataSource = new DataSource({
 		return Object.values(entity)[0] as Function;
 	}),
 	// entities: ["entities/*"],
-	subscribers: [UserSubscriber],
 	synchronize: true, //TODO disable and test before turning in
 	// logging: true,
 	// TODO enable cache? (cache: true)

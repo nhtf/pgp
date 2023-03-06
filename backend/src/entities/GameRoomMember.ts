@@ -8,7 +8,7 @@ export class GameRoomMember extends Member {
 	player: Player | null;
 
 	@Column({ default: false })
-	is_playing: boolean = false;
+	is_playing: boolean;
 
 	get type(): string {
 		return "GameRoomMember";

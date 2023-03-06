@@ -3,18 +3,11 @@
 	import { unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
 	import { Role } from "$lib/enums";
-    import { userStore } from "$lib/stores";
+	import { userStore } from "$lib/stores";
 	import { patch, post, remove } from "$lib/Web";
 	import { page } from "$app/stores";
-	import {
-		Avatar,
-		Dropdown,
-		DropdownDivider,
-		DropdownHeader,
-		DropdownItem,
-		Tooltip,
-	} from "flowbite-svelte";
-    import Swal from "sweetalert2";
+	import { Avatar, Dropdown, DropdownItem, Tooltip } from "flowbite-svelte";
+	import Swal from "sweetalert2";
 
 	export let user: User;
 	export let member: Member | null;
@@ -118,14 +111,15 @@
 		color: status_colors[user.status],
 	}}
 	class="bg-c"
-	
 />
-<Tooltip triggeredBy="#avatar-{user.username}box{memberGroup}">{user.username}</Tooltip>
+<Tooltip triggeredBy="#avatar-{user.username}box{memberGroup}"
+	>{user.username}</Tooltip
+>
 <!-- //TODO dropdown menu placement is wrong if message is at the bottom (or membergroup at the bottom) -->
 <Dropdown
 	triggeredBy="#avatar-{user.username}box{memberGroup}"
 	class="bor-c bg-c shadow rounded max-w-sm"
-	>
+>
 	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
 	{#if me.id !== user.id}
 		{#each Object.values(Role)

@@ -1,12 +1,11 @@
+import type { SessionObject } from "src/services/session.service";
+import type { Server, Socket } from "socket.io";
 import { Inject } from "@nestjs/common";
 import { WebSocketGateway, WebSocketServer } from "@nestjs/websockets";
-import type { Server, Socket } from "socket.io";
-import type { SessionObject } from "src/services/session.service";
 import { FRONTEND_ADDRESS } from "../vars";
 import { User } from "src/entities/User";
 import { Repository } from "typeorm";
-import { authenticate } from "src/auth/authenticate"; 
-import { InjectRepository } from "@nestjs/typeorm";
+import { authenticate } from "src/auth/authenticate";
 
 declare module "http" {
 	export interface IncomingMessage {
@@ -22,8 +21,11 @@ declare module "socket.io" {
 
 export function ProtectedGateway(namespace?: string) {
 	@WebSocketGateway({
-		namespace: namespace,
-		cors: { origin: FRONTEND_ADDRESS, credentials: true }
+		namespace,
+		cors: {
+			origin: FRONTEND_ADDRESS,
+			credentials: true,
+		}
 	})
 	class ProtectedGatewayFactory {
 		@WebSocketServer()

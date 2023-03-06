@@ -11,7 +11,7 @@ import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
 import { Role } from "src/enums/Role";
-import { Repository, SelectQueryBuilder } from "typeorm";
+import { Repository } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
@@ -32,6 +32,7 @@ const playerNumbers = new Map([
 	[Gamemode.MODERN4P, [4]],
 ])
 
+// TODO...
 const numbers = ["one", "two", "three", "four"];
 
 export class GameController extends GenericRoomController<GameRoom, GameRoomMember>(GameRoom, GameRoomMember, "game", CreateGameRoomDTO) {
@@ -53,11 +54,11 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	}
 
 	async setup_room(room: GameRoom, dto: CreateGameRoomDTO) {
-		const state = new GameState(dto.gamemode);
-
-		state.teams = [];
-
 		const playerOptions = playerNumbers.get(dto.gamemode);
+		const state = new GameState;
+
+		state.gamemode = dto.gamemode;
+		state.teams = [];
 
 		if (!playerOptions || !playerOptions.includes(dto.players)) {
 			throw new BadRequestException("Invalid amount of players");
@@ -93,38 +94,9 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		return await this.get_joined_info(room);
 	}
 
-	// TODO: remove both, use base joined()
-	@Get("_joined")
-	async _joined(@Me() me: User) {
-		return await super.joined(me);
-	}
-
-	@Get("joined")
-	async joined(@Me() me: User) {
-		const members = await this.member_repo.find({
-			where: {
-				user: {
-					id: me.id,
-				},
-			},
-			relations: {
-				room: {
-					members: {
-						user: true,
-					},
-					state: {
-						teams: true,
-					},
-				},
-			},
-		});
-
-		return members;
-	}
-
 	@Get("joined/id/:id")
 	async joined_id(@Me() me: User, @Param("id", ParseIntPipe) id: number) {
-		const members = await this.member_repo.findOne({
+		const member = await this.member_repo.findOne({
 			where: {
 				room: {
 					id,
@@ -143,19 +115,20 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 					},
 				},
 			},
-			order: {
-				room: {
-					state: {
-						teams: {
-							// TODO: ordering the teams by id to make them always appear on the same side is a very fragile solution
-							id: "DSC",
-						},
-					},
-				},
-			},
+			// M: frontend sorts by id, backend doesn't need to
+			// order: {
+			// 	room: {
+			// 		state: {
+			// 			teams: {
+			// 				// TODO: ordering the teams by id to make them always appear on the same side is a very fragile solution
+			// 				id: "DSC",
+			// 			},
+			// 		},
+			// 	},
+			// },
 		});
 
-		return members;
+		return member;
 	}
 
 	@Patch("id/:id/team/:target")

@@ -32,9 +32,6 @@ export class Room {
 	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
 	members: Member[];
 
-	self?: Member;
-	joined?: boolean;
-
 	@Exclude()
 	@ManyToMany(() => User, (user) => user.banned_rooms)
 	@JoinTable()
@@ -61,6 +58,10 @@ export class Room {
 
 	get users(): User[] {
 		return this.members?.map(member => member.user);
+	}
+
+	self(user: User) {
+		return this.members?.find((member) => member.userId === user.id);
 	}
 
 	send_update(packet: UpdatePacket, broadcast?: boolean) {

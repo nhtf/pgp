@@ -1,4 +1,4 @@
-import { Controller, Get, Inject, Param, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor, Injectable, ExecutionContext, CanActivate, Res, Delete, Post, ParseIntPipe, PipeTransform, ArgumentMetadata, Put, HttpCode, SetMetadata, ForbiddenException, NotFoundException, UnprocessableEntityException, BadRequestException } from "@nestjs/common";
+import { Controller, Get, Inject, Param, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor,Res, Delete, Post, PipeTransform, ArgumentMetadata, Put, ForbiddenException, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express, Response } from "express";
 import { User } from "../entities/User";
@@ -63,6 +63,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				},
 				relations: {
 					members: true,
+					activeRoom: true,
 				}
 			});
 
@@ -87,7 +88,9 @@ export function GenericUserController(route: string, options: { param: string, c
 
 			user.username = dto.username;
 
-			await this.user_repo.save(user);
+			user = await this.user_repo.save(user);
+
+			user.send_update();
 
 			return user;
 		}
@@ -147,7 +150,11 @@ export function GenericUserController(route: string, options: { param: string, c
 
 			user.avatar_base = new_base;
 
-			return await this.user_repo.save(user);
+			user = await this.user_repo.save(user);
+
+			user.send_update();
+
+			return {};
 			/*
 			//const transform = sharp().resize(200, 200).gif();
 			const transform = sharp().gif();

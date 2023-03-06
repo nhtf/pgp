@@ -21,7 +21,7 @@
 	// console.log("A", $inviteStore.unMap());	
 
 	$: user = $userStore.get($page.data.user?.id)!;
-	$: invites = [...$inviteStore].map(([_, invite]) => invite);
+	$: invites = [...$inviteStore.values()];
 	$: notifications = invites.filter((invite) => invite.to.id === user.id);
 	$: notifMap = new Map(
 		notifications.map((invite) => [
@@ -29,9 +29,11 @@
 			notifMap.has(invite) ? notifMap.get(invite)! : Status.UNREAD,
 		])
 	);
+
 	$: newNotifs = [...notifMap.values()].some(
 		(status) => status === Status.UNREAD
 	);
+
 	$: newlength = [...notifMap.values()].filter(
 		(status) => status === Status.UNREAD
 	).length;

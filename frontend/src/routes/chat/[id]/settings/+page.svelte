@@ -5,12 +5,11 @@
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
 	import { unwrap } from "$lib/Alert";
-	import Invite from "$lib/components/Invite.svelte";
-	import RoomInput from "$lib/components/RoomInput.svelte";
 	import { Action, Role, Subject } from "$lib/enums";
 	import { memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { patch, remove } from "$lib/Web";
+	import { onDestroy, onMount } from "svelte";
 	import {
 		Dropdown,
 		Avatar,
@@ -18,7 +17,8 @@
 		DropdownHeader,
 		DropdownItem,
 	} from "flowbite-svelte";
-	import { onDestroy, onMount } from "svelte";
+	import RoomInput from "$lib/components/RoomInput.svelte";
+	import Invite from "$lib/components/Invite.svelte";
 	import Swal from "sweetalert2";
 
 	export let data: PageData;

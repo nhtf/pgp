@@ -1,129 +1,275 @@
 <script lang="ts">
+	import type { Suggestion } from "$lib/types";
 	import { icon_path } from "$lib/constants";
+	import { unwrap } from "$lib/Alert";
+	import { get } from "$lib/Web";
+
+	export let callback: (content: string) => boolean;
+	export let disabled: boolean;
 
 	//http://alistapart.com/article/expanding-text-areas-made-elegant/
 	const send_icon = `${icon_path}/send.svg`;
 
 	let content = "";
-	let timer: NodeJS.Timeout;
-	let suggestions = [];
-	$: lines = (content.match(/\n/g)?.length + 1 || 1);
-
-	function onInput(event) {
+	// let timer: NodeJs.Timeout;
+	let timer: number;
+	let suggestions: Suggestion[] = [];
+	let last_command: command = null;
+	
+	type command = {
+		command: string,
+		onExecute: (input: string, setInput: (string) => void) => void,
+		onInput: (input: string) => void,
+		onClear: () => void,
+	};
+	const commands = [
+		{
+			command: "tenor",
+			onExecute: onTenorExecute,
+			onInput: onTenorInput,
+			onClear: onTenorClear,
+		},
+		{
+			command: "giphy",
+			onExecute: onGiphyExecute,
+			onInput: onGiphyInput,
+			onClear: onTenorClear,
+		},
+	];
+	async function onGiphyInput(input: string) {
 		clearTimeout(timer);
+		if (!input)
+			suggestions = [];
+		timer = setTimeout(async () => {
+			suggestions = await getSuggestions("giphy", input);
+		}, 1000);
+	}
+
+	async function onGiphyExecute(input: string, setInput: (string) => void) {
+		clearTimeout(timer);
+		const tmp = await getSuggestions("giphy", input);
+		setInput(tmp[0].url);
+	}
+
+	async function onTenorInput(input: string) {
+		clearTimeout(timer);
+		if (!input)
+			suggestions = [];
+		timer = setTimeout(async () => {
+			suggestions = await getSuggestions("tenor",input);
+		}, 1000);
+	}
+
+	async function onTenorExecute(input: string, setInput: (string) => void) {
+		clearTimeout(timer);
+		const tmp = await getSuggestions("tenor", input);
+		setInput(tmp[0].url);
+	}
+
+	function onTenorClear() {
+		clearTimeout();
 		suggestions = [];
-		const matches = /^\/tenor (.*)/g.exec(content);
-		if (matches && matches.length === 2) {
-			console.log(matches[1]);
-			timer = setTimeout(() => {
-				suggestions = [
-					{
-						title: "",
-						desc: "0001 GIF",
-						url: "https://media.tenor.com/mhLPO2VldCkAAAAM/0001.gif",
-						width: 220,
-						height: 220,
-					},
-					{
-						title: "",
-						desc: "Kitty Cat GIF",
-						url: "https://media.tenor.com/ObyK0WXilXUAAAAM/kitty-cat.gif",
-						width: 220,
-						height: 432,
-					},
-				];
-				console.log("search");
-			}, 1000);
+	}
+
+	//$: rows = (content.match(/\n/g)?.length! + 1 || 1);
+
+	async function getSuggestions(which: "tenor" | "giphy", query: string) {
+		return unwrap(get(`/media/${which}`, { query }));
+	}
+
+	function getTenorQuery(txt: string) {
+		const matches = /^\/tenor (.*)/g.exec(txt);
+		if (matches && matches.length === 2) return matches[1];
+		return undefined;
+	}
+	/*
+
+	async function onKeyPress(event: KeyboardEvent) {
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault();
+			clearTimeout(timer);
+			const query = getTenorQuery(content);
+			if (query && running) {
+				const tmp = await getSuggestions(query);
+				apply(tmp[0].url);
+			} else if (suggestions.length !== 0) {
+				apply(suggestions[0].url);
+			} else {
+				sendMessage();
+			}
+			running = false;
 		}
 	}
+	//TODO also hanlde onInput so that Ctrl-A Del/backspace works
+	async function onInput(event: Event) {
+		clearTimeout(timer);
+		if (!getTenorQuery(content)) {
+			suggestions = [];
+		}
+		running = true;
+		timer = setTimeout(async () => {
+			running = false;
+			const query = getTenorQuery(content);
+			if (query) {
+				suggestions = await getSuggestions(query);
+			}
+		}, 1000);
+	}*/
+
+	async function onKeyPress(event: KeyboardEvent) {
+		if (event.key === "Enter" && !event.shiftKey) {
+			event.preventDefault();
+			const command = commands.find((command) => content.startsWith(`/${command.command} `));
+			if (command) {
+				await command.onExecute(content.slice(content.indexOf(' ') + 1), (new_input: string) => {
+					content = new_input;
+				});
+				last_command = null;
+			} else {
+				sendMessage();
+			}
+		}
+	}
+
+	$: {
+		const command = commands.find((command) => content.startsWith(`/${command.command} `));
+		if (command) {
+			last_command = command;
+			const res = command.onInput(content.slice(content.indexOf(' ') + 1));
+			if (res instanceof Promise) {
+				res.then((_) => {});
+			}
+		} else if (last_command) {
+			last_command.onClear();
+			last_command = null;
+		}
+	}
+
+	function apply(url: string) {
+		content = url;
+		suggestions = [];
+	}
+
+	function sendMessage() {
+		if (content.length === 0) return;
+
+		if (callback(content)) content = "";
+	}
 </script>
+
+<div class="suggestion-container">
+	{#each suggestions as { src, url, desc }}
+		<img
+			class="suggestion"
+			on:click={() => apply(url)}
+			on:keypress={() => apply(url)}
+			src={src}
+			alt={desc}
+		/>
+	{/each}
+</div>
 
 <div class="text-container">
 	<!--<textarea class="inline input" bind:value={content} style={`height: ${lines}em`}/>-->
 	<div class="input-container">
-		<pre aria-hidden="true">{content + '\n'}</pre>
-		<textarea on:input={onInput} bind:value={content} placeholder="Enter a message"/>
+		<pre aria-hidden="true">{`${content}\n`}</pre>
+		<textarea
+			disabled={disabled || false}
+			on:keypress={onKeyPress}
+			bind:value={content}
+			placeholder={disabled ? "You are muted" : "Enter a message..."}
+		/>
 	</div>
-	<img class="item" src={send_icon} alt='send'/>
+	<img
+		class="item"
+		src={send_icon}
+		alt="send"
+		on:click={sendMessage}
+		on:keypress={sendMessage}/>
 </div>
-
-{#each suggestions as { url }}
-<div class="suggestion-container">
-	<img src={url}/>
-</div>
-{/each}
 
 <style>
+	.suggestion-container {
+		display: flex;
+		justify-content: flex-start;
+		background-color: var(--box-color);
+		border-radius: 1em;
+		margin: 0.5em;
+		width: 90vw;
+		overflow-x: auto;
+		overflow-y: hidden;
+		/*scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
+	scrollbar-width: thin;*/
+		/*padding: 0.2em;*/
+	}
 
-.input-container {
-	position: relative;
-}
+	.suggestion {
+		max-height: 10em;
+		margin: 0.2em;
+		border-radius: 1em;
+	}
 
-pre {
-	white-space: pre-wrap;
-	word-wrap: break-word;
-}
+	.suggestion:hover {
+		filter: brightness(50%);
+	}
 
-pre, textarea {
-	font-family: inherit;
-	padding: 0.5em;
-	box-sizing: border-box;
-	line-height: 1.2;
-	overflow: hidden;
-	background-color: rgb(46, 50, 62) !important;
-	margin-left: 1em;
-	min-width: 20em;
-	max-width: 50em;
-	max-height: 50em;
-	border: none;
-	padding: 1.5em;
-}
+	.suggestion:active {
+		filter: brightness(40%);
+	}
 
-*:focus {
-	outline: none !important;
-	box-shadow: none;
-}
+	.input-container {
+		position: relative;
+		flex-grow: 1;
+	}
 
-textarea {
-	position: absolute;
-	width: 100%;
-	height: 100%;
-	top: 0;
-	resize: none;
-}
+	pre {
+		white-space: pre-wrap;
+		word-wrap: break-word;
+	}
 
-.item {
-	width: 3em;
-	height: 3em;
-	margin: 0.5em;
-}
+	pre,
+	textarea {
+		font-family: inherit;
+		padding: 0.5em;
+		box-sizing: border-box;
+		line-height: 1.2;
+		overflow: hidden;
+		background-color: var(--box-color) !important;
+		margin-left: 1em;
+		min-width: 20vw;
+		max-width: 60vw;
+		max-height: 50em;
+		border: none;
+		padding: 1.5em;
+	}
 
-.input {
-	/*border: none !important;
-	outline: none;
-	-moz-box-shadow: none;
-	box-shadow: none;
-	*/
-	overflow: hidden;
-	resize: none;
-	background-color: rgb(46, 50, 62) !important;
-	width: 50em;
-}
+	*:focus {
+		outline: none !important;
+		box-shadow: none;
+	}
 
-.inline {
-	/*border: none;*/
-	background-color: rgb(46, 50, 62);
-	margin: 1em !important;
-}
+	textarea {
+		position: absolute;
+		width: 100%;
+		height: 100%;
+		top: 0;
+		resize: none;
+	}
 
-.text-container {
-	display: flex;
-	background-color: rgb(46, 50, 62);
-	border-radius: 1em;
-}
+	.item {
+		width: 3em;
+		height: 3em;
+		margin: 0.5em;
+	}
 
-.suggestion-container {
-	display: flex;
-}
+	.item:hover {
+		filter: brightness(50%);
+	}
 
+	.text-container {
+		display: flex;
+		background-color: var(--box-color);
+		border-radius: 1em;
+		margin: 0.2em;
+	}
 </style>

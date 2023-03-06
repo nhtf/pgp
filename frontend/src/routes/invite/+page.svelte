@@ -9,7 +9,7 @@
 	let open = [true, false];
 
 	$: user = $userStore.get(data.user.id)!;
-	$: invites = Array.from($inviteStore.values());
+	$: invites = [...$inviteStore.values()];
 	$: send = invites.filter((invite) => invite.from.id === user.id);
 	$: received = invites.filter((invite) => invite.to.id === user.id);
 	

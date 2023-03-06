@@ -16,6 +16,7 @@ import {
 	IsEnum,
 } from "class-validator";
 import { User } from "../entities/User";
+import { GameState } from "src/entities/GameState"
 import { AuthLevel } from "../enums/AuthLevel";
 import { Repository } from "typeorm";
 import { Request } from "express";
@@ -68,6 +69,8 @@ export class DebugController {
 		private readonly inviteRepo: Repository<Invite>,
 		@Inject("MESSAGE_REPO")
 		private readonly messageRepo: Repository<Message>,
+		@Inject("GAMESTATE_REPO")
+		private readonly gamestateRepo: Repository<GameState>,
 	) {}
 
 	@Get("useradd")
@@ -141,7 +144,7 @@ export class DebugController {
 		return user;
 	}
 
-	@Get("lsuser")
+	@Get("user(s)?")
 	async lsuser() {
 		return this.userRepo.find({
 			relations: {
@@ -265,5 +268,14 @@ export class DebugController {
 		room.banned_users = [];
 
 		return await this.roomRepo.save(room);
+	}
+
+	@Get("history")
+	async gameStates() {
+		return await this.gamestateRepo.find({
+			relations: {
+				teams: true,
+			}
+		});
 	}
 }

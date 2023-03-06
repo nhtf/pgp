@@ -26,4 +26,5 @@ export const CLIENT_ID: string = process.env.CLIENT_ID;
 export const CLIENT_SECRET: string = process.env.CLIENT_SECRET;
 export const AVATAR_EXT: string = process.env.AVATAR_EXT || ".gif";
 export const TENOR_KEY: string = process.env.TENOR_KEY;
+export const GIPHY_KEY: string = process.env.GIPHY_KEY;
 export const BOUNCER_KEY: string = process.env.BOUNCER_KEY;

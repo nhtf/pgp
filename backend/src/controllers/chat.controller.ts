@@ -55,7 +55,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 	@Get("id/:id/messages")
 	@RequiredRole(Role.MEMBER)
 	async get_messages(@GetRoom() room: ChatRoom) {
-		const messages = await this.message_repo.find({
+		return await this.message_repo.find({
 			relations: {
 				member: true,
 				user: true,
@@ -66,8 +66,6 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 				},
 			},
 		});
-
-		return messages;
 	}
 
 	@Get("id/:id/users")
@@ -98,7 +96,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		const users = [...members.map((member) => member.user), ...messages.map((message) => message.user)];
 		const unique = new Map<number, User>(users.map((user) => [user.id, user]));
 
-		return [...unique].map(([_, user]) => user);
+		return [...unique.values()];
 	}
 
 	@Post("id/:id/mute/:target")
@@ -122,14 +120,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		await this.member_repo.save(target);
 	
 		if (target.mute > new Date) {
-			setTimeout(() => {
-				room.send_update({
-					subject: Subject.MEMBER,
-					action: Action.SET,
-					id: target.id,
-					value: instanceToPlain(target),
-				});
-			}, duration);
+			setTimeout(() => target.send_update(Action.SET), duration);
 		}
 
 		return {};

@@ -1,27 +1,20 @@
-import { Inject, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
 import type { Socket } from "socket.io";
 import type { User } from "../entities/User";
-import { Repository } from "typeorm"
-import { instanceToPlain } from "class-transformer";
 import type { SessionObject } from "src/services/session.service";
+import { Inject, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
+import { Repository, In } from "typeorm"
 import { Status } from "src/enums/Status";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { PURGE_INTERVAL } from "../vars";
 import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
-import { get_status } from "./get_status";
 import { WsException, SubscribeMessage, ConnectedSocket } from "@nestjs/websockets";
-
-export type Activity = {
-	last_status: Status,
-	last_activity: Date,
-}
 
 export interface UpdatePacket {
 	subject: Subject;
-	id?: number;
+	id: number;
 	action: Action;
-	value?: any;
+	value: any | null;
 }
 
 declare module "http" {
@@ -34,141 +27,100 @@ declare module "http" {
 export class UpdateGateway extends ProtectedGateway("update") {
 	//TODO purge inactive sockets?
 	private readonly sockets = new Map<number, Socket[]>();
-	private readonly activity_map = new Map<number, Activity>();
+	private readonly status = new Map<number, Status>();
 
 	static instance: UpdateGateway;
 
-	constructor(
-		@Inject("USER_REPO")
-		private readonly user_repo: Repository<User>,
-	) {
-		setInterval(async () => await this.tick(), PURGE_INTERVAL);
+	constructor(@Inject("USER_REPO") private readonly user_repo: Repository<User>) {
 		super(user_repo);
 		UpdateGateway.instance = this;
-	}
-
-	// TODO: remove status
-	create_update(user: User, status?: Status) {
-		let value = instanceToPlain(user);
-
-		if (status) {
-			value.status = status;
-		}
-	
-		return {
-			subject: Subject.USER,
-			id: user.id,
-			action: Action.SET,
-			value,
-		};
-	}
-
-	async update(user: User) {
-		const last_status = this.activity_map.get(user.id).last_status;
-	
-		if (last_status !== user.status) {
-			console.log(`${user.username}: ${Status[last_status]} -> ${Status[user.status]}`);
-			this.send_update(this.create_update(user, Status.ACTIVE));
-		}
-
-		
-	}
-
-	async tick() {
-		for (const [id, activity] of this.activity_map) {
-			const new_status = get_status(activity.last_activity);
-		
-			if (new_status !== activity.last_status) {
-				const user = await this.user_repo.findOneBy({ id });
-
-				this.send_update(this.create_update(user, new_status));
-			
-				this.activity_map.set(id, { last_status: new_status, last_activity: activity.last_activity });
-			
-				if (new_status === Status.OFFLINE) {
-					this.activity_map.delete(user.id);
-				}
-			}
-		}
-	}
-
-	async expire(user: User) {
-		this.activity_map.delete(user.id);
-	
-		this.send_update(this.create_update(user, Status.OFFLINE));
+		setInterval(this.tick.bind(this), PURGE_INTERVAL);
 	}
 
 	async onConnect(client: Socket) {
 		const id = client.request.session.user_id;
 		const user = await this.user_repo.findOneBy({ id });
+		const now = new Date;
 
 		user.has_session = true;
+		user.last_activity = now;
 
 		await this.user_repo.save(user);
 
 		if (!this.sockets.has(id)) {
 			this.sockets.set(id, []);
+			this.status.set(id, Status.OFFLINE);
 		}
-	
-		if (this.sockets.get(id).length === 0) {
-			await this.heartbeat(user);
-		}
-	
+
 		this.sockets.get(id).push(client);
+
+		this.update(user);
 	}
 
 	async onDisconnect(client: Socket) {
 		const id = client.request.session.user_id;
 		const sockets = this.sockets.get(id);
-		const index = sockets.findIndex((socket) => socket.request.session.id === socket.request.session.id);
-	
+		const index = sockets.findIndex((socket) => socket.request.session.id === client.request.session.id);
+
 		if (index < 0) {
-			console.error("could not find socket");
-			console.error(this.sockets);
 			throw new WsException("could not find socket");
 		}
-	
+
 		sockets.splice(index, 1);
-		if (sockets.length === 0) {
-			const user = await this.user_repo.findOneBy({ id });
-		
+
+		if (!sockets.length) {
+			let user = await this.user_repo.findOneBy({ id });
+
 			user.has_session = false;
 		
-			await this.user_repo.save(user);
-			await this.expire(user);
+			user = await this.user_repo.save(user);
+		
+			user.send_update();
+
+			this.status.delete(user.id);
 		}
 	}
 
 	send_update(packet: UpdatePacket, ...receivers: User[]) {
-		if (receivers === undefined || receivers === null || receivers.length === 0) {
+		if (packet.action === Action.REMOVE) {
+			packet.value = null;
+		}
+	
+		if (!receivers.length) {
 			this.server.emit("update", packet);
-		} else {
-			for (const receiver of receivers) {
-				this.sockets.get(receiver.id)?.forEach(socket => socket.emit("update", packet));
-			}
+		}
+
+		for (const receiver of receivers) {
+			this.sockets.get(receiver.id)?.forEach((socket) => socket.emit("update", packet));
+		}
+	}
+
+	async tick() {
+		const ids = Array.from(this.status.keys())
+		const users = await this.user_repo.find({ where: { id: In(ids) } });
+
+		users.forEach((user) => this.update(user));
+	}
+
+	update(user: User) {
+		const last_status = this.status.get(user.id) ?? Status.OFFLINE;
+
+		if (user.status !== last_status) {
+			user.send_update();
+
+			this.status.set(user.id, user.status);
 		}
 	}
 
 	async heartbeat(user: User) {
-		const activity = this.activity_map.get(user.id);
-		const last_status = activity ? activity.last_status : Status.OFFLINE;
-	
-		user = await this.setActivity(user);
-	
-		if (last_status !== user.status) {
-			this.send_update(this.create_update(user, Status.ACTIVE));
-		}
-	
-		await this.user_repo.save(user);
+		user = await this.setActive(user);
+
+		this.update(user);
 	}
 
-	async setActivity(user: User) {
-		const now = new Date;
-	
-		user.last_activity = now;
-		
-		this.activity_map.set(user.id, { last_status: user.status, last_activity: now })
-	
+	async setActive(user: User) {
+		user.last_activity = new Date;
+
 		return await this.user_repo.save(user);
 	}
 
@@ -179,5 +131,5 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 		await this.heartbeat(user);
 	}
-	
+
 }

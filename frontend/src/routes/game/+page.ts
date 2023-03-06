@@ -9,7 +9,7 @@ export const ssr = false;
 export const load: PageLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	const joined: GameRoom[] = await unwrap(get(`/game/_joined`));
+	const joined: GameRoom[] = await unwrap(get(`/game/joined`));
 	const joinable: GameRoom[] = await unwrap(get(`/game/joinable`));
 	const rooms = joined.concat(joinable);
 

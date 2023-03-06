@@ -1,10 +1,10 @@
 <script lang="ts">
+    import type { PageData } from "./$types";
+	import { Gamemode } from "$lib/enums";
+    import { GAME } from "./Modern/Constants";
 	import VrGame from "./VR/VrGame.svelte";
 	import ClassicGame from "./Classic/ClassicGame.svelte";
-	import { Gamemode } from "$lib/enums";
-    import type { PageData } from "./$types";
     import ModernGame from "./Modern/ModernGame.svelte";
-    import { GAME } from "./Modern/Constants";
 
 	export let data: PageData;
 </script>

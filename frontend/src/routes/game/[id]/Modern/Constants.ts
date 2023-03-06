@@ -1,8 +1,8 @@
 import type { Line, CollisionLine } from "../lib2D/Math2D";
 import type { Vector } from "../lib2D/Math2D";
 
-export const WIDTH = 400;
-export const HEIGHT = 225;
+export const WIDTH = 440;
+export const HEIGHT = 248;
 export const FIELDWIDTH = 320;
 export const FIELDHEIGHT = 180;
 export const UPS = 60;

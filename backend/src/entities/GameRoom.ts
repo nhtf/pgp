@@ -1,7 +1,7 @@
 import { Room } from "./Room";
 import { Team } from "./Team";
 import { Expose } from "class-transformer";
-import { ChildEntity, OneToOne, JoinColumn } from "typeorm";
+import { ChildEntity, OneToOne } from "typeorm";
 import { Gamemode } from "src/enums/Gamemode";
 import { GameState } from "./GameState";
 
@@ -37,6 +37,7 @@ export class GameRoom extends Room {
 		this.state.teamsLocked = teamsLocked;
 	}
 
+	@Expose()
 	get type(): string {
 		return "GameRoom";
 	}

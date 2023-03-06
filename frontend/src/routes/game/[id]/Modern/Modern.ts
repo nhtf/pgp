@@ -17,7 +17,7 @@ const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
 const wall = new Audio("/Assets/sounds/wall.wav");
 const music = new Audio("/Assets/sounds/zetauri.wav");
-const scale = 1;
+const scale = 1.0;
 
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
@@ -211,6 +211,7 @@ export class Game extends Net {
 		this.offscreenContext.scale(minScale, minScale);
 		this.background.render(this.offscreenContext);
 		this.offscreenContext.restore();
+		console.log("resizing");
 	}
 
 	protected save(): Snapshot {
@@ -343,7 +344,6 @@ export class Game extends Net {
 		music.muted = false;
 		music.volume = 0.5;
 		music.play();
-		this.resizeOffscreenCanvas();
 	}
 }
 
@@ -414,7 +414,6 @@ export class Modern {
 
 	public async start(options: Options) {
 		this.options = options;
-		this.game?.resizeOffscreenCanvas();
 		this.interval = setInterval(() => {
 			this.game?.send("ping", {
 				u: options.member.user.id,

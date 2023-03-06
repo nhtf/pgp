@@ -285,12 +285,13 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			const qb = this.joinedQuery(me);
 			const rooms = await this.loadRelations(qb).getMany();
 
-			rooms.forEach((room) => {
-				room.self = room.members.find((member) => member.userId === me.id);
-				room.joined = true;
+			return rooms.map((room) => {
+				return {
+					...instanceToPlain(room),
+					self: room.self(me),
+					joined: true,
+				}
 			});
-
-			return rooms;
 		}
 
 		@Get("joinable")
@@ -298,12 +299,12 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			const qb = this.joinableQuery(me);
 			const rooms = await this.loadRelations(qb).getMany();
 
-			rooms.forEach((room) => {
-				room.self = room.members.find((member) => member.userId === me.id);
-				room.joined = false;
+			return rooms.map((room) => {
+				return {
+					...instanceToPlain(room),
+					joined: false,
+				}
 			});
-
-			return rooms;
 		}
 
 		// TODO: remove
@@ -377,7 +378,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			room.is_private = dto.is_private;
 
 			await this.room_repo.save(room);
-			await room.send_update({
+	
+			room.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.SET,
