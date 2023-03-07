@@ -182,20 +182,16 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 export class AppModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
 		consumer.apply(SessionExpiryMiddleware).exclude(
-			{
-				path: "debug(.*)", method: RequestMethod.ALL
-			}).forRoutes("*");
+			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
 		consumer.apply(UserMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
-			{
-				path: "debug(.*)", method: RequestMethod.ALL
-			}).forRoutes("*");
+			{ path: "debug(.*)", method: RequestMethod.ALL })
+			.forRoutes("*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
 		consumer.apply(ActivityMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
-			{
-				path: "debug(.*)", method: RequestMethod.ALL
-			}).forRoutes("*");
+			{ path: "debug(.*)", method: RequestMethod.ALL })
+			.forRoutes("*");
 	}
 }

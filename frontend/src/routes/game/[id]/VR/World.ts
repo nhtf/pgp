@@ -67,10 +67,10 @@ export class World extends Net {
 		this.physicsObjectId = 0;
 		this.frameTime = new Counter(5);
 
-		this.collisionConfiguration = this.addAmmoObject(new Ammo.btDefaultCollisionConfiguration());
-		this.collisionDispatcher = this.addAmmoObject(new Ammo.btCollisionDispatcher(this.collisionConfiguration));
-		this.broadphaseInterface = this.addAmmoObject(new Ammo.btDbvtBroadphase());
-		this.constraintSolver = this.addAmmoObject(new Ammo.btSequentialImpulseConstraintSolver());
+		this.collisionConfiguration = new Ammo.btDefaultCollisionConfiguration();
+		this.collisionDispatcher = new Ammo.btCollisionDispatcher(this.collisionConfiguration);
+		this.broadphaseInterface = new Ammo.btDbvtBroadphase();
+		this.constraintSolver = new Ammo.btSequentialImpulseConstraintSolver();
 		
 		this.scene = new THREE.Scene();
 		this.renderer = this.addThreeObject(new THREE.WebGLRenderer({ antialias: true }));
@@ -399,8 +399,16 @@ export class World extends Net {
 	public stop() {
 		this.renderer.setAnimationLoop(null);
 
-		this.ammoObjects.forEach(obj => Ammo.destroy(obj));
-		this.threeObjects.forEach(obj => obj.dispose());
+		for (let object of this.ammoObjects) {
+			Ammo.destroy(object);
+		}
+
+		for (let object of this.threeObjects) {
+			object.dispose();
+		}
+
+		this.ammoObjects = [];
+		this.threeObjects = [];
 
 		super.stop();
 	}

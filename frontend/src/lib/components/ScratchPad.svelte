@@ -14,11 +14,11 @@
 	// let timer: NodeJs.Timeout;
 	let timer: number;
 	let suggestions: Suggestion[] = [];
-	let last_command: command = null;
+	let last_command: command | null = null;
 	
 	type command = {
 		command: string,
-		onExecute: (input: string, setInput: (string) => void) => void,
+		onExecute: (input: string, setInput: (value: string) => void) => void,
 		onInput: (input: string) => void,
 		onClear: () => void,
 	};
@@ -45,7 +45,7 @@
 		}, 1000);
 	}
 
-	async function onGiphyExecute(input: string, setInput: (string) => void) {
+	async function onGiphyExecute(input: string, setInput: (string: string) => void) {
 		clearTimeout(timer);
 		const tmp = await getSuggestions("giphy", input);
 		setInput(tmp[0].url);
@@ -60,14 +60,14 @@
 		}, 1000);
 	}
 
-	async function onTenorExecute(input: string, setInput: (string) => void) {
+	async function onTenorExecute(input: string, setInput: (string: string) => void) {
 		clearTimeout(timer);
 		const tmp = await getSuggestions("tenor", input);
 		setInput(tmp[0].url);
 	}
 
 	function onTenorClear() {
-		clearTimeout();
+		clearTimeout(timer);
 		suggestions = [];
 	}
 
@@ -237,7 +237,7 @@
 		background-color: var(--box-color) !important;
 		margin-left: 1em;
 		min-width: 20vw;
-		max-width: 60vw;
+		/* max-width: 60vw; */
 		max-height: 50em;
 		border: none;
 		padding: 1.5em;

@@ -11,7 +11,7 @@ import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
 import { Role } from "src/enums/Role";
-import { Repository } from "typeorm";
+import { Repository, In } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
@@ -46,6 +46,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		invite_repo: Repository<RoomInvite>,
 		@Inject("PLAYER_REPO")
 		readonly player_repo: Repository<Player>,
+		@Inject("GAMESTATE_REPO")
+		readonly gamestate_repo: Repository<GameState>,
 		@Inject("GAMEROOM_PGPSERVICE")
 		service: IRoomService<GameRoom, GameRoomMember>,
 		update_service: UpdateGateway,
@@ -129,6 +131,28 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		});
 
 		return member;
+	}
+
+	@Get("history")
+	async history(@Me() me: User) {
+		return await this.player_repo.find({
+			where: {
+				user: {
+					id: me.id,
+				},
+			},
+			relations: {
+				team: {
+					state: {
+						teams: {
+							players: {
+								user: true,
+							},
+						},
+					},
+				},
+			},
+		});
 	}
 
 	@Patch("id/:id/team/:target")

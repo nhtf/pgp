@@ -24,18 +24,18 @@ export const genAdverb = () => choice([
 	() => `increasingly`,
 ])();
 
-export const genCreature = () => choice([
-	() => `dragon`,
-	() => `unicorn`,
-	() => `mermaid`,
-	() => `werewolf`,
-	() => `fairy`,
-	() => `phoenix`,
-	() => `goblin`,
-	() => `skeleton`,
-	() => `zombie`,
-	() => `elf`,
-	() => `dinosaur`,
+export const genCreature = (plural: boolean = false) => choice([
+	() => plural ? `dragons` : `dragon`,
+	() => plural ? `unicorns` : `unicorn`,
+	() => plural ? `mermaids` : `mermaid`,
+	() => plural ? `werewolves` : `werewolf`,
+	() => plural ? `fairies` : `fairy`,
+	() => plural ? `phoenixes` : `phoenix`,
+	() => plural ? `goblins` : `goblin`,
+	() => plural ? `skeletons` : `skeleton`,
+	() => plural ? `zombies` : `zombie`,
+	() => plural ? `elves` : `elf`,
+	() => plural ? `dinosaurs` : `dinosaur`,
 ])();
 
 export const genAdjective = () => choice([
@@ -112,14 +112,26 @@ export const genNameUnlimited = () => choice([
 	() => `The ${genAdjectiveSequence()} ${genRoomSynonym()} of the ${genCreature()}`,
 ])();
 
-export function genName(limit?: number): string {
-	let name = genNameUnlimited();
+export const genTeamNameUnlimited = () => choice([
+	() => `The ${genAdjectiveSequence()} ${genCreature(true)}`,
+])();
+
+export function genLimit(func: () => string, limit?: number): string {
+	let name = func();
 
 	if (limit !== undefined) {
 		while (name.length > limit) {
-			name = genNameUnlimited();
+			name = func();
 		}
 	}
 
 	return name;
+}
+
+export function genName(limit?: number): string {
+	return genLimit(genNameUnlimited, limit);
+}
+
+export function genTeamName(limit?: number): string {
+	return genLimit(genTeamNameUnlimited, limit);
 }

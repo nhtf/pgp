@@ -105,12 +105,12 @@ export class GameGateway extends ProtectedGateway("game") {
 					team.score = teamState.score;
 					await this.team_repo.save(team);
 
-					room.send_update({
-						subject: Subject.ROOM,
-						id: client.room,
-						action: Action.SET,
-						value: instanceToPlain(room),
-					}, !room.is_private);
+					// room.send_update({
+					// 	subject: Subject.ROOM,
+					// 	id: client.room,
+					// 	action: Action.SET,
+					// 	value: instanceToPlain(room),
+					// }, !room.is_private);
 				}
 			}
 		}

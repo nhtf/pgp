@@ -6,11 +6,15 @@ let VERT_RIP_SRC: string;
 let FRAG_RIP_SRC: string;
 let VERT_NOR_SRC: string;
 let FRAG_NOR_SRC: string;
+let VERT_GRID_SRC: string;
+let FRAG_GRID_SRC: string;
 const path = "/Assets/Shaders/";
 await fetch(path+"ripple.vert").then(r => r.text().then(d => VERT_RIP_SRC = d));
 await fetch(path+"ripple.frag").then(r => r.text().then(d => FRAG_RIP_SRC = d));
 await fetch(path+"normal.vert").then(r => r.text().then(d => VERT_NOR_SRC = d));
 await fetch(path+"normal.frag").then(r => r.text().then(d => FRAG_NOR_SRC = d));
+await fetch(path+"normal.vert").then(r => r.text().then(d => VERT_GRID_SRC = d));
+await fetch(path+"normal.frag").then(r => r.text().then(d => FRAG_GRID_SRC = d));
 
 enum SHADER {
 	NORMAL,
@@ -80,6 +84,8 @@ export function setOriginRipple(x: number, y: number) {
 	position.y = 1 - ((y + 22.5) / HEIGHT);
 }
 
+//TODO do everything in shaders, split background up in grid and field shaders,
+// split foreground up in seperate paddle and ball shaders
 export class RippleShader {
 	private gl: WebGL2RenderingContext;
 	private outerCanvas: HTMLCanvasElement;
@@ -97,17 +103,17 @@ export class RippleShader {
 	private timer: number;
 	private activeShader: SHADER;
 	private lastTime: number;
+	private upScale: number;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
 		this.innerCanvas = document.createElement("canvas");
-		this.gl = canvas.getContext("webgl2")!;
+		this.gl = canvas.getContext("webgl2", {antialias: true})!;
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
-		this.gl.pixelStorei(this.gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, true);
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-
-		this.program.push(createProgram(this.gl, VERT_NOR_SRC, FRAG_NOR_SRC));
+		
+		this.program.push(createProgram(this.gl, VERT_GRID_SRC, FRAG_GRID_SRC));
 
 		this.program.push(createProgram(this.gl, VERT_RIP_SRC, FRAG_RIP_SRC));
 
@@ -131,17 +137,18 @@ export class RippleShader {
 		this.timer = 0;
 		this.activeShader = 0;
 		this.lastTime = 0;
+		this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas);
+		this.upScale = 1;
 	}
 
 	private scale(): number {
-		const xScale = this.outerCanvas.width / this.innerCanvas.width;
-		const yScale = this.outerCanvas.height / this.innerCanvas.height;
+		const xScale = this.outerCanvas.clientWidth / this.innerCanvas.width;
+		const yScale = this.outerCanvas.clientHeight / this.innerCanvas.height;
 		return Math.floor(Math.min(xScale, yScale));
 	}
 
 	private bufferPosData(): number[] {
-		// const scale = this.scale();
-		const scale = 1;
+		const scale = this.scale();
 		const xOffset = (this.outerCanvas.width - this.innerCanvas.width * scale) / 2;
 		const yOffset = (this.outerCanvas.height - this.innerCanvas.height * scale) / 2;
 		const x = xOffset / this.outerCanvas.width * 2 - 1;
@@ -172,33 +179,57 @@ export class RippleShader {
 	public update(time: number) {
 		
 		let refresh = false;
-
 		if (this.outerCanvas.clientWidth != this.outerCanvas.width) {
 			this.outerCanvas.width = this.outerCanvas.clientWidth;
-			// this.innerCanvas.width = this.outerCanvas.clientWidth;
+			this.innerCanvas.width = this.outerCanvas.clientWidth / 2;
+			if (this.innerCanvas.width < WIDTH) {
+				this.innerCanvas.width = WIDTH;
+				this.upScale = 1;
+			}
 			refresh = true;
 		}
 
 		if (this.outerCanvas.clientHeight != this.outerCanvas.height) {
 			this.outerCanvas.height = this.outerCanvas.clientHeight;
-			// this.innerCanvas.height = this.outerCanvas.clientHeight;
+			this.innerCanvas.height = this.outerCanvas.clientHeight / 2;
+			if (this.innerCanvas.height < HEIGHT) {
+				this.innerCanvas.height = HEIGHT;
+				this.upScale = 1;
+			}
 			refresh = true;
 		}
-
-		this.gl.viewport(0, 0, this.outerCanvas.width, this.outerCanvas.height);
+		const xScale = (this.innerCanvas.width / WIDTH);
+		const yScale = (this.innerCanvas.height / HEIGHT);
+		const scale = Math.floor(Math.min(xScale, yScale));
+		const xOffset = Math.floor((this.outerCanvas.clientWidth - WIDTH * scale) / 2);
+		const yOffset = Math.floor((this.outerCanvas.clientHeight - HEIGHT * scale) / 2);
+		let posX = Math.floor(xOffset - 5 * scale * 8) > 0 ? Math.floor(xOffset - 5 * scale * 8) : 0;
+		let posY = Math.floor(yOffset - 5 * scale * 8) > 0 ? Math.floor(yOffset - 5 * scale * 8) : 0;
+		let width = this.innerCanvas.width - 2 * posX;
+		if (width < WIDTH) {
+			width = this.innerCanvas.width;
+			posX = 0;
+		}
+		let height = this.innerCanvas.height - 2 * posY;
+		if (height < HEIGHT) {
+			height = this.innerCanvas.height;
+			posY = 0;
+		}
+		this.gl.viewport(-posX, -posY, this.outerCanvas.width, this.outerCanvas.height);
 		this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 		this.gl.activeTexture(this.gl.TEXTURE0);
 		this.gl.bindTexture(this.gl.TEXTURE_2D, this.texture);
-		//TODO slow on firefox not on chromium....
-		this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas); // TODO: deze functie is traaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag
+		//TODO instead of canvas just render everything in webgl
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MIN_FILTER, this.gl.NEAREST);
 		this.gl.texParameteri(this.gl.TEXTURE_2D, this.gl.TEXTURE_MAG_FILTER, this.gl.NEAREST);
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
-
 		if (refresh) {
+			this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas); // TODO: deze functie is traaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaag
 			this.gl.bufferData(this.gl.ARRAY_BUFFER, new Float32Array(this.bufferPosData()), this.gl.STATIC_DRAW);
 		}
+		else
+			this.gl.texSubImage2D(this.gl.TEXTURE_2D, 0, posX, posY, width, height, this.gl.RGBA, this.gl.UNSIGNED_BYTE, this.innerCanvas);
 		this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
 		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
@@ -224,10 +255,12 @@ export class RippleShader {
 		this.gl.uniform1i(this.uniformTex[this.activeShader], 0);
 		this.gl.uniform2f(this.uniformSize[this.activeShader], this.outerCanvas.width, this.outerCanvas.height);
 		this.gl.uniform2f(this.originPos[this.activeShader], position.x, position.y);
-		// console.log("scale: ", this.scale());
-		this.gl.uniform1f(this.uniformScale[this.activeShader], this.scale());
+		
+		this.gl.uniform1f(this.uniformScale[this.activeShader], this.upScale);
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
-		console.log("fps: ", 1/ (time -this.lastTime) * 1000);
+		const fps = 1/ (time -this.lastTime) * 1000;
+		// if (fps < 50)
+			console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

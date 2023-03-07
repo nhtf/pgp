@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post } from "@nestjs/common";
+import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post, Delete } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { IRoomService, GenericRoomController, RequiredRole, GetRoom, GetMember } from "src/services/room.service";
 import { ChatRoom } from "src/entities/ChatRoom";
@@ -10,9 +10,8 @@ import { Role } from "src/enums/Role";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
-import { Subject } from "src/enums/Subject";
 import { Action } from "src/enums/Action";
-import { instanceToPlain } from "class-transformer";
+import { Subject } from "src/enums/Subject"
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
 
@@ -105,8 +104,8 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		@GetMember() member: ChatRoomMember,
 		@GetRoom() room: ChatRoom,
 		@Param("target", ParseIDPipe(ChatRoomMember, { room: true })) target: ChatRoomMember,
-		@Body("duration", ParseIntPipe) duration: number)
-	{
+		@Body("duration", ParseIntPipe) duration: number
+	) {
 		if (target.room.id !== room.id) {
 			throw new BadRequestException("Target not a member of this room");
 		}
@@ -120,9 +119,25 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		await this.member_repo.save(target);
 	
 		if (target.mute > new Date) {
-			setTimeout(() => target.send_update(Action.SET), duration);
+			setTimeout(() => target.send_update(), duration);
 		}
 
 		return {};
 	}
+
+	@Delete("id/:id/message(s)?/:message")
+	@RequiredRole(Role.MEMBER)
+	async deleteMessage(
+		@GetMember() member: ChatRoomMember,
+		@Param("message", ParseIDPipe(Message, { room: { members: { user: true } } })) message: Message
+	) {
+		const target = await this.member_repo.findOneBy({ id: message.memberId });
+
+		if (target.id !== member.id && target.role >= member.role) {
+			throw new ForbiddenException(ERR_PERM);
+		}
+
+		return await this.message_repo.remove(message);
+	}
+
 }

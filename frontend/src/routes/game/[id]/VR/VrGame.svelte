@@ -17,7 +17,8 @@
 		world = new Pong();
 		console.log(world);
 		container.append(world.renderer.domElement);
-		container.append(VRButton.createButton(world.renderer));
+		const vrButton = VRButton.createButton(world.renderer);
+		container.append(vrButton);
 
 		await world.start({
 			container,
@@ -26,6 +27,17 @@
 				user: $page.data.user,
 				...$page.data.member,
 			}
+		});
+
+		vrButton.addEventListener("click", function(ev) {
+			requestAnimationFrame(function() {
+				const canvas = document.getElementsByTagName("canvas")[0];
+				const parent = canvas.parentElement;
+
+				if (!parent.classList.contains("game-container")) {
+					canvas.parentElement.id = "threejs-unfucker";
+				}
+			});
 		});
 	});
 
@@ -47,5 +59,9 @@
 		position: fixed;
 		inset: 77px 5px 5px 5px;
 		border-radius: 6px;
+	}
+
+	#threejs-unfucker {
+		z-index: -1 !important;
 	}
 </style>

@@ -33,22 +33,22 @@ export class Invite {
 		return "Room";
 	}
 
-	send_update(action: Action) {
+	@AfterInsert()
+	afterInsert() {
 		UpdateGateway.instance.send_update({
 			subject: Subject.INVITE,
 			id: this.id,
-			action,
+			action: Action.ADD,
 			value: instanceToPlain(this),
 		}, this.from, this.to);
 	}
 
-	@AfterInsert()
-	afterInsert() {
-		this.send_update(Action.ADD);
-	}
-
 	@BeforeRemove()
 	beforeRemove() {
-		this.send_update(Action.REMOVE);
+		UpdateGateway.instance.send_update({
+			subject: Subject.INVITE,
+			id: this.id,
+			action: Action.REMOVE,
+		}, this.from, this.to);
 	}
 }

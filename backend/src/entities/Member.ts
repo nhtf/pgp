@@ -38,7 +38,7 @@ export class Member {
 		return "Member";
 	}
 
-	send_update(action: Action) {
+	send_update(action: Action = Action.SET) {
 		UpdateGateway.instance.send_update({
 			subject: Subject.MEMBER,
 			id: this.id,

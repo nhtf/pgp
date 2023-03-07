@@ -149,6 +149,7 @@ export class DebugController {
 		return this.userRepo.find({
 			relations: {
 				banned_rooms: true,
+				friends: true,
 			},			
 		});
 	}

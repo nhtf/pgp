@@ -3,6 +3,7 @@ import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
 import { writable, type Writable } from "svelte/store";
+import { Access } from "$lib/enums"
 
 function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 	updateManager.set(subject, (update: UpdatePacket) => {
@@ -43,6 +44,19 @@ setUpdate(userStore, Subject.USER);
 setUpdate(roomStore, Subject.ROOM);
 setUpdate(inviteStore, Subject.INVITE);
 setUpdate(memberStore, Subject.MEMBER);
+
+// Removed from private room
+updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
+	const room = update.value;
+
+	if (update.action === Action.SET && room.access === Access.PRIVATE && room.joined === false) {
+		roomStore.update((rooms) => {
+			rooms.delete(update.id);
+
+			return rooms;
+		});
+	}
+});
 
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	switch (update.action) {

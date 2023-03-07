@@ -2,15 +2,15 @@
 	import type { Member, User } from "$lib/entities";
 	import { unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
-	import { Role } from "$lib/enums";
+	import { Role, roles } from "$lib/enums";
 	import { userStore } from "$lib/stores";
 	import { patch, post, remove } from "$lib/Web";
 	import { page } from "$app/stores";
-	import { Avatar, Dropdown, DropdownItem, Tooltip } from "flowbite-svelte";
+	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
 	import Swal from "sweetalert2";
 
-	export let user: User;
 	export let member: Member | null;
+	export let user: User = $userStore.get(member!.userId)!;
 	export let self: Member;
 	export let memberGroup: boolean;
 
@@ -26,7 +26,7 @@
 	const mute_duration = 1;
 
 	$: me = $userStore.get($page.data.user?.id)!;
-	$: user = $userStore.get(user.id)!;
+	$: user = $userStore.get(user!.id)!;
 
 	async function edit(member: Member, role: Role) {
 		await unwrap(
@@ -121,12 +121,10 @@
 	class="bor-c bg-c shadow rounded max-w-sm"
 >
 	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
+	<DropdownDivider/>
 	{#if me.id !== user.id}
-		{#each Object.values(Role)
-			.reverse()
-			.filter((role) => typeof role === "number" && role > 0) as role}
+		{#each roles as role}
 			{#if self.role >= role && member && member.role < self.role}
-				<!-- <DropdownDivider /> -->
 				{#each actions.filter((action) => action.role === role) as { condition, fun, param, name }}
 					{#if !condition || condition(member)}
 						<DropdownItem

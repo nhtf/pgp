@@ -18,7 +18,6 @@ export class Team {
 	@ManyToOne(() => GameState, (state) => state.teams, { onDelete: "CASCADE" })
 	state: GameState;
 
-	@Exclude()
 	@OneToMany(() => Player, (player) => player.team)
 	players: Player[];
 

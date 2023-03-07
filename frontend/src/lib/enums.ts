@@ -4,6 +4,7 @@ export enum Subject {
 	ROOM,
 	MEMBER,
 	FRIEND,
+	MESSAGE,
 }
 
 export enum Action {
@@ -43,3 +44,5 @@ export enum CoalitionColors {
 	PYXIS = "B73188",
 	VELA = "E52A2D",
 }
+
+export const roles = [...Array(Object.keys(Role).length / 2).keys()];

@@ -78,7 +78,6 @@ export class Room {
 			subject: Subject.ROOM,
 			id: this.id,
 			action: Action.REMOVE,
-			value: instanceToPlain(this),
 		}, !this.is_private);
 	}
 }

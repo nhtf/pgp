@@ -6,9 +6,6 @@ find out how revolt detects embed type and do something similar
 
 random team names
 
-AMMOERROR (chen)
-Canvas fullscreen for VR and escape (or something like that) to exit vr -> to prevent memory leak from webgl canvas stuff
-
 Profile page stat part
 
 Match History page (either on profile or seperate page?)

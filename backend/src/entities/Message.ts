@@ -6,12 +6,15 @@ import {
 	OneToMany,
 	Column,
 	RelationId,
+	BeforeRemove,
 } from "typeorm";
 import { ChatRoom } from "./ChatRoom";
 import { User } from "./User";
 import { ChatRoomMember } from "./ChatRoomMember";
 import { Embed } from "./Embed";
 import { Exclude, Transform } from "class-transformer"
+import { Subject } from "src/enums/Subject"
+import { Action } from "src/enums/Action"
 
 @Entity()
 export class Message {
@@ -29,6 +32,7 @@ export class Message {
 	@ManyToOne(() => ChatRoom, (room) => room.messages, { onDelete: "CASCADE" })
 	room: ChatRoom;
 	
+	@Exclude()
 	@ManyToOne(() => ChatRoomMember, (member) => member.messages, { nullable: true, onDelete: "SET NULL" })
 	member: ChatRoomMember | null;
 
@@ -44,4 +48,13 @@ export class Message {
 	
 	@OneToMany(() => Embed, (embed) => embed.message, { eager: true, cascade: true })
 	embeds: Embed[];
+
+	@BeforeRemove()
+	beforeRemove() {
+		this.room.send_update({
+			subject: Subject.MESSAGE,
+			action: Action.REMOVE,
+			id: this.id,
+		});
+	}
 }

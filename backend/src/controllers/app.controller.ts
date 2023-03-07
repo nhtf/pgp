@@ -9,9 +9,7 @@ import {
 	UseGuards,
 } from "@nestjs/common";
 
-import {
-	genName
-} from "../namegen";
+import { genName, genTeamName } from "../namegen";
 import validator from "validator";
 import axios, { AxiosResponse } from "axios";
 import { HttpAuthGuard } from "src/auth/auth.guard";
@@ -23,6 +21,11 @@ export class AppController {
 	@Get("/room-name")
 	roomName() {
 		return genName();
+	}
+	
+	@Get("/team-name")
+	teamName() {
+		return genTeamName();
 	}
 
 	@Get("proxy")

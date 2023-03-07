@@ -7,8 +7,8 @@
 	import { unwrap } from "$lib/Alert";
 	import { remove } from "$lib/Web";
 	import { goto } from "$app/navigation";
-	import { Action, CoalitionColors, Role, Subject } from "$lib/enums";
-	import { memberStore, roomStore, userStore } from "$lib/stores";
+	import { Action, CoalitionColors, Role, roles, Subject } from "$lib/enums";
+	import { memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { page } from "$app/stores";
 	import MessageBox from "$lib/components/MessageBox.svelte"
@@ -18,26 +18,33 @@
 	export let data: PageData;
 
 	const role_colors = Object.values(CoalitionColors);
+	const role_names = [ "Members", "Admins", "Owner" ];
+	const load = 15;
 
-	let messages = data.messages.sort(dateCmp)
+	let messages = data.messages.sort(byDate);
 	let content = "";
 	let indices: number[] = [];
-
+	let relativeScroll = messages.length - load;
+	
 	$: room = $roomStore.get(data.room.id)!;
-	$: all = [...$memberStore.values()]
-		.filter((member) => member.roomId === room?.id);
+	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
 	$: self = $memberStore.get(data.member.id)!;
-	$: messages;
 
-	$: owner = all.find((member) => member.role === Role.OWNER)!;
-	$: admins = all.filter((member) => member.role === Role.ADMIN);
-	$: members = all.filter((member) => member.role === Role.MEMBER);
+	$: messages;
+	$: relativeScroll;
+	$: min = clamp(relativeScroll - load, 0, messages.length);
+	$: max = clamp(relativeScroll + load, 0, messages.length);
 
 	onMount(() => {
 		roomSocket.emit("join", String(room!.id));
 
 		indices.push(onRemove(Subject.ROOM, room!.id));
 		indices.push(onRemove(Subject.MEMBER, self.id));
+		indices.push(updateManager.set(Subject.MESSAGE, (update: UpdatePacket) => {
+			if (update.action === Action.REMOVE) {
+				messages = messages.filter((message) => message.id !== update.id);
+			}
+		}));
 	});
 
 	onDestroy(() => {
@@ -45,7 +52,13 @@
 	});
 
 	roomSocket.on("message", (message: Message) => {
-		messages = [...messages, message].sort(dateCmp);
+		messages = [...messages, message].sort(byDate);
+	});
+
+	addEventListener("wheel", (event: WheelEvent) => {
+		const diff = clamp(event.deltaY, -1, 1);
+
+		relativeScroll = clamp(relativeScroll + diff, load, messages.length - load);
 	});
 
 	function onRemove(subject: Subject, id: number) {
@@ -56,14 +69,14 @@
 		});
 	}
 
-	function getUser(id: number) {
-		return $userStore.get(id)!;
-	}
-
-	function dateCmp(first: Message, second: Message): number {
+	function byDate(first: Message, second: Message): number {
 		return first.created - second.created;
 	}
 
+	function clamp(n: number, min: number, max:number) {
+		return n < min ? min : n > max ? max : n;
+	}
+	
 	function sendMessage(message: string): boolean {
 		if (message.length) {
 			roomSocket.emit("message", message);
@@ -85,9 +98,12 @@
 			},
 		};
 	}
-	
 </script>
 
+<!-- <div>total: {messages.length}</div>
+<div>min: {min}</div>
+<div>max: {max}</div>
+<div>rel: {relativeScroll}</div> -->
 {#if room}
 	<div class="room">
 		<div class="room-container">
@@ -95,42 +111,31 @@
 				<a class="button border-blue" href={`/chat`}>Back</a>
 				<div class="room-name">{room.name}</div>
 				<button class="button border-red" on:click={() => leave(room)}>Leave</button>
-
 				{#if self?.role >= Role.ADMIN}
 					<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 				{/if}				
 			</div>
-
 			<div use:scrollToBottom={messages} class="messages">
-				{#each messages as message (message.id)}
-					<MessageBox {message} {self} />
+				{#each messages as message, index (message.id)}
+					{#if index >= min && index < max}
+						<MessageBox {message} {self} />
+					{/if}
 				{/each}
 			</div>
 			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
 		</div>
 		<div class="member-container">
-			<div class="member-group">
-				<h1 style={`color: #${role_colors[Role.OWNER]}`}>Owner</h1>
-				<MemberBox user={getUser(owner.userId)} member={owner} {self} memberGroup={true}/>
-			</div>
-			{#if admins.length}
-				<div/>
-				<div class="member-group">
-					<h1 style={`color: #${role_colors[Role.ADMIN]}`}>Admins</h1>
-					{#each admins as member (member.id)}
-						<MemberBox user={getUser(member.userId)} {member} {self} memberGroup={true}/>
-					{/each}
-				</div>
-			{/if}
-			{#if members.length}
-				<div/>
-				<div class="member-group">
-					<h1 style={`color: #${role_colors[Role.MEMBER]}`}>Members</h1>
-					{#each members as member (member.id)}
-						<MemberBox user={getUser(member.userId)} {member} {self} memberGroup={true}/>
-					{/each}
-				</div>
-			{/if}
+			{#each roles.reverse() as role}
+				{#if members.some((member) => member.role === role)}
+					<div class="member-group">
+						<h1 style={`color: #${role_colors[role]}`}>{role_names[role]}</h1>
+						{#each members.filter((member) => member.role === role) as member (member.id)}
+							<MemberBox {member} {self} memberGroup={true}/>
+						{/each}
+					</div>
+					<div class="my-2"/>
+				{/if}
+			{/each}
 		</div>
 	</div>
 {/if}
@@ -142,29 +147,12 @@
 		margin: 0.5rem;
 	}
 
-	.member-container {
-		display: flex;
-		flex-direction: column;
-		padding: 0.5rem;
-		margin: 0 0.5rem;
-		background-color: var(--box-color);
-		border-radius: 0.375rem;
-		gap: 0.5em;
-		align-items: center;
-	}
-
-	.member-group {
-		display: flex;
-		flex-direction: column;
-		gap: 1em;
-		align-items: center;
-	}
-
 	.room-container {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
 		height: calc(100vh - 90px);
+		max-height: 80vh;
 	}
 
 	.room-title {
@@ -185,6 +173,24 @@
 		padding: 3px;
 		margin: 0 auto;
 		white-space: nowrap;
+	}
+
+	.member-container {
+		display: flex;
+		flex-direction: column;
+		padding: 0.5rem;
+		margin: 0 0.5rem;
+		background-color: var(--box-color);
+		border-radius: 0.375rem;
+		gap: 0.5em;
+		align-items: center;
+	}
+
+	.member-group {
+		display: flex;
+		flex-direction: column;
+		gap: 0.5rem;
+		align-items: center;
 	}
 
 	.messages {

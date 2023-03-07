@@ -32,7 +32,8 @@
 	const HEARTBEATCOOLDOWN = 1000;
 
 	let currentTheme: string;
-	let timer: NodeJS.Timeout | null = null;
+	// let timer: NodeJS.Timeout | null = null;
+	let timer: number | null = null;
 
 	$: user = data.user ? $userStore.get(data.user.id)! : null;
 	$: twofa_enabled = user ? user.auth_req === 2 : false;
@@ -75,8 +76,8 @@
 
 	async function logout() {
 		await unwrap(post(`/oauth/logout`));
-		await invalidate(`${BACKEND}/user/me`);
 		await goto(`/`);
+		await invalidate(`${BACKEND}/user/me`);
 	}
 
 	const applyTheme = () => {

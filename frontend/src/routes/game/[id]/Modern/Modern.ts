@@ -17,7 +17,6 @@ const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
 const wall = new Audio("/Assets/sounds/wall.wav");
 const music = new Audio("/Assets/sounds/zetauri.wav");
-const scale = 1.0;
 
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
@@ -201,8 +200,8 @@ export class Game extends Net {
 			this.offscreenCanvas.width = this.canvas.width;
 		if (this.offscreenCanvas.height != this.canvas.height)
 			this.offscreenCanvas.height = this.canvas.height;
-		const xScale = (this.offscreenCanvas.width / Math.floor(WIDTH * scale));
-		const yScale = (this.offscreenCanvas.height / Math.floor(HEIGHT * scale));
+		const xScale = (this.offscreenCanvas.width / WIDTH);
+		const yScale = (this.offscreenCanvas.height / HEIGHT);
 		const minScale = Math.floor(Math.min(xScale, yScale));
 		const xOffset = Math.floor((this.offscreenCanvas.width - FIELDWIDTH * minScale) / 2);
 		const yOffset = Math.floor((this.offscreenCanvas.height - FIELDHEIGHT * minScale) / 2);
@@ -329,8 +328,11 @@ export class Game extends Net {
 
 	public async start(options: Options) {
 		this.teams = [];
+		let startScore = 0;
+		if (this.players === GAME.FOURPLAYERS)
+			startScore = 10;
 		for (let i = 0; i < this.level.players; i++) {
-			this.teams.push(new Team((options.member as any).room.teams[i].id));
+			this.teams.push(new Team((options.member as any).room.teams[i].id, startScore));
 		}
 
 		let index = 0;
@@ -368,13 +370,13 @@ export class Modern {
 
 	public constructor(canvas: HTMLCanvasElement, players: number) {
 		this.canvas = canvas;
-		this.canvas.width = Math.floor(WIDTH * scale);
-		this.canvas.height = Math.floor(HEIGHT * scale);
+		this.canvas.width = WIDTH;
+		this.canvas.height = HEIGHT;
 		this.context = canvas.getContext("2d")!;
 		this.players = players;
 		this.offscreenCanvas = document.createElement("canvas");
-		this.offscreenCanvas.width = Math.floor(WIDTH * scale);
-		this.offscreenCanvas.height = Math.floor(HEIGHT * scale);
+		this.offscreenCanvas.width = WIDTH;
+		this.offscreenCanvas.height = HEIGHT;
 		this.field = null;
 		this.game = null;
 	}
@@ -388,8 +390,8 @@ export class Modern {
 			this.lastTime += 1000 / UPS;
 		}
 		this.context.fillStyle = "black";
-		const xScale = (this.canvas.width / Math.floor(WIDTH * scale));
-		const yScale = (this.canvas.height / Math.floor(HEIGHT * scale));
+		const xScale = (this.canvas.width / WIDTH);
+		const yScale = (this.canvas.height / HEIGHT);
 		const minScale = Math.floor(Math.min(xScale, yScale));
 		const xOffset = Math.floor((this.canvas.width - FIELDWIDTH * minScale) / 2);
 		const yOffset = Math.floor((this.canvas.height - FIELDHEIGHT * minScale) / 2);

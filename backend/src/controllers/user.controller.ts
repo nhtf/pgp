@@ -55,7 +55,8 @@ export function GenericUserController(route: string, options: { param: string, c
 		@UseGuards(SetupGuard)
 		async get_user(
 			@Me() me: User,
-			@Param(options.param, options.pipe) user?: User) {
+			@Param(options.param, options.pipe) user?: User
+		) {
 			user = user || me;
 			user = await this.user_repo.findOne({
 				where: {

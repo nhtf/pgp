@@ -14,7 +14,7 @@ export interface UpdatePacket {
 	subject: Subject;
 	id: number;
 	action: Action;
-	value: any | null;
+	value?: any;
 }
 
 declare module "http" {
@@ -72,9 +72,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			let user = await this.user_repo.findOneBy({ id });
 
 			user.has_session = false;
-		
 			user = await this.user_repo.save(user);
-		
 			user.send_update();
 
 			this.status.delete(user.id);
@@ -82,10 +80,6 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	send_update(packet: UpdatePacket, ...receivers: User[]) {
-		if (packet.action === Action.REMOVE) {
-			packet.value = null;
-		}
-	
 		if (!receivers.length) {
 			this.server.emit("update", packet);
 		}

@@ -4,4 +4,5 @@ export enum Subject {
 	ROOM,
 	MEMBER,
 	FRIEND,
+	MESSAGE,
 }

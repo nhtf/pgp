@@ -33,6 +33,8 @@ export class RoomGateway extends ProtectedGateway("room") {
 	constructor(
 		@Inject("USER_REPO")
 		private readonly userRepo: Repository<User>,
+		@Inject("ROOM_REPO")
+		private readonly roomRepo: Repository<ChatRoom>,
 		@Inject("MESSAGE_REPO")
 		private readonly messageRepo: Repository<Message>,
 		@Inject("MEMBER_REPO")
@@ -113,13 +115,11 @@ export class RoomGateway extends ProtectedGateway("room") {
 				//console.log(client.socket.localAddress);
 				const type = res.headers["content-type"];
 
-				console.log(typeof type, type);
 				if (typeof type !== "string")
 					continue;
 
 				const embed = new Embed();
 				embed.url = new URL(link.href).toString();
-				console.log(embed.url);
 				embed.digest = createHmac("sha256", BOUNCER_KEY).update(embed.url).digest("hex");
 				
 				if (type.startsWith("text/html")) {
@@ -135,12 +135,12 @@ export class RoomGateway extends ProtectedGateway("room") {
 				console.error("axios:", err);
 			}
 		}
-		
+
 		let message = new Message;
 		
 		message.content = content;
 		message.member = member;
-		message.room = { id: Number(client.room)} as ChatRoom;
+		message.room = { id: client.room } as ChatRoom;
 		message.user = member.user;
 		//TODO send the link raw with digest?
 		message.embeds = embeds;
