@@ -21,7 +21,7 @@
 
 	onMount(() => {
 		index = updateManager.set(Subject.USER, async (update: UpdatePacket) => {
-			if (update.id === profile.id && update.value.username !== $page.params.username) {
+			if (update.id === profile.id && update.value.username && update.value.username !== $page.params.username) {
 				await goto(`/profile/${encodeURIComponent(update.value.username)}`);
 			}
 		});

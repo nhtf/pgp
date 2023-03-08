@@ -1,13 +1,10 @@
-import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable, BeforeRemove } from "typeorm";
+import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
-import { Access } from "../enums/Access";
-import { Role } from "../enums/Role";
-import { Exclude, Expose, instanceToPlain } from "class-transformer";
+import { Access, Role } from "src/enums";
+import { Exclude, Expose } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
 import { UpdateGateway, UpdatePacket } from "src/gateways/update.gateway";
-import { Subject } from "src/enums/Subject";
-import { Action } from "src/enums/Action";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
@@ -70,14 +67,5 @@ export class Room {
 		} else {
 			UpdateGateway.instance.send_update(packet, ...this.users);
 		}
-	}
-
-	@BeforeRemove()
-	beforeRemove() {
-		this.send_update({
-			subject: Subject.ROOM,
-			id: this.id,
-			action: Action.REMOVE,
-		}, !this.is_private);
 	}
 }

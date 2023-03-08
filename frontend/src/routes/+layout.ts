@@ -1,6 +1,6 @@
 import type { User } from "$lib/entities";
 import type { LayoutLoad } from "./$types";
-import { userStore, inviteStore, updateStore, friendIdStore } from "$lib/stores";
+import { userStore, inviteStore, updateStore, friendStore } from "$lib/stores";
 import { get } from "$lib/Web";
 
 export const ssr = false;
@@ -20,7 +20,7 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 
 		updateStore(userStore, [user!, ...friends!]);
 		updateStore(inviteStore, invites!);
-		friendIdStore.set(friends!.map((friend) => friend.id));
+		updateStore(friendStore, friends!.map(({ id }) => { return { id }}));
 
 	} catch (err) { }
 

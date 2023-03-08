@@ -33,33 +33,41 @@
 	$: messages;
 	$: relativeScroll;
 	$: min = clamp(relativeScroll - load, 0, messages.length);
-	$: max = clamp(relativeScroll + load, 0, messages.length);
 
 	onMount(() => {
 		roomSocket.emit("join", String(room!.id));
 
 		indices.push(onRemove(Subject.ROOM, room!.id));
 		indices.push(onRemove(Subject.MEMBER, self.id));
-		indices.push(updateManager.set(Subject.MESSAGE, (update: UpdatePacket) => {
-			if (update.action === Action.REMOVE) {
-				messages = messages.filter((message) => message.id !== update.id);
-			}
-		}));
+		indices.push(updateManager.set(Subject.MESSAGE, updateMessages));
 	});
 
 	onDestroy(() => {
 		updateManager.remove(indices);
 	});
 
-	roomSocket.on("message", (message: Message) => {
-		messages = [...messages, message].sort(byDate);
-	});
+	// roomSocket.on("message", (message: Message) => {
+	// 	messages = [...messages, message].sort(byDate);
+	// });
 
 	addEventListener("wheel", (event: WheelEvent) => {
-		const diff = clamp(event.deltaY, -1, 1);
-
-		relativeScroll = clamp(relativeScroll + diff, load, messages.length - load);
+		if (event.deltaY < 0) {
+			relativeScroll = clamp(relativeScroll - 1, load, messages.length - load);
+		}
 	});
+
+	function updateMessages(update: UpdatePacket) {
+		switch (update.action) {
+			case Action.ADD:
+				if (update.value.roomId === room.id){
+					messages = [...messages, update.value];
+				}
+				break;
+			case Action.REMOVE:
+				messages = messages.filter((message) => message.id !== update.id);
+				break;
+		}
+	}
 
 	function onRemove(subject: Subject, id: number) {
 		return updateManager.set(subject, async (update: UpdatePacket) => {
@@ -100,10 +108,6 @@
 	}
 </script>
 
-<!-- <div>total: {messages.length}</div>
-<div>min: {min}</div>
-<div>max: {max}</div>
-<div>rel: {relativeScroll}</div> -->
 {#if room}
 	<div class="room">
 		<div class="room-container">
@@ -117,7 +121,7 @@
 			</div>
 			<div use:scrollToBottom={messages} class="messages">
 				{#each messages as message, index (message.id)}
-					{#if index >= min && index < max}
+					{#if index >= min}
 						<MessageBox {message} {self} />
 					{/if}
 				{/each}

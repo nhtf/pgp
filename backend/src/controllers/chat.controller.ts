@@ -6,12 +6,10 @@ import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Message } from "src/entities/Message";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { User } from "src/entities/User";
-import { Role } from "src/enums/Role";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
-import { Action } from "src/enums/Action";
-import { Subject } from "src/enums/Subject"
+import { Action, Role, Subject } from "src/enums";
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
 
@@ -103,7 +101,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 	async mute(
 		@GetMember() member: ChatRoomMember,
 		@GetRoom() room: ChatRoom,
-		@Param("target", ParseIDPipe(ChatRoomMember, { room: true })) target: ChatRoomMember,
+		@Param("target", ParseIDPipe(ChatRoomMember, { room: { members: { user: true } } })) target: ChatRoomMember,
 		@Body("duration", ParseIntPipe) duration: number
 	) {
 		if (target.room.id !== room.id) {
@@ -119,7 +117,14 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		await this.member_repo.save(target);
 	
 		if (target.mute > new Date) {
-			setTimeout(() => target.send_update(), duration);
+			setTimeout(() => {
+				UpdateGateway.instance.send_update({
+					subject: Subject.MEMBER,
+					action: Action.SET,
+					id: target.id,
+					value: { is_muted: false },
+				}, ...target.room.users);
+			});
 		}
 
 		return {};

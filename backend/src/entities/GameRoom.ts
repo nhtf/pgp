@@ -2,7 +2,7 @@ import { Room } from "./Room";
 import { Team } from "./Team";
 import { Expose } from "class-transformer";
 import { ChildEntity, OneToOne } from "typeorm";
-import { Gamemode } from "src/enums/Gamemode";
+import { Gamemode } from "src/enums";
 import { GameState } from "./GameState";
 
 @ChildEntity()

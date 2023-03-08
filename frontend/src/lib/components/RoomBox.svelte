@@ -33,7 +33,7 @@
 	let password = "";
 
 	$: user = $userStore.get($page.data.user?.id)!;
-	$: owner = $userStore.get(room.owner.id)!;
+	$: owner = room.owner ? $userStore.get(room.owner.id)! : null;
 
 	async function join(room: T) {
 		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
@@ -67,10 +67,10 @@
 <div class="room" style={`filter: brightness(${room.joined ? "100" : "80"}%)`}>
 	<div class="room-name">
 		{#if room.type === "ChatRoom"}
-			<img class="avatar" src={owner.avatar} alt="avatar"/>
+			<img class="avatar" src={owner?.avatar} alt="avatar"/>
 		{/if}
 		<div class="self-center">{room.name}</div>
-		{#if room.type === "ChatRoom" && owner.id === user.id}
+		{#if room.type === "ChatRoom" && owner?.id === user.id}
 			<img class="owner-icon" src={crown} alt="crown"/>
 		{/if}
 		{#if room.type === "GameRoom"}
@@ -81,7 +81,7 @@
 		{/if}
 	</div>
 	{#if room.joined}
-		{#if owner.id === user.id}
+		{#if owner?.id === user.id}
 			<Invite {room}/>
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 		{:else}

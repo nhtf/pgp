@@ -14,7 +14,7 @@ import { join } from "path";
 import { AVATAR_DIR, DEFAULT_AVATAR, AVATAR_EXT } from "../vars";
 import { SetupGuard } from "src/guards/setup.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
-import { Action } from "src/enums/Action";
+import { Action, Subject } from "src/enums";
 import * as gm from "gm";
 
 declare module "express" {
@@ -88,12 +88,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			}
 
 			user.username = dto.username;
-
-			user = await this.user_repo.save(user);
-
-			user.send_update();
-
-			return user;
+		
+			return await this.user_repo.save(user);
 		}
 
 		@Get(options.cparam + "/avatar")
@@ -150,56 +146,17 @@ export function GenericUserController(route: string, options: { param: string, c
 			}
 
 			user.avatar_base = new_base;
-
 			user = await this.user_repo.save(user);
 
-			user.send_update();
-
+			// avatar is a getter and won't trigger the subscriber
+			UpdateGateway.instance.send_update({
+				subject: Subject.USER,
+				action: Action.SET,
+				id: user.id,
+				value: { avatar: user.avatar }
+			})
+		
 			return {};
-			/*
-			//const transform = sharp().resize(200, 200).gif();
-			const transform = sharp().gif();
-			//TODO catch possible exception thrown by open?
-			const file = await open(join(AVATAR_DIR, new_base + AVATAR_EXT), "w");
-			const stream = file.createWriteStream();
-
-			const istream = new Readable();
-			istream.push(uploaded_file.buffer);
-			istream.push(null);
-			istream.pipe(transform).pipe(stream);
-
-			const promise = new Promise((resolve, reject) => {
-				finished(transform, async (error: Error) => {
-					if (error) {
-						reject({statusCode: HttpStatus.UNPROCESSABLE_ENTITY, statusMessage: "bad image"});
-					} else {
-						try {
-							if (user.avatar_base !== DEFAULT_AVATAR)
-								await rm(user.avatar_path);
-							user.avatar_base = new_base;
-						} catch (ex) {
-							console.error(ex);
-							reject({statusCode: HttpStatus.INTERNAL_SERVER_ERROR, statusMessage: "could not set image"});
-						}
-					}
-					//TODO check if the files get properly closed on an exception
-					stream.close();
-					file.close();
-					await this.user_repo.save(user);
-					await this.update_service.send_update({
-						subject: Subject.USER,
-						id: user.id,
-						action: Action.SET,
-						value: instanceToPlain(user),
-					});
-					resolve(user);
-				});
-			});
-			try {
-				return await promise;
-			} catch (error) {
-				throw new HttpException(error.statusMessage, error.statusCode);
-			}*/
 		}
 
 		@Get(options.cparam + "/auth_req")

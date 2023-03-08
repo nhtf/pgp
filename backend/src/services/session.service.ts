@@ -1,10 +1,10 @@
+import type { ExpressSessionStore } from "pg-session-store";
 import { Injectable } from "@nestjs/common";
 import { Inject } from "@nestjs/common";
-import { AuthLevel } from "src/enums/AuthLevel";
-import * as session from "express-session";
+import { AuthLevel } from "src/enums";
 import { Request } from "express";
-import type { ExpressSessionStore } from "pg-session-store";
 import { SESSION_IDLE_TIME, SESSION_REGENERATE_TIME, SESSION_PURGE_TIME } from "src/vars";
+import * as session from "express-session";
 
 declare module "express-session" {
 	export interface SessionData {

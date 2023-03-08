@@ -1,10 +1,9 @@
 <script lang="ts">
 	import type { Member, Room, User } from "$lib/entities";
 	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
-	import { page } from "$app/stores";
 	import { unwrap } from "$lib/Alert";
 	import { get, post } from "$lib/Web";
-	import { friendIdStore, userStore } from "$lib/stores";
+	import { friendStore, userStore } from "$lib/stores";
 	import Swal from "sweetalert2";
 
 	export let room: Room;
@@ -15,7 +14,7 @@
 	let invitee = "";
 	let open = false;
 
-	$: friends = $friendIdStore.map((id) => $userStore.get(id)!);
+	$: friends = [...$friendStore].map(([id, _]) => $userStore.get(id)!);
 	$: member_user_ids = members.map((member) => member.userId);
 	$: invitable = friends.filter((user) => !member_user_ids.includes(user.id));
 	$: matches = invitable.filter(match);

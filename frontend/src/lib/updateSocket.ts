@@ -32,11 +32,7 @@ class UpdateManager {
 		const funs = this.functions.filter(({ subject }) => subject === update.subject);
 		const style = `color: ${funs.length ? "black" : "gray"}`;
 
-		if (update.subject === Subject.USER) {
-			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value.username}; ${Status[update.value.status]}`, style);
-		} else {
-			console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
-		}
+		console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value?.username ? `USER: ${update.value.username}` : `ID: ${update.id}`};`, style, update.value);
 
 		funs?.forEach(({ fun }) => {
 			fun(update);

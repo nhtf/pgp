@@ -12,11 +12,10 @@ import {
 	Inject,
 	HttpCode,
 } from "@nestjs/common";
-import { InjectRepository } from "@nestjs/typeorm";
 import { Request } from "express";
 import { authenticator } from "otplib";
 import { SessionService } from "src/services/session.service";
-import { AuthLevel } from "../enums/AuthLevel";
+import { AuthLevel } from "src/enums";
 import { Length, IsNumberString } from "class-validator";
 import { HttpAuthGuard } from "./auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";

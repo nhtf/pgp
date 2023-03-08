@@ -44,18 +44,18 @@ export class RoomGateway extends ProtectedGateway("room") {
 		super(userRepo);
 	}
 
-	@SubscribeMessage("join")
-	join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
-		try {
-			validate_id(id);
-		} catch (error) {
-			throw new WsException(error.message);
-		}
+	// @SubscribeMessage("join")
+	// join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+	// 	try {
+	// 		validate_id(id);
+	// 	} catch (error) {
+	// 		throw new WsException(error.message);
+	// 	}
 	
-		client.room = Number(id);
+	// 	client.room = Number(id);
 
-		client.join(id);
-	}
+	// 	client.join(id);
+	// }
 
 	@SubscribeMessage("message")
 	async message(@ConnectedSocket() client: Socket, @MessageBody() content: string) {
@@ -85,17 +85,6 @@ export class RoomGateway extends ProtectedGateway("room") {
 		
 		if (member.mute > new Date) {
 			throw new WsException("muted");
-		}
-
-		if (/^\/tenor /.test(content)) {
-			const res = this.httpService.get(`https://tenor.googleapis.com/v2/search?q=${content.slice(content.indexOf(' ') + 1)}&key=${TENOR_KEY}&limit=20&random=true`)
-				.pipe(catchError((error) => {
-					console.error("crap");
-					throw "crap";
-			}));
-
-			const { data } = await firstValueFrom(res);
-			content = data.results[0].url;
 		}
 
 		const links = linkify.find(content, "url");
@@ -140,7 +129,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		
 		message.content = content;
 		message.member = member;
-		message.room = { id: client.room } as ChatRoom;
+		message.room = await this.roomRepo.findOne({ where: { id: client.room }, relations: { members: { user: true }}});
 		message.user = member.user;
 		//TODO send the link raw with digest?
 		message.embeds = embeds;

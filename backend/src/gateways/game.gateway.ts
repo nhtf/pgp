@@ -7,11 +7,7 @@ import { Repository } from "typeorm"
 import { validate_id } from "src/util";
 import { GameRoom } from "src/entities/GameRoom";
 import { GameRoomMember } from "src/entities/GameRoomMember";
-import { Subject } from "src/enums/Subject";
-import { Action } from "src/enums/Action";
-import { instanceToPlain } from "class-transformer";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
-import { UpdateGateway } from "src/gateways/update.gateway"
 
 export class GameGateway extends ProtectedGateway("game") {
 	constructor(

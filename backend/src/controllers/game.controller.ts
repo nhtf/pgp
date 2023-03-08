@@ -2,7 +2,7 @@ import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Injec
 import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
 import { IsEnum, IsNumber } from "class-validator";
-import { Gamemode } from "src/enums/Gamemode";
+import { Gamemode, Role } from "src/enums";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { GameState } from "src/entities/GameState";
 import { Team } from "src/entities/Team";
@@ -10,7 +10,6 @@ import { Player } from "src/entities/Player";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
-import { Role } from "src/enums/Role";
 import { Repository, In } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
@@ -71,6 +70,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		}
 
 		room.state = state;
+
+		await this.room_repo.save(room);
 	}
 
 	async get_joined_info(room: GameRoom): Promise<GameRoom> {

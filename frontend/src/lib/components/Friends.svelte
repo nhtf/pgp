@@ -2,9 +2,8 @@
 	import type { GameRoom, User } from "$lib/entities";
 	import { post, remove } from "$lib/Web";
 	import { Status } from "$lib/enums";
-	import { page } from "$app/stores";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import { friendIdStore, roomStore, userStore } from "$lib/stores";
+	import { friendStore, roomStore, userStore } from "$lib/stores";
 	import { icon_path, status_colors } from "$lib/constants";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import Swal from "sweetalert2";
@@ -13,12 +12,17 @@
 
 	let score = new Map();
 
-	$: self = $userStore.get($page.data.user?.id)!;
-	$: friends = $friendIdStore.map((id) => $userStore.get(id)!).sort(byName);
+	$: friends = [...$friendStore].map(([id, _]) => $userStore.get(id)!).sort(byStatusThenName);
 	$: placement = window.innerWidth < 750 ? "top" : "left-end";
 
-	function byName(first: User, second: User) {
-		return first.username.localeCompare(second.username);
+	function byStatusThenName(first: User, second: User) {
+		let cmp = second.status - first.status;
+		
+		if (!cmp) {
+			cmp = first.username.localeCompare(second.username);
+		}
+	
+		return cmp;
 	}
 
 	function getScore(user: User) {

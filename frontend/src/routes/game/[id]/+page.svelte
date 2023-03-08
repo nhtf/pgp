@@ -5,6 +5,7 @@
 	import VrGame from "./VR/VrGame.svelte";
 	import ClassicGame from "./Classic/ClassicGame.svelte";
     import ModernGame from "./Modern/ModernGame.svelte";
+	import ModernGameShader from "./Modern/ModernGameShader.svelte";
 
 	export let data: PageData;
 </script>
@@ -15,7 +16,8 @@
 {:else if data.room.gamemode === Gamemode.CLASSIC}
 	<ClassicGame />
 {:else if data.room.gamemode === Gamemode.MODERN && data.room.teams.length === 2}
-	<ModernGame gameMode={GAME.TWOPLAYERS} />
+<ModernGameShader />
+	<!-- <ModernGame gameMode={GAME.TWOPLAYERS} /> -->
 {:else}
 	<ModernGame gameMode={GAME.FOURPLAYERS} />
 {/if}

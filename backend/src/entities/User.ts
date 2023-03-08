@@ -1,5 +1,5 @@
 import { Member } from "./Member";
-import { AuthLevel } from "../enums/AuthLevel";
+import { Action, AuthLevel, Status, Subject } from "src/enums";
 import {
 	Entity,
 	PrimaryGeneratedColumn,
@@ -7,8 +7,6 @@ import {
 	ManyToMany,
 	JoinTable,
 	OneToMany,
-	BeforeRemove,
-	AfterInsert,
 	CreateDateColumn,
 	OneToOne,
 	JoinColumn,
@@ -17,17 +15,13 @@ import {
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { Room } from "./Room";
-import { Status } from "../enums/Status";
 import { Invite } from "./Invite";
 import { get_status } from "src/util";
 import { UpdateGateway } from "src/gateways/update.gateway";
-import { Subject } from "src/enums/Subject";
-import { Action } from "src/enums/Action";
 import { Player } from "./Player";
 import { Message } from "./Message";
 import { GameRoomMember } from "./GameRoomMember"
 import { MatchHistory } from "./MatchHistory"
-import { GameRoom } from "./GameRoom"
 
 @Entity()
 export class User {
@@ -98,10 +92,10 @@ export class User {
 	@OneToMany(() => Player, (player) => player.user)
 	players: Player[];
 
-	@ManyToOne(() => GameRoom, {
+	@ManyToOne(() => Room, {
 		nullable: true
 	})
-	activeRoom: GameRoom | null;
+	activeRoom: Room | null;
 
 	@OneToOne(() => MatchHistory)
 	@JoinColumn()
@@ -113,7 +107,7 @@ export class User {
 			return Status.OFFLINE;
 		}
 
-		if (this.activeRoom) {
+		if (this.activeRoom && this.activeRoom.type === "GameRoom") {
 			return Status.INGAME;
 		}
 
@@ -146,28 +140,33 @@ export class User {
 		this.friends.push(target);
 	}
 
-	send_update(action: Action = Action.SET) {
+	send_update(value: any = instanceToPlain(this), action: Action = Action.SET) {
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			id: this.id,
 			action,
-			value: instanceToPlain(this),
+			value,
 		});
 	}
 
 	send_friend_update(action: Action, friend: User) {
-		UpdateGateway.instance.send_update({
+		const packet: any = {
 			subject: Subject.FRIEND,
 			id: friend.id,
 			action,
-			value: instanceToPlain(friend),
-		}, this);
+		};
+	
+		if (action === Action.ADD) {
+			packet.value = instanceToPlain(friend);
+		}
+	
+		UpdateGateway.instance.send_update(packet, this);
 	}
 
-	@AfterInsert()
-	afterInsert() {
-		this.send_update(Action.ADD);
-	}
+	// @AfterInsert()
+	// afterInsert() {
+	// 	this.send_update(Action.ADD);
+	// }
 
 	// Waaay to many updates, do not use
 	// @AfterUpdate()
@@ -175,8 +174,8 @@ export class User {
 	// 	this.send_update(Action.SET);
 	// }
 
-	@BeforeRemove()
-	beforeRemove() {
-		this.send_update(Action.REMOVE);
-	}
+	// @BeforeRemove()
+	// beforeRemove() {
+	// 	this.send_update(Action.REMOVE);
+	// }
 }

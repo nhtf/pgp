@@ -1,7 +1,7 @@
 import { Team } from "./Team";
 import { Exclude } from "class-transformer";
 import { Column, OneToMany, OneToOne, PrimaryGeneratedColumn, Entity, JoinColumn } from "typeorm";
-import { Gamemode } from "src/enums/Gamemode";
+import { Gamemode } from "src/enums";
 import { GameRoom } from "./GameRoom";
 
 @Entity()

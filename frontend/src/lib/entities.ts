@@ -19,8 +19,8 @@ export type Room = {
     name: string,
 	access: Access,
 	type: "ChatRoom" | "GameRoom",
-	owner: User,
-	joined: boolean,
+	owner?: User,
+	joined?: boolean,
 	self?: Member
 };
 

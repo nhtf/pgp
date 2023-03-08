@@ -16,7 +16,7 @@ import * as rm from "typed-rest-client/RestClient";
 import { BearerCredentialHandler } from "typed-rest-client/handlers/bearertoken";
 import { SessionService, SessionObject } from "../services/session.service";
 import { User } from "../entities/User";
-import { AuthLevel } from "../enums/AuthLevel";
+import { AuthLevel } from "src/enums";
 import { IsAlphanumeric } from "class-validator";
 import { BACKEND_ADDRESS, FRONTEND_ADDRESS } from "../vars";
 import { Repository } from "typeorm";

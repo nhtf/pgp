@@ -10,8 +10,19 @@ function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 		store.update((entities) => {
 			switch (update.action) {
 				case Action.ADD:
-				case Action.SET:
 					entities.set(update.id, update.value);
+					break;
+				case Action.SET:
+					if (!entities.has(update.id)) {
+						entities.set(update.id, update.value);
+						break;
+					}
+
+					const entity = entities.get(update.id) as { [key: string]: any };
+				
+					Object.entries(update.value).forEach(([key, value]) => {
+						entity[key] = value;
+					});
 					break;
 				case Action.REMOVE:
 					entities.delete(update.id);
@@ -24,26 +35,26 @@ function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 }
 
 export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T[]) {
-	store.update((old) => {
+	store.update((stored) => {
 		entities.forEach((entity) => {
-			old.set(entity.id, entity)
-		})
+			stored.set(entity.id, entity)
+		});
 
-		return old;
+		return stored;
 	});
-
 }
 
 export const userStore = writable(new Map<number, User>);
 export const roomStore = writable(new Map<number, Room>);
 export const memberStore = writable(new Map<number, Member>);
 export const inviteStore = writable(new Map<number, Invite>);
-export const friendIdStore = writable<number[]>([]);
+export const friendStore = writable(new Map<number, Entity>);
 
 setUpdate(userStore, Subject.USER);
 setUpdate(roomStore, Subject.ROOM);
 setUpdate(inviteStore, Subject.INVITE);
 setUpdate(memberStore, Subject.MEMBER);
+setUpdate(friendStore, Subject.FRIEND);
 
 // Removed from private room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
@@ -58,14 +69,9 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 	}
 });
 
+// Add new friend to users
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
-	switch (update.action) {
-		case Action.ADD:
-			friendIdStore.update((friendIds) => [...friendIds, update.id]);
-			userStore.update((users) => users.set(update.id, update.value));
-			break;
-		case Action.REMOVE:
-			friendIdStore.update((friendIds) => friendIds.filter((friendId) => friendId !== update.id));
-			break;
+	if (update.action === Action.ADD) {
+		updateStore(userStore, [update.value]);
 	}
 });

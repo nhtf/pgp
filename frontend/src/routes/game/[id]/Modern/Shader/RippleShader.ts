@@ -260,7 +260,7 @@ export class RippleShader {
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);
 		const fps = 1/ (time -this.lastTime) * 1000;
 		// if (fps < 50)
-			console.log("fps: ", fps);
+			// console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

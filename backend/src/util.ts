@@ -11,7 +11,7 @@ import {
 } from "@nestjs/common";
 import { User } from "./entities/User";
 import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
-import { Status } from "src/enums/Status";
+import { Status } from "src/enums";
 import { IDLE_TIME, OFFLINE_TIME } from "./vars";
 import isNumeric from "validator/lib/isNumeric";
 import isLength from "validator/lib/isLength";

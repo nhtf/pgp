@@ -17,7 +17,7 @@ import {
 } from "class-validator";
 import { User } from "../entities/User";
 import { GameState } from "src/entities/GameState"
-import { AuthLevel } from "../enums/AuthLevel";
+import { AuthLevel, Role } from "src/enums";
 import { Repository } from "typeorm";
 import { Request } from "express";
 import { SessionService } from "src/services/session.service"
@@ -26,7 +26,6 @@ import { Room } from "src/entities/Room";
 import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
-import { Role } from "src/enums/Role";
 
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { Message } from "src/entities/Message";

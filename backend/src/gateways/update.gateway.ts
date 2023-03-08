@@ -3,11 +3,9 @@ import type { User } from "../entities/User";
 import type { SessionObject } from "src/services/session.service";
 import { Inject, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
 import { Repository, In } from "typeorm"
-import { Status } from "src/enums/Status";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { PURGE_INTERVAL } from "../vars";
-import { Subject } from "src/enums/Subject";
-import { Action } from "src/enums/Action";
+import { Action, Status, Subject } from "src/enums";
 import { WsException, SubscribeMessage, ConnectedSocket } from "@nestjs/websockets";
 
 export interface UpdatePacket {
@@ -73,7 +71,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 			user.has_session = false;
 			user = await this.user_repo.save(user);
-			user.send_update();
+			// user.send_update();
 
 			this.status.delete(user.id);
 		}
@@ -100,7 +98,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		const last_status = this.status.get(user.id) ?? Status.OFFLINE;
 
 		if (user.status !== last_status) {
-			user.send_update();
+			user.send_update({ status: user.status });
 
 			this.status.set(user.id, user.status);
 		}

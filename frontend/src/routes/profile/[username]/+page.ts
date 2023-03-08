@@ -4,7 +4,7 @@ import type { Achievement } from "$lib/types"
 import { Status } from "$lib/enums";
 import { get } from '$lib/Web';
 import { unwrap } from '$lib/Alert';
-import { updateStore, userStore, roomStore, friendIdStore } from "$lib/stores"
+import { updateStore, userStore, roomStore } from "$lib/stores"
 
 export const ssr = false;
 
@@ -43,7 +43,6 @@ export const load: PageLoad = (async ({ fetch, parent, params }) => {
 	window.fetch = fetch;
 
 	const { friends } = await parent();
-
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 
 	updateStore(userStore, [profile]);

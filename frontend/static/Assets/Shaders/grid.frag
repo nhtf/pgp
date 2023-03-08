@@ -1,14 +1,10 @@
-//#define FLAT_TOP_HEXAGON
+
 
 // Helper vector. If you're doing anything that involves regular triangles or hexagons, the
 // 30-60-90 triangle will be involved in some way, which has sides of 1, sqrt(3) and 2.
-#ifdef FLAT_TOP_HEXAGON
-const vec2 s = vec2(1.7320508, 1);
-#else
-const vec2 s = vec2(1, 1.7320508);
-#endif
+const highp vec2 s = vec2(1.7320508, 1);
 
-float hash21(vec2 p)
+highp float hash21(highp vec2 p)
 {
     return fract(sin(dot(p, vec2(141.13, 289.97)))*43758.5453);
 }
@@ -17,15 +13,11 @@ float hash21(vec2 p)
 // slopes at 60 degrees, mirror, then combine them, you'd arrive at the following. As an aside,
 // the function is a bound -- as opposed to a Euclidean distance representation, but either
 // way, the result is hexagonal boundary lines.
-float hex(in vec2 p)
+highp float hex(in highp vec2 p)
 {    
     p = abs(p);
-    
-    #ifdef FLAT_TOP_HEXAGON
-    return max(dot(p, s*.5), p.y); // Hexagon.
-    #else
-    return max(dot(p, s*.5), p.x); // Hexagon.
-    #endif    
+
+    return max(dot(p, s*.5), p.y); // Hexagon. 
 }
 
 // This function returns the hexagonal grid coordinate for the grid cell, and the corresponding 
@@ -37,21 +29,17 @@ float hex(in vec2 p)
 // This one has minimal setup, one "floor" call, a couple of "dot" calls, a ternary operator, etc.
 // To use it to raymarch, you'd have to double up on everything -- in order to deal with 
 // overlapping fields from neighboring cells, so the fewer operations the better.
-vec4 getHex(vec2 p)
+highp vec4 getHex(highp vec2 p)
 {    
     // The hexagon centers: Two sets of repeat hexagons are required to fill in the space, and
     // the two sets are stored in a "vec4" in order to group some calculations together. The hexagon
     // center we'll eventually use will depend upon which is closest to the current point. Since 
     // the central hexagon point is unique, it doubles as the unique hexagon ID.
     
-    #ifdef FLAT_TOP_HEXAGON
-    vec4 hC = floor(vec4(p, p - vec2(1, .5))/s.xyxy) + .5;
-    #else
-    vec4 hC = floor(vec4(p, p - vec2(.5, 1))/s.xyxy) + .5;
-    #endif
+    highp vec4 hC = floor(vec4(p, p - vec2(1, .5))/s.xyxy) + .5;
     
     // Centering the coordinates with the hexagon centers above.
-    vec4 h = vec4(p - hC.xy*s, p - (hC.zw + .5)*s);
+    highp vec4 h = vec4(p - hC.xy*s, p - (hC.zw + .5)*s);
     
     
     // Nearest hexagon center (with respect to p) to the current point. In other words, when
@@ -65,35 +53,84 @@ vec4 getHex(vec2 p)
         : vec4(h.zw, hC.zw + .5);
 }
 
-#ifdef GL_FRAGMENT_PRECISION_HIGH
-precision highp float;
-#else
-precision mediump float;
-#endif
-
 
 uniform sampler2D tex;
 uniform highp vec2 size; //Size of the canvas/image
 varying highp vec2 coord;
 uniform highp float time; // time in seconds
 uniform highp vec2 center; // origin position ripple
-uniform vec3 shockParams; // 10.0, 0.8, 0.1
+uniform highp vec3 shockParams; // 10.0, 0.8, 0.1
 
-void main()
+const highp float Hexrows = 10.;
+
+highp vec3 grid()
 {
     // Aspect correct screen coordinates.
-	vec2 u = (coord - size.xy*.5)/size.y;
+	highp vec2 u = (gl_FragCoord.xy - size * .5) / size.y;
     
     // Scaling, translating, then converting it to a hexagonal grid cell coordinate and
     // a unique coordinate ID. The resultant vector contains everything you need to produce a
     // pretty pattern, so what you do from here is up to you.
-    vec4 h = getHex(u*5. + s.yx/2);
+    highp vec4 h = getHex(u * Hexrows + s.yx/2.);
     
     // The beauty of working with hexagonal centers is that the relative edge distance will simply 
     // be the value of the 2D isofield for a hexagon.
-    float eDist = hex(h.xy); // Edge distance.
+    highp float eDist = hex(h.xy); // Edge distance.
 
-    // Initiate the background to a white color, putting in some dark borders.
-    vec3 col = mix(vec3(1.), vec3(0), smoothstep(0., .03, eDist - .5 + .04));    
-    gl_FragColor = vec4(col, 1); 
+    highp vec3 bkg = vec3(0., 0., 0.);
+    highp vec3 border = vec3(0.29, 0.29, .29);
+    highp float thickness = 0.05;
+    // highp float blink = smoothstep(0., .125, rnd - .666);
+    highp vec3 col = mix(bkg, border, smoothstep(0., thickness, eDist - .5 + .04));   
+    return col;
+}
+
+#define M_PI 3.1415926535897932384626433832795
+
+highp float rand(highp vec2 co)
+{
+    return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
+}
+
+highp vec3 stars(highp float starSize)
+{
+    highp float sizeStars = starSize;
+	highp float prob = 0.97;
+	highp vec2 pos = floor(1.0 / sizeStars * gl_FragCoord.xy);
+	
+	
+	highp float color = 0.0;
+	highp float starValue = rand(pos);
+	
+	if (starValue > prob)
+	{
+		highp vec2 center = sizeStars * pos + vec2(sizeStars, sizeStars) * 0.5;
+		
+		highp float t = 0.9 + 0.2 * sin((starValue - prob) / (1.0 - prob) * 45.0);
+				
+		color = 1.0 - distance(gl_FragCoord.xy, center) / (0.5 * sizeStars);
+		color = color * t / (abs(gl_FragCoord.y - center.y)) * t / (abs(gl_FragCoord.x - center.x));
+	}
+	else if (rand(gl_FragCoord.xy / size.xy) > 0.996)
+	{
+		highp float r = rand(gl_FragCoord.xy);
+		color = r * (0.25 * sin((r * 5.0) + 720.0 * r) + 0.75);
+	}
+	return vec3(color);
+}
+
+highp vec3 starColor() {
+    highp vec3 smallStars = stars(14.);
+    highp vec3 mediumStars = stars(20.);
+    highp vec3 bigStars = stars(30.);
+    highp vec3 col = smallStars + mediumStars + bigStars;
+    return col;
+}
+
+void main()
+{
+    highp vec3 gridColor = grid();
+    highp vec3 starColor = starColor();
+    highp vec3 col = mix(gridColor,starColor, 0.2);
+    gl_FragColor = vec4(col, 1);
 }

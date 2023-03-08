@@ -5,13 +5,8 @@ import {
 	CreateDateColumn,
 	ManyToOne,
 	TableInheritance,
-	AfterInsert,
-	BeforeRemove,
 } from "typeorm";
-import { Expose, instanceToPlain } from "class-transformer";
-import { UpdateGateway } from "src/gateways/update.gateway";
-import { Subject } from "src/enums/Subject";
-import { Action } from "src/enums/Action";
+import { Expose } from "class-transformer";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
@@ -31,24 +26,5 @@ export class Invite {
 	@Expose()
 	get type(): string {
 		return "Room";
-	}
-
-	@AfterInsert()
-	afterInsert() {
-		UpdateGateway.instance.send_update({
-			subject: Subject.INVITE,
-			id: this.id,
-			action: Action.ADD,
-			value: instanceToPlain(this),
-		}, this.from, this.to);
-	}
-
-	@BeforeRemove()
-	beforeRemove() {
-		UpdateGateway.instance.send_update({
-			subject: Subject.INVITE,
-			id: this.id,
-			action: Action.REMOVE,
-		}, this.from, this.to);
 	}
 }
