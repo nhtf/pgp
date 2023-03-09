@@ -14,14 +14,7 @@ export class UserMiddleware implements NestMiddleware {
 			throw new HttpException("Unauthorized", HttpStatus.UNAUTHORIZED);
 		}
 	
-		req.user = await this.user_repo.findOne({
-			relations: {
-				friends: true,
-			},
-			where: {
-				id: req.session.user_id
-			},
-		});
+		req.user = await this.user_repo.findOneBy({ id: req.session.user_id	});
 	
 		next();
 	}

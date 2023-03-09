@@ -1,5 +1,5 @@
 attribute vec2 vertPos;
-attribute vec2 vertCoord;
+// attribute vec2 vertCoord;
 
 uniform highp float scale;
 uniform vec2 u_translation;
@@ -9,5 +9,5 @@ uniform mat4 u_matrix;
 
 void main() {
 	gl_Position = vec4(vertPos, 0, 1.0);
-	coord = vertCoord;
+	coord = vertPos;
 }

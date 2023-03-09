@@ -1,5 +1,6 @@
 import type { SessionObject } from "src/services/session.service";
 import type { Server, Socket } from "socket.io";
+import type { Room } from "src/entities/Room"
 import { Inject } from "@nestjs/common";
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody, WsException } from "@nestjs/websockets";
 import { FRONTEND_ADDRESS } from "../vars";
@@ -38,45 +39,47 @@ export function ProtectedGateway(namespace?: string) {
 		) {}
 
 		async handleConnection(client: Socket) {
-			if (!await authenticate(client.request?.session, this.users)) {
+			const user = await authenticate(client.request, this.users);
+		
+			if (!user) {
 				client.emit("exception", { errorMessage: "unauthorized" });
 				client.disconnect();
 				return;
 			}
-			this.onConnect(client);
+			
+			this.onConnect(client, user);
 		}
 
 		async handleDisconnect(client: Socket) {
-			if (await authenticate(client.request?.session, this.users)) {
-				this.onDisconnect(client);
+			const user = await authenticate(client.request, this.users);
+		
+			if (!user) {
+				return ;
 			}
-
-			const id = client.request.session.user_id;
-
-			if (id) {
-				await this.users.save({ id, activeRoom: null });
-			}
+			
+			this.onDisconnect(client, user);
 		}
 
 		@SubscribeMessage("join")
-		async onJoin(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
+		async join(@ConnectedSocket() client: Socket, @MessageBody() data: { id: number } & any) {
+			const user = await authenticate(client.request, this.users);
+		
 			try {
-				client.room = validate_id(id);
+				data.id = validate_id(data.id);
 			} catch (error) {
 				throw new WsException(error.message);
 			}
-		
-			const user = await this.users.findOneBy({ id: client.request.session.user_id });
 
-			user.activeRoom = null;
-			
-			await this.users.save(user);
-		}
+			client.room = data.id;
 	
+			await this.onJoin(client, user, data);
+		}
 
-		async onConnect(client: Socket) {}
-		async onDisconnect(client: Socket) {}
+		async onConnect(client: Socket, user: User) {}
+		async onDisconnect(client: Socket, user: User) {}
+		async onJoin(client: Socket, user: User, data: any) {}
 	}
+
 	return ProtectedGatewayFactory;
 }
 

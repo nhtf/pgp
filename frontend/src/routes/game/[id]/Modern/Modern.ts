@@ -332,7 +332,7 @@ export class Game extends Net {
 		if (this.players === GAME.FOURPLAYERS)
 			startScore = 10;
 		for (let i = 0; i < this.level.players; i++) {
-			this.teams.push(new Team((options.member as any).room.teams[i].id, startScore));
+			this.teams.push(new Team(options.room.teams[i].id, startScore));
 		}
 
 		let index = 0;
@@ -357,7 +357,8 @@ export class Modern {
 	private players: GAME;
 	private offscreenCanvas: HTMLCanvasElement;
 	private field: field | null;
-	private interval?: NodeJS.Timer;
+	// private interval?: NodeJS.Timer;
+	private interval?: number;
 	private options?: Options;
 
 	public async init() {
@@ -437,7 +438,7 @@ export class Modern {
 			
 			if (this.options.member.player != null) {
 			this.game!.send("mousemove", {
-				u: this.options.member.user.id,
+				u: this.options.member.userId,
 				x: x,
 				y: y,
 				t: this.options.member.player?.team?.id,
@@ -452,7 +453,7 @@ export class Modern {
 		}	
 		if (this.options.member.player != null && this.players === GAME.FOURPLAYERS) {
 			this.game!.send("mousescroll", {
-				u: this.options.member.user.id,
+				u: this.options.member.userId,
 				x: 0,
 				y: 0,
 				t: this.options.member.player?.team?.id,

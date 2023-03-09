@@ -10,11 +10,12 @@ import { Player } from "src/entities/Player";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
-import { Repository, In } from "typeorm";
+import { Repository, FindOptionsRelations } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Me } from "src/util"
+import { instanceToPlain } from "class-transformer"
 
 class CreateGameRoomDTO extends CreateRoomDTO {
 	@IsEnum(Gamemode)
@@ -45,6 +46,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		invite_repo: Repository<RoomInvite>,
 		@Inject("PLAYER_REPO")
 		readonly player_repo: Repository<Player>,
+		@Inject("TEAM_REPO")
+		readonly teamRepo: Repository<Team>,
 		@Inject("GAMESTATE_REPO")
 		readonly gamestate_repo: Repository<GameState>,
 		@Inject("GAMEROOM_PGPSERVICE")
@@ -54,6 +57,15 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
+	static relations: FindOptionsRelations<GameRoom> = {
+		members: {
+			user: true
+		},
+		state: {
+			teams: true,
+		},
+	};
+	
 	async setup_room(room: GameRoom, dto: CreateGameRoomDTO) {
 		const playerOptions = playerNumbers.get(dto.gamemode);
 		const state = new GameState;
@@ -91,47 +103,9 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	}
 
 	@Get("id/:id")
-	// TODO
-	// @RequiredRole(Role.MEMBER)
-	async get_room(@GetRoom() room: GameRoom) {
-		return await this.get_joined_info(room);
-	}
-
-	@Get("joined/id/:id")
-	async joined_id(@Me() me: User, @Param("id", ParseIntPipe) id: number) {
-		const member = await this.member_repo.findOne({
-			where: {
-				room: {
-					id,
-				},
-				user: {
-					id: me.id,
-				},
-			},
-			relations: {
-				room: {
-					members: {
-						user: true,
-					},
-					state: {
-						teams: true,
-					},
-				},
-			},
-			// M: frontend sorts by id, backend doesn't need to
-			// order: {
-			// 	room: {
-			// 		state: {
-			// 			teams: {
-			// 				// TODO: ordering the teams by id to make them always appear on the same side is a very fragile solution
-			// 				id: "DSC",
-			// 			},
-			// 		},
-			// 	},
-			// },
-		});
-
-		return member;
+	@RequiredRole(Role.MEMBER)
+	async get_room(@Me() me: User, @Param("id", ParseIDPipe(GameRoom, { members: { user: true, player: { team: true } } } as FindOptionsRelations<GameRoom>)) room: GameRoom) {
+		return { ...instanceToPlain(room), self: room.self(me)}
 	}
 
 	@Get("history")
@@ -199,5 +173,14 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		}
 
 		return await this.member_repo.save(member);
+	}
+
+	@Get("id/:id/gameStates")
+	async gameStates(@Param("id", ParseIDPipe(GameRoom)) room: GameRoom) {
+		return await this.gamestate_repo.findOneBy({
+			room: {
+				id: room.id,
+			}
+		});
 	}
 }

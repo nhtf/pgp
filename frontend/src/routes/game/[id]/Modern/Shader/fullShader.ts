@@ -54,7 +54,7 @@ export class RippleShader {
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 		this.ballShader = new BallShader(this.gl, this.scale());
 		this.gridShader = new GridShader(this.gl, this.scale());
-		this.fieldShader = new FieldShader(this.gl, this.scale(), this.outerCanvas.width, this.outerCanvas.height);
+		this.fieldShader = new FieldShader(this.gl, this.scale());
 		this.timer = 0;
 		this.lastTime = 0;
 		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
@@ -78,8 +78,8 @@ export class RippleShader {
 	}
 
 	private bufferPosData(): number[] {
-		const x = 0.5 * this.scale();
-		const y = 0.5 * this.scale();
+		const x = 1.0 * this.scale();
+		const y = 1.0 * this.scale();
 		return [-x, -y, x, -y, -x, y, x, y];
 	}
 
@@ -135,7 +135,7 @@ export class RippleShader {
 			this.bufferPos = createBuffer(this.gl, this.bufferPosData());
 			this.ballShader.updateScale(this.scale());
 			this.gridShader.updateScale(this.scale());
-			this.fieldShader.updateScale(this.scale(), this.gl, this.outerCanvas.width, this.outerCanvas.height);
+			this.fieldShader.updateScale(this.scale());
 		}
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
         this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);

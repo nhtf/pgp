@@ -5,6 +5,7 @@ export enum Subject {
 	MEMBER,
 	FRIEND,
 	MESSAGE,
+	GAMESTATE,
 }
 
 export enum Action {

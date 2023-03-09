@@ -11,7 +11,7 @@ export type User = {
 	status: Status,
 	avatar: string,
 	in_game: boolean,
-	activeMember?: GameRoomMember,
+	activeRoomId: number | null,
 };
 
 export type Room = {
@@ -36,9 +36,11 @@ export type GameRoom = Room & {
 };
 
 export type GameState = {
+	id: number,
 	teamsLocked: boolean,
 	gamemode: Gamemode,
 	teams: Team[],
+	roomId: number | null,
 }
 
 export type Member = {
@@ -57,12 +59,16 @@ export type GameRoomMember = Member & {
 
 export type Player = {
 	team: Team,
+	teamId: number,
+	user: User,
+	userId: number,
 };
 
 export type Team = {
 	id: number,
 	name: string,
 	score: number,
+	players: Player[],
 };
 
 export type Invite = {
@@ -70,7 +76,7 @@ export type Invite = {
 	date: Date,
 	from: User,
 	to: User,
-	type: "Room" | "ChatRoom" | "GameRoom" | "Friend",
+	type: "ChatRoom" | "GameRoom" | "Friend",
 	room?: Room,
 };
 

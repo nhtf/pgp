@@ -13,7 +13,7 @@ export const load: PageLoad = (async ({ fetch }) => {
 	const joinable: GameRoom[] = await unwrap(get(`/game/joinable`));
 	const rooms = joined.concat(joinable);
 
-	updateStore(userStore, rooms.map((room) => room.owner));
+	updateStore(userStore, rooms.map((room) => room.owner!));
     updateStore(roomStore, rooms);
 	
 	return { rooms };

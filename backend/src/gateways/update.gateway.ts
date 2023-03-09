@@ -35,9 +35,8 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		setInterval(this.tick.bind(this), PURGE_INTERVAL);
 	}
 
-	async onConnect(client: Socket) {
-		const id = client.request.session.user_id;
-		const user = await this.user_repo.findOneBy({ id });
+	async onConnect(client: Socket, user: User) {
+		const id = user.id;
 		const now = new Date;
 
 		user.has_session = true;
@@ -55,8 +54,8 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		this.update(user);
 	}
 
-	async onDisconnect(client: Socket) {
-		const id = client.request.session.user_id;
+	async onDisconnect(client: Socket, user: User) {
+		const id = user.id
 		const sockets = this.sockets.get(id);
 		const index = sockets.findIndex((socket) => socket.request.session.id === client.request.session.id);
 
@@ -67,12 +66,10 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		sockets.splice(index, 1);
 
 		if (!sockets.length) {
-			let user = await this.user_repo.findOneBy({ id });
-
 			user.has_session = false;
 			user = await this.user_repo.save(user);
-			// user.send_update();
-
+		
+			this.update(user);
 			this.status.delete(user.id);
 		}
 	}
@@ -89,7 +86,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 	async tick() {
 		const ids = Array.from(this.status.keys())
-		const users = await this.user_repo.find({ where: { id: In(ids) } });
+		const users = await this.user_repo.find({ where: { id: In(ids) }, relations: { activeRoom: true }});
 
 		users.forEach((user) => this.update(user));
 	}
@@ -119,7 +116,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	@SubscribeMessage("heartbeat")
 	async receiveHeartbeat(@ConnectedSocket() client: Socket) {
 		const id = client.request.session.user_id;
-		const user = await this.user_repo.findOneBy({ id });
+		const user = await this.user_repo.findOne({ where: { id }, relations: { activeRoom: true } });
 
 		await this.heartbeat(user);
 	}

@@ -22,7 +22,7 @@
 
 		await world.start({
 			container,
-			room: $page.data.params.id,
+			room: $page.data.room,
 			member: {
 				user: $page.data.user,
 				...$page.data.member,
@@ -34,8 +34,8 @@
 				const canvas = document.getElementsByTagName("canvas")[0];
 				const parent = canvas.parentElement;
 
-				if (!parent.classList.contains("game-container")) {
-					canvas.parentElement.id = "threejs-unfucker";
+				if (!parent?.classList.contains("game-container")) {
+					canvas.parentElement!.id = "threejs-unfucker";
 				}
 			});
 		});

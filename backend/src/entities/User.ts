@@ -11,17 +11,19 @@ import {
 	OneToOne,
 	JoinColumn,
 	ManyToOne,
+	RelationId,
 } from "typeorm";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { Room } from "./Room";
+import { GameRoom } from "./GameRoom";
 import { Invite } from "./Invite";
 import { get_status } from "src/util";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Player } from "./Player";
 import { Message } from "./Message";
-import { GameRoomMember } from "./GameRoomMember"
 import { MatchHistory } from "./MatchHistory"
+import { Team } from "./Team"
 
 @Entity()
 export class User {
@@ -33,27 +35,18 @@ export class User {
 	oauth_id: number;
 
 	@Exclude()
-	@Column({
-		default: AuthLevel.OAuth
-	})
+	@Column({ default: AuthLevel.OAuth })
 	auth_req: AuthLevel;
 
 	@Exclude()
-	@Column({
-		nullable: true,
-	})
+	@Column({ nullable: true })
 	secret: string | null;
 
-	@Column({
-		unique: true,
-		nullable: true,
-	})
+	@Column({ nullable: true, unique: true })
 	username: string | null;
 
 	@Exclude()
-	@Column({
-		default: DEFAULT_AVATAR,
-	})
+	@Column({ default: DEFAULT_AVATAR })
 	avatar_base: string;
 
 	@OneToMany(() => Invite, (invite) => invite.from)
@@ -80,9 +73,7 @@ export class User {
 	banned_rooms: Room[];
 
 	@Exclude()
-	@Column({
-		default: false
-	})
+	@Column({ default: false })
 	has_session: boolean;
 
 	@Exclude()
@@ -92,10 +83,12 @@ export class User {
 	@OneToMany(() => Player, (player) => player.user)
 	players: Player[];
 
-	@ManyToOne(() => Room, {
-		nullable: true
-	})
-	activeRoom: Room | null;
+	@Exclude()
+	@ManyToOne(() => GameRoom, { nullable: true })
+	activeRoom: GameRoom | null;
+
+	@RelationId((user: User) => user.activeRoom)
+	activeRoomId: number | null;
 
 	@OneToOne(() => MatchHistory)
 	@JoinColumn()
@@ -107,11 +100,16 @@ export class User {
 			return Status.OFFLINE;
 		}
 
-		if (this.activeRoom && this.activeRoom.type === "GameRoom") {
+		if (this.activeRoom) {
 			return Status.INGAME;
 		}
 
 		return get_status(this.last_activity);	
+	}
+
+	@Expose()
+	get teams(): Team[] {
+		return this.activeRoom?.teams;
 	}
 
 	@Expose()
@@ -125,11 +123,6 @@ export class User {
 
 	get avatar_path(): string {
 		return `${AVATAR_DIR}/${this.avatar_basename}`;
-	}
-
-	@Expose()
-	get activeMember(): GameRoomMember | undefined {
-		return this.members?.find((member: GameRoomMember) => member.is_playing) as GameRoomMember;
 	}
 
 	add_friend(target: User) {

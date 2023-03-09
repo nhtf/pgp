@@ -406,7 +406,7 @@ export class Pong extends World {
 		};
 
 		this.member = options.member;
-		this.state = new State((this.member as any).room.teams);
+		this.state = new State(options.room.teams);
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
 

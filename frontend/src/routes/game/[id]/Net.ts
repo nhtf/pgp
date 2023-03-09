@@ -1,3 +1,4 @@
+import type { GameRoom } from "$lib/entities" 
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
@@ -25,7 +26,7 @@ export interface Event {
 
 export interface Options {
 	address?: string;
-	room: string;
+	room: GameRoom;
 }
 
 export class Net {
@@ -235,7 +236,7 @@ export class Net {
 		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
 
 		this.socket!.on("connect", () => {
-			this.socket!.emit("join", { scope: "game", room: options.room });
+			this.socket!.emit("join", { id: options.room.id, scope: "game" });
 		});
 
 		this.socket.on("exception", (err) => {

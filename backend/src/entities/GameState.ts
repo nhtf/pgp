@@ -1,25 +1,27 @@
 import { Team } from "./Team";
-import { Exclude } from "class-transformer";
-import { Column, OneToMany, OneToOne, PrimaryGeneratedColumn, Entity, JoinColumn } from "typeorm";
+import { Column, OneToMany, OneToOne, PrimaryGeneratedColumn, Entity, JoinColumn, RelationId } from "typeorm";
 import { Gamemode } from "src/enums";
 import { GameRoom } from "./GameRoom";
 
 @Entity()
 export class GameState {
-	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 
 	@Column()
 	gamemode: Gamemode;
 
-	@OneToMany(() => Team, (team) => team.state, { cascade: [ "insert", "update" ] })
+	@OneToOne(() => GameRoom, (room) => room.state, { nullable: true, onDelete: "SET NULL" })
+	@JoinColumn()
+	room: GameRoom | null;
+
+	@RelationId((gameState: GameState) => gameState.room)
+	roomId: number | null;
+
+	@OneToMany(() => Team, (team) => team.state, { eager: true, cascade: [ "insert", "update" ] })
 	teams: Team[];
 
 	@Column({ default: false })
 	teamsLocked: boolean = false;
 
-	@OneToOne(() => GameRoom, (room) => room.state, { nullable: true, onDelete: "SET NULL" })
-	@JoinColumn()
-	room: GameRoom | null;
 }

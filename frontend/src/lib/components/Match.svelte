@@ -1,9 +1,11 @@
 <script lang="ts">
-	export let player: any;
+    import type { Player } from "$lib/entities";
+
+	export let player: Player;
 
 	const state = player.team.state;
 	const result = player.team.score - Math.max(...state.teams
-		.filter(team => team.id != player.team.id)
+		.filter(team => team.id !== player.team.id)
 		.map(team => team.score));
 </script>
 

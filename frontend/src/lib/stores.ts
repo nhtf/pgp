@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite, Room } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room, GameState } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -34,6 +34,14 @@ function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 	});
 }
 
+function storeFactory<T extends Entity>(subject: Subject): Writable<Map<number, T>> {
+	const store = writable(new Map<number, T>);
+
+	setUpdate(store, subject);
+
+	return store;
+}
+
 export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T[]) {
 	store.update((stored) => {
 		entities.forEach((entity) => {
@@ -44,17 +52,12 @@ export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, e
 	});
 }
 
-export const userStore = writable(new Map<number, User>);
-export const roomStore = writable(new Map<number, Room>);
-export const memberStore = writable(new Map<number, Member>);
-export const inviteStore = writable(new Map<number, Invite>);
-export const friendStore = writable(new Map<number, Entity>);
-
-setUpdate(userStore, Subject.USER);
-setUpdate(roomStore, Subject.ROOM);
-setUpdate(inviteStore, Subject.INVITE);
-setUpdate(memberStore, Subject.MEMBER);
-setUpdate(friendStore, Subject.FRIEND);
+export const userStore = storeFactory<User>(Subject.USER);
+export const roomStore = storeFactory<Room>(Subject.ROOM);
+export const memberStore = storeFactory<Member>(Subject.MEMBER);
+export const inviteStore = storeFactory<Invite>(Subject.INVITE);
+export const friendStore = storeFactory<Entity>(Subject.FRIEND);
+export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE);
 
 // Removed from private room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {

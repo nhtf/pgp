@@ -1,12 +1,13 @@
 <script lang="ts">
+    import type { Player } from "$lib/entities";
 	import Match from "./Match.svelte";
 
-	export let history;
+	export let history: Player[];
 </script>
 
 <div class="match-history">
 	{#each history as player}
-		<Match player={player}/>
+		<Match {player}/>
 	{/each}
 </div>
 

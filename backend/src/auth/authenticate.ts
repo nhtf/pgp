@@ -1,15 +1,21 @@
 import type { User } from "src/entities/User";
-import type { SessionObject } from "src/services/session.service";
+import type { IncomingMessage } from "http";
 import type { Repository } from "typeorm";
 
-export async function authenticate(session: SessionObject, user_repo: Repository<User>): Promise<boolean> {
+export async function authenticate(request: IncomingMessage, user_repo: Repository<User>): Promise<User | null> {
+	const session = request?.session;
 	const id = session?.user_id;
 
-	if (!id)
-		return false;
+	if (!id) {
+		return null;
+	}
+
 	const user = await user_repo.findOneBy({ id });
-	if (!user)
-		return false;
-	return user.auth_req === session.auth_level;
+
+	if (session.auth_level < user.auth_req) {
+		return null;
+	}
+	
+	return user;
 }
 

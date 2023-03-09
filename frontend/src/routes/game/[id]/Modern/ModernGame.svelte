@@ -18,7 +18,7 @@
 		modern = new Modern(rippleShader.getCanvas(), gameMode);
 		rippleShader.addEventListener(modern);
 		await modern.init();
-		await modern.start({ room: $page.data.params.id, member: {user: $page.data.user, ...$page.data.member }});
+		await modern.start({ room: $page.data.room, member: {user: $page.data.user, ...$page.data.member }});
 
 		animation = window.requestAnimationFrame(function render(time) {
 			modern.update(time);

@@ -7,6 +7,7 @@ import type { Invite } from "src/entities/Invite"
 import type { Room } from "src/entities/Room"
 import type { Member } from "src/entities/Member"
 import type { Message } from "src/entities/Message"
+import type { Team } from "src/entities/Team"
 
 type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => any[] };
 
@@ -16,10 +17,11 @@ const sub: SubjectInfo[] = [
 	{ subject: Subject.ROOM, names: [ "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room.users : [] },
 	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to] },
 	{ subject: Subject.MEMBER, names: [ "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room.users },
-	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room.users },
+	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room.users.filter((user) => user.activeRoomId === message.roomId) },
+	// { subject: Subject.GAMESTATE, names: [ "Team" ], fun: (team: Team) => [] }
 ]
 
-const ignoredColumns = [ "last_activity", "has_session" ];
+const ignoredColumns = [ "last_activity", "has_session", "activeRoom" ];
 
 @EventSubscriber()
 export class EntitySubscriber implements EntitySubscriberInterface {
@@ -32,8 +34,6 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			return ;
 		}
 
-		console.log(fun(event.entity));
-
 		UpdateGateway.instance.send_update({
 			subject,
 			action: Action.ADD,
@@ -43,11 +43,16 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 	}
 
 	afterUpdate(event: UpdateEvent<any>) {
-		const updatedColumns = event.updatedColumns.map((column) => column.propertyName);
+		const updatedColumns = [
+			...this.names(event.updatedColumns),
+			...this.names(event.updatedRelations)
+		];
 	
 		if (!updatedColumns.some((column) => !ignoredColumns.includes(column))) {
 			return ;
 		}
+	
+		console.log("Update", event.metadata.targetName, updatedColumns);
 	
 		const { subject, fun } = this.subjectEntry(event.metadata.targetName);
 		const entity = instanceToPlain(event.entity);
@@ -55,17 +60,15 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		if (!subject) {
 			return ;
 		}
-
-		console.log("Update", event.metadata.targetName, updatedColumns);
-
+		
 		const value = updatedColumns.reduce((sum, column) => {
 			if (entity[column]) {
 				sum[column] = entity[column];
 			}
-
+			
 			return sum;
 		}, {});
-
+	
 		if (!Object.keys(value).length) {
 			return ;
 		}
@@ -96,5 +99,9 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 
 	subjectEntry(entityName: string) {
 		return sub.find(({ names }) => names.includes(entityName)) ?? { subject: null, fun: () => []};
+	}
+
+	names<T extends { propertyName: string }>(columns: T[]) {
+		return columns.map((column) => column.propertyName);
 	}
 }

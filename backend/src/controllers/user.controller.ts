@@ -57,18 +57,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Me() me: User,
 			@Param(options.param, options.pipe) user?: User
 		) {
-			user = user || me;
-			user = await this.user_repo.findOne({
-				where: {
-					id: user.id,
-				},
-				relations: {
-					members: true,
-					activeRoom: true,
-				}
-			});
-
-			return user;
+			return user || me;
 		}
 
 		@Put(options.cparam + "/username")
@@ -180,20 +169,11 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user || me;
 			if (user.id !== me.id)
 				throw new ForbiddenException();
-			return this.user_repo.find({ 
-				where: {
-					friends: {
-						id: user.id
-					}
+			return this.user_repo.findBy({
+				friends: {
+					id: user.id
 				},
-				relations: {
-					members: {
-						player: {
-							team: true,
-						}
-					}
-				}
-			} as FindManyOptions<User>);
+			});
 		}
 
 		@Delete(options.cparam + "/friend(s)?/:friend_id")

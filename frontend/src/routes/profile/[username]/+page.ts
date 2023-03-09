@@ -39,17 +39,12 @@ let dummyachievements: Achievement[] = [
 	{ name: "Classic Pong", icon: classic, have: true, text: ["played classic pong for the first time", "played 5 classic pong games", "played 10 classic pong games", "played 15 classic pong games"], level: 1, progress: 6, level_cost: [5, 10, 15] },
 ];
 
-export const load: PageLoad = (async ({ fetch, parent, params }) => {
+export const load: PageLoad = (async ({ fetch, params }) => {
 	window.fetch = fetch;
 
-	const { friends } = await parent();
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`));
 
 	updateStore(userStore, [profile]);
-
-	updateStore(roomStore, await Promise.all(friends!
-		.filter((user) => user.activeMember)
-		.map(async (user) => await get(`/game/id/${user.activeMember!.roomId}`))));
 
 	//just for debug
 	if (!profile.achievements) {

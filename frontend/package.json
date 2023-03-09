@@ -47,6 +47,7 @@
     "linkifyjs": "^4.1.0",
     "postcss": "^8.4.21",
     "socket.io-client": "^4.5.3",
+    "svg-mesh-3d": "^1.1.0",
     "sweetalert2": "^11.6.13",
     "tailwindcss": "^3.2.4",
     "three": "^0.150.1",

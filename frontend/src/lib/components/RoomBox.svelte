@@ -50,7 +50,6 @@
 	}
 	
 	async function joinTeam(room: T, team: Team | null) {
-		console.log(room.self);
 		if (room.self?.player?.team?.id !== team?.id) {
 			await unwrap(patch(`/${route}/id/${room.id}/team/${room.self?.id}`, { team: team?.id }));
 		}

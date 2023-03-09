@@ -1,9 +1,9 @@
 <script lang="ts">
 	import type { GameRoom, User } from "$lib/entities";
-	import { post, remove } from "$lib/Web";
+	import { get, post, remove } from "$lib/Web";
 	import { Status } from "$lib/enums";
 	import { Button, Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
-	import { friendStore, roomStore, userStore } from "$lib/stores";
+	import { friendStore, gameStateStore, userStore } from "$lib/stores";
 	import { icon_path, status_colors } from "$lib/constants";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import Swal from "sweetalert2";
@@ -14,6 +14,7 @@
 
 	$: friends = [...$friendStore].map(([id, _]) => $userStore.get(id)!).sort(byStatusThenName);
 	$: placement = window.innerWidth < 750 ? "top" : "left-end";
+	$: gameStates = [...$gameStateStore.values()];
 
 	function byStatusThenName(first: User, second: User) {
 		let cmp = second.status - first.status;
@@ -23,14 +24,6 @@
 		}
 	
 		return cmp;
-	}
-
-	function getScore(user: User) {
-		const member = user.activeMember;
-		const room = $roomStore.get(member!.roomId) as GameRoom;
-		const teams = room.teams;
-
-		return teams.map((team) => String(team.score)).join(" - ");
 	}
 
 	async function toggleAddfriend() {
@@ -81,7 +74,7 @@
 </script>
 
 <svelte:window />
-
+ 
 <!-- //TODO have the player status also update for in-game correctly -->
 <div class="block-cell self-flex-start bg-c bordered" id="friend-block">
 	<div class="block-hor">
@@ -152,16 +145,19 @@
 					slot="footer">unfriend</DropdownItem
 				>
 			</Dropdown>
-			<!-- TODO: don't-->
-			{#if friend.activeMember}
-				{#key friend.activeMember.roomId}
-					<div>{getScore(friend)}</div>
-				{/key}
+			{#if friend.activeRoomId}
+				<div class="flex row">
+				{#each gameStates.filter((gameState) => gameState.roomId === friend.activeRoomId)[0].teams as team, index}
+					<div>{`${index > 0 ? "a - " : ""}${team.score}`}</div>
+				{/each}
+			</div>
 			{/if}
 		{/each}
 	</div>
 </div>
-
+{#each gameStates as gameState}
+	<div>{gameState.gamemode}</div>
+{/each}
 <style>
 	.width-available {
 		width: -moz-available;
@@ -170,10 +166,6 @@
 
 	#friend-block {
 		height: 100%;
-	}
-
-	.spacing {
-		padding-top: 1px;
 	}
 
 	.block-vert {
@@ -200,12 +192,8 @@
 		filter: var(--invert);
 	}
 
-	#online,
-	#offline,
 	#in_game,
-	#scoredv,
-	#active,
-	#idle {
+	#scoredv {
 		position: relative;
 		font-size: small;
 		cursor: default;
@@ -213,16 +201,6 @@
 		/* top: -15px; */
 	}
 
-	#online,
-	#active {
-		color: var(--blue);
-	}
-	#offline {
-		color: var(--red);
-	}
-	#idle {
-		color: var(--yellow);
-	}
 	#in_game,
 	#scoredv {
 		color: var(--green);

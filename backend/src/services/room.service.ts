@@ -251,6 +251,12 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		) {
 		}
 
+		static relations: FindOptionsRelations<Room> = {
+			members: {
+				user: true
+			},
+		};
+		
 		async get_member(user: User, room: Room): Promise<U | null> {
 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
 		}
@@ -361,15 +367,14 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		}
 
 		@Get("id/:id")
-		// TODO
-		// @RequiredRole(Role.MEMBER)
-		async get_room(@GetRoom() room: T) {
-			return room;
+		@RequiredRole(Role.MEMBER)
+		async get_room(@Me() me: User, @Param("id", ParseIDPipe(type)) room: T) {
+			return { ...instanceToPlain(room), self: room.self(me)}
 		}
 
 		@Patch("id/:id")
 		@RequiredRole(Role.OWNER)
-		async edit_room(@GetRoom() room: T, @Body() dto: CreateRoomDTO) {
+		async edit_room(@Param("id", ParseIDPipe(type)) room: T, @Body() dto: CreateRoomDTO) {
 			if (dto.is_private && dto.password) {
 				throw new UnprocessableEntityException("A private room cannot have a password");
 			}
@@ -385,11 +390,12 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				id: room.id,
 				action: Action.SET,
 				value: instanceToPlain(room),
-			}, !room.is_private);
+			});
 
 			return {};
 		}
 
+		// TODO: remove getroom
 		@Post("id/:id/member(s)?")
 		async join(@Me() me: User, @GetRoom() room: T, @Body("password") password?: string) {
 			const invites = await this.invite_repo.find({

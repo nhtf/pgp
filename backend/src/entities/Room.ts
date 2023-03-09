@@ -26,7 +26,7 @@ export class Room {
 	password: string | null;
 
 	@Exclude()
-	@OneToMany(() => Member, (member) => member.room, { orphanedRowAction: "delete", cascade: true })
+	@OneToMany(() => Member, (member) => member.room, { eager: true, orphanedRowAction: "delete", cascade: true })
 	members: Member[];
 
 	@Exclude()
@@ -61,11 +61,9 @@ export class Room {
 		return this.members?.find((member) => member.userId === user.id);
 	}
 
-	send_update(packet: UpdatePacket, broadcast?: boolean) {
-		if (broadcast === true) {
-			UpdateGateway.instance.send_update(packet);
-		} else {
-			UpdateGateway.instance.send_update(packet, ...this.users);
-		}
+	send_update(packet: UpdatePacket) {
+		const receivers = this.is_private ? this.users : [];
+		
+		UpdateGateway.instance.send_update(packet, ...receivers);
 	}
 }

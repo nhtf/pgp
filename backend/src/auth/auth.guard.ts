@@ -15,7 +15,7 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 		) {}
 
 		async canActivate(context: ExecutionContext): Promise<boolean> {
-			return authenticate(get_request(context)?.session, this.user_repo);
+			return authenticate(get_request(context), this.user_repo) !== null;
 		}
 	}
 	return GenericAuthGuardFactory;

@@ -1,6 +1,7 @@
-import { FIELDWIDTH, HEIGHT, WIDTH } from "../Constants";
+import { FIELDHEIGHT, FIELDWIDTH, HEIGHT, WIDTH } from "../Constants";
 import { Program, type uniforms } from "./Program";
 import { createBuffer } from "./fullShader";
+// import {svgMesh3d} from "svg-mesh-3d";
 
 let VERT_FIELD_SRC: string;
 let FRAG_FIELD_SRC: string;
@@ -14,47 +15,48 @@ export class FieldShader {
     private program: Program;
     private scale: number;
     private bufferPos: WebGLBuffer;
-	private bufferCoord: WebGLBuffer;
 
-    constructor(gl: WebGL2RenderingContext, scale: number, width: number, height: number) {
+    constructor(gl: WebGL2RenderingContext, scale: number) {
         this.program = new Program(gl, VERT_FIELD_SRC, FRAG_FIELD_SRC);
         this.scale = scale;
-        this.bufferPos = createBuffer(gl, this.bufferPosData(width, height));
-		this.bufferCoord = createBuffer(gl, [1, 1, 0, 1, 1, 0, 0, 0]);
+        this.bufferPos = createBuffer(gl, this.bufferPosData());
     }
 
-    public updateScale(scale: number, gl: WebGL2RenderingContext, width: number, height: number) {
+    public updateScale(scale: number) {
         this.scale = scale;
-        this.updateBuffer(gl, width, height);
+        console.log("scale: ", this.scale);
+        // this.updateBuffer(gl);
     }
 
-    private bufferPosData(width: number, height: number): number[] {
-        const xOffset = (width - WIDTH * this.scale) / 2 / width;
-		const yOffset = (height - HEIGHT * this.scale) / 2 / height;
-        console.log("offset: ", xOffset, yOffset);
-        console.log("w, w*s", width, WIDTH * this.scale);
+    private bufferPosData(): number[] {
         let vertices: number[] = [];
         const xCoords = new Array();
         const yCoords = new Array();
-        xCoords.push(xOffset + 5 / FIELDWIDTH);
-        xCoords.push(xOffset + 160 / FIELDWIDTH);
-        xCoords.push(xOffset + 5 / FIELDWIDTH);
 
-        yCoords.push(yOffset + (HEIGHT - 175) * this.scale / height);
-        yCoords.push(yOffset + (HEIGHT - 175) * this.scale / height);
-        yCoords.push(yOffset + (HEIGHT - 5) * this.scale / height);
+        // 0 is middle of the screen
+        xCoords.push(-0.8);
+        xCoords.push(0.0);
+        xCoords.push(-0.8);
+
+        xCoords.push(-0.8);
+        xCoords.push(0.0);
+        xCoords.push(0.0);
+
+        yCoords.push(-0.8);
+        yCoords.push(-0.8);
+        yCoords.push(0.8);
+
+        yCoords.push(0.8);
+        yCoords.push(0.8);
+        yCoords.push(-0.8);
 
         for (let i = 0; i < xCoords.length; i++) {
             vertices.push(xCoords[i]);
             vertices.push(yCoords[i]);
             console.log("xy: ", xCoords[i], yCoords[i]);
         }
-        
+        console.log(vertices.length);
         return vertices;
-    }
-
-    private updateBuffer(gl: WebGL2RenderingContext, width: number, height: number) {
-        this.bufferPos = createBuffer(gl, this.bufferPosData(width, height));
     }
 
     public render(gl: WebGL2RenderingContext, time: number, width: number, height: number) {
@@ -65,10 +67,8 @@ export class FieldShader {
         gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferPos);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(0);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.bufferCoord);
-        gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(1);
         this.program.useProgram(gl, uniform);
-        gl.drawArrays(gl.TRIANGLES, 0, 3);
+        gl.drawArrays(gl.TRIANGLES, 0, 6);
+        // gl.drawArrays(gl.LINE_LOOP, 0, 6);
     }
 }
