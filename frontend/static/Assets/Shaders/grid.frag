@@ -95,7 +95,7 @@ highp float rand(highp vec2 co)
 highp vec3 stars(highp float starSize)
 {
     highp float sizeStars = starSize;
-	highp float prob = 0.97;
+	highp float prob = 0.99;
 	highp vec2 pos = floor(1.0 / sizeStars * gl_FragCoord.xy);
 	
 	
@@ -119,10 +119,11 @@ highp vec3 stars(highp float starSize)
 	return vec3(color);
 }
 
+//TODO make the stars fluctuate slightly with time
 highp vec3 starColor() {
-    highp vec3 smallStars = stars(14.);
-    highp vec3 mediumStars = stars(20.);
-    highp vec3 bigStars = stars(30.);
+    highp vec3 smallStars = stars(6.);
+    highp vec3 mediumStars = stars(8.);
+    highp vec3 bigStars = stars(12.);
     highp vec3 col = smallStars + mediumStars + bigStars;
     return col;
 }
@@ -131,6 +132,7 @@ void main()
 {
     highp vec3 gridColor = grid();
     highp vec3 starColor = starColor();
-    highp vec3 col = mix(gridColor,starColor, 0.2);
+    highp vec3 col = mix(gridColor,starColor, 0.4);
+    col = col + 0.5 * gridColor;
     gl_FragColor = vec4(col, 1);
 }

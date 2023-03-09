@@ -1,6 +1,7 @@
 import type { VectorObject } from "../../lib2D/Math2D";
 import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "../Constants";
 import { BallShader } from "./BallShader";
+import  { FieldShader } from "./FieldShader";
 import { GridShader } from "./GridShader";
 
 
@@ -36,11 +37,13 @@ export function setOriginRipple(x: number, y: number) {
 export class RippleShader {
 	private gl: WebGL2RenderingContext;
 	private outerCanvas: HTMLCanvasElement;
+	private bufferPos: WebGLBuffer;
+	private bufferCoord: WebGLBuffer;
 	private ballShader: BallShader;
 	private gridShader: GridShader;
+	private fieldShader: FieldShader;
 	private timer: number;
 	private lastTime: number;
-	private upScale: number;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
@@ -51,9 +54,11 @@ export class RippleShader {
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 		this.ballShader = new BallShader(this.gl, this.scale());
 		this.gridShader = new GridShader(this.gl, this.scale());
+		this.fieldShader = new FieldShader(this.gl, this.scale(), this.outerCanvas.width, this.outerCanvas.height);
 		this.timer = 0;
 		this.lastTime = 0;
-		this.upScale = 1;
+		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
+		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 		console.log(this.gl.getParameter(this.gl.SHADING_LANGUAGE_VERSION));
 
 
@@ -70,6 +75,12 @@ export class RippleShader {
 			this.ballShader.moveBall({x: x, y: y});
 			// events.mousemove(x, y);
 		});
+	}
+
+	private bufferPosData(): number[] {
+		const x = 0.5 * this.scale();
+		const y = 0.5 * this.scale();
+		return [-x, -y, x, -y, -x, y, x, y];
 	}
 
 	private scale(): number {
@@ -121,14 +132,26 @@ export class RippleShader {
 		//Here need to update all the buffers
 		if (refresh) {
 			refresh = false;
-			this.ballShader.updateBuffer(this.gl, this.scale());
-			this.gridShader.updateBuffer(this.gl, this.scale());
+			this.bufferPos = createBuffer(this.gl, this.bufferPosData());
+			this.ballShader.updateScale(this.scale());
+			this.gridShader.updateScale(this.scale());
+			this.fieldShader.updateScale(this.scale(), this.gl, this.outerCanvas.width, this.outerCanvas.height);
 		}
-		//uniform needs to be changed still for ball paddle etc,
-		const uniform = {pos: position, width: this.outerCanvas.width, height: this.outerCanvas.height, timer: this.timer * 0.0025, scale: this.upScale};
-		//After this draw all shaders (ball, field, grid etc)
-		this.gridShader.render(this.gl, uniform);
-		this.ballShader.render(this.gl, uniform);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
+        this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(0);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
+		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(1);
+		this.gridShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
+		this.fieldShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
+        this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
+        this.gl.enableVertexAttribArray(0);
+		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
+		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
+		this.gl.enableVertexAttribArray(1);
+		this.ballShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
 		
 		
 		if (active) {

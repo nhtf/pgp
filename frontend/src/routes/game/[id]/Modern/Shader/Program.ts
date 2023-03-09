@@ -1,18 +1,17 @@
 import type { VectorObject } from "../../lib2D/Math2D";
 
 export type uniforms = {
-    pos: VectorObject;
+    pos: VectorObject; //position for ripple effect maybe
     width: number;
     height: number;
     timer: number;
-    scale: number;
 };
 
 export class Program {
 
     public program: WebGLProgram;
     private timeLocation: WebGLUniformLocation;
-    private uniformScale: WebGLUniformLocation;
+    // private uniformScale: WebGLUniformLocation;
     private originPos: WebGLUniformLocation;
     private shockParams: WebGLUniformLocation;
     private uniformTex: WebGLUniformLocation;
@@ -23,7 +22,7 @@ export class Program {
         this.timeLocation = gl.getUniformLocation(this.program, "time")!;
         this.uniformTex = gl.getUniformLocation(this.program, "tex")!;
         this.uniformSize = gl.getUniformLocation(this.program, "size")!;
-        this.uniformScale = gl.getUniformLocation(this.program, "scale")!;
+        // this.uniformScale = gl.getUniformLocation(this.program, "scale")!;
         this.originPos = gl.getUniformLocation(this.program, "center")!;
         this.shockParams = gl.getUniformLocation(this.program, "shockParams")!;
     }
@@ -35,7 +34,7 @@ export class Program {
         gl.uniform1i(this.uniformTex, 0);
         gl.uniform2f(this.uniformSize, uniform.width, uniform.height);
         gl.uniform2f(this.originPos, uniform.pos.x, uniform.pos.y);
-        gl.uniform1f(this.uniformScale, uniform.scale);
+        // gl.uniform1f(this.uniformScale, uniform.scale);
     }
 
     private createProgram(gl: WebGLRenderingContext, vertexSource: string, fragmentSource: string): WebGLProgram {
