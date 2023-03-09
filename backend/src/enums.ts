@@ -43,4 +43,5 @@ export enum Subject {
 	MEMBER,
 	FRIEND,
 	MESSAGE,
+	SCORE,
 }

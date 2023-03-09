@@ -13,7 +13,7 @@ export class GameState {
 	@Column()
 	gamemode: Gamemode;
 
-	@OneToMany(() => Team, (team) => team.state, { cascade: [ "insert", "update" ] })
+	@OneToMany(() => Team, (team) => team.state, { eager: true, cascade: [ "insert", "update" ] })
 	teams: Team[];
 
 	@Column({ default: false })

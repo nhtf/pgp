@@ -22,7 +22,6 @@
 	const load = 15;
 
 	let messages = data.messages.sort(byDate);
-	let content = "";
 	let indices: number[] = [];
 	let relativeScroll = messages.length - load;
 	
@@ -35,7 +34,7 @@
 	$: min = clamp(relativeScroll - load, 0, messages.length);
 
 	onMount(() => {
-		roomSocket.emit("join", String(room!.id));
+		roomSocket.emit("join", { id: room.id });
 
 		indices.push(onRemove(Subject.ROOM, room!.id));
 		indices.push(onRemove(Subject.MEMBER, self.id));
@@ -44,6 +43,7 @@
 
 	onDestroy(() => {
 		updateManager.remove(indices);
+		roomSocket.disconnect();
 	});
 
 	// roomSocket.on("message", (message: Message) => {
@@ -88,7 +88,6 @@
 	function sendMessage(message: string): boolean {
 		if (message.length) {
 			roomSocket.emit("message", message);
-			content = "";
 			return true;
 		}
 		return false;

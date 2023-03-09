@@ -4,7 +4,6 @@ import { Team } from "src/entities/Team";
 import { MessageBody, SubscribeMessage, ConnectedSocket, WsException } from "@nestjs/websockets";
 import { Socket } from "socket.io";
 import { Repository } from "typeorm"
-import { validate_id } from "src/util";
 import { GameRoom } from "src/entities/GameRoom";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
@@ -12,68 +11,84 @@ import { ProtectedGateway } from "src/gateways/protected.gateway";
 export class GameGateway extends ProtectedGateway("game") {
 	constructor(
 		@Inject("USER_REPO")
-		private readonly user_repo: Repository<User>,
+		private readonly userRepo: Repository<User>,
 		@Inject("GAMEROOM_REPO")
-		private readonly room_repo: Repository<GameRoom>,
+		private readonly roomRepo: Repository<GameRoom>,
 		@Inject("GAMEROOMMEMBER_REPO")
-		private readonly member_repo: Repository<GameRoomMember>,
+		private readonly memberRepo: Repository<GameRoomMember>,
 		@Inject("TEAM_REPO")
-		private readonly team_repo: Repository<Team>,
+		private readonly teamRepo: Repository<Team>,
 	) {
-		super(user_repo);
+		super(userRepo);
 	}
 
-	async getRoom(id: number) {
-		return await this.room_repo.findOne({
-			where: { id },
-			relations: {
-				members: {
-					user: true
+	async onConnect(client: Socket, user: User) {
+		console.log("connect");
+	}
+
+	async onDisconnect(client: Socket, user: User) {
+		console.log("disconnect");
+		const member = await this.memberRepo.findOne({
+			where: {
+				room: {
+					id: client.room,
 				},
-				state: {
-					teams: true,
+				user: {
+					id: user.id,
+				},
+			},
+			relations: {
+				room: {
+					members: {
+						user: true,
+					}
 				}
 			}
 		});
-	}
 
-	async onConnect(client: Socket) {
-		const req = client.request as any;
-
-		if (!req.session.user_id) {
-			client.disconnect();
-			return;
+		if (!member) {
+			console.error("No member to disconnect");
+			throw new WsException("Missing member on disconnect");
 		}
-	
-		// TODO: is this even used?
-		req.user = await this.user_repo.findOneBy({
-			id: req.session.user_id
-		});
-	}
-
-	async onDisconnect(client: Socket) {
-		const id = client.request.session.user_id;
-		const member = await this.member_repo.findOneBy({
-			room: {
-				id: client.room,
-			},
-			user: {
-				id: client.request.session.user_id,
-			},
-		});
-
-		if (member !== null) {
-			member.is_playing = false;
-			await this.member_repo.save(member);
-		}
-	
-		let user = await this.user_repo.findOneBy({ id });
-
+		
 		user.activeRoom = null;
-		user = await this.user_repo.save(user);
-		user.send_update();
+		member.is_playing = false;
+	
+		await this.users.save(user);
+		await this.memberRepo.save(member);
 	}
 
+	async onJoin(@ConnectedSocket() client: Socket, data: { id: number, scope: string }) {
+		console.log("join");
+		try {
+			const member = await this.memberRepo.findOne({
+				where: {
+					room: {	id: data.id },
+					user: {
+						id: client.request.session.user_id,
+					},
+				},
+				relations: {
+					room: {
+						members: {
+							user: true,
+						}
+					}
+				}
+			});
+
+			if (!member) {
+				throw new WsException("Invalid room id");
+			}
+
+			client.join(data.scope + "-" + data.id);
+
+			member.is_playing = true;
+			await this.memberRepo.save(member);
+		} catch (err) {
+			throw new WsException(err.message);
+		}
+	}
 	@SubscribeMessage("broadcast")
 	async broadcast(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
 		if (client.room === undefined) {
@@ -87,8 +102,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			client.to("stat-" + client.room).emit("status", data.snapshot.state);
 
 			for (let teamState of data.snapshot.state?.teams || []) {
-				const room = await this.getRoom(client.room);
-				const team = await this.team_repo.findOneBy({
+				const team = await this.teamRepo.findOneBy({
 					id: teamState.id,
 					state: {
 						room: {
@@ -98,15 +112,14 @@ export class GameGateway extends ProtectedGateway("game") {
 				});
 
 				if (team?.score !== teamState.score) {
-					team.score = teamState.score;
-					await this.team_repo.save(team);
+					await this.teamRepo.save({ id: team.id, score: teamState.score });
 
 					// room.send_update({
 					// 	subject: Subject.ROOM,
 					// 	id: client.room,
 					// 	action: Action.SET,
 					// 	value: instanceToPlain(room),
-					// }, !room.is_private);
+					// });
 				}
 			}
 		}
@@ -115,61 +128,5 @@ export class GameGateway extends ProtectedGateway("game") {
 	@SubscribeMessage("ping")
 	ping(@ConnectedSocket() client: Socket, @MessageBody() data: any) {
 		client.emit("pong", data);
-	}
-
-	@SubscribeMessage("join")
-	async join(@ConnectedSocket() client: Socket, @MessageBody() data: { room: string, scope: string }) {
-		let roomId: number;
-	
-		if (data.scope === "game") {
-			if (client.room !== undefined) {
-				return;
-			}
-
-			try {
-				const request = client.request as any;
-				roomId = validate_id(data.room);
-
-				const member = await this.member_repo.findOneBy({
-					room: {
-						id: roomId,
-					},
-					user: {
-						id: client.request.session.user_id,
-					},
-				});
-
-				if (!member) {
-					throw new WsException("Invalid room id");
-				}
-
-				client.room = roomId;
-				client.join(data.scope + "-" + roomId);
-
-				member.is_playing = true;
-				await this.member_repo.save(member);
-			} catch (err) {
-				throw new WsException(err.message);
-			}
-		}
-
-		const id = client.request.session.user_id;
-
-		if (!id) {
-			throw new WsException("UNAUTHORIZED");
-		}
-
-		try {
-			roomId = validate_id(data.room);
-		} catch (error) {
-			throw new WsException("Invalid room id");
-		}
-
-		const room = await this.room_repo.findOneBy({ id: roomId });
-		let user = await this.user_repo.findOneBy({ id });
-
-		user.activeRoom = room;
-		user = await this.user_repo.save(user);
-		user.send_update();
 	}
 }

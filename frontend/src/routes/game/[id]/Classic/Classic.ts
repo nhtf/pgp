@@ -250,7 +250,7 @@ export class Game extends Net {
 	}
 
 	public async start(options: Options) {
-		const teams = (options.member as any).room.teams;
+		const teams = options.room.teams;
 
 		this.teams = [
 			new Team(teams[0].id, teams[0].score),
@@ -271,7 +271,8 @@ export class Classic {
 	private context: CanvasRenderingContext2D;
 	private game: Game;
 	private lastTime?: number;
-	private interval?: NodeJS.Timer;
+	// private interval?: NodeJS.Timer;
+	private interval?: number;
 	private options?: Options;
 
 	public constructor(canvas: HTMLCanvasElement) {
@@ -328,7 +329,7 @@ export class Classic {
 
 		if (this.options.member.player != null) {
 			this.game.send("move", {
-				u: this.options.member.user.id,
+				u: this.options.member.userId,
 				t: this.options.member.player?.team?.id,
 				y,
 			});
@@ -341,7 +342,7 @@ export class Classic {
 
 		this.interval = setInterval(() => {
 			this.game.send("ping", {
-				u: options.member.user.id,
+				u: options.member.userId,
 			});
 		}, 1000 / PADDLE_PING_INTERVAL);
 

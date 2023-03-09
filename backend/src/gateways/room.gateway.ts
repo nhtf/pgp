@@ -13,16 +13,14 @@ import { User } from "src/entities/User";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Repository } from "typeorm";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
-import { validate_id } from "src/util";
 import { HttpService } from "@nestjs/axios";
-import { catchError, firstValueFrom } from "rxjs";
-import { TENOR_KEY, BOUNCER_KEY } from "src/vars";
-import * as linkify from "linkifyjs";
-import axios from "axios";
+import { BOUNCER_KEY } from "src/vars";
 import { instanceToPlain } from "class-transformer"
 import { ClientRequest } from "node:http";
 import { createHmac } from "node:crypto";
 import { Embed } from "src/entities/Embed";
+import * as linkify from "linkifyjs";
+import axios from "axios";
 
 const embedLimit = 3;
 
@@ -44,38 +42,18 @@ export class RoomGateway extends ProtectedGateway("room") {
 		super(userRepo);
 	}
 
-	// @SubscribeMessage("join")
-	// join(@ConnectedSocket() client: Socket, @MessageBody() id: string) {
-	// 	try {
-	// 		validate_id(id);
-	// 	} catch (error) {
-	// 		throw new WsException(error.message);
-	// 	}
-	
-	// 	client.room = Number(id);
-
-	// 	client.join(id);
-	// }
+	async onDisconnect(client: Socket, user: User) {
+		user.activeRoom = null;
+		await this.userRepo.save(user);
+	}
 
 	@SubscribeMessage("message")
 	async message(@ConnectedSocket() client: Socket, @MessageBody() content: string) {
-		const request: any = client.request;
-
-		if (!client.room) {
-			throw new WsException("Missing room id");
-		}
-	
-		const member = await this.memberRepo.findOne({
-			relations: {
-				user: true,
-			},
-			where: {
-				user: {
-					id: request.session.user_id,
-				},
-				room: {
-					id: Number(client.room),
-				}
+		const room = await this.roomRepo.findOneBy({ id: client.room });
+		const member = await this.memberRepo.findOneBy({
+			room: {	id: room.id },
+			user: {
+				id: client.request.session.user_id,
 			},
 		});
 
@@ -125,17 +103,18 @@ export class RoomGateway extends ProtectedGateway("room") {
 			}
 		}
 
+
 		let message = new Message;
 		
 		message.content = content;
 		message.member = member;
-		message.room = await this.roomRepo.findOne({ where: { id: client.room }, relations: { members: { user: true }}});
+		message.room = room;
 		message.user = member.user;
 		//TODO send the link raw with digest?
 		message.embeds = embeds;
 
 		message = await this.messageRepo.save(message);
 	
-		this.server.in(String(client.room)).emit("message", instanceToPlain(message));
+		// this.server.in(String(client.room)).emit("message", instanceToPlain(message));
 	}
 }

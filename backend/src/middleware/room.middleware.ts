@@ -23,9 +23,6 @@ export class RoomMiddleware implements NestMiddleware {
 		
 			req.room = await this.repo.findOne({
 				relations: {
-					members: {
-						user: true
-					},
 					invites: true,
 					banned_users: true,
 				},

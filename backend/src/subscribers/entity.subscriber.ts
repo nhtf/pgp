@@ -1,4 +1,5 @@
-import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent } from "typeorm"
+import { Inject } from "@nestjs/common"
+import { EventSubscriber, EntitySubscriberInterface, Repository, InsertEvent, UpdateEvent, RemoveEvent } from "typeorm"
 import { Action, Subject } from "src/enums"
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { instanceToPlain } from "class-transformer"
@@ -32,8 +33,6 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			return ;
 		}
 
-		console.log(fun(event.entity));
-
 		UpdateGateway.instance.send_update({
 			subject,
 			action: Action.ADD,
@@ -43,11 +42,16 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 	}
 
 	afterUpdate(event: UpdateEvent<any>) {
-		const updatedColumns = event.updatedColumns.map((column) => column.propertyName);
+		const updatedColumns = [
+			...this.names(event.updatedColumns),
+			...this.names(event.updatedRelations)
+		];
 	
 		if (!updatedColumns.some((column) => !ignoredColumns.includes(column))) {
 			return ;
 		}
+	
+		console.log("Update", event.metadata.targetName, updatedColumns);
 	
 		const { subject, fun } = this.subjectEntry(event.metadata.targetName);
 		const entity = instanceToPlain(event.entity);
@@ -55,17 +59,15 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		if (!subject) {
 			return ;
 		}
-
-		console.log("Update", event.metadata.targetName, updatedColumns);
-
+		
 		const value = updatedColumns.reduce((sum, column) => {
 			if (entity[column]) {
 				sum[column] = entity[column];
 			}
-
+			
 			return sum;
 		}, {});
-
+	
 		if (!Object.keys(value).length) {
 			return ;
 		}
@@ -96,5 +98,9 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 
 	subjectEntry(entityName: string) {
 		return sub.find(({ names }) => names.includes(entityName)) ?? { subject: null, fun: () => []};
+	}
+
+	names<T extends { propertyName: string }>(columns: T[]) {
+		return columns.map((column) => column.propertyName);
 	}
 }

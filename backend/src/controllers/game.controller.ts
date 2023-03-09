@@ -10,11 +10,12 @@ import { Player } from "src/entities/Player";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
-import { Repository, In } from "typeorm";
+import { Repository, FindOptionsRelations } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Me } from "src/util"
+import { instanceToPlain } from "class-transformer"
 
 class CreateGameRoomDTO extends CreateRoomDTO {
 	@IsEnum(Gamemode)
@@ -54,6 +55,15 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
+	static relations: FindOptionsRelations<GameRoom> = {
+		members: {
+			user: true
+		},
+		state: {
+			teams: true,
+		},
+	};
+	
 	async setup_room(room: GameRoom, dto: CreateGameRoomDTO) {
 		const playerOptions = playerNumbers.get(dto.gamemode);
 		const state = new GameState;
@@ -88,50 +98,6 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 				},
 			},
 		});
-	}
-
-	@Get("id/:id")
-	// TODO
-	// @RequiredRole(Role.MEMBER)
-	async get_room(@GetRoom() room: GameRoom) {
-		return await this.get_joined_info(room);
-	}
-
-	@Get("joined/id/:id")
-	async joined_id(@Me() me: User, @Param("id", ParseIntPipe) id: number) {
-		const member = await this.member_repo.findOne({
-			where: {
-				room: {
-					id,
-				},
-				user: {
-					id: me.id,
-				},
-			},
-			relations: {
-				room: {
-					members: {
-						user: true,
-					},
-					state: {
-						teams: true,
-					},
-				},
-			},
-			// M: frontend sorts by id, backend doesn't need to
-			// order: {
-			// 	room: {
-			// 		state: {
-			// 			teams: {
-			// 				// TODO: ordering the teams by id to make them always appear on the same side is a very fragile solution
-			// 				id: "DSC",
-			// 			},
-			// 		},
-			// 	},
-			// },
-		});
-
-		return member;
 	}
 
 	@Get("history")

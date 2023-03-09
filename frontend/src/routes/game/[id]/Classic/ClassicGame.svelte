@@ -17,7 +17,7 @@
 		shader.addEventListener(classic);
 
 		await classic.start({
-			room: $page.params.id,
+			room: $page.data.room,
 			member: {
 				user: $page.data.user,
 				...$page.data.member,
