@@ -1,4 +1,4 @@
-import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Inject, ParseIntPipe } from "@nestjs/common";
+import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Inject } from "@nestjs/common";
 import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
 import { IsEnum, IsNumber } from "class-validator";
@@ -9,8 +9,8 @@ import { Team } from "src/entities/Team";
 import { Player } from "src/entities/Player";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
-import { RequiredRole, GetMember, GetRoom, IRoomService } from "src/services/room.service";
-import { Repository, FindOptionsRelations } from "typeorm";
+import { RequiredRole, GetRoom, IRoomService } from "src/services/room.service";
+import { Repository, FindOptionsRelations, In, Any } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
@@ -29,7 +29,6 @@ const playerNumbers = new Map([
 	[Gamemode.CLASSIC, [2]],
 	[Gamemode.VR, [2]],
 	[Gamemode.MODERN, [2, 4]],
-	[Gamemode.MODERN4P, [4]],
 ])
 
 // TODO...
@@ -57,15 +56,6 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
-	static relations: FindOptionsRelations<GameRoom> = {
-		members: {
-			user: true
-		},
-		state: {
-			teams: true,
-		},
-	};
-	
 	async setup_room(room: GameRoom, dto: CreateGameRoomDTO) {
 		const playerOptions = playerNumbers.get(dto.gamemode);
 		const state = new GameState;
@@ -105,27 +95,36 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	@Get("id/:id")
 	@RequiredRole(Role.MEMBER)
 	async get_room(@Me() me: User, @Param("id", ParseIDPipe(GameRoom, { members: { user: true, player: { team: true } } } as FindOptionsRelations<GameRoom>)) room: GameRoom) {
-		return { ...instanceToPlain(room), self: room.self(me)}
+		return { ...instanceToPlain(room), self: room.self(me) }
 	}
 
+	// TODO: One query
 	@Get("history")
 	async history(@Me() me: User) {
-		return await this.player_repo.find({
+		const states = await this.gamestate_repo.find({
 			where: {
-				user: {
-					id: me.id,
-				},
+				teams: {
+					players: {
+						user: {
+							id: me.id,
+						}
+					}
+				}
+			},
+		});
+
+		const ids = states.map((state) => state.id);
+
+		return await this.gamestate_repo.find({
+			where: {
+				id: In(ids)
 			},
 			relations: {
-				team: {
-					state: {
-						teams: {
-							players: {
-								user: true,
-							},
-						},
-					},
-				},
+				teams: {
+					players: {
+						user: true,
+					}
+				}
 			},
 		});
 	}
@@ -133,24 +132,38 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	@Patch("id/:id/team/:target")
 	@RequiredRole(Role.MEMBER)
 	async change_team(
-		@GetMember() member: GameRoomMember,
+		@Me() me: User,
 		@GetRoom() room: GameRoom,
 		@Param("target", ParseIDPipe(GameRoomMember, { user: true })) target: GameRoomMember,
 		@Body("team", ParseOptionalIDPipe(Team)) team?: Team,
 	) {
-		if (member.room.id !== room.id) {
+		const member = await this.member_repo.findOne({
+			where: {
+				user: {
+					id: me.id,
+				},
+				room: {
+					id: room.id,
+				},
+			},
+			relations: {
+				player: true,
+			}
+		});
+
+		if (member) {
 			throw new BadRequestException(ERR_NOT_MEMBER);
 		}
 
-		if ((target.role >= member.role && target.user.id != member.user.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
+		if ((target.role >= member.role && target.user.id != me.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
 			throw new ForbiddenException(ERR_PERM);
 		}
 
 		if (team) {
 			if (!member.player) {
-				let player = await this.player_repo.findOneBy({
+				const player = await this.player_repo.findOneBy({
 					user: {
-						id: member.user.id
+						id: me.id
 					},
 					team: {
 						state: {
@@ -175,8 +188,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		return await this.member_repo.save(member);
 	}
 
-	@Get("id/:id/gameStates")
-	async gameStates(@Param("id", ParseIDPipe(GameRoom)) room: GameRoom) {
+	@Get("id/:id/state")
+	async state(@Param("id", ParseIDPipe(GameRoom)) room: GameRoom) {
 		return await this.gamestate_repo.findOneBy({
 			room: {
 				id: room.id,

@@ -137,6 +137,7 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 		async del_member(room: number | T, member: U | User | number, ban?: boolean) {
 			room = await this.get_room(room);
 
+			console.log("A", member);
 			if (!(member instanceof Member))
 				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id } } as FindOptionsWhere<U>);
 			if (!member)
@@ -162,6 +163,8 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 			
 				await this.room_repo.save(room);
 			}
+
+			console.log(member);
 
 			await this.member_repo.remove(member);
 
@@ -199,13 +202,13 @@ export const GetMember = createParamDecorator(
 
 export const GetRoom = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
-		const room = ctx.switchToHttp().getRequest().room;
+		const request = ctx.switchToHttp().getRequest();
 
-		if (!room) {
+		if (!request.room) {
 			throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 		}
 
-		return room;
+		return request.room;
 	}
 );
 
@@ -251,12 +254,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		) {
 		}
 
-		static relations: FindOptionsRelations<Room> = {
-			members: {
-				user: true
-			},
-		};
-		
 		async get_member(user: User, room: Room): Promise<U | null> {
 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
 		}
@@ -383,7 +380,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			room.password = dto.password ? await argon2.hash(dto.password) : null;
 			room.is_private = dto.is_private;
 
-			await this.room_repo.save(room);
+			room = await this.room_repo.save(room);
 	
 			room.send_update({
 				subject: Subject.ROOM,
@@ -397,7 +394,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		// TODO: remove getroom
 		@Post("id/:id/member(s)?")
-		async join(@Me() me: User, @GetRoom() room: T, @Body("password") password?: string) {
+		async join(@Me() me: User, @Param("id", ParseIDPipe(type, { banned_users: true } as FindOptionsRelations<T>)) room: T, @Body("password") password?: string) {
 			const invites = await this.invite_repo.find({
 				relations: {
 					from: true,
@@ -498,10 +495,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@Param("target", ParseIDPipe(MemberType, { user: true, room: { members: { user: true } } } as FindOptionsRelations<U>)) target: U,
 			@Body("ban") ban: boolean,
 		) {
-			if (member.room.id !== room.id) {
-				throw new BadRequestException(ERR_NOT_MEMBER);
-			}
-
 			if (member.id !== target.id && target.role >= member.role) {
 				console.log(member.role + " " + target.role);
 				throw new ForbiddenException(ERR_PERM);
@@ -542,10 +535,10 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		async edit_member(
 			@GetMember() member: U,
 			@GetRoom() room: T,
-			@Param("target", ParseIDPipe(MemberType, { room: true } as FindOptionsRelations<U>)) target: U,
+			@Param("target", ParseIDPipe(MemberType, { room: { members: { user: true } } } as FindOptionsRelations<U>)) target: U,
 			@Body("role", new ParseEnumPipe(Role)) role: Role
 		) {
-			if (member.room.id !== room.id) {
+			if (target.room.id !== room.id) {
 				throw new BadRequestException(ERR_NOT_MEMBER);
 			}
 
@@ -555,13 +548,13 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 			target.role = role;
 
+			await this.member_repo.save(target);
+
 			if (role === Role.OWNER) {
 				member.role = Role.ADMIN;
+				console.log(member.room.members);
+				await this.member_repo.save(member);
 			}
-
-			// Note: this prevents a race condition where no one is owner
-			await this.member_repo.save(target);
-			await this.member_repo.save(member);
 
 			return {};
 		}
@@ -586,18 +579,20 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		@RequiredRole(Role.ADMIN)
 		async create_invite(
 			@Me() me: User,
-			@GetMember() member: U,
-			@GetRoom() room: T,
+			@Param("id", ParseIDPipe(type, { banned_users: true, invites: true, members: { user: true } } as FindOptionsRelations<T>)) room: T,
 			@Body("username", ParseUsernamePipe) target: User
 		) {
-			if (await this.get_member(target, room))
+			if (room.members.find((member) => member.user.id === target.id)) {
 				throw new ForbiddenException("User already member of this room");
+			}
 
-			if (await this.invite_repo.findOneBy({ room: { id: room.id }, from: { id: me.id }, to: { id: target.id } }))
+			if (room.invites?.find((invite) => invite.to.id === target.id)) {
 				throw new ForbiddenException("Already invited this user");
+			}
 
-			if (room.banned_users?.find(x => x.id === target.id))
+			if (room.banned_users?.find((user) => user.id === target.id)) {
 				throw new ForbiddenException("Cannot invite banned user");
+			}
 
 			const invite = new RoomInvite;
 
@@ -631,7 +626,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Get("id/:id/ban(s)?")
 		@RequiredRole(Role.ADMIN)
-		async list_bans(@GetRoom() room: T) {
+		async list_bans(@Param("id", ParseIDPipe(type, { banned_users: true } as FindOptionsRelations<T>)) room: T) {
 			return room.banned_users;
 		}
 

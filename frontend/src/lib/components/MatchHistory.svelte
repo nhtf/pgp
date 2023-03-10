@@ -1,19 +1,12 @@
 <script lang="ts">
-    import type { Player } from "$lib/entities";
+    import type { GameState } from "$lib/entities";
 	import Match from "./Match.svelte";
 
-	export let history: Player[];
+	export let history: GameState[];
 </script>
 
-<div class="match-history">
-	{#each history as player}
-		<Match {player}/>
+<div class="flex-col">
+	{#each history as game}
+		<Match {game}/>
 	{/each}
 </div>
-
-<style>
-	.match-history {
-		display: flex;
-		flex-direction: column;
-	}
-</style>

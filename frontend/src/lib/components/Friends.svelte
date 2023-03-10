@@ -148,7 +148,7 @@
 			{#if friend.activeRoomId}
 				<div class="flex row">
 				{#each gameStates.filter((gameState) => gameState.roomId === friend.activeRoomId)[0].teams as team, index}
-					<div>{`${index > 0 ? "a - " : ""}${team.score}`}</div>
+					<div>{`${index > 0 ? "  - " : ""}${team.score}`}</div>
 				{/each}
 			</div>
 			{/if}

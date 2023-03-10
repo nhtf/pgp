@@ -3,7 +3,7 @@
 
 	export let data;
 	
-	$: history = data.players;
+	const history = data.games;
 </script>
 
 <MatchHistory {history}/>

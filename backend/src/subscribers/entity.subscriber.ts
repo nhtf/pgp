@@ -1,13 +1,13 @@
-import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent } from "typeorm"
-import { Action, Subject } from "src/enums"
-import { UpdateGateway } from "src/gateways/update.gateway"
-import { instanceToPlain } from "class-transformer"
 import type { User } from "src/entities/User"
 import type { Invite } from "src/entities/Invite"
 import type { Room } from "src/entities/Room"
 import type { Member } from "src/entities/Member"
 import type { Message } from "src/entities/Message"
-import type { Team } from "src/entities/Team"
+import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, Repository } from "typeorm"
+import { Action, Subject } from "src/enums"
+import { UpdateGateway } from "src/gateways/update.gateway"
+import { instanceToPlain } from "class-transformer"
+import { ReceiverFinder } from "src/ReceiverFinder" 
 
 type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => any[] };
 
@@ -42,7 +42,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		}, ...fun(event.entity));
 	}
 
-	afterUpdate(event: UpdateEvent<any>) {
+	async afterUpdate(event: UpdateEvent<any>) {
 		const updatedColumns = [
 			...this.names(event.updatedColumns),
 			...this.names(event.updatedRelations)
@@ -53,7 +53,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		}
 	
 		console.log("Update", event.metadata.targetName, updatedColumns);
-	
+
 		const { subject, fun } = this.subjectEntry(event.metadata.targetName);
 		const entity = instanceToPlain(event.entity);
 	
@@ -73,6 +73,9 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			return ;
 		}
 
+		// TODO
+		const receivers: User[] = fun(await ReceiverFinder.instance.get(subject, event.entity));
+
 		UpdateGateway.instance.send_update({
 			subject,
 			action: Action.SET,
@@ -81,7 +84,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		}, ...fun(event.entity));
 	}
 
-	beforeRemove(event: RemoveEvent<any>) {
+	async beforeRemove(event: RemoveEvent<any>) {
 		console.log("Remove", event.metadata.targetName);
 	
 		const { subject, fun } = this.subjectEntry(event.metadata.targetName);

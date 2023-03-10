@@ -19,7 +19,7 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 		const invites: Invite[] = await get(`/user/me/invites`);
 		const gameStates: GameState[] = await Promise.all(friends
 			.filter((user) => user.activeRoomId)
-			.map((user) => get(`/game/id/${user.activeRoomId}/gameStates`)));
+			.map((user) => get(`/game/id/${user.activeRoomId}/state`)));
 	
 		updateStore(inviteStore, invites);
 		updateStore(gameStateStore, gameStates);

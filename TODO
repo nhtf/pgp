@@ -15,3 +15,5 @@ chat invite for game (also how to determine which kind of game)
 matchmaking system!!
 
 Member entity (en andere?) hebben dubbele IDs in DB, kan beter via relations
+
+promote/demote causes wrong order in membergroup

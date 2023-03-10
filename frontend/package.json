@@ -45,12 +45,14 @@
     "linkify-plugin-mention": "^4.1.0",
     "linkify-string": "^4.1.0",
     "linkifyjs": "^4.1.0",
+    "parse-svg-path": "^0.1.2",
     "postcss": "^8.4.21",
     "socket.io-client": "^4.5.3",
     "svg-mesh-3d": "^1.1.0",
     "sweetalert2": "^11.6.13",
     "tailwindcss": "^3.2.4",
     "three": "^0.150.1",
+    "triangulate-contours": "^1.0.2",
     "twgl.js": "^5.3.0",
     "validator": "^13.7.0"
   }
