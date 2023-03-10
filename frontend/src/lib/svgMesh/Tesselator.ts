@@ -1,6 +1,7 @@
 
 
 //TODO clean this up, type it and split it up in seperate files!
+//TODO remove the npm modules I used to make this
 export function tesselate(opts) {
     var debug =  opts.debug || false;
     var tess = new Tesselator();
