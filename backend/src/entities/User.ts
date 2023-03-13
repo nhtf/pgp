@@ -83,7 +83,7 @@ export class User {
 	@OneToMany(() => Player, (player) => player.user)
 	players: Player[];
 
-	@Exclude()
+	// @Exclude()
 	@ManyToOne(() => GameRoom, { nullable: true })
 	activeRoom: GameRoom | null;
 
@@ -93,6 +93,14 @@ export class User {
 	@OneToOne(() => MatchHistory)
 	@JoinColumn()
 	matchHistory: MatchHistory;
+
+	@Exclude()
+	@OneToMany(() => User, (user) => user.owner)
+	bots: User[];
+
+	@Exclude()
+	@ManyToOne(() => User, (user) => user.bots)
+	owner: User | null;
 
 	@Expose()
 	get status(): Status {
@@ -133,11 +141,11 @@ export class User {
 		this.friends.push(target);
 	}
 
-	send_update(value: any = instanceToPlain(this), action: Action = Action.SET) {
+	send_update(value: any) {
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			id: this.id,
-			action,
+			action: Action.SET,
 			value,
 		});
 	}
@@ -155,20 +163,4 @@ export class User {
 	
 		UpdateGateway.instance.send_update(packet, this);
 	}
-
-	// @AfterInsert()
-	// afterInsert() {
-	// 	this.send_update(Action.ADD);
-	// }
-
-	// Waaay to many updates, do not use
-	// @AfterUpdate()
-	// afterUpdate() {
-	// 	this.send_update(Action.SET);
-	// }
-
-	// @BeforeRemove()
-	// beforeRemove() {
-	// 	this.send_update(Action.REMOVE);
-	// }
 }

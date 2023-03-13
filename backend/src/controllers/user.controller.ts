@@ -76,9 +76,7 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new ForbiddenException("Username taken");
 			}
 
-			user.username = dto.username;
-		
-			return await this.user_repo.save(user);
+			return await this.user_repo.save({ id: user.id, username: dto.username });
 		}
 
 		@Get(options.cparam + "/avatar")
@@ -284,7 +282,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		async delete_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Param("request_id", ParseIDPipe(FriendRequest, { from: true, to: true })) request: FriendRequest
+			@Param("request_id", ParseIDPipe(FriendRequest)) request: FriendRequest
 		) {
 			user = user || me;
 			if (user.id !== me.id)

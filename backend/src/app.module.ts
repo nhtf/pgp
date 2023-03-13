@@ -92,7 +92,6 @@ export const dataSource = new DataSource({
 		const entity = require(file);
 		return Object.values(entity)[0] as Function;
 	}),
-	// entities: ["entities/*"],
 	subscribers: [EntitySubscriber],
 	synchronize: true, //TODO disable and test before turning in
 	// logging: true,

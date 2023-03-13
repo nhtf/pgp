@@ -1,6 +1,6 @@
 import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post, Delete } from "@nestjs/common";
 import { Repository } from "typeorm";
-import { IRoomService, GenericRoomController, RequiredRole, GetRoom, GetMember } from "src/services/room.service";
+import { IRoomService, GenericRoomController, GetRoom, GetMember } from "src/services/room.service";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Message } from "src/entities/Message";
@@ -10,6 +10,7 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
 import { Action, Role, Subject } from "src/enums";
+import { RequiredRole } from "src/guards/role.guard"
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
 
@@ -134,7 +135,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 	@RequiredRole(Role.MEMBER)
 	async deleteMessage(
 		@GetMember() member: ChatRoomMember,
-		@Param("message", ParseIDPipe(Message, { room: { members: { user: true } } })) message: Message
+		@Param("message", ParseIDPipe(Message)) message: Message
 	) {
 		const target = await this.member_repo.findOneBy({ id: message.memberId });
 

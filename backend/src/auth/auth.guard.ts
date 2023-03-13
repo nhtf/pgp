@@ -15,7 +15,16 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 		) {}
 
 		async canActivate(context: ExecutionContext): Promise<boolean> {
-			return authenticate(get_request(context), this.user_repo) !== null;
+			const request = get_request(context);
+			const user = request?.user;
+			const session = request?.session;
+
+			if (!user)
+				return false;
+			// console.log(user);
+			if (!user.owner)
+				return (session && session.auth_level >= user.auth_req);
+			return true; /* user is bot */
 		}
 	}
 	return GenericAuthGuardFactory;

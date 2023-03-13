@@ -58,7 +58,7 @@ export async function parseId<T>(type: (new () => T), value: any, repo: Reposito
 	return entity;
 }
 
-export function ParseIDPipe<T>(type: (new () => T), relations?: FindOptionsRelations<T>) {
+export function ParseIDPipe<T>(type: (new () => T), relations?: any) {
 	@Injectable()
 	class ParseIDPipe implements PipeTransform {
 		constructor(

@@ -17,10 +17,10 @@ export class Invite {
 	@CreateDateColumn({ type: 'timestamptz' })
 	date: Date;
 
-	@ManyToOne(() => User, (user) => user.sent_invites, { onDelete: "CASCADE" })
+	@ManyToOne(() => User, (user) => user.sent_invites, { eager: true, onDelete: "CASCADE" })
 	from: User;
 
-	@ManyToOne(() => User, (user) => user.received_invites, { onDelete: "CASCADE" })
+	@ManyToOne(() => User, (user) => user.received_invites, { eager: true, onDelete: "CASCADE" })
 	to: User;
 
 	@Expose()

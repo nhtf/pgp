@@ -7,9 +7,6 @@ export class GameRoomMember extends Member {
 	@OneToOne(() => Player, (player) => player.member, { nullable: true, eager: true, cascade: [ "insert", "update" ] })
 	player: Player | null;
 
-	@Column({ default: false })
-	is_playing: boolean;
-
 	get type(): string {
 		return "GameRoomMember";
 	}

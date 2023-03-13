@@ -5,6 +5,7 @@ export type uniforms = {
     width: number;
     height: number;
     timer: number;
+    color?: number[]; 
 };
 
 export class Program {
@@ -16,6 +17,7 @@ export class Program {
     private shockParams: WebGLUniformLocation;
     private uniformTex: WebGLUniformLocation;
     private uniformSize: WebGLUniformLocation;
+    private uniformColor: WebGLUniformLocation;
 
     public constructor(gl: WebGL2RenderingContext, vert: string, frag: string) {
         this.program = this.createProgram(gl, vert, frag);
@@ -25,6 +27,7 @@ export class Program {
         // this.uniformScale = gl.getUniformLocation(this.program, "scale")!;
         this.originPos = gl.getUniformLocation(this.program, "center")!;
         this.shockParams = gl.getUniformLocation(this.program, "shockParams")!;
+        this.uniformColor = gl.getUniformLocation(this.program, "color")!;
     }
 
     public useProgram(gl: WebGL2RenderingContext, uniform: uniforms) {
@@ -34,7 +37,21 @@ export class Program {
         gl.uniform1i(this.uniformTex, 0);
         gl.uniform2f(this.uniformSize, uniform.width, uniform.height);
         gl.uniform2f(this.originPos, uniform.pos.x, uniform.pos.y);
+        if (uniform.color)
+            gl.uniform4f(this.uniformColor, uniform.color[0], uniform.color[1], uniform.color[2], uniform.color[3]);
         // gl.uniform1f(this.uniformScale, uniform.scale);
+    }
+
+    //For setting individual values
+    public setUniform(gl: WebGL2RenderingContext, name: string, value: any) {
+        switch (name) {
+            case "color":
+                gl.uniform4f(this.uniformColor, value[0], value[1], value[2], value[3]);
+                break;
+        
+            default:
+                break;
+        }
     }
 
     private createProgram(gl: WebGLRenderingContext, vertexSource: string, fragmentSource: string): WebGLProgram {

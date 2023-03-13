@@ -3,108 +3,107 @@ import type { Invite } from "src/entities/Invite"
 import type { Room } from "src/entities/Room"
 import type { Member } from "src/entities/Member"
 import type { Message } from "src/entities/Message"
-import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, Repository } from "typeorm"
+import type { Team } from "src/entities/Team"
+import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, FindOptionsRelations } from "typeorm"
 import { Action, Subject } from "src/enums"
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { instanceToPlain } from "class-transformer"
 import { ReceiverFinder } from "src/ReceiverFinder" 
 
-type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => any[] };
+type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User[], relations: FindOptionsRelations<any> };
 
 // TODO: friends
-const sub: SubjectInfo[] = [
-	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [] },
-	{ subject: Subject.ROOM, names: [ "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room.users : [] },
-	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to] },
-	{ subject: Subject.MEMBER, names: [ "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room.users },
-	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room.users.filter((user) => user.activeRoomId === message.roomId) },
-	// { subject: Subject.GAMESTATE, names: [ "Team" ], fun: (team: Team) => [] }
-]
+const subjects: SubjectInfo[] = [
+	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [], relations: {} },
+	{ subject: Subject.ROOM, names: [ "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room?.users : [], relations: { members: { user: true } } },
+	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to], relations: { to: true, from: true } },
+	{ subject: Subject.MEMBER, names: [ "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room?.users, relations: { room: { members: { user: true } } } },
+	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room?.users, relations: { room: { members: { user: true } } } },
+	// { subject: Subject.GAMESTATE, names: [ "Team" ], fun: (team: Team) => team.state?.room?.users, relations: { state: { room: { members: { user: true } } } } },
+];
 
-const ignoredColumns = [ "last_activity", "has_session", "activeRoom" ];
+const ignoredColumns = [ 
+	"last_activity", 
+	"has_session",
+	"activeRoom",
+	"owner",
+];
 
 @EventSubscriber()
 export class EntitySubscriber implements EntitySubscriberInterface {
-	afterInsert(event: InsertEvent<any>) {
+	async afterInsert(event: InsertEvent<any>) {
 		console.log("Insert", event.metadata.targetName);
-
-		const { subject, fun } = this.subjectEntry(event.metadata.targetName);
-	
-		if (!subject) {
-			return ;
-		}
-
-		UpdateGateway.instance.send_update({
-			subject,
-			action: Action.ADD,
-			id: event.entity.id,
-			value: instanceToPlain(event.entity),
-		}, ...fun(event.entity));
+		await this.update(event, Action.ADD, (entity) => instanceToPlain(entity));
 	}
 
 	async afterUpdate(event: UpdateEvent<any>) {
-		const updatedColumns = [
-			...this.names(event.updatedColumns),
-			...this.names(event.updatedRelations)
-		];
-	
-		if (!updatedColumns.some((column) => !ignoredColumns.includes(column))) {
-			return ;
-		}
-	
-		console.log("Update", event.metadata.targetName, updatedColumns);
+		const updatedColumns = event.updatedColumns.map((column) => column.propertyName)
+			.concat(event.updatedRelations.map((column) => column.propertyName))
+			.filter((column) => !ignoredColumns.includes(column));
 
-		const { subject, fun } = this.subjectEntry(event.metadata.targetName);
-		const entity = instanceToPlain(event.entity);
-	
-		if (!subject) {
-			return ;
+		if (updatedColumns.length) {
+			console.log("Update", event.metadata.targetName, updatedColumns);
+			await this.update(event, Action.SET, this.columnToEntity.bind({}, updatedColumns));
 		}
-		
-		const value = updatedColumns.reduce((sum, column) => {
-			if (entity[column]) {
-				sum[column] = entity[column];
-			}
-			
-			return sum;
-		}, {});
-	
-		if (!Object.keys(value).length) {
-			return ;
-		}
-
-		// TODO
-		const receivers: User[] = fun(await ReceiverFinder.instance.get(subject, event.entity));
-
-		UpdateGateway.instance.send_update({
-			subject,
-			action: Action.SET,
-			id: entity.id,
-			value,
-		}, ...fun(event.entity));
 	}
 
 	async beforeRemove(event: RemoveEvent<any>) {
 		console.log("Remove", event.metadata.targetName);
-	
-		const { subject, fun } = this.subjectEntry(event.metadata.targetName);
+		await this.update(event, Action.REMOVE, () => undefined);
+	}
 
-		if (!subject) {
-			return ;
+	async update(event: any, action: Action, valueFun: (entity: any) => any) {
+		const entity = event.entity;
+	
+		try {
+			const info = this.subjectEntry(event.metadata.targetName);
+		
+			console.log(info);
+			UpdateGateway.instance.send_update({
+				subject: info.subject,
+				action,
+				id: entity.id,
+				value: valueFun(entity)
+			}, ...await this.receivers(entity, info));
+		} catch (_) {}
+	}
+
+	async receivers(entity: any, info: SubjectInfo): Promise<User[]> {
+		let receivers = info.fun(entity);
+
+		if (!receivers) {
+			const entityWithRelations = await ReceiverFinder.instance.get(info.subject, entity.id, info.relations);
+
+			receivers = info.fun(entityWithRelations);
 		}
 
-		UpdateGateway.instance.send_update({
-			subject,
-			action: Action.REMOVE,
-			id: event.entity.id,
-		}, ...fun(event.entity));
+		return receivers;
 	}
 
-	subjectEntry(entityName: string) {
-		return sub.find(({ names }) => names.includes(entityName)) ?? { subject: null, fun: () => []};
+	subjectEntry(entityName: string): SubjectInfo {
+		const info = subjects.find(({ names }) => names.includes(entityName));
+
+		if (!info) {
+			throw new Error("Ignored subject");			
+		}
+
+		return info;
 	}
 
-	names<T extends { propertyName: string }>(columns: T[]) {
-		return columns.map((column) => column.propertyName);
+	columnToEntity(columns: string[], entity: any) {
+		const plained = instanceToPlain(entity);
+		const value = columns.reduce((sum, column) => {
+			if (plained[column]) {
+				sum[column] = plained[column];
+			}
+			
+			return sum;
+		}, {});
+
+		if (!Object.keys(value).length) {
+			throw new Error("No public updates");
+		}
+		
+		return value;
 	}
 }

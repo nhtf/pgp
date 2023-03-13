@@ -28,3 +28,4 @@ export const AVATAR_EXT: string = process.env.AVATAR_EXT || ".gif";
 export const TENOR_KEY: string = process.env.TENOR_KEY;
 export const GIPHY_KEY: string = process.env.GIPHY_KEY;
 export const BOUNCER_KEY: string = process.env.BOUNCER_KEY;
+export const AUTH_SECRET: string = process.env.AUTH_SECRET;

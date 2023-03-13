@@ -9,13 +9,14 @@ import { Team } from "src/entities/Team";
 import { Player } from "src/entities/Player";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
-import { RequiredRole, GetRoom, IRoomService } from "src/services/room.service";
-import { Repository, FindOptionsRelations, In, Any } from "typeorm";
+import { GetRoom, IRoomService } from "src/services/room.service";
+import { Repository, In, SelectQueryBuilder } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Me } from "src/util"
 import { instanceToPlain } from "class-transformer"
+import { RequiredRole } from "src/guards/role.guard"
 
 class CreateGameRoomDTO extends CreateRoomDTO {
 	@IsEnum(Gamemode)
@@ -73,7 +74,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 
 		room.state = state;
 
-		await this.room_repo.save(room);
+		return room;
 	}
 
 	async get_joined_info(room: GameRoom): Promise<GameRoom> {
@@ -92,9 +93,17 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		});
 	}
 
+	relations(qb: SelectQueryBuilder<GameRoom>): SelectQueryBuilder<GameRoom> {
+		return qb
+			.leftJoinAndSelect("room.state", "state")
+			.leftJoinAndSelect("state.teams", "team")
+			.leftJoinAndSelect("team.players", "player")
+			.leftJoinAndSelect("player.user", "playerUser")
+	}
+
 	@Get("id/:id")
 	@RequiredRole(Role.MEMBER)
-	async get_room(@Me() me: User, @Param("id", ParseIDPipe(GameRoom, { members: { user: true, player: { team: true } } } as FindOptionsRelations<GameRoom>)) room: GameRoom) {
+	async get_room(@Me() me: User, @Param("id", ParseIDPipe(GameRoom, { members: { user: true, player: { team: true } } })) room: GameRoom) {
 		return { ...instanceToPlain(room), self: room.self(me) }
 	}
 
@@ -151,7 +160,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			}
 		});
 
-		if (member) {
+		if (!member) {
 			throw new BadRequestException(ERR_NOT_MEMBER);
 		}
 
@@ -189,7 +198,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	}
 
 	@Get("id/:id/state")
-	async state(@Param("id", ParseIDPipe(GameRoom)) room: GameRoom) {
+	async state(@GetRoom() room: GameRoom) {
 		return await this.gamestate_repo.findOneBy({
 			room: {
 				id: room.id,

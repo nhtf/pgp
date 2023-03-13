@@ -207,13 +207,13 @@ export class Game extends Net {
 				break;
 			} else if (collision[0].name == "wall-left") {
 				this.teams[1].score += 1;
-				scoreSound.play();
+				this.pray("score-sound", 30, () => scoreSound.play());
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(1, 0);
 				break;
 			} else if (collision[0].name == "wall-right") {
 				this.teams[0].score += 1;
-				scoreSound.play();
+				this.pray("score-sound", 30, () => scoreSound.play());
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(-1, 0);
 				break;
@@ -222,19 +222,16 @@ export class Game extends Net {
 				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
 
 				if (collision[0].name.startsWith("paddle-")) {
-					if (paddleHitSound.currentTime === 0 || paddleHitSound.currentTime === paddleHitSound.duration) {
-						//TODO now it still plays the sound when rewinding
-						console.log(paddleHitSound.currentTime);
-						paddleHitSound.play();
+					this.pray("paddle-sound", 30, () => {
 						console.log("played");
-					}
+						paddleHitSound.play()
+					});
 					const magnitude = this.ball.velocity.magnitude() + 0.1;
 					this.ball.velocity = this.ball.velocity.normalize();
 					this.ball.velocity = paddleBounce(collision[0], this.ball);
 					this.ball.velocity = this.ball.velocity.normalize().scale(magnitude);
-				}
-				else {
-					wallHitSound.play();
+				} else {
+					this.pray("wall-sound", 30, () => wallHitSound.play());
 				}
 
 				time -= collision[2];

@@ -36,8 +36,8 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	async onConnect(client: Socket, user: User) {
-		const id = user.id;
 		const now = new Date;
+		const id = user.id;
 
 		user.has_session = true;
 		user.last_activity = now;
@@ -110,7 +110,9 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	async setActive(user: User) {
 		user.last_activity = new Date;
 
-		return await this.user_repo.save(user);
+		await this.user_repo.save({ id: user.id, last_activity: user.last_activity });
+
+		return user;
 	}
 
 	@SubscribeMessage("heartbeat")

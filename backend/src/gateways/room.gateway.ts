@@ -46,9 +46,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		const room = await this.roomRepo.findOneBy({ id: client.room });
 		const member = await this.memberRepo.findOneBy({
 			room: {	id: room.id },
-			user: {
-				id: client.request.session.user_id,
-			},
+			user: {	id: client.request.session.user_id },
 		});
 
 		if (!member) {
@@ -107,7 +105,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		//TODO send the link raw with digest?
 		message.embeds = embeds;
 
-		message = await this.messageRepo.save(message);
+		await this.messageRepo.save(message);
 	
 		// this.server.in(String(client.room)).emit("message", instanceToPlain(message));
 	}

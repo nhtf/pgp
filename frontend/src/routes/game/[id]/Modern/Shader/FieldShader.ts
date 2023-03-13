@@ -14,25 +14,45 @@ const path = "/Assets/Shaders/";
 await fetch(path+"field.vert").then(r => r.text().then(d => VERT_FIELD_SRC = d));
 await fetch(path+"field.frag").then(r => r.text().then(d => FRAG_FIELD_SRC = d));
 
-//TODO get the svg depending on map type
-//TODO now it only does the border of the field
+
+const pathBorder2players = "m60,45c0,-5.43 4.57,-10 10,-10l300,0c5.43,0 10,4.57 10,10l0,160c0,5.43 -4.57,10 -10,10l-300,0c-5.43,0 -10,-4.57 -10,-10l0,-160zm2.5,0.5c0,-4.35 3.65,-8 8,-8l299,0c4.35,0 8,3.65 8,8l0,159c0,4.35 -3.65,8 -8,8l-299,0c-4.35,0 -8,-3.65 -8,-8l0,-159z";
+const goalBorder1 = "M43.97,95.5c0,-1.63 1.37,-3 3,-3l9,0c1.63,0 3,1.37 3,3l0,59c0,1.63 -1.37,3 -3,3l-9,0c-1.63,0 -3,-1.37 -3,-3l0,-59zM45.25,95.75c0,-1.09 0.91,-2 2,-2l8.5,0c1.09,0 2,0.91 2,2l0,58.5c0,1.09 -0.91,2 -2,2l-8.5,0c-1.09,0 -2,-0.91 -2,-2l0,-58.5z"
+const borders = pathBorder2players + goalBorder1;
+//TODO get the triangulate data from a file instead of making this at runtime
+
+type triangles = {
+    positions: number[][];
+    cells: number[][];
+}
+
+//TODO have it also do the gradients and do it in as few drawCalls as possible
 export class FieldShader {
     private program: Program;
     private scale: number;
     private bufferPos: WebGLBuffer;
-    private indices: number[];
-    private contour: number[][][];
-    private triangles: any;
+    private otherPos: WebGLBuffer;
+    private borderindices: number[];
+    private goalleftIndices: number[];
 
     constructor(gl: WebGL2RenderingContext, scale: number) {
         this.program = new Program(gl, VERT_FIELD_SRC, FRAG_FIELD_SRC);
         this.scale = scale;
-        let svg = parse("m70,35l300,0l0,5l-300,0l0,-5zM70,210l300,0l0,5l-300,0l0,-5zM60,45l5,0l0,160l-5,0l0,-160zM375,45l5,0l0,160l-5,0l0,-160zM60,45c0,-5.43379 4.56621,-10 10,-10l0,5c-2.56295,0.06615 -4.93385,1.28468 -5,5l-5,0z");
+        let borderSvg = parse(borders);
         // let svg = parse("m60,45c0,-5.43379 4.56621,-10 10,-10l300,0c5.43379,0 10,4.56621 10,10l0,160c0,5.43379 -4.56621,10 -10,10l-300,0c-5.43379,0 -10,-4.56621 -10,-10l0,-160z");
-        this.indices = [];
-        this.contour = contours(svg, 1);
-        this.triangles = triangulate(this.contour);
-        this.bufferPos = createBuffer(gl, this.bufferPosData());
+        this.borderindices = [];
+        let borderContour = contours(borderSvg, 1);
+        console.log(borderContour);
+        let borderTriangles = triangulate(borderContour);
+        this.bufferPos = createBuffer(gl, this.bufferPosData(borderTriangles, this.borderindices));
+
+        let goalSvg = parse(goalBorder1);
+        // let svg = parse("m60,45c0,-5.43379 4.56621,-10 10,-10l300,0c5.43379,0 10,4.56621 10,10l0,160c0,5.43379 -4.56621,10 -10,10l-300,0c-5.43379,0 -10,-4.56621 -10,-10l0,-160z");
+        this.goalleftIndices = [];
+        let goalContour = contours(goalSvg, 1);
+        console.log(goalContour);
+        let goalTriangles = triangulate(goalContour);
+
+        this.otherPos = createBuffer(gl, this.bufferPosData(goalTriangles, this.goalleftIndices));
         // console.log("triangulate: ", triangulate(this.contour));
     }
 
@@ -40,59 +60,25 @@ export class FieldShader {
         this.scale = scale;
     }
 
-    private bufferPosData(): number[] {
+    private bufferPosData(triangles: triangles, indices: number[]): number[] {
         let vertices: number[] = [];
-        // const xCoords = new Array();
-        // const yCoords = new Array();
-
-        // // 0 is middle of the screen
-        // xCoords.push(-0.8);
-        // xCoords.push(0.0);
-        // xCoords.push(-0.8);
-
-        // xCoords.push(-0.8);
-        // xCoords.push(0.0);
-        // xCoords.push(0.0);
-
-        // yCoords.push(-0.8);
-        // yCoords.push(-0.8);
-        // yCoords.push(0.8);
-
-        // yCoords.push(0.8);
-        // yCoords.push(0.8);
-        // yCoords.push(-0.8);
-
-        // for (let i = 0; i < this.contour[0].length; i++) {
-        //     let x = this.contour[0][i][0] / WIDTH * 2 - 1;
-        //     let y = this.contour[0][i][1] / HEIGHT * 2 - 1;
-        //     vertices.push(x);
-        //     vertices.push(y);
-        //     // if (this.contour[0][i][0] / WIDTH * 2 - 1 > 0 || this.contour[0][i][1] / HEIGHT * 2 - 1 > 0)
-        //         // console.log("vertice: ", [x, y]);
-        //     // console.log("xy: ", xCoords[i], yCoords[i]);
-        // }
-        for (let i = 0; i < this.triangles.positions.length; i++) {
-            let x = this.triangles.positions[i][0] / WIDTH * 2 - 1;
-            let y = this.triangles.positions[i][1] / HEIGHT * 2 - 1;
+        for (let i = 0; i < triangles.positions.length; i++) {
+            let x = triangles.positions[i][0] / WIDTH * 2 - 1;
+            let y = triangles.positions[i][1] / HEIGHT * 2 - 1;
             vertices.push(x);
             vertices.push(y);
-            
-            // if (this.contour[0][i][0] / WIDTH * 2 - 1 > 0 || this.contour[0][i][1] / HEIGHT * 2 - 1 > 0)
-                // console.log("vertice: ", [x, y]);
-            // console.log("xy: ", xCoords[i], yCoords[i]);
         }
-        for (let i = 0; i < this.triangles.cells.length; i++) {
-            this.indices.push(this.triangles.cells[i][0]);
-            this.indices.push(this.triangles.cells[i][1]);
-            this.indices.push(this.triangles.cells[i][2]);
+        for (let i = 0; i < triangles.cells.length; i++) {
+            indices.push(triangles.cells[i][0]);
+            indices.push(triangles.cells[i][1]);
+            indices.push(triangles.cells[i][2]);
         }
-        console.log("vertices: ", vertices);
-        this.verticeLength = vertices.length / 2;
         return vertices;
     }
 
     public render(gl: WebGL2RenderingContext, time: number, width: number, height: number) {
         let uniform: uniforms = {pos: {x: 0, y:0}, width: WIDTH * this.scale, height: HEIGHT * this.scale, timer: time};
+        uniform.color = [222/255, 229/255, 19/255, 0.9];
         const xOffset = Math.floor((width - WIDTH * this.scale) / 2);
 		const yOffset = Math.floor((height - HEIGHT * this.scale) / 2);
         gl.viewport(xOffset, yOffset, WIDTH * this.scale, HEIGHT * this.scale);
@@ -100,12 +86,18 @@ export class FieldShader {
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(0);
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.indices), gl.STATIC_DRAW);
-        // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, createBuffer(gl, this.indices));
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.borderindices), gl.STATIC_DRAW);
         this.program.useProgram(gl, uniform);
-        // console.log(this.indices.length);
-        // gl.drawArrays(gl.LINE_STRIP, 0, this.verticeLength!);
-        gl.drawElements(gl.TRIANGLES, this.indices.length, gl.UNSIGNED_SHORT, 0);
-        // gl.drawArrays(gl.LINE_LOOP, 0, 6);
+        gl.drawElements(gl.TRIANGLES, this.borderindices.length, gl.UNSIGNED_SHORT, 0);
+
+        uniform.color = [0, 1, 1, 1];
+        this.program.setUniform(gl, "color", [0, 1, 1, 1]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.otherPos);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.goalleftIndices), gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, this.goalleftIndices.length, gl.UNSIGNED_SHORT, 0);
+        gl.drawArrays(gl.LINE_LOOP, 0, 6);
     }
 }

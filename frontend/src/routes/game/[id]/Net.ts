@@ -2,6 +2,7 @@ import type { GameRoom } from "$lib/entities"
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
+import { Father, Bible } from "./SignFromGod";
 import Swal from "sweetalert2";
 
 export const PING_INTERVAL = 20;
@@ -37,7 +38,8 @@ export class Net {
 	public bandwidthUpload: Counter;
 	public latencyNetwork: Counter;
 	public tickCounter: Counter;
-	private snapshots: Snapshot[];
+	public father: Father;
+	private snapshots: [Snapshot, Bible][];
 	private allSnapshots: Snapshot[];
 	private allEvents: Event[];
 	private newEvents: Event[];
@@ -53,6 +55,7 @@ export class Net {
 		this.bandwidthUpload = new Counter(5);
 		this.latencyNetwork = new Counter(5);
 		this.tickCounter = new Counter(5);
+		this.father = new Father();
 		this.snapshots = [];
 		this.allSnapshots = [];
 		this.allEvents = [];
@@ -84,7 +87,7 @@ export class Net {
 	}
 
 	private clean() {
-		this.snapshots = this.snapshots.filter(x => x.time >= this.time - HISTORY_LIFETIME);
+		this.snapshots = this.snapshots.filter(x => x[0].time >= this.time - HISTORY_LIFETIME);
 		this.allEvents = this.allEvents.filter(x => x.time >= this.time - HISTORY_LIFETIME);
 	}
 
@@ -104,8 +107,8 @@ export class Net {
 		this.time += 1;
 
 		if (this.time % SNAPSHOT_INTERVAL == 0) {
-			this.snapshots = this.snapshots.filter(x => x.time != this.time);
-			this.snapshots.push(this.save());
+			this.snapshots = this.snapshots.filter(x => x[0].time != this.time);
+			this.snapshots.push([this.save(), this.father.publishBible()]);
 			this.clean();
 		}
 
@@ -136,7 +139,7 @@ export class Net {
 				this.broadcast({
 					name: "synchronize",
 					time: this.time,
-					snapshot: this.snapshots[0],
+					snapshot: this.snapshots[0][0],
 					events: this.allEvents
 				});
 
@@ -199,12 +202,12 @@ export class Net {
 		}
 	}
 
-	private getLatest(before: number): Snapshot | null {
+	private getLatest(before: number): [Snapshot, Bible] | null {
 		let latest = null;
 
 		for (let snapshot of this.snapshots) {
-			if (snapshot.time < before) {
-				if (latest === null || snapshot.time > latest.time) {
+			if (snapshot[0].time < before) {
+				if (latest === null || snapshot[0].time > latest[0].time) {
 					latest = snapshot;
 				}
 			}
@@ -222,7 +225,8 @@ export class Net {
 			}
 
 			if (latest !== null) {
-				this.load(latest);
+				this.load(latest[0]);
+				this.father.regress(latest[1]);
 				this.forward(this.maxTime);
 			}
 		}
@@ -231,12 +235,12 @@ export class Net {
 	}
 
 	public async start(options: Options) {
-		this.snapshots.push(this.save());
+		this.snapshots.push([this.save(), this.father.publishBible()]);
 
 		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
 
 		this.socket!.on("connect", () => {
-			this.socket!.emit("join", { id: options.room.id, scope: "game" });
+			this.socket!.emit("join", { id: options.room.id });
 		});
 
 		this.socket.on("exception", (err) => {
@@ -257,7 +261,7 @@ export class Net {
 					if (message.snapshot.time > this.time) {
 						this.minTime = null;
 						this.load(message.snapshot);
-						this.snapshots = [message.snapshot];
+						this.snapshots = [[message.snapshot, this.father.publishBible()]];
 					}
 	
 					this.maxTime = Math.max(this.maxTime, message.time);
@@ -270,10 +274,12 @@ export class Net {
 					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
 						console.log("running desync check");
 	
-						this.load(latest);
+						this.load(latest[0]);
+						this.father.regress(latest[1]);
 						this.forward(message.snapshot.time);
 						const testState = this.save();
-						this.load(this.snapshots[this.snapshots.length - 1]);
+						this.load(this.snapshots[this.snapshots.length - 1][0]);
+						this.father.regress(this.snapshots[this.snapshots.length - 1][1]);
 						this.forward(this.maxTime);
 	
 						if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
@@ -296,5 +302,9 @@ export class Net {
 
 	public stop() {
 		this.socket?.close();
+	}
+
+	protected pray(subject: string, significance: number, callToAction: () => void) {
+		this.father.pray(subject, this.time, significance, callToAction);
 	}
 }
