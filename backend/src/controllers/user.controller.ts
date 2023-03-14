@@ -5,9 +5,8 @@ import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
 import { Repository, FindManyOptions } from "typeorm";
-import { IsString, Matches } from "class-validator";
 import { HttpAuthGuard } from "../auth/auth.guard";
-import { Me, ParseIDPipe, ParseUsernamePipe } from "../util";
+import { Me, ParseIDPipe, ParseUsernamePipe, UsernameDTO } from "../util";
 import { randomBytes } from "node:crypto";
 import { rm } from "node:fs/promises";
 import { join } from "path";
@@ -21,13 +20,6 @@ declare module "express" {
 	export interface Request {
 		user?: User;
 	}
-}
-
-class UsernameDTO {
-	@IsString()
-	//@Length(3, 20)
-	@Matches(/^(?!\0)\S(?:(?!\0)[ \S]){1,18}(?!\0)\S$/)
-	username: string;
 }
 
 export function GenericUserController(route: string, options: { param: string, cparam: string, pipe: any }) {

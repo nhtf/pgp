@@ -31,8 +31,10 @@ export class User {
 	id: number;
 
 	@Exclude()
-	@Column()
-	oauth_id: number;
+	@Column({
+		nullable: true	
+	})
+	oauth_id: number | null;
 
 	@Exclude()
 	@Column({ default: AuthLevel.OAuth })
@@ -101,6 +103,12 @@ export class User {
 	@Exclude()
 	@ManyToOne(() => User, (user) => user.bots)
 	owner: User | null;
+
+	@Exclude()
+	@Column({
+		nullable: true
+	})
+	key: string | null;
 
 	@Expose()
 	get status(): Status {

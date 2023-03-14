@@ -77,7 +77,6 @@
     "eslint-config-prettier": "^8.3.0",
     "eslint-plugin-prettier": "^4.0.0",
     "madge": "^6.0.0",
-    "prettier": "^2.3.2",
     "sharp": "^0.31.2",
     "source-map-support": "^0.5.20",
     "supertest": "^6.1.3",

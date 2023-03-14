@@ -137,7 +137,7 @@ export class AuthController {
 		}
 
 		//TODO added a as string to make it stop complaining, needs proper fix - Siebe
-		request.session.access_token = access_token.token.access_token as string;
+		request.session.access_token = access_token.token.access_token.toString();
 		request.session.user_id = user.id;
 		request.session.auth_level = AuthLevel.OAuth;
 

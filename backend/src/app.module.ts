@@ -31,6 +31,7 @@ import { HttpModule } from "@nestjs/axios";
 import { MediaController } from "src/controllers/media.controller";
 import { EntitySubscriber } from "src/subscribers/entity.subscriber"
 import { ReceiverFinder } from "src/ReceiverFinder"
+import { BotController } from "src/controllers/bot.controller";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -165,6 +166,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		UserUsernameController,
 		ChatRoomController,
 		MediaController,
+		BotController,
 	],
 	providers: [
 		GameGateway,

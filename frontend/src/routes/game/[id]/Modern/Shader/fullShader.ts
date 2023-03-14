@@ -162,7 +162,7 @@ export class RippleShader {
 			}
 		}
 		const fps = 1/ (time -this.lastTime) * 1000;
-		// console.log("fps: ", fps);
+		console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

@@ -37,7 +37,6 @@ class BetterAdapter extends IoAdapter {
 	}
 }
 
-
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
 	//app.use(compression());

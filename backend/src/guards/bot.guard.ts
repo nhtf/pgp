@@ -1,27 +1,15 @@
-import { Injectable, Inject, CanActivate, ExecutionContext, HttpException, HttpStatus } from "@nestjs/common";
-import { Repository } from "typeorm";
-import { User } from "src/entities/User";
+import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
+import type { User } from "src/entities/User";
 
 @Injectable()
 export class HumanGuard implements CanActivate {
-	constructor(
-		@Inject("USER_REPO")
-		private readonly user_repo: Repository<User>
-	) {}
-
 	async canActivate(context: ExecutionContext): Promise<boolean> {
-		const request = context.switchToHttp().getRequest();
-	
-		if (!request.session?.user_id) {
-			throw new HttpException("bad request", HttpStatus.BAD_REQUEST);
-		}
-	
-		const user = await this.user_repo.findOneBy({ id: request.session.user_id });
-	
-		if (!user.username) {
-			throw new HttpException("no username set", HttpStatus.FORBIDDEN);
-		}
-	
-		return true;
+		const user = context.switchToHttp().getRequest().user;
+		if (!user)
+			return false;
+
+		if (user.key === undefined || user.key === null)
+			return true;
+		return false;
 	}
 }

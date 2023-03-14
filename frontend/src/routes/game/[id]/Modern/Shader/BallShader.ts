@@ -33,7 +33,7 @@ export class BallShader {
     }
 
     public render(gl: WebGL2RenderingContext, time: number, width: number, height: number) {
-        let uniform: uniforms = {pos: this.pos, width: ballSize * this.scale, height: ballSize * this.scale, timer: time};
+        let uniform: uniforms = {pos: this.pos, width: ballSize * this.scale, height: ballSize * this.scale, timer: time, resolution: {x: width, y: height}};
         const xOffset = Math.floor((width - WIDTH * this.scale) / 2);
 		const yOffset = Math.floor((height - HEIGHT * this.scale) / 2);
         gl.viewport(xOffset, yOffset, WIDTH * this.scale, HEIGHT * this.scale);
