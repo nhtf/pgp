@@ -13,7 +13,7 @@ import {
 	ManyToOne,
 	RelationId,
 } from "typeorm";
-import { Exclude, Expose, instanceToPlain } from "class-transformer";
+import { Exclude, Expose, instanceToPlain, Transform } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { Room } from "./Room";
 import { GameRoom } from "./GameRoom";
@@ -24,6 +24,7 @@ import { Player } from "./Player";
 import { Message } from "./Message";
 import { MatchHistory } from "./MatchHistory"
 import { Team } from "./Team"
+import { AchievementProgress } from "./AchievementProgress";
 
 @Entity()
 export class User {
@@ -51,6 +52,14 @@ export class User {
 	@Column({ default: DEFAULT_AVATAR })
 	avatar_base: string;
 
+	@Exclude()
+	@Column({ default: false })
+	has_session: boolean;
+
+	@Exclude()
+	@CreateDateColumn()
+	last_activity: Date;
+
 	@OneToMany(() => Invite, (invite) => invite.from)
 	sent_invites: Invite[];
 
@@ -61,6 +70,11 @@ export class User {
 	@ManyToMany(() => User, (friend) => friend.friends)
 	@JoinTable()
 	friends: User[];
+
+	@Exclude()
+	@ManyToMany(() => User, (user) => user.blocked)
+	@JoinTable()
+	blocked: User[];
 
 	@Exclude()
 	@OneToMany(() => Member, (member) => member.user)
@@ -74,41 +88,22 @@ export class User {
 	@ManyToMany(() => Room, (room) => room.banned_users)
 	banned_rooms: Room[];
 
-	@Exclude()
-	@Column({ default: false })
-	has_session: boolean;
-
-	@Exclude()
-	@CreateDateColumn()
-	last_activity: Date;
-
 	@OneToMany(() => Player, (player) => player.user)
 	players: Player[];
 
-	// @Exclude()
+	@Exclude()
 	@ManyToOne(() => GameRoom, { nullable: true })
 	activeRoom: GameRoom | null;
 
 	@RelationId((user: User) => user.activeRoom)
-	activeRoomId: number | null;
+	activeRoomId: number;
 
 	@OneToOne(() => MatchHistory)
 	@JoinColumn()
 	matchHistory: MatchHistory;
 
-	@Exclude()
-	@OneToMany(() => User, (user) => user.owner)
-	bots: User[];
-
-	@Exclude()
-	@ManyToOne(() => User, (user) => user.bots)
-	owner: User | null;
-
-	@Exclude()
-	@Column({
-		nullable: true
-	})
-	key: string | null;
+	@OneToMany(() => AchievementProgress, (achievement) => achievement.user)
+	achievements: AchievementProgress[];
 
 	@Expose()
 	get status(): Status {
@@ -116,7 +111,7 @@ export class User {
 			return Status.OFFLINE;
 		}
 
-		if (this.activeRoom) {
+		if (this.activeRoomId) {
 			return Status.INGAME;
 		}
 
@@ -147,6 +142,18 @@ export class User {
 		}
 
 		this.friends.push(target);
+	}
+
+	remove_friend(target: User) {
+		if (!this.friends) {
+			this.friends = [];
+		}
+	
+		const index = this.friends.findIndex((user) => user.id === target.id);
+
+		if (index >= 0) {
+			this.friends.splice(index, 1);
+		}
 	}
 
 	send_update(value: any) {

@@ -6,7 +6,7 @@ import { User } from "../entities/User";
 import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder } from "typeorm";
 import { Access, Role, Subject, Action } from "src/enums";
-import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException } from "@nestjs/common";
 import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions } from "class-validator";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
@@ -228,10 +228,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		) {
 		}
 
-		async get_member(user: User, room: Room): Promise<U | null> {
-			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
-		}
-
 		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
 			return qb
 				.subQuery()
@@ -265,6 +261,18 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				.leftJoinAndSelect("member.user", "user")
 			);
 				
+		}
+
+		async get_member(user: User, room: Room): Promise<U | null> {
+			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
+		}
+
+		async setup_room(room: T, dto: C): Promise<T> {
+			return room;
+		}
+
+		async get_joined_info(room: T): Promise<T> {
+			return room;
 		}
 
 		@Get("joined")
@@ -319,14 +327,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return room;
 		}
 
-		async setup_room(room: T, dto: C): Promise<T> {
-			return room;
-		}
-
-		async get_joined_info(room: T): Promise<T> {
-			return room;
-		}
-
 		@Get("id/:id")
 		@RequiredRole(Role.MEMBER)
 		async get_room(@Me() me: User, @GetRoom() room: T) {
@@ -364,28 +364,27 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		) {
 			const invites = await this.invite_repo.findBy({ room: {	id: room.id	}, to: { id: me.id } });
 
-			if (!invites && room.access == Access.PRIVATE) {
+			if (room.access == Access.PRIVATE && (!invites || !invites.length)) {
 				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 			}
 
-			if (room.banned_users?.find(current => current.id === me.id) !== undefined)
+			if (room.banned_users.find((user) => user.id === me.id)) {
 				throw new ForbiddenException("You have been banned from this channel");
+			}
 
-			if (!invites || invites.length === 0) {
-				if (room.access === Access.PROTECTED) {
-					if (!password) {
-						throw new BadRequestException("Missing password");
-					}
+			if (room.access === Access.PROTECTED && !invites) {
+				if (!password) {
+					throw new BadRequestException("Missing password");
+				}
 
-					if (!await argon2.verify(room.password, password)) {
-						throw new ForbiddenException("Incorrect password");
-					}
+				if (!await argon2.verify(room.password, password)) {
+					throw new ForbiddenException("Incorrect password");
 				}
 			}
 
 			let member = await this.service.add_member(room, me);
 
-			await this.member_repo.save(member);
+			member = await this.member_repo.save(member);
 			await this.invite_repo.remove(invites);
 			await this.afterJoin(room, member)
 
@@ -401,7 +400,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				},
 			}, me);
 
-			return {};
+			return member;
 		}
 
 		async afterJoin(room: T, member: U) { }
@@ -412,9 +411,14 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		async leave(
 			@Res() res: Response,
 		) {
-			res.redirect(HttpStatus.PERMANENT_REDIRECT, "members/me");
+			throw new GoneException("use DELETE members/me"); 
 		}
 
+		@Get("id/:id/self")
+		@RequiredRole(Role.MEMBER)
+		async self(@Me() me: User, @GetRoom() room: T) {
+			return this.member_repo.findOneBy({ user: { id: me.id }, room: { id: room.id } } as FindOptionsWhere<U>);
+		}
 
 		@Get("id/:id/member(s)?")
 		@RequiredRole(Role.MEMBER)

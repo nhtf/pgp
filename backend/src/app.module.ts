@@ -1,4 +1,5 @@
 import { AppController } from "./controllers/app.controller";
+import { Reflector } from "@nestjs/core";
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { GameGateway } from "./gateways/game.gateway";
 import { AuthController } from "./auth/auth.controller";
@@ -31,7 +32,8 @@ import { HttpModule } from "@nestjs/axios";
 import { MediaController } from "src/controllers/media.controller";
 import { EntitySubscriber } from "src/subscribers/entity.subscriber"
 import { ReceiverFinder } from "src/ReceiverFinder"
-import { BotController } from "src/controllers/bot.controller";
+import { RateLimitMiddleware } from "src/middleware/ratelimit.middleware";
+import { TREE_KEY } from "src/util";//TODO delete
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -62,6 +64,9 @@ const entityFiles = [
 	"./entities/GameState",
 	"./entities/Embed",
 	"./entities/MatchHistory",
+	"./entities/Achievement",
+	"./entities/AchievementProgress",
+	"./entities/Objective",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({
@@ -72,7 +77,7 @@ export const session_store = new (require("pg-session-store")(session))({
 export const sessionMiddleware = session({
 	store: session_store,
 	secret: SESSION_SECRET,
-	resave: true,
+	resave: false,
 	saveUninitialized: false,
 	cookie: {
 		maxAge: SESSION_ABSOLUTE_TIMEOUT,
@@ -85,10 +90,10 @@ export const dataSource = new DataSource({
 	type: "postgres",
 	host: HOST,
 	port: DB_PORT,
-	//TODO use env variables here
 	username: DB_USER,
 	password: DB_PASS,
-	database: "dev",
+	database: DB_DATABASE,
+	poolSize: 20,
 	entities: entityFiles.map((file: string) => {
 		const entity = require(file);
 		return Object.values(entity)[0] as Function;
@@ -129,8 +134,13 @@ const entityProviders = entityFiles.map<{
 	const name = Object.keys(entity)[0].toUpperCase() + "_REPO";
 	return {
 		provide: name,
-		useFactory: (dataSource: DataSource) => dataSource.getRepository(clazz),
-		inject: ["DATA_SOURCE"],
+		useFactory: (reflector: Reflector, dataSource: DataSource) => {
+			const tree = reflector.get<boolean>(TREE_KEY, clazz);
+			if (tree == true)
+				return dataSource.getTreeRepository(clazz);
+			return dataSource.getRepository(clazz)
+		},
+		inject: [Reflector, "DATA_SOURCE"],
 	};
 });
 
@@ -166,7 +176,6 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		UserUsernameController,
 		ChatRoomController,
 		MediaController,
-		BotController,
 	],
 	providers: [
 		GameGateway,
@@ -192,6 +201,7 @@ export class AppModule implements NestModule {
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
 			{ path: "debug(.*)", method: RequestMethod.ALL })
 			.forRoutes("*");
+		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
 		consumer.apply(ActivityMiddleware).exclude(

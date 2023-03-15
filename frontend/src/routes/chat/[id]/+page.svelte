@@ -8,7 +8,7 @@
 	import { remove } from "$lib/Web";
 	import { goto } from "$app/navigation";
 	import { Action, CoalitionColors, Role, roles, Subject } from "$lib/enums";
-	import { memberStore, roomStore } from "$lib/stores";
+	import { blockStore, memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { page } from "$app/stores";
 	import MessageBox from "$lib/components/MessageBox.svelte"
@@ -28,6 +28,7 @@
 	$: room = $roomStore.get(data.room.id)!;
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
 	$: self = $memberStore.get(data.member.id)!;
+	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
 
 	$: messages;
 	$: relativeScroll;
@@ -45,10 +46,6 @@
 		updateManager.remove(indices);
 		roomSocket.disconnect();
 	});
-
-	// roomSocket.on("message", (message: Message) => {
-	// 	messages = [...messages, message].sort(byDate);
-	// });
 
 	addEventListener("wheel", (event: WheelEvent) => {
 		if (event.deltaY < 0) {
@@ -94,7 +91,7 @@
 	}
 
 	async function leave(room: Room) {
-		await unwrap(remove(`/chat/id/${room.id}/leave`));
+		await unwrap(remove(`/chat/id/${room.id}/members/me`));
 		await goto(`/chat`);
 	}
 
@@ -120,7 +117,7 @@
 			</div>
 			<div use:scrollToBottom={messages} class="messages">
 				{#each messages as message, index (message.id)}
-					{#if index >= min}
+					{#if index >= min && !blockedIds.includes(message.userId)}
 						<MessageBox {message} {self} />
 					{/if}
 				{/each}

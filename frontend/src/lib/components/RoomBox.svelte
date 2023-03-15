@@ -9,7 +9,6 @@
 	import { post, remove, patch } from "$lib/Web";
 	import { userStore } from "$lib/stores";
 	import Invite from "./Invite.svelte";
-    import { slide } from "svelte/transition";
 
 	type T = Room & Partial<GameRoom>;
 

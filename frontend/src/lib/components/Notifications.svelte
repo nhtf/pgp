@@ -6,6 +6,7 @@
 	import { backIn as anim } from "svelte/easing";
 	import { inviteStore, userStore } from "$lib/stores";
 	import { onMount } from "svelte";
+    import { goto } from "$app/navigation";
 
 	enum Status {
 		UNREAD,
@@ -39,8 +40,16 @@
 	).length;
 
 	async function acceptInvite(invite: Invite) {
+	
 		mark(invite, Status.REMOVED);
 		respond(invite, "accept");
+
+		if (invite.type.endsWith("Room")) {
+			const route = invite.type.replace("Room", "").toLowerCase();
+	
+			// TODO: join team
+			await goto(`/${route}/${invite.room?.id}`);
+		}
 	}
 
 	function markAllRead() {

@@ -27,7 +27,7 @@
 				bind:open={open[0]}
 				class="bg-c rounded"
 				defaultClass="rounded"
-				title="send"
+				title="sent"
 			>
 				<div>
 					{#each send as invite (invite.id)}

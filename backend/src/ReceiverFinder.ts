@@ -17,7 +17,7 @@ export class ReceiverFinder {
 		@Inject("MEMBER_REPO") readonly memberRepo: Repository<Member>,
 		@Inject("MESSAGE_REPO") readonly messageRepo: Repository<Message>,
 		@Inject("GAMESTATE_REPO") readonly gamestateRepo: Repository<GameState>,
-		// @Inject("TEAM_REPO") readonly teamRepo: Repository<Team>,
+		@Inject("TEAM_REPO") readonly teamRepo: Repository<Team>,
 	) {
 		ReceiverFinder.instance = this;
 	}
@@ -32,6 +32,7 @@ export class ReceiverFinder {
 	repo(sub: Subject) {
 		const repos = [
 			{ subject: Subject.ROOM, repo: ReceiverFinder.instance.roomRepo },
+			{ subject: Subject.TEAM, repo: ReceiverFinder.instance.teamRepo },
 			{ subject: Subject.INVITE, repo: ReceiverFinder.instance.inviteRepo },
 			{ subject: Subject.MEMBER, repo: ReceiverFinder.instance.memberRepo },
 			{ subject: Subject.MESSAGE, repo: ReceiverFinder.instance.messageRepo },

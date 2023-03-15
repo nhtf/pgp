@@ -15,6 +15,8 @@ import { SetupGuard } from "src/guards/setup.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Action, Subject } from "src/enums";
 import * as gm from "gm";
+import type { Achievement } from "src/entities/Achievement";
+import { AchievementProgress } from "src/entities/AchievementProgress";
 
 declare module "express" {
 	export interface Request {
@@ -35,6 +37,10 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Inject("INVITE_REPO")
 			readonly invite_repo: Repository<Invite>,
 			readonly update_service: UpdateGateway,
+			@Inject("ACHIEVEMENT_REPO")
+			readonly achievement_repo: Repository<Achievement>,
+			@Inject("ACHIEVEMENTPROGRESS_REPO")
+			readonly progress_repo: Repository<AchievementProgress>,
 		) { }
 
 		@Get()
@@ -115,7 +121,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			});
 
 			try {
-				const res = await promise;
+				await promise;
 			} catch (error) {
 				console.error(error);
 				throw new UnprocessableEntityException("Corrupted image");
@@ -125,7 +131,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			}
 
 			user.avatar_base = new_base;
-			user = await this.user_repo.save(user);
+			await this.user_repo.save(user);
 
 			// avatar is a getter and won't trigger the subscriber
 			UpdateGateway.instance.send_update({
@@ -150,6 +156,47 @@ export function GenericUserController(route: string, options: { param: string, c
 			return user.auth_req;
 		}
 
+		@Get(options.cparam + "/achievements")
+		@UseGuards(SetupGuard)
+		async list_achievements(
+			@Me() me: User,
+			@Param(options.param, options.pipe) user: User
+		) {
+			user = user || me;
+			//TODO use a ViewEntity for this!
+			//ViewEntity of Cartesian Product of achievements and user with progress defaulted to 0
+			//TODO select cross join with achievementprogress where user.id = user.id with default value if progress is 0 (actually left join?)
+			/*
+			const progress = await this.progress_repo.find({
+				where: {
+					user: {
+						id: user.id,
+					},
+				},
+				relations: {
+					achievement: {
+						parent: true,
+					},
+				},
+			});
+			const achievements = await this.achievement_repo.find();
+
+			if (progress.length !== achievements.length) {
+				const list = [];
+				for (const achievement of achievements) {
+					if (progress.find((x) => x.id === achievement.id))
+						continue;
+					const missing = new AchievementProgress();
+					missing.achievement = achievement;
+					missing.user = user;
+					list.push(missing);
+					progress.push(missing);
+				}
+				await this.progress_repo.save(list);
+			}
+			return progress.filter((x) => x.achievement.parent !== null);*/
+		}
+
 		@Get(options.cparam + "/friend(s)?")
 		@UseGuards(SetupGuard)
 		async list_friends(
@@ -166,25 +213,27 @@ export function GenericUserController(route: string, options: { param: string, c
 			});
 		}
 
-		@Delete(options.cparam + "/friend(s)?/:friend_id")
+		@Delete(options.cparam + "/friend(s)?/:friend")
 		@UseGuards(SetupGuard)
 		async unfriend(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Param("friend_id", ParseIDPipe(User, { friends: true })) friend: User,
+			@Param("friend", ParseIDPipe(User, { friends: true })) friend: User,
 		) {
 			user = user || me;
-			if (user.id !== me.id)
+			if (user.id !== me.id) {
 				throw new ForbiddenException();
+			}
 
-			const friend_idx = user.friends?.findIndex((x: User) => x.id === friend.id);
-			if (friend_idx === undefined || friend_idx < 0)
-				throw new NotFoundException();
+			user.friends = await this.user_repo.findBy({ friends: { id: user.id } }) ?? [];
 
-			const user_idx = friend.friends.findIndex((x: User) => x.id === user.id);
-
-			user.friends.splice(friend_idx, 1);
-			friend.friends.splice(user_idx, 1);
+			if (!user.friends.map((x) => x.id).includes(friend.id)) {
+				throw new NotFoundException;
+			}
+		
+			user.remove_friend(friend);
+			friend.remove_friend(user);
+		
 			[user, friend] = await this.user_repo.save([user, friend]);
 
 			user.send_friend_update(Action.REMOVE, friend);
@@ -296,6 +345,58 @@ export function GenericUserController(route: string, options: { param: string, c
 					{ to: { id: user.id } },
 				],
 			});
+		}
+
+		@Get(`${options.cparam}/blocked`)
+		async blocked(@Me() me: User) {
+			const { blocked } = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
+		
+			return blocked;
+		}
+
+		@Post(`${options.cparam}/block/:target`)
+		async block(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
+			me = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
+
+			if (me.blocked.map((user) => user.id).includes(target.id)) {
+				throw new ForbiddenException("Already blocked");
+			}
+
+			me.blocked.push(target);
+
+			await this.user_repo.save(me);
+
+			UpdateGateway.instance.send_update({
+				subject: Subject.BLOCK,
+				action: Action.ADD,
+				id: target.id,
+				value: { id: target.id }
+			});
+
+			return {};
+		}
+	
+		@Delete(`${options.cparam}/unblock/:target`)
+		async unblock(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
+			me = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
+
+			const index = me.blocked.findIndex((user) => user.id === target.id);
+		
+			if (index < 0) {
+				throw new ForbiddenException("Not blocked");
+			}
+
+			me.blocked.splice(index, 1);
+
+			await this.user_repo.save(me);
+		
+			UpdateGateway.instance.send_update({
+				subject: Subject.BLOCK,
+				action: Action.REMOVE,
+				id: target.id,
+			});
+
+			return {};
 		}
 	}
 	return UserControllerFactory;

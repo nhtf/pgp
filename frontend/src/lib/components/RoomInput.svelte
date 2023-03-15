@@ -2,7 +2,6 @@
 	import type { Room } from "$lib/entities";
 	import { Access, Gamemode } from "$lib/enums";
 	import { Checkbox, Select } from "flowbite-svelte";
-	import { slide } from "svelte/transition";
 
 	export let click: Function;
 	export let room: Room | null = null;

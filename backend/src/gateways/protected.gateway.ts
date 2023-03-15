@@ -1,6 +1,5 @@
 import type { SessionObject } from "src/services/session.service";
 import type { Server, Socket } from "socket.io";
-import type { Room } from "src/entities/Room"
 import { Inject } from "@nestjs/common";
 import { WebSocketGateway, WebSocketServer, SubscribeMessage, ConnectedSocket, MessageBody, WsException } from "@nestjs/websockets";
 import { FRONTEND_ADDRESS } from "../vars";
@@ -61,23 +60,21 @@ export function ProtectedGateway(namespace?: string) {
 		}
 
 		@SubscribeMessage("join")
-		async join(@ConnectedSocket() client: Socket, @MessageBody() data: { id: number } & any) {
+		async join(@ConnectedSocket() client: Socket, @MessageBody() data: { id: number }) {
 			const user = await authenticate(client.request, this.users);
 		
 			try {
-				data.id = validate_id(data.id);
+				client.room = validate_id(data.id);
 			} catch (error) {
 				throw new WsException(error.message);
 			}
 
-			client.room = data.id;
-	
-			await this.onJoin(client, user, data);
+			await this.onJoin(client, user);
 		}
 
 		async onConnect(client: Socket, user: User) {}
 		async onDisconnect(client: Socket, user: User) {}
-		async onJoin(client: Socket, user: User, data: any) {}
+		async onJoin(client: Socket, user: User) {}
 	}
 
 	return ProtectedGatewayFactory;

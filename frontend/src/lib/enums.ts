@@ -6,6 +6,8 @@ export enum Subject {
 	FRIEND,
 	MESSAGE,
 	GAMESTATE,
+	TEAM,
+	BLOCK,
 }
 
 export enum Action {

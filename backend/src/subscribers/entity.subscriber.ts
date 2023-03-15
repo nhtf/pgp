@@ -19,20 +19,21 @@ const subjects: SubjectInfo[] = [
 	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to], relations: { to: true, from: true } },
 	{ subject: Subject.MEMBER, names: [ "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room?.users, relations: { room: { members: { user: true } } } },
 	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room?.users, relations: { room: { members: { user: true } } } },
-	// { subject: Subject.GAMESTATE, names: [ "Team" ], fun: (team: Team) => team.state?.room?.users, relations: { state: { room: { members: { user: true } } } } },
+	{ subject: Subject.TEAM, names: [ "Team" ], fun: (team: Team) => { 
+			return team.state?.room?.users.concat(team.state?.room?.users?.map((user) => user.friends).flat());
+		}, relations: { state: { room: { members: { user: { friends: true } } } } }
+	},
 ];
 
 const ignoredColumns = [ 
 	"last_activity", 
 	"has_session",
 	"activeRoom",
-	"owner",
 ];
 
 @EventSubscriber()
 export class EntitySubscriber implements EntitySubscriberInterface {
 	async afterInsert(event: InsertEvent<any>) {
-		console.log("Insert", event.metadata.targetName);
 		await this.update(event, Action.ADD, (entity) => instanceToPlain(entity));
 	}
 
@@ -48,7 +49,6 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 	}
 
 	async beforeRemove(event: RemoveEvent<any>) {
-		console.log("Remove", event.metadata.targetName);
 		await this.update(event, Action.REMOVE, () => undefined);
 	}
 
@@ -58,7 +58,6 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		try {
 			const info = this.subjectEntry(event.metadata.targetName);
 		
-			console.log(info);
 			UpdateGateway.instance.send_update({
 				subject: info.subject,
 				action,
@@ -93,7 +92,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 	columnToEntity(columns: string[], entity: any) {
 		const plained = instanceToPlain(entity);
 		const value = columns.reduce((sum, column) => {
-			if (plained[column]) {
+			if (plained[column] !== undefined) {
 				sum[column] = plained[column];
 			}
 			

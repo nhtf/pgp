@@ -54,7 +54,7 @@
 	}
 
 	async function leave(room: ChatRoom) {
-		await unwrap(remove(`/chat/id/${room.id}/leave`));
+		await unwrap(remove(`/chat/id/${room.id}/members/me`));
 		await goto(`/chat`);
 	}
 

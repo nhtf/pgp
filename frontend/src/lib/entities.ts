@@ -68,6 +68,7 @@ export type Team = {
 	id: number,
 	name: string,
 	score: number,
+	stateId: number,
 	players: Player[],
 };
 

@@ -1,6 +1,6 @@
 <script lang="ts">
-    import { page } from "$app/stores";
     import type { GameState, Player } from "$lib/entities";
+    import { page } from "$app/stores";
 
 	export let game: GameState;
 

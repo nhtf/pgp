@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite, Room, GameState } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room, GameState, Team } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -54,27 +54,38 @@ export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, e
 
 export const userStore = storeFactory<User>(Subject.USER);
 export const roomStore = storeFactory<Room>(Subject.ROOM);
+export const teamStore = storeFactory<Team>(Subject.TEAM);
 export const memberStore = storeFactory<Member>(Subject.MEMBER);
 export const inviteStore = storeFactory<Invite>(Subject.INVITE);
 export const friendStore = storeFactory<Entity>(Subject.FRIEND);
 export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE);
+export const blockStore = storeFactory<Entity>(Subject.BLOCK);
 
 // Removed from private room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
-	const room = update.value;
-
-	if (update.action === Action.SET && room.access === Access.PRIVATE && room.joined === false) {
+	if (update.action === Action.SET && update.value.joined === false) {
 		roomStore.update((rooms) => {
-			rooms.delete(update.id);
+			const room = rooms.get(update.id)!;
+
+			if (room.access === Access.PRIVATE) {
+				rooms.delete(update.id);
+			}
 
 			return rooms;
 		});
 	}
 });
 
-// Add new friend to users
+// Add new friend to userStore
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	if (update.action === Action.ADD) {
 		updateStore(userStore, [update.value]);
+	}
+});
+
+// Add teams from new gamestate
+updateManager.set(Subject.GAMESTATE, (update: UpdatePacket) => {
+	if (update.action === Action.ADD) {
+		updateStore(teamStore, update.value.teams);
 	}
 });

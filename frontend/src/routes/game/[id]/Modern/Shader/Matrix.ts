@@ -19,6 +19,28 @@ export class m3{
           ];
         this._matrix =  this.multiply(mata, this.matrix);
     }
+
+    rotationXAxis(angleInRadians: number) {
+      var c = Math.cos(angleInRadians);
+      var s = Math.sin(angleInRadians);
+      const mata = [
+        1,0, 0,
+        0, c, -s,
+        0, s, c,
+      ];
+      this._matrix = this.multiply(mata, this.matrix);
+    }
+
+    rotationYAxis(angleInRadians: number) {
+      var c = Math.cos(angleInRadians);
+      var s = Math.sin(angleInRadians);
+      const mata = [
+        c, 0, s,
+        0, 1, 0,
+        -s, 0, c,
+      ];
+      this._matrix = this.multiply(mata, this.matrix);
+    }
    
     rotation(angleInRadians: number) {
       var c = Math.cos(angleInRadians);

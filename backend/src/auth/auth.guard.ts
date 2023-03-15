@@ -18,13 +18,10 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 			const request = get_request(context);
 			const user = request?.user;
 			const session = request?.session;
-
+			
 			if (!user)
 				return false;
-			// console.log(user);
-			if (!user.owner)
-				return (session && session.auth_level >= user.auth_req);
-			return true; /* user is bot */
+			return (session && session.auth_level >= user.auth_req);
 		}
 	}
 	return GenericAuthGuardFactory;

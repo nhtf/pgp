@@ -23,7 +23,6 @@ declare module "http" {
 
 @UseInterceptors(ClassSerializerInterceptor)
 export class UpdateGateway extends ProtectedGateway("update") {
-	//TODO purge inactive sockets?
 	private readonly sockets = new Map<number, Socket[]>();
 	private readonly status = new Map<number, Status>();
 
@@ -86,7 +85,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 	async tick() {
 		const ids = Array.from(this.status.keys())
-		const users = await this.user_repo.find({ where: { id: In(ids) }, relations: { activeRoom: true }});
+		const users = await this.user_repo.find({ where: { id: In(ids) }});
 
 		users.forEach((user) => this.update(user));
 	}
@@ -118,7 +117,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	@SubscribeMessage("heartbeat")
 	async receiveHeartbeat(@ConnectedSocket() client: Socket) {
 		const id = client.request.session.user_id;
-		const user = await this.user_repo.findOne({ where: { id }, relations: { activeRoom: true } });
+		const user = await this.user_repo.findOne({ where: { id }});
 
 		await this.heartbeat(user);
 	}

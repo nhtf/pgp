@@ -5,6 +5,7 @@ import { parse } from "$lib/svgMesh/parseSvgPath";
 import { contours } from "$lib/svgMesh/svgPathContours";
 import { triangulate } from "$lib/svgMesh/triangulateContours";
 import { m3 } from "./Matrix";
+import type { VectorObject } from "../../lib2D/Math2D";
 // import svgMesh3d from "svg-mesh-3d";
 
 
@@ -19,6 +20,14 @@ const fieldBorderPath = "M 63.282 38.282 C 61.536 40.029 60.478 42.341 60.5 45 L
 const goalBorderPath = "M 52.5 93.75 L 59.5 93.75 L 59.5 156.25 L 52.5 156.25 C 49.738 156.25 47.5 154.012 47.5 151.25 L 47.5 98.75 C 47.5 95.989 49.738 93.75 52.5 93.75 ZM 52.5 96 L 59.5 96 L 59.5 154 L 52.5 154 C 50.843 154 49.5 152.657 49.5 151 L 49.5 99 C 49.5 97.343 50.843 96 52.5 96 Z";
 const goalGradientPath = "M 52.5 96 L 59.5 96 L 59.5 154 L 52.5 154 C 50.843 154 49.5 152.657 49.5 151 L 49.5 99 C 49.5 97.343 50.843 96 52.5 96 Z";
 const fieldGradientPathLeft = "M 70.375 37.75 L 220 37.75 L 220 212.25 L 70.375 212.25 C 66.027 212.25 62.5 208.678 62.5 204.273 L 62.5 45.727 C 62.5 41.322 66.027 37.75 70.375 37.75 Z";
+const middleCircleBorder = "M 233.5 125 C 233.5 128.656 231.934 132.158 229.546 134.546 C 227.158 136.934 223.656 138.5 220 138.5 C 216.344 138.5 212.842 136.934 210.454 134.546 C 208.066 132.158 206.5 128.656 206.5 125 C 206.5 121.344 208.066 117.842 210.454 115.454 C 212.842 113.066 216.344 111.5 220 111.5 C 223.656 111.5 227.158 113.066 229.546 115.454 C 231.934 117.842 233.5 121.344 233.5 125 Z M 228.132 116.868 C 225.996 114.732 223.247 113.5 220 113.5 C 216.753 113.5 214.004 114.732 211.868 116.868 C 209.732 119.004 208.5 121.753 208.5 125 C 208.5 128.247 209.732 130.996 211.868 133.132 C 214.004 135.268 216.753 136.5 220 136.5 C 223.247 136.5 225.996 135.268 228.132 133.132 C 230.268 130.996 231.5 128.247 231.5 125 C 231.5 121.753 230.268 119.004 228.132 116.868 Z";
+const middleCircleFill = "M 233 125 C 233 117.82 227.18 112 220 112 C 212.82 112 207 117.82 207 125 C 207 132.18 212.82 138 220 138 C 227.18 138 233 132.18 233 125 Z";
+const middleLine = "M 219 111.5 L 219 38 L 221 38 L 221 111.5 L 219 111.5 Z";
+
+const fieldBorder4PPath = "M 65.722 127.548 C 64.93 125.972 64.932 124.02 65.724 122.444 L 116.112 35.179 L 323.887 35.179 L 374.276 122.444 C 375.069 124.022 375.068 125.972 374.275 127.549 L 323.895 214.818 L 116.105 214.819 L 115.672 214.069 Z M 117.837 211.819 L 322.163 211.818 L 371.677 126.049 C 372.27 125.222 372.269 124.77 371.676 123.942 L 322.155 38.179 L 117.844 38.179 L 68.322 123.944 C 67.73 124.774 67.73 125.224 68.322 126.052 Z";
+
+// import {level} from "./2playerLevel";
+import {level} from "./4playerLevel";
 
 
 type triangles = {
@@ -26,35 +35,37 @@ type triangles = {
     cells: number[][];
 }
 
-enum goals {
-    GOAL1,
-    GOAL2,
-    GOAL3,
-    GOAL4
-}
-
 export class FieldShader {
     private program: Program;
     private scale: number;
     private fieldBorderPos: WebGLBuffer;
-    private fieldGradientPos: WebGLBuffer[] = [];
-    private goalBorderPos: WebGLBuffer[] = [];
-    private goalGradientPos: WebGLBuffer[] = [];
+    private fieldGradientPos: WebGLBuffer;
+    private goalBorderPos: WebGLBuffer;
+    private goalGradientPos: WebGLBuffer;
     private fieldBorderIndices: number[] = [];
-    private fieldGradientIndices: number[][] = [];
-    private goalBorderIndices: number[][] = [];
-    private goalGradientIndices: number[][] = [];
+    private fieldGradientIndices: number[] = [];
+    private goalBorderIndices: number[] = [];
+    private goalGradientIndices: number[] = [];
+    private circleBorderPos: WebGLBuffer;
+    private circleBorderIndices: number[] = [];
+    private circleFillPos: WebGLBuffer;
+    private circleFillIndices: number[] = [];
+    private middleLinePos: WebGLBuffer;
+    private middleLineIndices: number[] = [];
 
     constructor(gl: WebGL2RenderingContext, scale: number) {
         this.program = new Program(gl, VERT_FIELD_SRC, FRAG_FIELD_SRC);
         this.scale = scale;
-        this.fieldBorderPos = createBuffer(gl, this.bufferPosData(this.getTriangles(fieldBorderPath), this.fieldBorderIndices));
-        this.fieldGradientIndices.push([]);
-        this.fieldGradientPos.push(createBuffer(gl, this.bufferPosData(this.getTriangles(fieldGradientPathLeft), this.fieldGradientIndices[0])));
+        this.fieldBorderPos = createBuffer(gl, this.bufferPosData(this.getTriangles(level.fieldBorderPath), this.fieldBorderIndices));
+        this.fieldGradientPos = (createBuffer(gl, this.bufferPosData(this.getTriangles(level.fieldGradientPath), this.fieldGradientIndices)));
 
-        this.createGoal(gl, goalBorderPath, goalGradientPath, goals.GOAL1);
-        this.createGoal(gl, goalBorderPath, goalGradientPath, goals.GOAL2);
-        // console.log("triangulate: ", triangulate(this.contour));
+        this.goalBorderPos = (createBuffer(gl, this.bufferPosData(this.getTriangles(level.goalBorderPath), this.goalBorderIndices)));
+        this.goalGradientPos = (createBuffer(gl, this.bufferPosData(this.getTriangles(level.goalGradientPath), this.goalGradientIndices)));
+
+        this.circleBorderPos = createBuffer(gl, this.bufferPosData(this.getTriangles(level.middleCircleBorder), this.circleBorderIndices));
+        this.circleFillPos = createBuffer(gl, this.bufferPosData(this.getTriangles(level.middleCircleGradient), this.circleFillIndices));
+        this.middleLinePos = createBuffer(gl, this.bufferPosData(this.getTriangles(level.middleLine), this.middleLineIndices));
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
     }
 
     public updateScale(scale: number) {
@@ -65,13 +76,6 @@ export class FieldShader {
         let svg = parse(path);
         let contour = contours(svg, 1);
         return triangulate(contour);
-    }
-
-    private createGoal(gl: WebGL2RenderingContext, pathBorder: string, pathGradient: string, goal: number) {
-        this.goalBorderIndices.push([]);
-        this.goalBorderPos.push(createBuffer(gl, this.bufferPosData(this.getTriangles(pathBorder), this.goalBorderIndices[goal])));
-        this.goalGradientIndices.push([]);
-        this.goalGradientPos.push(createBuffer(gl, this.bufferPosData(this.getTriangles(pathGradient), this.goalGradientIndices[goal])));
     }
 
     private bufferPosData(triangles: triangles, indices: number[]): number[] {
@@ -90,80 +94,124 @@ export class FieldShader {
         return vertices;
     }
 
-    private renderFieldGradient(gl: WebGL2RenderingContext, color: number[], transform: m3, pos: number[], dim: number[]) {
-        this.program.setUniform(gl, "color", color);
-        this.program.setUniform(gl, "transform", transform.matrix);
+    private renderFieldGradients(gl: WebGL2RenderingContext) {
+        const mat = new m3();
+
+        for (let i = 0; i < level.players; i++) {
+            if (level.fieldGradientRot[i].z > 0)
+                mat.rotation(level.fieldGradientRot[i].z);
+            if (level.fieldGradientRot[i].x > 0)
+                mat.rotationXAxis(level.fieldGradientRot[i].x);
+            if (level.fieldGradientRot[i].y > 0)
+                mat.rotationYAxis(level.fieldGradientRot[i].y);
         this.program.setUniform(gl, "gradient", 1);
-        this.program.setUniform(gl, "gradientPos", pos);
-        this.program.setUniform(gl, "gradientRadius", [140 * this.scale, 120  * this.scale]);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.fieldGradientPos[0]);
+        this.program.setUniform(gl, "color", level.fieldGradientColors[i]);
+        this.program.setUniform(gl, "transform", mat.matrix);
+        this.program.setUniform(gl, "gradient", 1);
+        this.program.setUniform(gl, "gradientPos", level.fieldGradientPos[i]);
+        this.program.setUniform(gl, "gradientRadius", [level.fieldGradientRadius.x * this.scale, level.fieldGradientRadius.y  * this.scale]);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.fieldGradientPos);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.fieldGradientIndices[0]), gl.STATIC_DRAW);
-        gl.drawElements(gl.TRIANGLES, this.fieldGradientIndices[0].length, gl.UNSIGNED_SHORT, 0);
+        // gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.fieldGradientIndices), gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, this.fieldGradientIndices.length, gl.UNSIGNED_SHORT, 0);
+        }
     }
 
-    private renderField(gl: WebGL2RenderingContext, dim: number[]) {
+    private renderFieldBorder(gl: WebGL2RenderingContext) {
         const mat = new m3();
+        this.program.setUniform(gl, "color", level.fieldBorderColor);
         this.program.setUniform(gl, "transform", mat.matrix);
-
-        //Gradient
-        this.renderFieldGradient(gl, [213/255, 172/255, 28/255, 0.7], mat, [0.5 - (135 / WIDTH), 0.5 ], dim);
-        mat.rotation(Math.PI);
-        this.renderFieldGradient(gl, [65/255, 190/255, 220/255, 0.7], mat, [0.5 + (135 / WIDTH), 0.5], dim );
-
-        //Border
-        const matIdent = new m3();
-        this.program.setUniform(gl, "color", [222/255, 229/255, 19/255, 0.9]);
-        this.program.setUniform(gl, "transform", matIdent.matrix);
         this.program.setUniform(gl, "gradient", 0);
         gl.bindBuffer(gl.ARRAY_BUFFER, this.fieldBorderPos);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.fieldBorderIndices), gl.STATIC_DRAW);
         gl.drawElements(gl.TRIANGLES, this.fieldBorderIndices.length, gl.UNSIGNED_SHORT, 0);
+    }
 
-        //TODO make the middleLine
-        //TODO improve the class so it works with other fields too
+    private renderMiddleLine(gl: WebGL2RenderingContext) {
+        const mat = new m3();
+        this.program.setUniform(gl, "color", level.middleCircleColor);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.circleFillPos);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.circleFillIndices), gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, this.circleFillIndices.length, gl.UNSIGNED_SHORT, 0);
+
+        this.program.setUniform(gl, "color", level.middleLineColor);
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.circleBorderPos);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.circleBorderIndices), gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, this.circleBorderIndices.length, gl.UNSIGNED_SHORT, 0);
+
+        gl.bindBuffer(gl.ARRAY_BUFFER, this.middleLinePos);
+        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+        gl.enableVertexAttribArray(0);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.middleLineIndices), gl.STATIC_DRAW);
+        gl.drawElements(gl.TRIANGLES, this.middleLineIndices.length, gl.UNSIGNED_SHORT, 0);
+
+        mat.rotation(Math.PI);
+        this.program.setUniform(gl, "transform", mat.matrix);
+        gl.drawElements(gl.TRIANGLES, this.middleLineIndices.length, gl.UNSIGNED_SHORT, 0);
+    }
+
+    private renderField(gl: WebGL2RenderingContext) {
+        
+
+        //Gradient
+        this.renderFieldGradients(gl);
+
+        //Border
+        this.renderFieldBorder(gl);
+        
+        // MiddleLine
+        this.renderMiddleLine(gl);
         //TODO get the triangulate data from a file instead of making this at runtime , just have triangles and other data in a single file for level
     }
 
-    private renderGoal(gl: WebGL2RenderingContext, transform: m3, goal: number, colorBorder: number[], colorFill: number[]) {
-        this.program.setUniform(gl, "transform", transform.matrix);
-        this.program.setUniform(gl, "color", colorBorder);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.goalBorderPos[goal]);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.goalBorderIndices[goal]), gl.STATIC_DRAW);
-        gl.drawElements(gl.TRIANGLES, this.goalBorderIndices[goal].length, gl.UNSIGNED_SHORT, 0);
-        this.program.setUniform(gl, "color", colorFill);
-        gl.bindBuffer(gl.ARRAY_BUFFER, this.goalGradientPos[goal]);
-        gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
-        gl.enableVertexAttribArray(0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer());
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.goalGradientIndices[goal]), gl.STATIC_DRAW);
-        gl.drawElements(gl.TRIANGLES, this.goalGradientIndices[goal].length, gl.UNSIGNED_SHORT, 0);
-    }
-
     private renderGoals(gl: WebGL2RenderingContext) {
-        const mat = new m3();
-        this.renderGoal(gl, mat, goals.GOAL1, [0.835, 0.6745, 0.1098, 0.9], [0.835, 0.6745, 0.1098, 0.7]);
-        mat.rotation(Math.PI);
-        this.renderGoal(gl, mat, goals.GOAL2, [0.2549, 0.745, 0.8627, 0.9], [0.2549, 0.745, 0.8627, 0.7]);
+        for (let i = 0; i < level.players; i++) {
+            const mat = new m3();
+            if (level.goalRot[i].z > 0)
+                mat.rotation(level.goalRot[i].z);
+            if (level.goalRot[i].x > 0)
+                mat.rotationXAxis(level.goalRot[i].x);
+            if (level.goalRot[i].y > 0)
+                mat.rotationYAxis(level.goalRot[i].y);
+
+            // this.program.setUniform(gl, "gradient", 0);
+            this.program.setUniform(gl, "transform", mat.matrix);
+            this.program.setUniform(gl, "color", level.goalBorderColors[i]);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.goalBorderPos);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(0);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.goalBorderIndices), gl.STATIC_DRAW);
+            gl.drawElements(gl.TRIANGLES, this.goalBorderIndices.length, gl.UNSIGNED_SHORT, 0);
+
+            // this.program.setUniform(gl, "gradient", 0);
+            this.program.setUniform(gl, "color", level.goalGradientColors[i]);
+            gl.bindBuffer(gl.ARRAY_BUFFER, this.goalGradientPos);
+            gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+            gl.enableVertexAttribArray(0);
+            gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(this.goalGradientIndices), gl.STATIC_DRAW);
+            gl.drawElements(gl.TRIANGLES, this.goalGradientIndices.length, gl.UNSIGNED_SHORT, 0);
+        }
     }
 
-    public render(gl: WebGL2RenderingContext, time: number, width: number, height: number) {
-        let uniform: uniforms = {pos: {x: 0, y:0}, width: WIDTH * this.scale, height: HEIGHT * this.scale, timer: time, resolution: {x: width, y: height}};
-        uniform.color = [222/255, 229/255, 19/255, 0.9];
+    public render(gl: WebGL2RenderingContext, time: number, width: number, height: number, ballPos: VectorObject) {
         const xOffset = Math.floor((width - WIDTH * this.scale) / 2);
 		const yOffset = Math.floor((height - HEIGHT * this.scale) / 2);
+        let uniform: uniforms = {pos: {x: (ballPos.x) / width, y: 1 - ballPos.y / height }, width: WIDTH * this.scale, height: HEIGHT * this.scale, timer: time, resolution: {x: width, y: height}};
         gl.viewport(xOffset, yOffset, WIDTH * this.scale, HEIGHT * this.scale);
         this.program.useProgram(gl, uniform);
         
         this.renderGoals(gl);
-        this.renderField(gl, [width, height]);
+        this.renderField(gl);
     }
 }
+
+//TODO have the fieldBorderLines draw after ball
+//TODO make the levels json files again with triangles instead of path strings

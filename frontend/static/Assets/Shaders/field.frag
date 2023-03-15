@@ -24,25 +24,43 @@ highp vec4 getGradientColor(){
 
     highp vec2 abs_center_point = gradientPos * size;
     highp vec2 st = (uv * size) - abs_center_point;
-    st = vec2(
-        st.x * rot_c - st.y * rot_s,
-        st.x * rot_s + st.y * rot_c
-    );
+    st = vec2(st.x, st.y);
     st /= vec2(sx, sy);
     st += abs_center_point;
 
+    //For gradient
     highp vec4 stopColor = vec4(0.196, 0.196, 0.196, 0.95);
     highp float abs_d = distance(abs_center_point, st);
     highp float progress = abs_d / max_radius; // this is based off the max radius
-    highp vec4 color = mix(stopColor, color, smoothstep(1.0, 0.0, progress));
-    return color;
+    highp vec4 retcolor = mix(stopColor, color, smoothstep(1.0, 0.0, progress));
+    return retcolor;
 }
 
 //TODO for radial gradient do the color slightly different
 void main()
 {
+    highp vec4 endColor;
+    highp vec2 uv = (gl_FragCoord.xy / resolution.xy);
+    uv.y = (uv.y - 1. ) * -1.;
+
     if (!gradient)
-        gl_FragColor = color;
+        endColor = color;
     else
-        gl_FragColor = getGradientColor();
+        endColor = getGradientColor();
+
+    //for glow effect ball
+    highp float ballRadius = 40.;
+    highp float sx = 0.75;
+    highp float sy = 1.;
+    highp vec2 abs_center_point = center * size;
+    highp vec2 st = (uv * size) - abs_center_point;
+    st = vec2(st.x, st.y);
+    st /= vec2(sx, sy);
+    st += abs_center_point;
+
+    highp float abs_d = distance(abs_center_point, st);
+    highp float progress = abs_d / ballRadius;
+    
+    endColor = mix(endColor, endColor * 2., smoothstep(1.0, 0.1, progress));
+    gl_FragColor = endColor;
 }

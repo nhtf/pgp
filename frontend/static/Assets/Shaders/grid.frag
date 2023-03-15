@@ -56,12 +56,13 @@ highp vec4 getHex(highp vec2 p)
 
 uniform sampler2D tex;
 uniform highp vec2 size; //Size of the canvas/image
+uniform highp vec2 resolution; //Size of the /image
 varying highp vec2 coord;
 uniform highp float time; // time in seconds
 uniform highp vec2 center; // origin position ripple
 uniform highp vec3 shockParams; // 10.0, 0.8, 0.1
 
-const highp float Hexrows = 10.;
+const highp float Hexrows = 9.;
 
 highp vec3 grid()
 {

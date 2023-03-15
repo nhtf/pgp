@@ -1,4 +1,4 @@
-import { Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, Column } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, ManyToOne, OneToMany, Column, RelationId } from "typeorm";
 import { GameState } from "./GameState";
 import { Player } from "./Player";
 
@@ -16,6 +16,9 @@ export class Team {
 
 	@ManyToOne(() => GameState, (state) => state.teams, { onDelete: "CASCADE" })
 	state: GameState;
+
+	@RelationId((team: Team) => team.state)
+	stateId: number;
 
 	@OneToMany(() => Player, (player) => player.team, { eager: true })
 	players: Player[];

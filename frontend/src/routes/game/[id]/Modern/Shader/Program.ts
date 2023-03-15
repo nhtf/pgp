@@ -69,7 +69,7 @@ export class Program {
             case "gradient":
                 gl.uniform1i(this.uniformGradient, value);
             case "gradientPos":
-                gl.uniform2f(this.uniformGradientPos, value[0], value[1]);
+                gl.uniform2f(this.uniformGradientPos, value.x, value.y);
             case "gradientRadius": 
                 gl.uniform2f(this.uniformGradientRadius, value[0], value[1]);
             default:

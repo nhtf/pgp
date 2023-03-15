@@ -29,3 +29,4 @@ export const TENOR_KEY: string = process.env.TENOR_KEY;
 export const GIPHY_KEY: string = process.env.GIPHY_KEY;
 export const BOUNCER_KEY: string = process.env.BOUNCER_KEY;
 export const AUTH_SECRET: string = process.env.AUTH_SECRET;
+export const EMBED_MAXLENGTH: number = Number(process.env.EMBED_MAXLENGTH || 10485760);

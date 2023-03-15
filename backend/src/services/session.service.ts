@@ -51,7 +51,7 @@ export class SessionService {
 		}
 	}
 
-	//TODO make types for type safety
+	//ODOT make types for type safety
 	async all() {
 		const promise = new Promise(
 			(resolve: (data) => void, reject: (err) => void) => {
@@ -149,7 +149,6 @@ export class SessionService {
 		const last_activity = req.session.last_activity;
 		if (last_activity) {
 			if (Date.now() - last_activity >= SESSION_REGENERATE_TIME) {
-				console.log("regenerating session of user_id " + req.session.user_id);
 				await this.regenerate_session_req(req);
 			}
 		}

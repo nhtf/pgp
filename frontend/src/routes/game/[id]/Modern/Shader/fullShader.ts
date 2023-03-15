@@ -32,8 +32,6 @@ export function setOriginRipple(x: number, y: number) {
 	position.y = 1 - ((y + 22.5) / HEIGHT);
 }
 
-//TODO do everything in shaders, split background up in grid and field shaders,
-// split foreground up in seperate paddle and ball shaders
 export class RippleShader {
 	private gl: WebGL2RenderingContext;
 	private outerCanvas: HTMLCanvasElement;
@@ -44,6 +42,7 @@ export class RippleShader {
 	private fieldShader: FieldShader;
 	private timer: number;
 	private lastTime: number;
+	private ballPos: VectorObject;
 
 	public constructor(canvas: HTMLCanvasElement) {
 		this.outerCanvas = canvas;
@@ -60,6 +59,7 @@ export class RippleShader {
 		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
 		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 		console.log(this.gl.getParameter(this.gl.SHADING_LANGUAGE_VERSION));
+		this.ballPos = {x: 0, y: 0};
 
 
 		//Debug function
@@ -71,7 +71,7 @@ export class RippleShader {
 			// const y = HEIGHT * minScale - ((ev.clientY) / minScale);
 			const x = Math.floor((ev.offsetX));
 			const y = this.outerCanvas.height - Math.floor((ev.offsetY));
-
+			this.ballPos = {x: x, y: y};
 			this.ballShader.moveBall({x: x, y: y});
 			// events.mousemove(x, y);
 		});
@@ -144,7 +144,7 @@ export class RippleShader {
 		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
 		this.gl.enableVertexAttribArray(1);
 		this.gridShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
-		this.fieldShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
+		this.fieldShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height, this.ballPos);
 		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
         this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
         this.gl.enableVertexAttribArray(0);
@@ -162,7 +162,7 @@ export class RippleShader {
 			}
 		}
 		const fps = 1/ (time -this.lastTime) * 1000;
-		console.log("fps: ", fps);
+		// console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

@@ -90,7 +90,6 @@ export class AuthController {
 		}
 	}
 
-	//TODO added a as string to make it stop complaining, needs proper fix - Siebe
 	async get_id(access_token: AccessToken): Promise<number | undefined> {
 		let rest_client = new rm.RestClient("pgp", "https://api.intra.42.fr", [
 			new BearerCredentialHandler(access_token.token.access_token as string, false),
@@ -119,15 +118,10 @@ export class AuthController {
 	) {
 		const access_token = await this.get_access_token(token.code);
 
-		if (!(await this.session_utils.regenerate_session_req(request))) //TODO regenerate session after the identity is validated of the user
-			throw new HttpException(
-				"failed to create session",
-				HttpStatus.SERVICE_UNAVAILABLE,
-			);
 
 		const oauth_id = await this.get_id(access_token);
 		if (!oauth_id)
-			throw new HttpException("could not verify identity", HttpStatus.INTERNAL_SERVER_ERROR); //TODO this is probably a unauthorized exeption instead of an internal error, since the user could've just send bs
+			throw new HttpException("Could not verify identity", HttpStatus.UNAUTHORIZED);
 
 		let user = await this.userRepo.findOneBy({ oauth_id: oauth_id });
 		if (!user) {
@@ -136,7 +130,12 @@ export class AuthController {
 			await this.userRepo.save(user);
 		}
 
-		//TODO added a as string to make it stop complaining, needs proper fix - Siebe
+		if (!(await this.session_utils.regenerate_session_req(request)))
+			throw new HttpException(
+				"failed to create session",
+				HttpStatus.SERVICE_UNAVAILABLE,
+			);
+
 		request.session.access_token = access_token.token.access_token.toString();
 		request.session.user_id = user.id;
 		request.session.auth_level = AuthLevel.OAuth;

@@ -2,7 +2,6 @@ add ability to mention in chat (and invite with it)
 title bar does not get updated correctly when logging in
 
 fix gameroom updates (m: fix what?)
-find out how revolt detects embed type and do something similar
 
 random team names
 
@@ -17,3 +16,5 @@ matchmaking system!!
 Member entity (en andere?) hebben dubbele IDs in DB, kan beter via relations
 
 promote/demote causes wrong order in membergroup
+
+partially merge friend dropdown and member dropdown

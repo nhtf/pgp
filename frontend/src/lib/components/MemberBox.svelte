@@ -2,12 +2,13 @@
 	import type { Member, User } from "$lib/entities";
 	import { unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
-	import { Role, roles } from "$lib/enums";
-	import { userStore } from "$lib/stores";
+	import { Role, roles, Gamemode } from "$lib/enums";
+	import { blockStore, userStore } from "$lib/stores";
 	import { patch, post, remove } from "$lib/Web";
 	import { page } from "$app/stores";
 	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
 	import Swal from "sweetalert2";
+    import { goto } from "$app/navigation";
 
 	export let member: Member | null;
 	export let user: User = $userStore.get(member!.userId)!;
@@ -17,16 +18,18 @@
 	type Action = {
 		role: Role;
 		condition?: (member: Member) => boolean;
-		param: ((member: Member) => any) | any;
+		param?: ((member: Member) => any) | any;
 		fun: Function;
 		name: string;
 	};
 
 	// minutes
 	const mute_duration = 1;
+	const options = [ "Classic", "Modern","VR" ];
 
 	$: me = $userStore.get($page.data.user?.id)!;
 	$: user = $userStore.get(user!.id)!;
+	$: blockedIds = [...$blockStore.keys()];
 
 	async function edit(member: Member, role: Role) {
 		await unwrap(
@@ -39,10 +42,7 @@
 			remove(`/chat/id/${member.roomId}/members/${member.id}`, { ban })
 		);
 
-		Swal.fire({
-			icon: "success",
-			timer: 3000,
-		});
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	async function mute(member: Member, minutes: number) {
@@ -54,10 +54,46 @@
 			})
 		);
 
-		Swal.fire({
-			icon: "success",
-			timer: 3000,
+		Swal.fire({ icon: "success", timer: 3000 });
+	}
+
+	async function block(user: User) {
+		await unwrap(post(`/user/me/block/${user.id}`));
+
+		Swal.fire({ icon: "success", timer: 3000 });
+	}
+
+	async function unblock(user: User) {
+		await unwrap(remove(`/user/me/unblock/${user.id}`));
+	
+		Swal.fire({ icon: "success", timer: 3000 });
+	}
+
+	async function invite(user: User) {
+		const { value } = await Swal.fire({
+			title: "Invite to match",
+			input: "radio",
+			inputOptions: options,
+			color: "var(--text-color)",
+			confirmButtonText: "Invite",
+			confirmButtonColor: "var(--confirm-color)",
+			cancelButtonColor: "var(--cancel-color)",
+			background: "var(--box-color)",
 		});
+
+		const roomDto = {
+			name: null,
+			password: null,
+			is_private: true,
+			gamemode: Number(value),
+			players: 2,
+		};
+
+		const room = await unwrap(post(`/game`, roomDto));
+	
+		await unwrap(post(`/game/id/${room.id}/invite`, { username: user.username }));
+		// TODO: join team
+		await goto(`/game/${room.id}`);
 	}
 
 	const actions: Action[] = [
@@ -140,5 +176,11 @@
 				{/each}
 			{/if}
 		{/each}
+		{#if !blockedIds.includes(user.id)}
+			<DropdownItem on:click={() => block(user)}>Block</DropdownItem>
+		{:else}
+			<DropdownItem on:click={() => unblock(user)}>Unblock</DropdownItem>
+		{/if}
+		<DropdownItem on:click={() => invite(user)}>Invite</DropdownItem>
 	{/if}
 </Dropdown>

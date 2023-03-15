@@ -6,6 +6,7 @@ import {
 	Req,
 	Get,
 	Query,
+	NotFoundException,
 	UseGuards,
 } from "@nestjs/common";
 import {
@@ -18,7 +19,7 @@ import {
 import { User } from "../entities/User";
 import { GameState } from "src/entities/GameState"
 import { AuthLevel, Role } from "src/enums";
-import { Repository } from "typeorm";
+import { Repository, TreeRepository } from "typeorm";
 import { Request } from "express";
 import { SessionService } from "src/services/session.service"
 import { ParseIDPipe } from "../util";
@@ -26,6 +27,7 @@ import { Room } from "src/entities/Room";
 import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
+import { Achievement } from "src/entities/Achievement";
 
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { Message } from "src/entities/Message";
@@ -70,6 +72,8 @@ export class DebugController {
 		private readonly messageRepo: Repository<Message>,
 		@Inject("GAMESTATE_REPO")
 		private readonly gamestateRepo: Repository<GameState>,
+		@Inject("ACHIEVEMENT_REPO")
+		private readonly achievementRepo: TreeRepository<Achievement>,
 	) {}
 
 	@Get("useradd")
@@ -123,15 +127,22 @@ export class DebugController {
 	}
 
 	@Get("su")
-	async su(
-		@Query("id", ParseIDPipe(User)) user: User,
-		@Req() request: Request,
-	) {
+	async su(@Req() request: Request, @Query() dto: UserDTO){
 		const res = await this.sessionUtils.regenerate_session_req(request);
-		if (!res)
+	
+		if (!res) {
 			throw new HttpException("could not regenerate session", HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+
+		const user = await this.userRepo.findOneBy({ username: dto.username });
+	
+		if (!user) {
+			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
+		}
+	
 		request.session.user_id = user.id;
 		request.session.auth_level = user.auth_req;
+	
 		return user;
 	}
 
@@ -277,5 +288,39 @@ export class DebugController {
 				teams: true,
 			}
 		});
+	}
+
+	@Get("ach(s)?")
+	async get_achievements() {
+		return this.achievementRepo.findTrees();
+	}
+
+	@Get("addach")
+	async create_achievement(
+		@Query("name") name?: string,
+		@Query("max") max?: number,
+		@Query("desc") desc?: string,
+		@Query("img") img?: string,
+		@Query("parent") parent?: string
+	)
+	{
+		/*
+		const achievement = new Achievement();
+
+		achievement.name = name;
+		achievement.max = max;
+		achievement.description = desc;
+		achievement.image = img;
+
+		if (parent && parent != "") {
+			const id = Number(parent);
+			const up = isNaN(id) ? await this.achievementRepo.findOneBy({ name: parent}) : await this.achievementRepo.findOneBy({ id });
+
+			if (!up)
+				throw new NotFoundException(`Parent "${parent}" not found`);
+			achievement.parent = up;
+
+		}
+		return await this.achievementRepo.save(achievement);*/
 	}
 }

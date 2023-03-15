@@ -8,6 +8,7 @@ import {
 	Injectable,
 	Inject,
 	BadRequestException,
+	SetMetadata,
 } from "@nestjs/common";
 import { User } from "./entities/User";
 import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
@@ -33,6 +34,8 @@ export function get_status(last_activity: Date): Status {
 			Status.IDLE : Status.ACTIVE;
 }
 
+export const TREE_KEY = "PGP_TREE";
+export const TreeRepo = () => SetMetadata(TREE_KEY, true);
 
 export const Me = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
