@@ -39,7 +39,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 
 	constructor(
 		@Inject("USER_REPO")
-		private readonly userRepo: Repository<User>,
+		readonly userRepo: Repository<User>,
 		@Inject("ROOM_REPO")
 		private readonly roomRepo: Repository<ChatRoom>,
 		@Inject("MESSAGE_REPO")

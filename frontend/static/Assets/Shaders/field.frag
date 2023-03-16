@@ -29,7 +29,7 @@ highp vec4 getGradientColor(){
     st += abs_center_point;
 
     //For gradient
-    highp vec4 stopColor = vec4(0.196, 0.196, 0.196, 0.95);
+    highp vec4 stopColor = vec4(0.196, 0.196, 0.196, 0.9);
     highp float abs_d = distance(abs_center_point, st);
     highp float progress = abs_d / max_radius; // this is based off the max radius
     highp vec4 retcolor = mix(stopColor, color, smoothstep(1.0, 0.0, progress));
@@ -50,7 +50,7 @@ void main()
 
     //for glow effect ball
     highp float ballRadius = 40.;
-    highp float sx = 0.75;
+    highp float sx = 0.9;
     highp float sy = 1.;
     highp vec2 abs_center_point = center * size;
     highp vec2 st = (uv * size) - abs_center_point;

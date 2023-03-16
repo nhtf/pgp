@@ -11,19 +11,6 @@ export class SetupGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
-	
-		if (!request.session?.user_id) {
-			throw new HttpException("Missing session/user", HttpStatus.BAD_REQUEST);
-		}
-	
-		const user = await this.user_repo.findOneBy({
-			id: request.session.user_id
-		});
-	
-		if (!user.username) {
-			throw new HttpException("no username set", HttpStatus.FORBIDDEN);
-		}
-	
-		return true;
+		return request.user && request.user.username;
 	}
 }

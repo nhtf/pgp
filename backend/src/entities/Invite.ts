@@ -25,6 +25,6 @@ export class Invite {
 
 	@Expose()
 	get type(): string {
-		return "Room";
+		return "Invite";
 	}
 }

@@ -2,6 +2,7 @@ import Swal from "sweetalert2";
 import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
 import { BACKEND } from "$lib/constants";
+import { swal } from "$lib/Alert"
 
 export async function enable_2fa() {
     const response = await fetch(`${BACKEND}/otp/setup`, {
@@ -14,7 +15,7 @@ export async function enable_2fa() {
     } else {
         const data = await response.json();
 
-        await Swal.fire({
+        await swal().fire({
             title: "Setup 2FA",
             footer: `${data.secret}`,
             input: "text",
@@ -24,16 +25,13 @@ export async function enable_2fa() {
             imageAlt: "2FA qr code",
             showCancelButton: true,
             confirmButtonText: "Setup",
-            confirmButtonColor: "var(--confirm-color)",
-            cancelButtonColor: "var(--cancel-color",
-            background: "var(--box-color)",
             showLoaderOnConfirm: true,
             inputAutoTrim: true,
             inputPlaceholder: "Enter your 2FA code",
             inputValidator: (code) => {
-                if (!validator.isLength(code, { min: 6, max: 6 }))
+                if (!validator.default.isLength(code, { min: 6, max: 6 }))
                     return "OTP must be 6 characters long";
-                if (!validator.isInt(code, { min: 0, max: 999999 }))
+                if (!validator.default.isInt(code, { min: 0, max: 999999 }))
                     return "OTP consist of only numbers";
                 return null;
             },
@@ -60,7 +58,7 @@ export async function enable_2fa() {
             allowOutsideClick: () => !Swal.isLoading(),
         }).then((result) => {
             if (result.isConfirmed) {
-                Swal.fire({
+                swal().fire({
                     position: "top-end",
                     icon: "success",
                     title: "Successfully setup 2FA",
@@ -75,7 +73,7 @@ export async function enable_2fa() {
 }
 
 export async function disable_2fa() {
-    await Swal.fire({
+    await swal().fire({
         title: "Are you sure?",
         icon: "warning",
         showCancelButton: true,
@@ -99,7 +97,7 @@ export async function disable_2fa() {
         },
     }).then((result) => {
         if (result.isConfirmed) {
-            Swal.fire({
+            swal().fire({
                 position: "top-end",
                 icon: "success",
                 title: "Successfully disabled 2FA",

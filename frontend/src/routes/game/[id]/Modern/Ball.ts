@@ -17,41 +17,6 @@ export class Ball {
 		this.counter = 0;
 	}
 
-	public render(context: CanvasRenderingContext2D) {
-		const lastPos = positions[positions.length - 1];
-		if (lastPos === undefined || (this.position.x !== lastPos.x && this.position.y !== lastPos.y)) {
-			positions.push({x: this.position.x - size / 2, y: this.position.y - size / 2});
-		}
-		if (positions.length > 20)
-			positions.shift();
-		context.fillStyle = paddleFillC;
-		context.strokeStyle = paddleStrokeC;
-		context.lineWidth = linethickness;
-		if (positions.length === 20) {
-			context.beginPath();
-			var grad= context.createLinearGradient(positions[0].x, positions[0].y, lastPos.x, lastPos.y);
-			grad.addColorStop(0, `rgba(202, 209, 0, 0.05)`);
-			grad.addColorStop(1, `rgba(222, 229, 19, 0.9)`);
-			context.strokeStyle = grad;
-			context.moveTo(positions[0].x, positions[0].y);
-			positions.forEach((pos) => {
-				context.lineTo(pos.x, pos.y);
-			})
-			context.stroke();
-		}
-		
-
-		const posX = this.position.x;
-		const posY = this.position.y;
-
-		context.beginPath();
-		context.fillStyle = paddleFillC;
-		context.strokeStyle = paddleStrokeC;
-		context.arc(posX - size / 2, posY - size / 2, size, 0, Math.PI * 2);
-		context.fill();
-		context.stroke();
-	}
-
 	public collision(lines: CollisionLine[]): [Line, Vector, number] | null {
 		let closest: [Line, Vector, number] | null = null;
 

@@ -11,6 +11,7 @@
 	import { blockStore, memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { page } from "$app/stores";
+	import { byDate } from "$lib/sorting";
 	import MessageBox from "$lib/components/MessageBox.svelte"
 	import MemberBox from "$lib/components/MemberBox.svelte";
 	import ScratchPad from "$lib/components/ScratchPad.svelte";
@@ -23,11 +24,11 @@
 
 	let messages = data.messages.sort(byDate);
 	let indices: number[] = [];
-	let relativeScroll = messages.length - load;
-	
+	let relativeScroll = clamp(messages.length - load, 0, messages.length);
+
 	$: room = $roomStore.get(data.room.id)!;
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
-	$: self = $memberStore.get(data.member.id)!;
+	$: self = $memberStore.get(room.self!.id)!;
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
 
 	$: messages;
@@ -37,8 +38,8 @@
 	onMount(() => {
 		roomSocket.emit("join", { id: room.id });
 
-		indices.push(onRemove(Subject.ROOM, room!.id));
-		indices.push(onRemove(Subject.MEMBER, self.id));
+		indices.push(onRemove(Subject.ROOM, room!.id, async () => await goto(`/chat`)));
+		indices.push(onRemove(Subject.MEMBER, self.id, async () => await goto(`/chat`)));
 		indices.push(updateManager.set(Subject.MESSAGE, updateMessages));
 	});
 
@@ -48,9 +49,11 @@
 	});
 
 	addEventListener("wheel", (event: WheelEvent) => {
-		if (event.deltaY < 0) {
-			relativeScroll = clamp(relativeScroll - 1, load, messages.length - load);
-		}
+		console.log(event.deltaY);
+		relativeScroll = clamp(clamp(event.deltaY, -1, 1), 0, messages.length);
+		// if (event.deltaY < 0) {
+		// 	relativeScroll = clamp(relativeScroll - 1, 0, messages.length);
+		// }
 	});
 
 	function updateMessages(update: UpdatePacket) {
@@ -66,19 +69,15 @@
 		}
 	}
 
-	function onRemove(subject: Subject, id: number) {
+	function onRemove(subject: Subject, id: number, fun: Function) {
 		return updateManager.set(subject, async (update: UpdatePacket) => {
 			if (update.id === id && update.action === Action.REMOVE) {
-				await goto(`/chat`);
+				fun();
 			}
 		});
 	}
 
-	function byDate(first: Message, second: Message): number {
-		return first.created - second.created;
-	}
-
-	function clamp(n: number, min: number, max:number) {
+	function clamp(n: number, min: number, max: number): number {
 		return n < min ? min : n > max ? max : n;
 	}
 	
@@ -96,11 +95,7 @@
 	}
 
 	function scrollToBottom(node: any, _: Message[]) {
-		return {
-			update() {
-				node.scroll({ top: node.scrollHeight, behaviour: "smooth"});
-			},
-		};
+		return { update: () => node.scroll({ top: node.scrollHeight, behaviour: "smooth"}) };
 	}
 </script>
 
@@ -115,17 +110,21 @@
 					<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 				{/if}				
 			</div>
-			<div use:scrollToBottom={messages} class="messages">
+			<div class="messages" use:scrollToBottom={messages}>
 				{#each messages as message, index (message.id)}
 					{#if index >= min && !blockedIds.includes(message.userId)}
 						<MessageBox {message} {self} />
 					{/if}
 				{/each}
 			</div>
+			<div>{relativeScroll} - {messages.length}</div>
+			{#if relativeScroll + load < messages.length}
+				<button class="button middle">Go to bottom</button>
+			{/if}
 			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
 		</div>
 		<div class="member-container">
-			{#each roles.reverse() as role}
+			{#each roles.slice().reverse() as role}
 				{#if members.some((member) => member.role === role)}
 					<div class="member-group">
 						<h1 style={`color: #${role_colors[role]}`}>{role_names[role]}</h1>
@@ -141,36 +140,43 @@
 {/if}
 
 <style>
+
+	.middle {
+		position: absolute;
+		left: 40vw;
+		bottom: 10vh;
+	}
 	.room {
 		display: flex;
 		flex-direction: row;
 		margin: 0.5rem;
+		align-items: stretch;
+		/* TODO */
+		height: 90vh;
 	}
 
 	.room-container {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
-		height: calc(100vh - 90px);
-		max-height: 80vh;
+		align-items: stretch;
 	}
 
 	.room-title {
 		display: flex;
 		flex-direction: row;
 		justify-content: space-between;
+		border-radius: 1rem;
 		background-color: var(--box-color);
 		position: relative;
 		box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.4);
 		margin-bottom: 0.75rem;
 		padding: 0.25rem;
-		border-radius: 0.375rem;
 	}
 
 	.room-name {
 		text-align: center;
 		font-size: 1.5rem;
-		padding: 3px;
 		margin: 0 auto;
 		white-space: nowrap;
 	}
@@ -196,9 +202,7 @@
 	.messages {
 		display: flex;
 		flex-direction: column;
-		height: 100%;
-		position: relative;
-		/* top: 1.25rem; */
+		flex-grow: 1;
 		overflow-y: auto;
 	}
 

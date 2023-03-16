@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Member, Room, User } from "$lib/entities";
 	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
-	import { unwrap } from "$lib/Alert";
+	import { swal, unwrap } from "$lib/Alert";
 	import { get, post } from "$lib/Web";
 	import { friendStore, userStore } from "$lib/stores";
 	import Swal from "sweetalert2";
@@ -21,7 +21,7 @@
 
 	async function invite(room: Room) {
 		if (!invitee.length) {
-			return Swal.fire({
+			return swal().fire({
 				icon: "warning",
 				text: "Please select a user",
 				timer: 3000,
@@ -32,7 +32,7 @@
 			post(`/${route}/id/${room.id}/invite`, { username: invitee })
 		);
 
-		Swal.fire({ icon: "success", timer: 1000 });
+		swal().fire({ icon: "success", timer: 1000 });
 	}
 
 	function match(user: User) {
@@ -44,7 +44,7 @@
 	}
 </script>
 
-<div class="invite">
+<div class="flex gap-x-1">
 	<input
 		class="input"
 		placeholder="Username"
@@ -70,11 +70,3 @@
 	{/if}
 	<button class="button border-green" on:click={() => invite(room)}>Invite</button>
 </div>
-
-<style>
-	.invite {
-		display: flex;
-		column-gap: 0.25rem;
-	}
-
-</style>

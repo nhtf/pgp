@@ -151,23 +151,27 @@
 	}
 
 	function sendMessage() {
-		if (content.length === 0) return;
-
-		if (callback(content)) content = "";
+		if (content.length) {
+			if (callback(content)) {
+				content = "";
+			} 
+		}
 	}
 </script>
 
-<div class="suggestion-container">
-	{#each suggestions as { src, url, desc }}
-		<img
-			class="suggestion"
-			on:click={() => apply(url)}
-			on:keypress={() => apply(url)}
-			src={src}
-			alt={desc}
-		/>
-	{/each}
-</div>
+{#if suggestions.length}
+	<div class="suggestion-container">
+		{#each suggestions as { src, url, desc }}
+			<img
+				class="suggestion"
+				on:click={() => apply(url)}
+				on:keypress={() => apply(url)}
+				src={src}
+				alt={desc}
+			/>
+		{/each}
+	</div>
+{/if}
 
 <div class="text-container">
 	<!--<textarea class="inline input" bind:value={content} style={`height: ${lines}em`}/>-->
@@ -205,7 +209,7 @@
 
 	.suggestion {
 		max-height: 10em;
-		margin: 0.2em;
+		margin: 0.5em;
 		border-radius: 1em;
 	}
 

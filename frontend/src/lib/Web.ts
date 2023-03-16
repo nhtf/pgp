@@ -6,12 +6,13 @@ export async function json(
 ): Promise<any> {
 	const response = await window.fetch(input, info);
 	const status = response.status;
-	const data = await response.json();
+	const data = await response.text();
+	const parsed = (data ? JSON.parse(data) : {});
 
 	if (!response.ok) {
-		throw { status, message: data.message };
+		throw { status, message: parsed.message };
 	} else {
-		return data;
+		return parsed;
 	}
 }
 

@@ -16,6 +16,7 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { Action, Subject } from "src/enums";
 import * as gm from "gm";
 import type { Achievement } from "src/entities/Achievement";
+import type { AchievementView } from "src/entities/AchievementView";
 import { AchievementProgress } from "src/entities/AchievementProgress";
 
 declare module "express" {
@@ -41,6 +42,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			readonly achievement_repo: Repository<Achievement>,
 			@Inject("ACHIEVEMENTPROGRESS_REPO")
 			readonly progress_repo: Repository<AchievementProgress>,
+			@Inject("ACHIEVEMENTVIEW_REPO")
+			readonly view_repo: Repository<AchievementView>,
 		) { }
 
 		@Get()
@@ -163,38 +166,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			//TODO use a ViewEntity for this!
-			//ViewEntity of Cartesian Product of achievements and user with progress defaulted to 0
-			//TODO select cross join with achievementprogress where user.id = user.id with default value if progress is 0 (actually left join?)
-			/*
-			const progress = await this.progress_repo.find({
-				where: {
-					user: {
-						id: user.id,
-					},
-				},
-				relations: {
-					achievement: {
-						parent: true,
-					},
-				},
-			});
-			const achievements = await this.achievement_repo.find();
-
-			if (progress.length !== achievements.length) {
-				const list = [];
-				for (const achievement of achievements) {
-					if (progress.find((x) => x.id === achievement.id))
-						continue;
-					const missing = new AchievementProgress();
-					missing.achievement = achievement;
-					missing.user = user;
-					list.push(missing);
-					progress.push(missing);
-				}
-				await this.progress_repo.save(list);
-			}
-			return progress.filter((x) => x.achievement.parent !== null);*/
+			const list = await this.view_repo.findBy({ user_id: user.id });
+			return list;
 		}
 
 		@Get(options.cparam + "/friend(s)?")
@@ -307,13 +280,8 @@ export function GenericUserController(route: string, options: { param: string, c
 
 				user.send_friend_update(Action.ADD, target);
 				target.send_friend_update(Action.ADD, user);
-
 			} else {
-				const friend_request = new FriendRequest();
-				friend_request.from = user;
-				friend_request.to = target;
-
-				await this.request_repo.save(friend_request);
+				await this.request_repo.save({ from: user, to: target});
 			}
 			return {};
 		}
@@ -362,16 +330,14 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new ForbiddenException("Already blocked");
 			}
 
-			me.blocked.push(target);
-
-			await this.user_repo.save(me);
+			await this.user_repo.save({ id: me.id, blocked: [...me.blocked, target] });
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
 				action: Action.ADD,
 				id: target.id,
 				value: { id: target.id }
-			});
+			}, me);
 
 			return {};
 		}
@@ -380,21 +346,17 @@ export function GenericUserController(route: string, options: { param: string, c
 		async unblock(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
 			me = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
 
-			const index = me.blocked.findIndex((user) => user.id === target.id);
-		
-			if (index < 0) {
+			if (!me.blocked.map((user) => user.id).includes(target.id)) {
 				throw new ForbiddenException("Not blocked");
 			}
 
-			me.blocked.splice(index, 1);
-
-			await this.user_repo.save(me);
+			await this.user_repo.save({ id: me.id, blocked: me.blocked.filter((user) => user.id !== target.id) });
 		
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
 				action: Action.REMOVE,
 				id: target.id,
-			});
+			}, me);
 
 			return {};
 		}

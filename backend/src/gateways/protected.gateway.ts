@@ -32,13 +32,10 @@ export function ProtectedGateway(namespace?: string) {
 		@WebSocketServer()
 		readonly server: Server;
 
-		constructor(
-			@Inject("USER_REPO")
-			readonly users: Repository<User>,
-		) {}
+		constructor(@Inject("USER_REPO") readonly userRepo: Repository<User>) {}
 
 		async handleConnection(client: Socket) {
-			const user = await authenticate(client.request, this.users);
+			const user = await authenticate(client.request, this.userRepo);
 		
 			if (!user) {
 				client.emit("exception", { errorMessage: "unauthorized" });
@@ -50,18 +47,20 @@ export function ProtectedGateway(namespace?: string) {
 		}
 
 		async handleDisconnect(client: Socket) {
-			const user = await authenticate(client.request, this.users);
-		
-			if (!user) {
-				return ;
+			const id = client.request.session.user_id;
+
+			if (id) {
+				const user = await this.userRepo.findOneBy({ id });
+
+				if (user) {
+					this.onDisconnect(client, user);
+				}
 			}
-			
-			this.onDisconnect(client, user);
 		}
 
 		@SubscribeMessage("join")
 		async join(@ConnectedSocket() client: Socket, @MessageBody() data: { id: number }) {
-			const user = await authenticate(client.request, this.users);
+			const user = await authenticate(client.request, this.userRepo);
 		
 			try {
 				client.room = validate_id(data.id);

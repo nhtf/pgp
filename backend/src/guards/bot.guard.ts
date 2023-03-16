@@ -5,11 +5,6 @@ import type { User } from "src/entities/User";
 export class HumanGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const user = context.switchToHttp().getRequest().user;
-		if (!user)
-			return false;
-
-		if (user.key === undefined || user.key === null)
-			return true;
-		return false;
+		return user && !user.is_bot;
 	}
 }

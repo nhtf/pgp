@@ -244,7 +244,7 @@ export class Net {
 		});
 
 		this.socket.on("exception", (err) => {
-			Swal.fire({
+			swal().fire({
 				icon: "error",
 				text: `${err.message}`,
 			});
@@ -304,7 +304,7 @@ export class Net {
 		this.socket?.close();
 	}
 
-	protected pray(subject: string, significance: number, callToAction: () => void) {
+	public pray(subject: string, significance: number, callToAction: () => void) {
 		this.father.pray(subject, this.time, significance, callToAction);
 	}
 }

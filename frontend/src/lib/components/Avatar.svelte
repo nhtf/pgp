@@ -3,19 +3,16 @@
 	import { page } from "$app/stores";
 	import { put } from "$lib/Web";
 	import Swal from "sweetalert2";
+    import { swal } from "$lib/Alert";
 
 	export let user: User;
 
 	const edit_icon = "/Assets/icons/pen.png";
 
 	async function changeAvatar() {
-		const { value: file } = await Swal.fire({
+		const { value: file } = await swal().fire({
 			title: "Select image",
 			input: "file",
-			color: "var(--text-color)",
-			background: "var(--box-color)",
-			confirmButtonColor: "var(--confirm-color)",
-			cancelButtonColor: "var(--cancel-color)",
 			showCancelButton: true,
 			confirmButtonText: "Select",
 			inputAttributes: {
@@ -33,12 +30,8 @@
 		if (file) {
 			const reader = new FileReader();
 			reader.onload = async (event) => {
-				await Swal.fire({
+				await swal().fire({
 					title: "Change avatar?",
-					color: "var(--text-color)",
-					background: "var(--box-color)",
-					confirmButtonColor: "var(--confirm-color)",
-					cancelButtonColor: "var(--cancel-color)",
 					imageUrl: event.target?.result as string,
 					imageWidth: 400,
 					imageHeight: 400,

@@ -28,6 +28,7 @@ import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
 import { Achievement } from "src/entities/Achievement";
+import { Objective } from "src/entities/Objective";
 
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { Message } from "src/entities/Message";
@@ -73,7 +74,9 @@ export class DebugController {
 		@Inject("GAMESTATE_REPO")
 		private readonly gamestateRepo: Repository<GameState>,
 		@Inject("ACHIEVEMENT_REPO")
-		private readonly achievementRepo: TreeRepository<Achievement>,
+		private readonly achievementRepo: Repository<Achievement>,
+		@Inject("OBJECTIVE_REPO")
+		private readonly objectiveRepo: Repository<Objective>,
 	) {}
 
 	@Get("useradd")
@@ -292,7 +295,12 @@ export class DebugController {
 
 	@Get("ach(s)?")
 	async get_achievements() {
-		return this.achievementRepo.findTrees();
+		return this.achievementRepo.find({ relations: { objectives: true } });
+	}
+
+	@Get("obj(s)?")
+	async get_objectives() {
+		return this.objectiveRepo.find();
 	}
 
 	@Get("addach")
@@ -301,10 +309,8 @@ export class DebugController {
 		@Query("max") max?: number,
 		@Query("desc") desc?: string,
 		@Query("img") img?: string,
-		@Query("parent") parent?: string
 	)
 	{
-		/*
 		const achievement = new Achievement();
 
 		achievement.name = name;
@@ -312,6 +318,7 @@ export class DebugController {
 		achievement.description = desc;
 		achievement.image = img;
 
+		/*
 		if (parent && parent != "") {
 			const id = Number(parent);
 			const up = isNaN(id) ? await this.achievementRepo.findOneBy({ name: parent}) : await this.achievementRepo.findOneBy({ id });
@@ -320,7 +327,18 @@ export class DebugController {
 				throw new NotFoundException(`Parent "${parent}" not found`);
 			achievement.parent = up;
 
-		}
-		return await this.achievementRepo.save(achievement);*/
+		}*/
+		return await this.achievementRepo.save(achievement);
+	}
+
+	@Get("addobj")
+	async create_objective(
+		@Query("threshold") threshold: number,
+		@Query("ach", ParseIDPipe(Achievement)) achievement: Achievement
+	) {
+		const objective = new Objective();
+		objective.threshold = threshold;
+		objective.achievement = achievement;
+		return this.objectiveRepo.save(objective);
 	}
 }

@@ -18,3 +18,5 @@ Member entity (en andere?) hebben dubbele IDs in DB, kan beter via relations
 promote/demote causes wrong order in membergroup
 
 partially merge friend dropdown and member dropdown
+
+store more state in database, like who's turn it is to serve the ball

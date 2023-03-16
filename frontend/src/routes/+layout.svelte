@@ -115,7 +115,7 @@
 	];
 </script>
 
-<Navbar let:hidden let:toggle rounded color="none" class="navbar-bg">
+<Navbar let:hidden let:toggle color="none" class="navbar-bg">
 	<NavBrand href="/">
 		<img src="/favicon.png" class="mr-3 h-6 sm:h-9" alt="pgp logo" />
 		<span

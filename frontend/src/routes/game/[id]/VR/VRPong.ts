@@ -1,4 +1,5 @@
 import { loadModel, createShape } from "./Model";
+import { loadAudio } from "./Audio";
 import { DynamicText } from "./Text";
 import { Entity, createPhysicsObject } from "./Entity";
 import type { EntityObject } from "./Entity";
@@ -104,6 +105,7 @@ async function createScoreboard(world: Pong) {
 		text.mesh.applyMatrix4(matrix);
 		matrix.makeTranslation(-1.38, 0.74, -0.07);
 		text.mesh.applyMatrix4(matrix);
+		text.mesh.updateMatrixWorld();
 		text.mesh.name = "score";
 		text.mesh.userData = text;
 	}
@@ -115,6 +117,7 @@ async function createScoreboard(world: Pong) {
 		text.mesh.applyMatrix4(matrix);
 		matrix.makeTranslation(1.38, 0.74, 0.07);
 		text.mesh.applyMatrix4(matrix);
+		text.mesh.updateMatrixWorld();
 		text.mesh.name = "score";
 		text.mesh.userData = text;
 	}
@@ -176,14 +179,31 @@ export class Ball extends Entity {
 	}
 
 	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {
+		const world = (this.world as Pong);
+
 		if (other?.name == "table") {
+			world.pray("table-sound", 30, () => {
+				const index = Math.floor(Math.random() * world.tableSounds!.length);
+				world.tableSounds![index].play();
+			});
+
 			if (p1.y > 0.785) {
-				this.removed ||= !(this.world as Pong).state!.onTableHit(null);
+				this.removed ||= !world.state!.onTableHit(null);
 			} else {
-				this.removed ||= !(this.world as Pong).state!.onTableHit(p1.x > 0 ? 1 : 0);
+				this.removed ||= !world.state!.onTableHit(p1.x > 0 ? 1 : 0);
 			}
 		} else if (other?.name == "paddle") {
-			this.removed ||= !(this.world as Pong).state!.onPaddleHit((other as Paddle).userID);
+			world.pray("paddle-sound", 30, () => {
+				const index = Math.floor(Math.random() * world.paddleSounds!.length);
+				other.renderObject.add(world.paddleSounds![index]);
+				world.paddleSounds![index].play();
+
+				setTimeout(() => {
+					other.renderObject.remove(world.paddleSounds![index]);
+				}, 500);
+			});
+
+			this.removed ||= !world.state!.onPaddleHit((other as Paddle).userID);
 		}
 	}
 }
@@ -249,6 +269,8 @@ export class Pong extends World {
 	public paddleModel?: THREE.Object3D;
 	public member?: GameRoomMember;
 	public state?: State;
+	public tableSounds?: THREE.PositionalAudio[];
+	public paddleSounds?: THREE.PositionalAudio[];
 	private mainControllerIndex: number = 0;
 
 	public constructor() {
@@ -285,7 +307,7 @@ export class Pong extends World {
 			if (ball === null && paddle !== null && paddle instanceof Paddle) {
 				const team = this.state!.players.find(player => player.user == paddle.userID)!.team;
 
-				console.log(this.state);
+				console.log(this.state!.current?.id, team?.id);
 
 				if (this.state!.current == team) {
 					this.create({
@@ -410,11 +432,17 @@ export class Pong extends World {
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
 
+		this.tableSounds = await Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`)));
+		this.paddleSounds = await Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)));
+		this.paddleSounds.forEach(sound => sound.setVolume(3.0));
+
 		await createLights(this);
 		await createFloor(this);
 		await createScoreboard(this);
 
-		this.add(new Table(this, Table.UUID));
+		const table = new Table(this, Table.UUID);
+		this.tableSounds.forEach(sound => table.renderObject.add(sound));
+		this.add(table);
 
 		this.leftController.addEventListener("selectstart", () => {
 			this.send("ball", {

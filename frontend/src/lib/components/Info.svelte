@@ -12,6 +12,7 @@
 	import Swal from "sweetalert2";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
+    import { swal } from "$lib/Alert";
 
 	const edit_icon = "/Assets/icons/pen.png";
 
@@ -45,15 +46,11 @@
 	}
 
 	async function changeUsername() {
-		await Swal.fire({
+		await swal().fire({
 			title: "Change username",
 			input: "text",
-			color: "var(--text-color)",
 			showCancelButton: true,
 			confirmButtonText: "Set username",
-			confirmButtonColor: "var(--confirm-color)",
-			cancelButtonColor: "var(--cancel-color)",
-			background: "var(--box-color)",
 			showLoaderOnConfirm: true,
 			inputAutoTrim: true,
 			inputPlaceholder: "Enter new username",

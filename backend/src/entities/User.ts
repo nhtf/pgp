@@ -92,7 +92,7 @@ export class User {
 	players: Player[];
 
 	@Exclude()
-	@ManyToOne(() => GameRoom, { nullable: true })
+	@ManyToOne(() => GameRoom, { nullable: true, onDelete: "SET NULL" })
 	activeRoom: GameRoom | null;
 
 	@RelationId((user: User) => user.activeRoom)
@@ -104,6 +104,22 @@ export class User {
 
 	@OneToMany(() => AchievementProgress, (achievement) => achievement.user)
 	achievements: AchievementProgress[];
+
+	@OneToMany(() => User, (bot) => bot.owner)
+	bots: User[];
+
+	@ManyToOne(() => User, (user) => user.bots, { cascade: ["insert", "remove"] }) //TODO set nullable: false
+	owner: User;
+
+	@Column({
+		   nullable: true
+	})
+	@Exclude()
+	api_secret: string | null;
+
+	get is_bot(): boolean {
+		return this.api_secret !== null;
+	}
 
 	@Expose()
 	get status(): Status {
@@ -119,8 +135,8 @@ export class User {
 	}
 
 	@Expose()
-	get teams(): Team[] {
-		return this.activeRoom?.teams;
+	get teams(): Team[] | null {
+		return this.activeRoom?.teams ?? null;
 	}
 
 	@Expose()

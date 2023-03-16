@@ -4,7 +4,7 @@
 	import type { PageData } from "./$types";
 	import { goto } from "$app/navigation";
 	import { page } from "$app/stores";
-	import { unwrap } from "$lib/Alert";
+	import { swal, unwrap } from "$lib/Alert";
 	import { Action, Role, Subject } from "$lib/enums";
 	import { memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
@@ -66,10 +66,7 @@
 	async function unban(user: User) {
 		await unwrap(remove(`/chat/id/${room.id}/bans/${user.id}`));
 
-		Swal.fire({
-			icon: "success",
-			timer: 3000,
-		});
+		swal().fire({ icon: "success", timer: 3000 });
 	
 		banned = banned.filter((user) => user.id !== user.id);
 	}

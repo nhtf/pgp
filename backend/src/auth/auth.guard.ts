@@ -1,10 +1,13 @@
-import { Inject, Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
+import { Inject, Injectable, CanActivate, ExecutionContext, InternalServerErrorException } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { User } from "../entities/User";
 import type { Request } from "express";
 import type { SessionObject } from "src/services/session.service";
 import { authenticate } from "./authenticate";
 import { InjectRepository } from "@nestjs/typeorm";
+import { AuthDTO } from "src/util";
+import { plainToClass } from "class-transformer";
+import * as argon2 from "argon2";
 
 function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 	@Injectable()
@@ -21,6 +24,16 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 			
 			if (!user)
 				return false;
+			if (user.is_bot) {
+				//auth header is already checked in middleware, so no validation is done here
+				if (await argon2.verify(
+					user.api_secret,
+					Buffer.from(plainToClass(AuthDTO,
+											 JSON.parse(Buffer.from(request.headers.authorization, "base64").toString())).secret, "base64")))
+					return true;
+				console.log(user.api_secret);
+				return false;
+			}
 			return (session && session.auth_level >= user.auth_req);
 		}
 	}

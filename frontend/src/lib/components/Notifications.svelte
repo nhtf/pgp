@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Invite } from "$lib/entities";
+	import type { GameRoom, Invite } from "$lib/entities";
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import { page } from "$app/stores";
 	import { respond } from "$lib/invites";
@@ -7,6 +7,8 @@
 	import { inviteStore, userStore } from "$lib/stores";
 	import { onMount } from "svelte";
     import { goto } from "$app/navigation";
+    import { swal, unwrap } from "$lib/Alert";
+    import { get, patch } from "$lib/Web";
 
 	enum Status {
 		UNREAD,
@@ -18,8 +20,6 @@
 
 	let notifMap = new Map<Invite, Status>();
 	let oldLength: number;
-
-	// console.log("A", $inviteStore.unMap());	
 
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: invites = [...$inviteStore.values()];
@@ -40,15 +40,27 @@
 	).length;
 
 	async function acceptInvite(invite: Invite) {
-	
 		mark(invite, Status.REMOVED);
-		respond(invite, "accept");
+		await respond(invite, "accept");
 
-		if (invite.type.endsWith("Room")) {
-			const route = invite.type.replace("Room", "").toLowerCase();
-	
-			// TODO: join team
-			await goto(`/${route}/${invite.room?.id}`);
+		console.log(invite);
+		if (invite.type === "GameRoom") {
+			const room = invite.room as GameRoom;
+			const self = await unwrap(get(`/game/id/${room.id}/self`));
+			const team = room.state.teams[1];
+		
+			await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
+
+			swal().fire({
+				title: "Go to game?",
+				showConfirmButton: true,
+				showCancelButton: true,
+				confirmButtonText: "Go",
+			}).then(async (result) => {
+				if (result.isConfirmed) {
+					await goto(`/game/${room.id}`);
+				}
+			});
 		}
 	}
 

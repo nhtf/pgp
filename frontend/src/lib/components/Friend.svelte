@@ -1,28 +1,74 @@
 <script lang="ts">
 	import type { GameRoomMember, User } from "$lib/entities";
 	import { goto } from "$app/navigation";
-	import { unwrap } from "$lib/Alert";
+	import { swal, unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
-	import { Status } from "$lib/enums";
-	import { gameStateStore, teamStore, userStore } from "$lib/stores";
+	import { Gamemode, Status } from "$lib/enums";
+	import { blockStore, gameStateStore, teamStore, userStore } from "$lib/stores";
 	import { get, patch, post, remove } from "$lib/Web";
 	import { Avatar, Button, Dropdown, DropdownItem } from "flowbite-svelte";
-	import Swal from "sweetalert2";
+    import Swal from "sweetalert2";
+    import { Result } from "postcss";
 
 	export let user: User;
+
+	const options = [ "Classic", "Modern", "VR" ];
+	const items = [
+		{ condition: (user: User) => user.status === Status.INGAME, fun: spectate },
+		{ condition: (user: User) => user.status !== Status.OFFLINE, fun: invite },
+		{ condition: (user: User) => !blockedIds.includes(user.id), fun: block },
+		{ condition: (user: User) => blockedIds.includes(user.id), fun: unblock },
+		{ condition: (user: User) => true, fun: unfriend },
+	]
 
 	$: user = $userStore.get(user.id)!;
 	$: state = [...$gameStateStore.values()].find((state) => state.roomId === user.activeRoomId) ?? null;
 	$: teams = [...$teamStore.values()].filter((team) => team.stateId === state?.id) ??	null;
+	$: blockedIds = [...$blockStore.keys()];
 
-	async function unFriend(user: User) {
+	async function unfriend(user: User) {
 		await remove(`/user/me/friends/${user.id}`);
 
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	// TODO
-	async function invite(user: User) {}
+	async function invite(user: User) {
+		const { value } = await swal().fire({
+			title: "Invite to match",
+			input: "radio",
+			inputOptions: options,
+			confirmButtonText: "Invite",
+		});
+
+		const gamemode = value ? Number(value) : Gamemode.CLASSIC;
+
+		const roomDto = {
+			name: null,
+			password: null,
+			is_private: true,
+			gamemode,
+			players: 2,
+		};
+
+		const room = await unwrap(post(`/game`, roomDto));
+		const self = await unwrap(get(`/game/id/${room.id}/self`));
+		const team = room.state.teams[0];
+	
+		await unwrap(post(`/game/id/${room.id}/invite`, { username: user.username }));
+		await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
+
+		swal().fire({
+			title: "Go to game?",
+			showConfirmButton: true,
+			showCancelButton: true,
+			confirmButtonText: "Go",
+		}).then(async (result) => {
+			if (result.isConfirmed) {
+				await goto(`/game/${room.id}`);
+			}
+		});
+	}
 
 	async function spectate(user: User) {
 		const id = user.activeRoomId;
@@ -42,14 +88,20 @@
 	async function block(user: User) {
 		await unwrap(post(`/user/me/block/${user.id}`));
 
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function unblock(user: User) {
 		await unwrap(remove(`/user/me/unblock/${user.id}`));
 	
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
+
+
+	function capitalize(name: string) {
+		return `${name.slice(0, 1).toUpperCase()}${name.slice(1).toLowerCase()}`
+	}
+
 </script>
 
 <Button color="alternative" class="friend-button avatar-status{user.status}">
@@ -72,18 +124,12 @@
 	class="bor-c bg-c"
 	frameClass="bor-c bg-c"
 >
-	<DropdownItem href={`/profile/${encodeURIComponent(user.username)}`}
-		>profile</DropdownItem
-	>
-	{#if user.status === Status.INGAME}
-		<DropdownItem on:click={() => spectate(user)}>spectate</DropdownItem>
-	{/if}
-	{#if user.status !== Status.OFFLINE}
-		<DropdownItem on:click={() => invite(user)}>invite game</DropdownItem>
-	{/if}
-	<DropdownItem on:click={() => block(user)}>block</DropdownItem>
-	<DropdownItem on:click={() => unblock(user)}>unblock</DropdownItem>
-	<DropdownItem on:click={() => unFriend(user)} slot="footer">unfriend</DropdownItem>
+	<DropdownItem href={`/profile/${encodeURIComponent(user.username)}`}>Profile</DropdownItem>
+	{#each items as { condition, fun }}
+		{#if condition(user)}
+			<DropdownItem on:click={() => fun(user)}>{capitalize(fun.name)}</DropdownItem>
+		{/if}
+	{/each}
 </Dropdown>
 {#if user.activeRoomId}
 	<div class="flex row">

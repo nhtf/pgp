@@ -2,7 +2,7 @@ import { a, FIELDWIDTH, scoreColors, scorePositions } from "./Constants";
 import type { Team } from "../lib2D/Team";
 
 
-
+//TODO draw score on canvas instead of webgl?
 export class Score {
 
     private r: number;
@@ -24,7 +24,6 @@ export class Score {
         context.fill();
     }
 
-    //TODO need to check the field for where to place the score?
     public render(context: CanvasRenderingContext2D) {
         let index = 0;
         if (this.teams.length === 4)

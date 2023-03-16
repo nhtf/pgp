@@ -4,8 +4,9 @@
 	import { post } from "$lib/Web";
 	import { friendStore, userStore } from "$lib/stores";
 	import "@sweetalert2/theme-dark/dark.scss";
-	import Swal from "sweetalert2";
 	import Friend from "./Friend.svelte";
+    import { swal } from "$lib/Alert";
+    import { byStatusThenName } from "$lib/sorting";
 
 	const friend_icon = `${icon_path}/add-friend.png`;
 
@@ -13,24 +14,10 @@
 		.map(([id, _]) => $userStore.get(id)!)
 		.sort(byStatusThenName);
 
-	function byStatusThenName(first: User, second: User) {
-		let cmp = second.status - first.status;
-
-		if (!cmp) {
-			cmp = first.username.localeCompare(second.username);
-		}
-
-		return cmp;
-	}
-
 	async function toggleAddfriend() {
-		await Swal.fire({
+		await swal().fire({
 			title: "Add friend",
 			input: "text",
-			color: "var(--text-color)",
-			background: "var(--box-color)",
-			confirmButtonColor: "var(--confirm-color)",
-			cancelButtonColor: "var(--cancel-color)",
 			confirmButtonText: "Add friend",
 			showCancelButton: true,
 			inputValidator: async (username) => {
@@ -43,7 +30,7 @@
 			},
 		}).then(async (result) => {
 			if (result.isConfirmed) {
-				Swal.fire({
+				swal().fire({
 					position: "top-end",
 					icon: "success",
 					title: "Successfully sent friend request",

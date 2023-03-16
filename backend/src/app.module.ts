@@ -34,6 +34,7 @@ import { EntitySubscriber } from "src/subscribers/entity.subscriber"
 import { ReceiverFinder } from "src/ReceiverFinder"
 import { RateLimitMiddleware } from "src/middleware/ratelimit.middleware";
 import { TREE_KEY } from "src/util";//TODO delete
+import { BotController } from "src/controllers/bot.controller";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -67,6 +68,7 @@ const entityFiles = [
 	"./entities/Achievement",
 	"./entities/AchievementProgress",
 	"./entities/Objective",
+	"./entities/AchievementView",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({
@@ -100,7 +102,7 @@ export const dataSource = new DataSource({
 	}),
 	subscribers: [EntitySubscriber],
 	synchronize: true, //TODO disable and test before turning in
-	// logging: true,
+	//logging: true,
 	// TODO enable cache? (cache: true)
 });
 
@@ -176,6 +178,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		UserUsernameController,
 		ChatRoomController,
 		MediaController,
+		BotController,
 	],
 	providers: [
 		GameGateway,

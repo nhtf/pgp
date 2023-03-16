@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { Member, User } from "$lib/entities";
-	import { unwrap } from "$lib/Alert";
+	import { swal, unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
-	import { Role, roles, Gamemode } from "$lib/enums";
+	import { Role, roles } from "$lib/enums";
 	import { blockStore, userStore } from "$lib/stores";
 	import { patch, post, remove } from "$lib/Web";
 	import { page } from "$app/stores";
@@ -42,7 +42,7 @@
 			remove(`/chat/id/${member.roomId}/members/${member.id}`, { ban })
 		);
 
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function mute(member: Member, minutes: number) {
@@ -54,31 +54,27 @@
 			})
 		);
 
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function block(user: User) {
 		await unwrap(post(`/user/me/block/${user.id}`));
 
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function unblock(user: User) {
 		await unwrap(remove(`/user/me/unblock/${user.id}`));
 	
-		Swal.fire({ icon: "success", timer: 3000 });
+		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function invite(user: User) {
-		const { value } = await Swal.fire({
+		const { value } = await swal().fire({
 			title: "Invite to match",
 			input: "radio",
 			inputOptions: options,
-			color: "var(--text-color)",
 			confirmButtonText: "Invite",
-			confirmButtonColor: "var(--confirm-color)",
-			cancelButtonColor: "var(--cancel-color)",
-			background: "var(--box-color)",
 		});
 
 		const roomDto = {

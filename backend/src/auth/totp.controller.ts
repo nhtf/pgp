@@ -11,6 +11,7 @@ import {
 	Body,
 	Inject,
 	HttpCode,
+	InternalServerErrorException
 } from "@nestjs/common";
 import { Request } from "express";
 import { authenticator } from "otplib";
@@ -19,6 +20,7 @@ import { AuthLevel } from "src/enums";
 import { Length, IsNumberString } from "class-validator";
 import { HttpAuthGuard } from "./auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";
+import { HumanGuard } from "src/guards/bot.guard";
 import * as qrcode from "qrcode";
 import { Me } from "../util";
 import { User } from "../entities/User";
@@ -28,12 +30,10 @@ import { Repository } from "typeorm";
 class OAuthGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
-		let response = context.switchToHttp().getResponse();
-		if (
-			request.session.access_token === undefined ||
-			request.session.auth_level !== AuthLevel.OAuth
-		) {
-			response.status(401).json("unauthorized");
+		const response = context.switchToHttp().getResponse();
+		//TODO check for null and undefined instead of !request.session?.access_token ?
+		if (!request.session?.access_token || !(request.session?.auth_level >= AuthLevel.OAuth)) {
+			response.status(401).json("Unauthorized");
 			return false;
 		}
 		return true;
@@ -47,6 +47,7 @@ class OtpDTO {
 }
 
 @Controller("otp")
+@UseGuards(OAuthGuard, HumanGuard)
 export class TotpController {
 	constructor(
 		private readonly session_utils: SessionService,
@@ -67,10 +68,7 @@ export class TotpController {
 
 		session.secret = secret;
 		if (!this.session_utils.save_session(session))
-			throw new HttpException(
-				"unable to save session",
-				HttpStatus.SERVICE_UNAVAILABLE,
-			);
+			throw new InternalServerErrorException();
 
 		const otpauth = authenticator.keyuri(user.username, "pgp", secret);
 		const promise = new Promise((resolve: (value: string) => void, reject) => {
@@ -80,20 +78,21 @@ export class TotpController {
 			});
 		});
 
-		let qr = "";
 		try {
-			qr = await promise;
+			const qr = await promise;
+			return { secret, qr };
 		} catch (error) {
 			console.log("qr", error);
+			throw new InternalServerErrorException();
 		}
-		return { secret, qr };
 	}
 
 	@Post("disable")
+	@HttpCode(HttpStatus.NO_CONTENT)
 	@UseGuards(HttpAuthGuard, SetupGuard)
 	async disable(@Me() user: User, @Req() request: Request) {
 		if (request.session.auth_level != AuthLevel.TWOFA)
-			throw new HttpException("no totp has been set up", HttpStatus.FORBIDDEN);
+			throw new HttpException("No totp has been set up", HttpStatus.FORBIDDEN);
 
 		user.secret = undefined;
 		user.auth_req = AuthLevel.OAuth;
@@ -118,16 +117,12 @@ export class TotpController {
 		request: Request,
 	): Promise<void> {
 		if (!authenticator.check(otp, secret))
-			throw new HttpException("invalid otp", HttpStatus.CONFLICT);
+			throw new HttpException("Invalid otp", HttpStatus.CONFLICT);
 
 		const access_token = request.session.access_token;
 		const id = request.session.user_id;
 
-		if (!(await this.session_utils.regenerate_session_req(request)))
-			throw new HttpException(
-				"unable to create request.session",
-				HttpStatus.INTERNAL_SERVER_ERROR,
-			);
+		await this.session_utils.regenerate_session_req(request);
 
 		request.session.access_token = access_token;
 		request.session.user_id = id;
@@ -140,7 +135,7 @@ export class TotpController {
 	@UseGuards(HttpAuthGuard, SetupGuard)
 	async setup_verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
 		if (!request.session.secret) {
-			throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+			throw new HttpException("Forbidden", HttpStatus.FORBIDDEN);
 		}
 
 		const secret = request.session.secret;
@@ -150,15 +145,15 @@ export class TotpController {
 		user.auth_req = AuthLevel.TWOFA;
 		user.secret = secret;
 
-		return await this.userRepo.save(user);
+		await this.userRepo.save(user);
 	}
 
 	@Post("verify")
-	@HttpCode(HttpStatus.OK)
-	@UseGuards(OAuthGuard, SetupGuard)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	@UseGuards(SetupGuard)
 	async verify(@Me() user: User, @Body() otp_dto: OtpDTO, @Req() request: Request) {
 		if (request.session.secret) {
-			throw new HttpException("forbidden", HttpStatus.FORBIDDEN);
+			throw new HttpException("Forbidden", HttpStatus.FORBIDDEN);
 		}
 
 		if (user.auth_req !== AuthLevel.TWOFA) {

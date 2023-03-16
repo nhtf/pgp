@@ -26,6 +26,7 @@ export class Program {
     private uniformGradient: WebGLUniformLocation;
     private uniformGradientPos: WebGLUniformLocation;
     private uniformGradientRadius: WebGLUniformLocation;
+    private uniformRotation: WebGLUniformLocation;
 
     public constructor(gl: WebGL2RenderingContext, vert: string, frag: string) {
         this.program = this.createProgram(gl, vert, frag);
@@ -40,6 +41,7 @@ export class Program {
         this.uniformGradient = gl.getUniformLocation(this.program, "gradient")!;
         this.uniformGradientPos = gl.getUniformLocation(this.program, "gradientPos")!;
         this.uniformGradientRadius = gl.getUniformLocation(this.program, "gradientRadius")!;
+        this.uniformRotation = gl.getUniformLocation(this.program, "rotation")!;
     }
 
     public useProgram(gl: WebGL2RenderingContext, uniform: uniforms) {
@@ -72,6 +74,8 @@ export class Program {
                 gl.uniform2f(this.uniformGradientPos, value.x, value.y);
             case "gradientRadius": 
                 gl.uniform2f(this.uniformGradientRadius, value[0], value[1]);
+            case "rotation":
+                gl.uniform1f(this.uniformRotation, value);
             default:
                 break;
         }

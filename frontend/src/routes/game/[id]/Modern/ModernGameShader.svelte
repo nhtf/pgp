@@ -1,28 +1,24 @@
 <script lang="ts">
 	import { onMount, onDestroy } from "svelte";
 	import { page } from "$app/stores";
-	// import { Modern } from "./Modern";
+	import { Modern } from "./ModernShader";
 	import type { GAME } from "./Constants";
-	import {RippleShader} from "./Shader/fullShader";
 
 	let canvas: HTMLCanvasElement;
 
-	// export let gameMode: GAME;
+	export let gameMode: GAME;
 	
-	// let modern: Modern;
+	let modern: Modern;
 	let animation: number;
 
 	//TODO implement powerups
 	onMount(async () => {
-		const rippleShader = new RippleShader(canvas);
-		// modern = new Modern(rippleShader.getCanvas(), gameMode);
-		// rippleShader.addEventListener(modern);
-		// await modern.init();
-		// await modern.start({ room: $page.data.params.id, member: {user: $page.data.user, ...$page.data.member }});
+		modern = new Modern(gameMode);
+		await modern.init(canvas);
+		await modern.start({ room: $page.data.room, member: {user: $page.data.user, ...$page.data.member }});
 
 		animation = window.requestAnimationFrame(function render(time) {
-			// modern.update(time);
-			rippleShader.update(time);
+			modern.update(time);
 			animation = window.requestAnimationFrame(render);
 		});
 		canvas.requestPointerLock();
@@ -33,7 +29,7 @@
 	});
 
 	onDestroy(() => {
-		// modern.stop();
+		modern.stop();
 		cancelAnimationFrame(animation);//this is needed otherwise it will continue to update even after going to other page
 	});
 

@@ -41,34 +41,34 @@ export class Paddle {
 		this.team = team;
 	}
 
-	public render(context: CanvasRenderingContext2D) {
-        context.save();
-        context.lineWidth = linethickness;
-        context.fillStyle = this.fillColor;
-        context.strokeStyle = this.strokeColor;
-		context.lineJoin = "round";
+	// public render(context: CanvasRenderingContext2D) {
+    //     context.save();
+    //     context.lineWidth = linethickness;
+    //     context.fillStyle = this.fillColor;
+    //     context.strokeStyle = this.strokeColor;
+	// 	context.lineJoin = "round";
 
 
-		const crot = Math.cos(this.rotation);
-        const srot = Math.sin(this.rotation);
-        const w = this.width;
-        const h = this.height / 2;
+	// 	const crot = Math.cos(this.rotation);
+    //     const srot = Math.sin(this.rotation);
+    //     const w = this.width;
+    //     const h = this.height / 2;
 
-        const A = {x: crot * -w + srot * -h, y: -srot * -w + crot * -h};
-        const B = {x: crot * w + srot * -h, y: -srot * w + crot * -h};
-		const AB = {x: srot * -h, y: crot * -h}; //Middle between A and B
-		const D = {x: crot * w + srot * h, y: -srot * w + crot * h};
-		const CD = {x: srot * h, y: crot * h};
-		context.beginPath();
-		context.arc(this.position.x + AB.x , this.position.y + AB.y, this.width, Math.PI - this.rotation, -this.rotation);
-        context.lineTo(this.position.x + B.x, this.position.y + B.y);
-        context.lineTo(this.position.x + D.x, this.position.y + D.y);
-		context.arc(this.position.x + CD.x , this.position.y + CD.y, this.width, - this.rotation, Math.PI - this.rotation);
-		context.lineTo(this.position.x + A.x, this.position.y + A.y);
-        context.fill();
-        context.stroke();
-        context.restore();
-	}
+    //     const A = {x: crot * -w + srot * -h, y: -srot * -w + crot * -h};
+    //     const B = {x: crot * w + srot * -h, y: -srot * w + crot * -h};
+	// 	const AB = {x: srot * -h, y: crot * -h}; //Middle between A and B
+	// 	const D = {x: crot * w + srot * h, y: -srot * w + crot * h};
+	// 	const CD = {x: srot * h, y: crot * h};
+	// 	context.beginPath();
+	// 	context.arc(this.position.x + AB.x , this.position.y + AB.y, this.width, Math.PI - this.rotation, -this.rotation);
+    //     context.lineTo(this.position.x + B.x, this.position.y + B.y);
+    //     context.lineTo(this.position.x + D.x, this.position.y + D.y);
+	// 	context.arc(this.position.x + CD.x , this.position.y + CD.y, this.width, - this.rotation, Math.PI - this.rotation);
+	// 	context.lineTo(this.position.x + A.x, this.position.y + A.y);
+    //     context.fill();
+    //     context.stroke();
+    //     context.restore();
+	// }
 
 	public save(): PaddleObject {
 		return {
@@ -91,8 +91,8 @@ export class Paddle {
 	}
 
 	public getCollisionLines(): CollisionLine[] {
-		const crot = Math.cos(this.rotation);
-        const srot = Math.sin(this.rotation);
+		const crot = Math.cos(this.rotation + Math.PI / 2);
+        const srot = Math.sin(this.rotation + Math.PI / 2);
         const w = this.width;
         const h = this.height / 2;
 
@@ -119,26 +119,26 @@ export class Paddle {
 		];
 	}
 
-	public renderCollisionLines(context: CanvasRenderingContext2D) {
-		const collisionLines = this.getCollisionLines();
-		context.save();
-        context.lineWidth = 0.3;
-        context.strokeStyle = "red";
-		context.lineJoin = "round";
+	// public renderCollisionLines(context: CanvasRenderingContext2D) {
+	// 	const collisionLines = this.getCollisionLines();
+	// 	context.save();
+    //     context.lineWidth = 0.3;
+    //     context.strokeStyle = "red";
+	// 	context.lineJoin = "round";
 
-		for (let line of collisionLines) {
-			context.beginPath();
-			context.moveTo(line.p0.x, line.p0.y);
-			context.lineTo(line.p1.x, line.p1.y);
-			context.stroke();
-		}
-        context.stroke();
-        context.restore();
-	}
+	// 	for (let line of collisionLines) {
+	// 		context.beginPath();
+	// 		context.moveTo(line.p0.x, line.p0.y);
+	// 		context.lineTo(line.p1.x, line.p1.y);
+	// 		context.stroke();
+	// 	}
+    //     context.stroke();
+    //     context.restore();
+	// }
 
 	public isInPlayerArea(pos: Vector, area: CollisionLine[]) {
-		const crot = Math.cos(this.rotation);
-        const srot = Math.sin(this.rotation);
+		const crot = Math.cos(this.rotation + Math.PI / 2);
+        const srot = Math.sin(this.rotation + Math.PI / 2);
         const w = this.width;
         const h = this.height / 2;
 

@@ -4,7 +4,7 @@ import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder, DeepPartial } from "typeorm";
 import { Access, Role, Subject, Action } from "src/enums";
 import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException } from "@nestjs/common";
 import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions } from "class-validator";
@@ -259,8 +259,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return this.relations(qb
 				.leftJoinAndSelect("room.members", "member")
 				.leftJoinAndSelect("member.user", "user")
+				.leftJoinAndSelect("member.player", "player")
 			);
-				
 		}
 
 		async get_member(user: User, room: Room): Promise<U | null> {
@@ -330,7 +330,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		@Get("id/:id")
 		@RequiredRole(Role.MEMBER)
 		async get_room(@Me() me: User, @GetRoom() room: T) {
-			return { ...instanceToPlain(room), self: room.self(me)}
+			return { ...instanceToPlain(room), joined: true, self: room.self(me)}
 		}
 
 		@Patch("id/:id")
@@ -483,8 +483,17 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Delete("id/:id")
 		@RequiredRole(Role.OWNER)
-		async delete_room(@GetRoom() room: T) {
-			return await this.room_repo.remove(room);
+		async delete_room(@Param("id", ParseIDPipe(type, { invites: true })) room: T) {
+			await this.room_repo.remove(room);
+
+			// Cascade delete doesn't trigger subscriber because why would it
+			room.invites.forEach((invite) => {
+				UpdateGateway.instance.send_update({
+					subject: Subject.INVITE,
+					action: Action.REMOVE,
+					id: invite.id,
+				});
+			});
 		}
 
 		@Patch("id/:id/member(s)?/:target")
@@ -492,10 +501,10 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		async edit_member(
 			@GetMember() member: U,
 			@GetRoom() room: T,
-			@Param("target", ParseIDPipe(MemberType, { room: true })) target: U,
+			@Param("target", ParseIDPipe(MemberType)) target: U,
 			@Body("role", new ParseEnumPipe(Role)) role: Role
 		) {
-			if (target.room.id !== room.id) {
+			if (!room.members.map((member) => member.id).includes(target.id)) {
 				throw new BadRequestException(ERR_NOT_MEMBER);
 			}
 
@@ -503,13 +512,10 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException(ERR_PERM);
 			}
 
-			target.role = role;
-
-			await this.member_repo.save(target);
+			await this.member_repo.save({ id: target.id, role } as DeepPartial<U>);
 
 			if (role === Role.OWNER) {
-				member.role = Role.ADMIN;
-				await this.member_repo.save(member);
+				await this.member_repo.save({ id: member.id, role: Role.ADMIN } as DeepPartial<U>);
 			}
 
 			return {};
@@ -550,13 +556,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException("Cannot invite banned user");
 			}
 
-			const invite = new RoomInvite;
-
-			invite.from = me;
-			invite.to = target;
-			invite.room = room;
-
-			return await this.invite_repo.save(invite);
+			return await this.invite_repo.save({ from: me, to: target, room, type: room.type });
 		}
 
 		@Delete("id/:id/invite(s)?/:invite")

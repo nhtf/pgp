@@ -1,9 +1,9 @@
 // export let m3 = 
 export class m3{
-    private _matrix: number[];
+    public matrix: number[];
     constructor() {
         //Identity Matrix
-        this._matrix = [
+        this.matrix = [
                 1,0,0,
                 0,1,0,
                 0,0,1
@@ -17,18 +17,18 @@ export class m3{
             0, 1, 0,
             tx, ty, 1,
           ];
-        this._matrix =  this.multiply(mata, this.matrix);
+        this.matrix =  this.multiply(mata, this.matrix);
     }
 
     rotationXAxis(angleInRadians: number) {
       var c = Math.cos(angleInRadians);
       var s = Math.sin(angleInRadians);
       const mata = [
-        1,0, 0,
+        1, 0, 0,
         0, c, -s,
         0, s, c,
       ];
-      this._matrix = this.multiply(mata, this.matrix);
+      this.matrix = this.multiply(mata, this.matrix);
     }
 
     rotationYAxis(angleInRadians: number) {
@@ -39,10 +39,10 @@ export class m3{
         0, 1, 0,
         -s, 0, c,
       ];
-      this._matrix = this.multiply(mata, this.matrix);
+      this.matrix = this.multiply(mata, this.matrix);
     }
    
-    rotation(angleInRadians: number) {
+    rotationZAxis(angleInRadians: number) {
       var c = Math.cos(angleInRadians);
       var s = Math.sin(angleInRadians);
       const mata = [
@@ -50,7 +50,8 @@ export class m3{
         s, c, 0,
         0, 0, 1,
       ];
-      this._matrix = this.multiply(mata, this.matrix);
+      // this._matrix = mata;
+      this.matrix = this.multiply(mata, this.matrix);
     }
    
     scaling(sx: number, sy: number) {
@@ -60,7 +61,7 @@ export class m3{
         0, 0, 1,
       ];
 
-      this._matrix = this.multiply(mata, this.matrix);
+      this.matrix = this.multiply(mata, this.matrix);
     }
 
     multiply(a: number[], b: number[]) {
@@ -96,9 +97,9 @@ export class m3{
         ];
       }
 
-      get matrix() {
-        return this._matrix;
-      }
+      // get matrix() {
+      //   return this._matrix;
+      // }
   };
 
 export const mat3Identity = [

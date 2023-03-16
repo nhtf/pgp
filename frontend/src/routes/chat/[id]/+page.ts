@@ -14,19 +14,17 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	const members: Member[] = await unwrap(get(`/chat/id/${params.id}/members`));
 	const messages: Message[] = await unwrap(get(`/chat/id/${params.id}/messages`));
 
-	const member: Member = members.find((member) => member.userId === user!.id)!;
-
 	updateStore(roomStore, [room]);
 	updateStore(userStore, users);
 	updateStore(memberStore, members);
 
 	let banned: User[] | null = null;
 
-	if (member.role >= Role.ADMIN) {
+	if (room.self!.role >= Role.ADMIN) {
 		banned = await unwrap(get(`/chat/id/${params.id}/bans`));
 	
 		updateStore(userStore, banned!);
 	}
 
-    return { room, member, members, messages, banned };
+    return { room, members, messages, banned };
 }) satisfies PageLoad;

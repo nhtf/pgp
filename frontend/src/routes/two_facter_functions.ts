@@ -3,12 +3,13 @@ import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
 import { BACKEND } from "$lib/constants";
 import { post } from "$lib/Web"
+import { swal } from "$lib/Alert"
 
 export async function enable_2fa() {
     const data = await post(`/otp/setup`);
 
 	const promise = new Promise(async (resolve, reject) => {
-		await Swal.fire({
+		await swal().fire({
 		    title: "Setup 2FA",
 		    footer: `${data.secret}`,
 		    input: "text",
@@ -18,9 +19,6 @@ export async function enable_2fa() {
 		    imageAlt: "2FA qr code",
 		    showCancelButton: true,
 		    confirmButtonText: "Setup",
-		    confirmButtonColor: "var(--confirm-color)",
-		    cancelButtonColor: "var(--cancel-color",
-		    background: "var(--box-color)",
 		    showLoaderOnConfirm: true,
 		    inputAutoTrim: true,
 		    inputPlaceholder: "Enter your 2FA code",
@@ -32,11 +30,8 @@ export async function enable_2fa() {
 				return null;
 		    },
 		    preConfirm: async (code) => {
-				return post(`/otp/setup_verify`, {	otp: code })
+				return post(`/otp/setup_verify`, { otp: code })
 					.then((response) => {
-						if (!response.ok) {
-							throw new Error("not ok");
-						}
 						return null;
 					})
 					.catch((error) => {
@@ -47,7 +42,7 @@ export async function enable_2fa() {
 		    allowOutsideClick: () => !Swal.isLoading(),
 		}).then((result) => {
 		    if (result.isConfirmed) {
-				Swal.fire({
+				swal().fire({
 					position: "top-end",
 					icon: "success",
 					title: "Successfully setup 2FA",
@@ -68,7 +63,7 @@ export async function enable_2fa() {
 
 export async function disable_2fa() {
 	const promise = new Promise(async (resolve, reject) => {
-		await Swal.fire({
+		await swal().fire({
 			title: "Are you sure?",
 			icon: "warning",
 			showCancelButton: true,
@@ -78,14 +73,8 @@ export async function disable_2fa() {
 			allowOutsideClick: () => !Swal.isLoading(),
 			focusCancel: true,
 			preConfirm: async () => {
-			    return fetch(`${BACKEND}/otp/disable`, {
-					method: "POST",
-					credentials: "include",
-			    })
+			    return post(`/otp/disable`)
 				.then((response) => {
-				    if (!response.ok) {
-						throw (response.statusText);
-					}
 				    return null;
 				})
 				.catch((error) => {
@@ -95,7 +84,7 @@ export async function disable_2fa() {
 			},
 			}).then((result) => {
 			if (result.isConfirmed) {
-			    Swal.fire({
+			    swal().fire({
 				position: "top-end",
 				icon: "success",
 				title: "Successfully disabled 2FA",

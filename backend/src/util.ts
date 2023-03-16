@@ -16,7 +16,7 @@ import { Status } from "src/enums";
 import { IDLE_TIME, OFFLINE_TIME } from "./vars";
 import isNumeric from "validator/lib/isNumeric";
 import isLength from "validator/lib/isLength";
-import { IsString, Matches } from "class-validator";
+import { IsString, Matches, IsNumber, IsBase64 } from "class-validator";
 
 export class UsernameDTO {
 	@IsString()
@@ -25,6 +25,14 @@ export class UsernameDTO {
 	username: string;
 }
 
+export class AuthDTO {
+	@IsNumber()
+	id: number;
+
+	@IsString()
+	@IsBase64()
+	secret: string;
+}
 
 export function get_status(last_activity: Date): Status {
 	const last = Date.now() - last_activity.getTime();

@@ -3,12 +3,7 @@ import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "../Constants";
 import { BallShader } from "./BallShader";
 import  { FieldShader } from "./FieldShader";
 import { GridShader } from "./GridShader";
-
-
-enum SHADER {
-	NORMAL,
-	RIPPLE
-};
+import { PaddleShader } from "./PaddleShader";
 
 export function createBuffer(gl: WebGLRenderingContext, data: number[]): WebGLBuffer {
 	const buffer = gl.createBuffer()!;
@@ -32,126 +27,109 @@ export function setOriginRipple(x: number, y: number) {
 	position.y = 1 - ((y + 22.5) / HEIGHT);
 }
 
-export class RippleShader {
+//TODO remake the debug renderer for the collisionlines
+export class FullShader {
 	private gl: WebGL2RenderingContext;
-	private outerCanvas: HTMLCanvasElement;
-	private bufferPos: WebGLBuffer;
-	private bufferCoord: WebGLBuffer;
+	private canvas: HTMLCanvasElement;
 	private ballShader: BallShader;
 	private gridShader: GridShader;
 	private fieldShader: FieldShader;
+	private paddleShader: PaddleShader;
 	private timer: number;
 	private lastTime: number;
 	private ballPos: VectorObject;
 
-	public constructor(canvas: HTMLCanvasElement) {
-		this.outerCanvas = canvas;
-		// this.innerCanvas = document.createElement("canvas");
+	public constructor(canvas: HTMLCanvasElement, level: any) {
+		this.canvas = canvas;
 		this.gl = canvas.getContext("webgl2", {antialias: true})!;
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
 		this.ballShader = new BallShader(this.gl, this.scale());
 		this.gridShader = new GridShader(this.gl, this.scale());
-		this.fieldShader = new FieldShader(this.gl, this.scale());
+		this.fieldShader = new FieldShader(this.gl, this.scale(), level);
+		this.paddleShader = new PaddleShader(this.gl, this.scale(), level);
 		this.timer = 0;
 		this.lastTime = 0;
-		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
-		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
-		console.log(this.gl.getParameter(this.gl.SHADING_LANGUAGE_VERSION));
 		this.ballPos = {x: 0, y: 0};
-
-
-		//Debug function
-		this.outerCanvas.addEventListener("mousemove", ev => {
-			// const xScale = Math.floor(this.outerCanvas.width / WIDTH);
-			// const yScale = Math.floor(this.outerCanvas.height / HEIGHT);
-			// const minScale = Math.min(xScale, yScale);
-			// const x = ((ev.clientX) / minScale);
-			// const y = HEIGHT * minScale - ((ev.clientY) / minScale);
-			const x = Math.floor((ev.offsetX));
-			const y = this.outerCanvas.height - Math.floor((ev.offsetY));
-			this.ballPos = {x: x, y: y};
-			this.ballShader.moveBall({x: x, y: y});
-			// events.mousemove(x, y);
-		});
-	}
-
-	private bufferPosData(): number[] {
-		const x = 1.0 * this.scale();
-		const y = 1.0 * this.scale();
-		return [-x, -y, x, -y, -x, y, x, y];
 	}
 
 	private scale(): number {
-		const xScale = this.outerCanvas.clientWidth / WIDTH;
-		const yScale = this.outerCanvas.clientHeight / HEIGHT;
+		const xScale = this.canvas.clientWidth / WIDTH;
+		const yScale = this.canvas.clientHeight / HEIGHT;
 		return Math.floor(Math.min(xScale, yScale));
 	}
 
 	public addEventListener(events: Events) {
-		this.outerCanvas.addEventListener("mousemove", ev => {
-			const xScale = Math.floor(this.outerCanvas.width / WIDTH);
-			const yScale = Math.floor(this.outerCanvas.height / HEIGHT);
+		this.canvas.addEventListener("mousemove", ev => {
+			const xScale = Math.floor(this.canvas.width / WIDTH);
+			const yScale = Math.floor(this.canvas.height / HEIGHT);
 			const minScale = Math.min(xScale, yScale);
 			const x = ((ev.movementX) / minScale);
 			const y = ((ev.movementY) / minScale);
-			console.log("mousemove: ", ev.movementX, ev.movementY);
-			this.ballShader.moveBall({x: x, y: y});
 			events.mousemove(x, y);
 		});
 
-        this.outerCanvas.addEventListener("wheel", ev => {
+        this.canvas.addEventListener("wheel", ev => {
             const rotation = ev.deltaY / 16 * 2 * 0.01745329;
 				events.mouseWheel(rotation);
 			});
 	}
 
 	public getCanvas(): HTMLCanvasElement {
-		return this.outerCanvas;
+		return this.canvas;
+	}
+
+	public movePaddle(pos: VectorObject, paddleIndex: number) {
+		const otherPos = {x: (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.scale(), y: (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.scale()};
+		const morePos = {x: (otherPos.x) / (WIDTH * this.scale() / 2) - 1, y: (otherPos.y) / (HEIGHT * this.scale() / 2) - 1}
+		this.paddleShader.movePaddle(morePos, paddleIndex);
+	}
+
+	public rotatePaddle(angle: number, paddleIndex: number) {
+		this.paddleShader.rotatePaddle(angle, paddleIndex);
+	}
+
+	public moveBall(pos: VectorObject) {
+		const xOffset = Math.floor((this.canvas.width - WIDTH * this.scale()) / 2);
+		const yOffset = Math.floor((this.canvas.height - HEIGHT * this.scale()) / 2);
+		this.ballPos.x = (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.scale() + xOffset;
+		this.ballPos.y = (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.scale() + yOffset;
+		this.ballShader.moveBall(this.ballPos);
 	}
 
 	public update(time: number) {
 		
 		let refresh = false;
-		if (this.outerCanvas.clientWidth != this.outerCanvas.width) {
-			this.outerCanvas.width = this.outerCanvas.clientWidth;
+		if (this.canvas.clientWidth != this.canvas.width) {
+			this.canvas.width = this.canvas.clientWidth;
 			refresh = true;
 		}
 
-		if (this.outerCanvas.clientHeight != this.outerCanvas.height) {
-			this.outerCanvas.height = this.outerCanvas.clientHeight;
+		if (this.canvas.clientHeight != this.canvas.height) {
+			this.canvas.height = this.canvas.clientHeight;
 			refresh = true;
 		}
 
 		//For clearing the whole screen
-		this.gl.viewport(0, 0, this.outerCanvas.width, this.outerCanvas.height);
+		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
 		this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
 		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
 
-		//Here need to update all the buffers
 		if (refresh) {
+			const scale = this.scale();
+			this.ballShader.updateScale(scale);
+			this.gridShader.updateScale(scale);
+			this.fieldShader.updateScale(scale);
+			this.paddleShader.updateScale(scale);
 			refresh = false;
-			this.bufferPos = createBuffer(this.gl, this.bufferPosData());
-			this.ballShader.updateScale(this.scale());
-			this.gridShader.updateScale(this.scale());
-			this.fieldShader.updateScale(this.scale());
 		}
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
-        this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
-        this.gl.enableVertexAttribArray(0);
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
-		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(1);
-		this.gridShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
-		this.fieldShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height, this.ballPos);
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferPos);
-        this.gl.vertexAttribPointer(0, 2, this.gl.FLOAT, false, 0, 0);
-        this.gl.enableVertexAttribArray(0);
-		this.gl.bindBuffer(this.gl.ARRAY_BUFFER, this.bufferCoord);
-		this.gl.vertexAttribPointer(1, 2, this.gl.FLOAT, false, 0, 0);
-		this.gl.enableVertexAttribArray(1);
-		this.ballShader.render(this.gl, time, this.outerCanvas.width, this.outerCanvas.height);
+
+		this.gridShader.render(this.gl, time, this.canvas.width, this.canvas.height);
+		this.fieldShader.render(this.gl, time, this.canvas.width, this.canvas.height, this.ballPos);
+		this.ballShader.render(this.gl, time, this.canvas.width, this.canvas.height);
+		this.fieldShader.renderFieldBorder(this.gl, time, this.canvas.width, this.canvas.height, this.ballPos);
+		this.paddleShader.render(this.gl, time, this.canvas.width, this.canvas.height);
 		
 		
 		if (active) {

@@ -9,6 +9,6 @@ export class Objective {
 	@Column()
 	threshold: number;
 
-	@ManyToOne(() => Achievement, (achievement) => achievement.objectives, { nullable: false })
+	@ManyToOne(() => Achievement, (achievement) => achievement.objectives, { nullable: false, cascade: ["update", "insert"] })
 	achievement: Achievement;
 }

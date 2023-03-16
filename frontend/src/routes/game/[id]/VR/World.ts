@@ -47,6 +47,7 @@ export class World extends Net {
 	public scene: THREE.Scene;
 	public renderer: THREE.WebGLRenderer;
 	public camera: THREE.PerspectiveCamera;
+	public audioListener: THREE.AudioListener;
 	public cameraGroup: THREE.Group;
 	public world: Ammo.btDiscreteDynamicsWorld;
 	public entities: Entity[];
@@ -75,6 +76,7 @@ export class World extends Net {
 		this.scene = new THREE.Scene();
 		this.renderer = this.addThreeObject(new THREE.WebGLRenderer({ antialias: true }));
 		this.camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+		this.audioListener = new THREE.AudioListener();
 		this.cameraGroup = new THREE.Group();
 		this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));
 		this.world.setGravity(this.addAmmoObject(new Ammo.btVector3(0, -9.81, 0)));
@@ -91,6 +93,7 @@ export class World extends Net {
 		this.renderer.xr.enabled = true;
 
 		this.cameraGroup.add(this.camera);
+		this.camera.add(this.audioListener);
 		this.scene.background = new THREE.Color("skyblue");
 		this.scene.add(this.cameraGroup);
 

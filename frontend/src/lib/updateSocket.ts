@@ -1,5 +1,5 @@
 import type { UpdatePacket } from "$lib/types";
-import { Subject, Action, Status } from "$lib/enums";
+import { Subject, Action } from "$lib/enums";
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { io } from "socket.io-client";
 
@@ -32,7 +32,7 @@ class UpdateManager {
 		const funs = this.functions.filter(({ subject }) => subject === update.subject);
 		const style = `color: ${funs.length ? "black" : "gray"}`;
 
-		console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ${update.value?.username ? `USER: ${update.value.username}` : `ID: ${update.id}`};`, style, update.value);
+		console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
 
 		funs?.forEach(({ fun }) => {
 			fun(update);

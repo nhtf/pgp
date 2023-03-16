@@ -15,9 +15,9 @@ type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User[
 // TODO: friends
 const subjects: SubjectInfo[] = [
 	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [], relations: {} },
-	{ subject: Subject.ROOM, names: [ "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room?.users : [], relations: { members: { user: true } } },
+	{ subject: Subject.ROOM, names: [ "Room", "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room?.users : [], relations: { members: { user: true } } },
 	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to], relations: { to: true, from: true } },
-	{ subject: Subject.MEMBER, names: [ "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room?.users, relations: { room: { members: { user: true } } } },
+	{ subject: Subject.MEMBER, names: [ "Member", "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room?.users, relations: { room: { members: { user: true } } } },
 	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room?.users, relations: { room: { members: { user: true } } } },
 	{ subject: Subject.TEAM, names: [ "Team" ], fun: (team: Team) => { 
 			return team.state?.room?.users.concat(team.state?.room?.users?.map((user) => user.friends).flat());
@@ -43,7 +43,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			.filter((column) => !ignoredColumns.includes(column));
 
 		if (updatedColumns.length) {
-			console.log("Update", event.metadata.targetName, updatedColumns);
+			// console.log("Update", event.metadata.targetName, updatedColumns);
 			await this.update(event, Action.SET, this.columnToEntity.bind({}, updatedColumns));
 		}
 	}
@@ -54,7 +54,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 
 	async update(event: any, action: Action, valueFun: (entity: any) => any) {
 		const entity = event.entity;
-	
+
 		try {
 			const info = this.subjectEntry(event.metadata.targetName);
 		
@@ -64,7 +64,9 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 				id: entity.id,
 				value: valueFun(entity)
 			}, ...await this.receivers(entity, info));
-		} catch (_) {}
+		} catch (error) {
+			// console.log(error);
+		}
 	}
 
 	async receivers(entity: any, info: SubjectInfo): Promise<User[]> {

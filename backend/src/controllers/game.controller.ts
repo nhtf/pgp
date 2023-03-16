@@ -1,4 +1,4 @@
-import { Get, Patch, Param, Body, BadRequestException, ForbiddenException, Inject } from "@nestjs/common";
+import { Get, Post, Patch, Param, Body, BadRequestException, ForbiddenException, Inject } from "@nestjs/common";
 import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
 import { IsEnum, IsNumber } from "class-validator";
@@ -10,7 +10,7 @@ import { Player } from "src/entities/Player";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { GetRoom, IRoomService } from "src/services/room.service";
-import { Repository, In, SelectQueryBuilder } from "typeorm";
+import { Repository, In, SelectQueryBuilder, FindOptionsWhere } from "typeorm";
 import { ParseIDPipe, ParseOptionalIDPipe } from "src/util";
 import { ERR_NOT_MEMBER, ERR_PERM } from "src/errors";
 import { UpdateGateway } from "src/gateways/update.gateway";
@@ -97,8 +97,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		return qb
 			.leftJoinAndSelect("room.state", "state")
 			.leftJoinAndSelect("state.teams", "team")
-			.leftJoinAndSelect("team.players", "player")
-			.leftJoinAndSelect("player.user", "playerUser")
+			.leftJoinAndSelect("team.players", "playerTeam")
+			.leftJoinAndSelect("playerTeam.user", "playerUser")
 	}
 
 	@Get("id/:id")
@@ -164,7 +164,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			throw new BadRequestException(ERR_NOT_MEMBER);
 		}
 
-		if ((target.role >= member.role && target.user.id != me.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
+		if ((target.role >= member.role && target.user.id !== me.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
 			throw new ForbiddenException(ERR_PERM);
 		}
 
@@ -204,5 +204,11 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 				id: room.id,
 			}
 		});
+	}
+
+	@Post("id/:id/lock")
+	@RequiredRole(Role.OWNER)
+	async lock(@GetRoom() room: GameRoom) {
+		return this.room_repo.save({ id: room.id, teamsLocked: true });
 	}
 }

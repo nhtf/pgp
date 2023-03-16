@@ -24,7 +24,7 @@ type BroadcastData = {
 export class GameGateway extends ProtectedGateway("game") {
 	constructor(
 		@Inject("USER_REPO")
-		private readonly userRepo: Repository<User>,
+		readonly userRepo: Repository<User>,
 		@Inject("GAMEROOM_REPO")
 		private readonly roomRepo: Repository<GameRoom>,
 		@Inject("GAMEROOMMEMBER_REPO")
@@ -38,7 +38,7 @@ export class GameGateway extends ProtectedGateway("game") {
 	}
 
 	async onDisconnect(client: Socket, user: User) {
-		await this.users.save({ id: user.id, activeRoom: null });
+		await this.userRepo.save({ id: user.id, activeRoom: null });
 
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
@@ -49,7 +49,7 @@ export class GameGateway extends ProtectedGateway("game") {
 	}
 
 	async onJoin(client: Socket, user: User) {
-		await this.users.save({ id: user.id, activeRoom: { id: client.room }});
+		await this.userRepo.save({ id: user.id, activeRoom: { id: client.room }});
 	
 		client.join(String(client.room));
 	
