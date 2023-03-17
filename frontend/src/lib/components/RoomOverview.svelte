@@ -1,4 +1,5 @@
 <script lang="ts">
+	import type { ChatRoom, GameRoom } from "$lib/entities";
 	import { roomStore } from "$lib/stores";
     import { byJoined } from "$lib/sorting";
 	import RoomBox from "./RoomBox.svelte";
@@ -7,11 +8,10 @@
 
 	$: rooms = [...$roomStore.values()]
 		.filter((room) => room.type === type)
-		.sort(byJoined);
+		.sort(byJoined) as (ChatRoom & GameRoom)[];
 
 </script>
 
-<!-- TODO: fix type error -->
 {#each rooms as room (room.id)}
 	<RoomBox {room} />
 {/each}

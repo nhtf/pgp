@@ -30,7 +30,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
-	async afterJoin(room: ChatRoom, member: ChatRoomMember) {
+	async onJoin(room: ChatRoom, member: ChatRoomMember) {
 		const messages = await this.message_repo.find({
 			where: {
 				room: {
@@ -121,14 +121,12 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 			setTimeout(() => {
 				UpdateGateway.instance.send_update({
 					subject: Subject.MEMBER,
-					action: Action.SET,
+					action: Action.UPDATE,
 					id: target.id,
 					value: { is_muted: false },
 				}, ...target.room.users);
 			});
 		}
-
-		return {};
 	}
 
 	@Delete("id/:id/message(s)?/:message")
@@ -143,7 +141,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 			throw new ForbiddenException(ERR_PERM);
 		}
 
-		return await this.message_repo.remove(message);
+		await this.message_repo.remove(message);
 	}
 
 }

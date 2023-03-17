@@ -43,7 +43,6 @@
 		mark(invite, Status.REMOVED);
 		await respond(invite, "accept");
 
-		console.log(invite);
 		if (invite.type === "GameRoom") {
 			const room = invite.room as GameRoom;
 			const self = await unwrap(get(`/game/id/${room.id}/self`));

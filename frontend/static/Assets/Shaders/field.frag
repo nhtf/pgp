@@ -10,6 +10,7 @@ uniform highp vec4 color;
 uniform bool gradient; // if need to do a gradient or not
 uniform highp vec2 gradientPos;
 uniform highp vec2 gradientRadius;
+uniform highp vec2 ballRadius;
 
 highp vec4 getGradientColor(){
     highp vec2 uv = (gl_FragCoord.xy / resolution.xy);
@@ -18,9 +19,6 @@ highp vec4 getGradientColor(){
     highp float max_radius = max(gradientRadius.x, gradientRadius.y);
     highp float sx = gradientRadius.x / max_radius;
     highp float sy = gradientRadius.y / max_radius;
-
-    highp float rot_c = cos(0.);
-    highp float rot_s = sin(0.);
 
     highp vec2 abs_center_point = gradientPos * size;
     highp vec2 st = (uv * size) - abs_center_point;
@@ -49,18 +47,12 @@ void main()
         endColor = getGradientColor();
 
     //for glow effect ball
-    highp float ballRadius = 40.;
-    highp float sx = 0.9;
-    highp float sy = 1.;
-    highp vec2 abs_center_point = center * size;
-    highp vec2 st = (uv * size) - abs_center_point;
-    st = vec2(st.x, st.y);
-    st /= vec2(sx, sy);
-    st += abs_center_point;
+    highp float max_radius = max(ballRadius.x, ballRadius.y);
 
-    highp float abs_d = distance(abs_center_point, st);
-    highp float progress = abs_d / ballRadius;
+    uv = gl_FragCoord.xy - center;
+    highp float d = sqrt(dot(uv,uv));
+    highp float progress = smoothstep(0.0, max_radius, d);
     
-    endColor = mix(endColor, endColor * 2., smoothstep(1.0, 0.1, progress));
+    endColor = mix(endColor, endColor * 2., smoothstep(1.0, .0, progress));
     gl_FragColor = endColor;
 }

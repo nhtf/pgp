@@ -5,8 +5,8 @@ export enum Access {
 }
 
 export enum Action {
-	ADD,
-	SET,
+	INSERT,
+	UPDATE,
 	REMOVE,
 }
 
@@ -45,4 +45,5 @@ export enum Subject {
 	GAMESTATE,
 	TEAM,
 	BLOCK,
+	PLAYER,
 }

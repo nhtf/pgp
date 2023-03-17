@@ -135,11 +135,6 @@ export class User {
 	}
 
 	@Expose()
-	get teams(): Team[] | null {
-		return this.activeRoom?.teams ?? null;
-	}
-
-	@Expose()
 	get avatar(): string {
 		return `${BACKEND_ADDRESS}/${this.avatar_path}`;
 	}
@@ -176,7 +171,7 @@ export class User {
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			id: this.id,
-			action: Action.SET,
+			action: Action.UPDATE,
 			value,
 		});
 	}
@@ -188,7 +183,7 @@ export class User {
 			action,
 		};
 	
-		if (action === Action.ADD) {
+		if (action === Action.INSERT) {
 			packet.value = instanceToPlain(friend);
 		}
 	

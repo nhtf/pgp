@@ -18,6 +18,7 @@ import * as gm from "gm";
 import type { Achievement } from "src/entities/Achievement";
 import type { AchievementView } from "src/entities/AchievementView";
 import { AchievementProgress } from "src/entities/AchievementProgress";
+import { instanceToPlain } from "class-transformer"
 
 declare module "express" {
 	export interface Request {
@@ -58,7 +59,14 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Me() me: User,
 			@Param(options.param, options.pipe) user?: User
 		) {
-			return user || me;
+			user = user ?? me;
+
+			if (user.id === me.id) {
+				return { ...instanceToPlain(user), auth_req: user.auth_req }
+			}
+
+			return user;
+
 		}
 
 		@Put(options.cparam + "/username")
@@ -139,7 +147,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			// avatar is a getter and won't trigger the subscriber
 			UpdateGateway.instance.send_update({
 				subject: Subject.USER,
-				action: Action.SET,
+				action: Action.UPDATE,
 				id: user.id,
 				value: { avatar: user.avatar }
 			})
@@ -278,8 +286,8 @@ export function GenericUserController(route: string, options: { param: string, c
 				await this.request_repo.remove(request);
 				[user, target] = await this.user_repo.save([user, target]);
 
-				user.send_friend_update(Action.ADD, target);
-				target.send_friend_update(Action.ADD, user);
+				user.send_friend_update(Action.INSERT, target);
+				target.send_friend_update(Action.INSERT, user);
 			} else {
 				await this.request_repo.save({ from: user, to: target});
 			}
@@ -334,7 +342,7 @@ export function GenericUserController(route: string, options: { param: string, c
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
-				action: Action.ADD,
+				action: Action.INSERT,
 				id: target.id,
 				value: { id: target.id }
 			}, me);

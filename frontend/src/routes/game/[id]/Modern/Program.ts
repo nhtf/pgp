@@ -1,5 +1,5 @@
 import { mat3Identity } from "./Matrix";
-import type { VectorObject } from "../../lib2D/Math2D";
+import type { VectorObject } from "../lib2D/Math2D";
 
 export type uniforms = {
     pos: VectorObject; //position for ripple effect maybe
@@ -27,6 +27,7 @@ export class Program {
     private uniformGradientPos: WebGLUniformLocation;
     private uniformGradientRadius: WebGLUniformLocation;
     private uniformRotation: WebGLUniformLocation;
+    private uniformBallRadius: WebGLUniformLocation;
 
     public constructor(gl: WebGL2RenderingContext, vert: string, frag: string) {
         this.program = this.createProgram(gl, vert, frag);
@@ -42,6 +43,7 @@ export class Program {
         this.uniformGradientPos = gl.getUniformLocation(this.program, "gradientPos")!;
         this.uniformGradientRadius = gl.getUniformLocation(this.program, "gradientRadius")!;
         this.uniformRotation = gl.getUniformLocation(this.program, "rotation")!;
+        this.uniformBallRadius = gl.getUniformLocation(this.program, "ballRadius")!;
     }
 
     public useProgram(gl: WebGL2RenderingContext, uniform: uniforms) {
@@ -64,18 +66,28 @@ export class Program {
     public setUniform(gl: WebGL2RenderingContext, name: string, value: any) {
         switch (name) {
             case "color":
+                // console.log("set color to: ", value);
                 gl.uniform4f(this.uniformColor, value[0], value[1], value[2], value[3]);
                 break;
             case "transform":
                 gl.uniformMatrix3fv(this.uniformTransform, false, value);
+                break;
             case "gradient":
                 gl.uniform1i(this.uniformGradient, value);
+                break;
             case "gradientPos":
                 gl.uniform2f(this.uniformGradientPos, value.x, value.y);
-            case "gradientRadius": 
-                gl.uniform2f(this.uniformGradientRadius, value[0], value[1]);
+                break;
+            case "gradientRadius":
+                // console.log("gradientRadius set to: ", [value.x, value.y]);
+                gl.uniform2f(this.uniformGradientRadius, value.x, value.y);
+                break;
             case "rotation":
                 gl.uniform1f(this.uniformRotation, value);
+                break;
+            case "ballRadius":
+                gl.uniform2f(this.uniformBallRadius, value, value);
+                break;
             default:
                 break;
         }

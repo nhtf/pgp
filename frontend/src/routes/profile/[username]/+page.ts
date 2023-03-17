@@ -1,23 +1,11 @@
 import type { PageLoad } from "./$types"
 import type { User } from "$lib/entities"
 import type { Achievement } from "$lib/types"
-import { Status } from "$lib/enums";
 import { get } from '$lib/Web';
 import { unwrap } from '$lib/Alert';
-import { updateStore, userStore, roomStore } from "$lib/stores"
+import { updateStore, userStore } from "$lib/stores"
 
 export const ssr = false;
-
-let profile_image = "https://www.w3schools.com/howto/img_avatar.png";
-
-export type simpleuser = { id: number; username: string; avatar: string; status: Status; in_game: boolean; }
-
-const dummyfriends: simpleuser[] = [
-	{ username: "dummy1", avatar: profile_image, status: Status.ACTIVE, in_game: false, id: 0 },
-	{ username: "dummy2", avatar: profile_image, status: Status.ACTIVE, in_game: true, id: 0 },
-	{ username: "dummy3", avatar: profile_image, status: Status.IDLE, in_game: false, id: 0 },
-	{ username: "dummy5", avatar: profile_image, status: Status.OFFLINE, in_game: false, id: 0 },
-];
 
 const pong = "/Assets/achievement-icons/pong.svg";
 const gamer = "/Assets/achievement-icons/gamer.svg";
@@ -46,10 +34,8 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 
 	updateStore(userStore, [profile]);
 
-	//just for debug
-	if (!profile.achievements) {
-		profile.achievements = dummyachievements
-	}
+	//TODO just for debug
+	(profile as any).achievements = dummyachievements
 
 	return { profile };
 }) satisfies PageLoad;

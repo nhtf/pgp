@@ -7,8 +7,6 @@
 	import { blockStore, gameStateStore, teamStore, userStore } from "$lib/stores";
 	import { get, patch, post, remove } from "$lib/Web";
 	import { Avatar, Button, Dropdown, DropdownItem } from "flowbite-svelte";
-    import Swal from "sweetalert2";
-    import { Result } from "postcss";
 
 	export let user: User;
 

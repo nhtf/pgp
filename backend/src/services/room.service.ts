@@ -6,7 +6,7 @@ import { User } from "../entities/User";
 import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder, DeepPartial } from "typeorm";
 import { Access, Role, Subject, Action } from "src/enums";
-import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException, Req } from "@nestjs/common";
 import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions } from "class-validator";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
@@ -120,7 +120,8 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 				throw new ForbiddenException("Already member of room");
 			}
 
-			const member = new MemberType();
+			const member = new MemberType;
+		
 			member.role = role || Role.MEMBER;
 			member.room = room;
 			member.user = user;
@@ -271,10 +272,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return room;
 		}
 
-		async get_joined_info(room: T): Promise<T> {
-			return room;
-		}
-
 		@Get("joined")
 		async joined(@Me() me: User) {
 			const qb = this.joinedQuery(me);
@@ -316,7 +313,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			this.update_service.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
-				action: Action.SET,
+				action: Action.UPDATE,
 				value: {
 					owner: room.owner,
 					self: instanceToPlain(member),
@@ -349,30 +346,25 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			room.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
-				action: Action.SET,
+				action: Action.UPDATE,
 				value:  { name: room.name, access: room.access },
 			});
-
-			return {};
 		}
 
 		@Post("id/:id/member(s)?")
 		async join(
 			@Me() me: User,
 			@Param("id", ParseIDPipe(type, { banned_users: true })) room: T,
-			@Body("password") password?: string
+			@Body() body: any,
 		) {
-			const invites = await this.invite_repo.findBy({ room: {	id: room.id	}, to: { id: me.id } });
+			const invites = await this.invite_repo.findBy({ room: {	id: room.id	}, to: { id: me.id } }) ?? [];
+			const password = body.password;
 
-			if (room.access == Access.PRIVATE && (!invites || !invites.length)) {
+			if (room.access == Access.PRIVATE && !invites.length) {
 				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 			}
 
-			if (room.banned_users.find((user) => user.id === me.id)) {
-				throw new ForbiddenException("You have been banned from this channel");
-			}
-
-			if (room.access === Access.PROTECTED && !invites) {
+			if (room.access === Access.PROTECTED && !invites.length) {
 				if (!password) {
 					throw new BadRequestException("Missing password");
 				}
@@ -382,37 +374,30 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				}
 			}
 
+			if (room.banned_users.find((user) => user.id === me.id)) {
+				throw new ForbiddenException("You have been banned from this channel");
+			}
+
 			let member = await this.service.add_member(room, me);
-
+		
 			member = await this.member_repo.save(member);
+		
+			await this.onJoin(room, member, body)
 			await this.invite_repo.remove(invites);
-			await this.afterJoin(room, member)
-
-			room = await this.get_joined_info(room);
 
 			this.update_service.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
-				action: Action.SET,
+				action: Action.UPDATE,
 				value: {
+					...instanceToPlain(room),
 					joined: true,
 					self: instanceToPlain(member)
 				},
 			}, me);
-
-			return member;
 		}
 
-		async afterJoin(room: T, member: U) { }
-
-		/* deprecated, use id/:id/members/me */
-		//TODO remove
-		@Delete("id/:id/leave")
-		async leave(
-			@Res() res: Response,
-		) {
-			throw new GoneException("use DELETE members/me"); 
-		}
+		async onJoin(room: T, member: U, body: any) { }
 
 		@Get("id/:id/self")
 		@RequiredRole(Role.MEMBER)
@@ -473,7 +458,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 			this.update_service.send_update({
 				subject: Subject.ROOM,
-				action: Action.SET,
+				action: Action.UPDATE,
 				id: room.id,
 				value: { joined: false },
 			}, target.user);
@@ -517,8 +502,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			if (role === Role.OWNER) {
 				await this.member_repo.save({ id: member.id, role: Role.ADMIN } as DeepPartial<U>);
 			}
-
-			return {};
 		}
 
 		@Get("id/:id/invite(s)?")

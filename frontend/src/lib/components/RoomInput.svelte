@@ -28,6 +28,14 @@
 			return { value: n, name: n };
 		});
 	}
+
+	function onClick() {
+		click({ name, password, is_private, gamemode, players }, room);
+
+		name = "";
+		password = "";
+	}
+	
 </script>
 
 <div class="room">
@@ -71,9 +79,7 @@
 	<div class="grow" />
 	<button
 		class="button border-green"
-		on:click={() =>
-			click({ name, password, is_private, gamemode, players }, room)}
-		>{action}</button
+		on:click={onClick}>{action}</button
 	>
 </div>
 

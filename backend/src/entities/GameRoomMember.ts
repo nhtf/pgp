@@ -4,7 +4,7 @@ import { Player } from "./Player";
 
 @ChildEntity()
 export class GameRoomMember extends Member {
-	@OneToOne(() => Player, (player) => player.member, { nullable: true, eager: true, cascade: [ "insert", "update" ] })
+	@OneToOne(() => Player, (player) => player.member, { nullable: true, eager: true, cascade: [ "insert", "update" ], onDelete: "SET NULL" })
 	player: Player | null;
 
 	get type(): string {

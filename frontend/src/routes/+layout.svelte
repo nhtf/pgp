@@ -180,6 +180,3 @@
 </Navbar>
 
 <slot />
-
-<style>
-</style>

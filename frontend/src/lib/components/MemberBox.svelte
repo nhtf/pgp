@@ -7,7 +7,6 @@
 	import { patch, post, remove } from "$lib/Web";
 	import { page } from "$app/stores";
 	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
-	import Swal from "sweetalert2";
     import { goto } from "$app/navigation";
 
 	export let member: Member | null;

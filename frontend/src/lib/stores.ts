@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite, Room, GameState, Team } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room, GameState, Team, Player } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -9,10 +9,10 @@ function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 	updateManager.set(subject, (update: UpdatePacket) => {
 		store.update((entities) => {
 			switch (update.action) {
-				case Action.ADD:
+				case Action.INSERT:
 					entities.set(update.id, update.value);
 					break;
-				case Action.SET:
+				case Action.UPDATE:
 					if (!entities.has(update.id)) {
 						entities.set(update.id, update.value);
 						break;
@@ -55,15 +55,16 @@ export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, e
 export const userStore = storeFactory<User>(Subject.USER);
 export const roomStore = storeFactory<Room>(Subject.ROOM);
 export const teamStore = storeFactory<Team>(Subject.TEAM);
+export const blockStore = storeFactory<Entity>(Subject.BLOCK);
 export const memberStore = storeFactory<Member>(Subject.MEMBER);
 export const inviteStore = storeFactory<Invite>(Subject.INVITE);
 export const friendStore = storeFactory<Entity>(Subject.FRIEND);
+export const playerStore = storeFactory<Player>(Subject.PLAYER);
 export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE);
-export const blockStore = storeFactory<Entity>(Subject.BLOCK);
 
 // Removed from private room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
-	if (update.action === Action.SET && update.value.joined === false) {
+	if (update.action === Action.UPDATE && update.value.joined === false) {
 		roomStore.update((rooms) => {
 			const room = rooms.get(update.id)!;
 
@@ -78,14 +79,14 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 
 // Add new friend to userStore
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
-	if (update.action === Action.ADD) {
+	if (update.action === Action.INSERT) {
 		updateStore(userStore, [update.value]);
 	}
 });
 
 // Add teams from new gamestate
 updateManager.set(Subject.GAMESTATE, (update: UpdatePacket) => {
-	if (update.action === Action.ADD) {
+	if (update.action === Action.INSERT) {
 		updateStore(teamStore, update.value.teams);
 	}
 });

@@ -24,12 +24,12 @@ import { Request } from "express";
 import { SessionService } from "src/services/session.service"
 import { ParseIDPipe } from "../util";
 import { Room } from "src/entities/Room";
+import { GameRoom } from "src/entities/GameRoom";
 import { Member } from "src/entities/Member";
 import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
 import { Achievement } from "src/entities/Achievement";
 import { Objective } from "src/entities/Objective";
-
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { Message } from "src/entities/Message";
 
@@ -254,9 +254,8 @@ export class DebugController {
 	}
 
 	@Get("test")
-	@UseGuards(HttpAuthGuard)
 	async test() {
-		return "Test";
+		return this.roomRepo.find({ relations: { invites: true }})
 	}
 
 	@Get("messages")
@@ -277,11 +276,7 @@ export class DebugController {
 
 	@Get("room/liberate")
 	async liberate(@Query("id") id: string) {
-		const room = await this.roomRepo.findOneBy({ id: Number(id) });
-
-		room.banned_users = [];
-
-		return await this.roomRepo.save(room);
+		return this.roomRepo.save({ id: Number(id), banned_users: [] });
 	}
 
 	@Get("history")
@@ -340,5 +335,10 @@ export class DebugController {
 		objective.threshold = threshold;
 		objective.achievement = achievement;
 		return this.objectiveRepo.save(objective);
+	}
+
+	@Get("unlock")
+	async unlock(@Query("id", ParseIDPipe(GameRoom)) room: GameRoom) {
+		await this.gamestateRepo.save({ id: room.state.id, teamsLocked: false });
 	}
 }

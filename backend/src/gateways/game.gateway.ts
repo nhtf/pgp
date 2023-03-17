@@ -42,7 +42,7 @@ export class GameGateway extends ProtectedGateway("game") {
 
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
-			action: Action.SET,
+			action: Action.UPDATE,
 			id: user.id,
 			value: { activeRoomId: null }
 		});
@@ -55,7 +55,7 @@ export class GameGateway extends ProtectedGateway("game") {
 	
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
-			action: Action.SET,
+			action: Action.UPDATE,
 			id: user.id,
 			value: { activeRoomId: client.room }
 		});
@@ -65,7 +65,7 @@ export class GameGateway extends ProtectedGateway("game") {
 
 		UpdateGateway.instance.send_update({
 			subject: Subject.GAMESTATE,
-			action: Action.ADD,
+			action: Action.UPDATE,
 			id: state.id,
 			value: instanceToPlain(state),
 		}, ...friends);

@@ -1,10 +1,9 @@
 <script lang="ts">
 	import type { Member, Room, User } from "$lib/entities";
 	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
+	import { friendStore, userStore } from "$lib/stores";
 	import { swal, unwrap } from "$lib/Alert";
 	import { get, post } from "$lib/Web";
-	import { friendStore, userStore } from "$lib/stores";
-	import Swal from "sweetalert2";
 
 	export let room: Room;
 
@@ -44,29 +43,28 @@
 	}
 </script>
 
-<div class="flex gap-x-1">
-	<input
-		class="input"
-		placeholder="Username"
-		bind:value={invitee}
-		on:input={() => (matches = invitable.filter(match))}
-		on:focus|once={fetchMembers}
-	/>
-	{#if matches.length}
-		<Dropdown bind:open>
-			{#each matches as { id, username, avatar } (id)}
-				<DropdownItem
-					on:click={() => {
-						invitee = username;
-						open = false;
-					}}
-					class="flex gap-1"
-				>
-					<Avatar class="avatar" src={avatar} />
-					<div>{username}</div>
-				</DropdownItem>
-			{/each}
-		</Dropdown>
-	{/if}
-	<button class="button border-green" on:click={() => invite(room)}>Invite</button>
-</div>
+<input
+	class="input"
+	type="text"
+	placeholder="Username"
+	bind:value={invitee}
+	on:input={() => (matches = invitable.filter(match))}
+	on:focus|once={fetchMembers}
+/>
+{#if matches.length}
+	<Dropdown bind:open>
+		{#each matches as { id, username, avatar } (id)}
+			<DropdownItem
+				on:click={() => {
+					invitee = username;
+					open = false;
+				}}
+				class="flex gap-1"
+			>
+				<Avatar class="avatar" src={avatar} />
+				<div>{username}</div>
+			</DropdownItem>
+		{/each}
+	</Dropdown>
+{/if}
+<button class="button border-green" on:click={() => invite(room)}>Invite</button>

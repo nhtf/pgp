@@ -491,7 +491,6 @@ table {
 
 .button,
 .input {
-	display: inline !important;
 	background: var(--box-color) !important;
 	border: 2px solid var(--border-color);
 	border-radius: 1rem !important;
@@ -506,10 +505,6 @@ table {
 	-webkit-filter: var(--invert);
 	filter: var(--invert);
 	align-self: center;
-}
-
-.input {
-	min-width: 20ch;
 }
 
 .input:disabled {
@@ -531,4 +526,9 @@ table {
 
 .link:visited {
 	color: blue;
+}
+
+.swal2-radio {
+	color: var(--text-color) !important;
+	background-color: var(--box-color) !important;
 }

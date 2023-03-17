@@ -209,8 +209,6 @@ export class Game extends Net {
 		return null;
 	}
 
-	//TODO lerp/slerp the paddle (and ball?) for smoother motion
-
 	//TODO move as much as possible outside of lateTick please
 	public lateTick() {
 		let time = 1;
@@ -338,7 +336,7 @@ export class Modern {
 			this.game?.tick();
 			this.lastTime += 1000 / UPS;
 		}
-		this.shader?.update(time);		
+		this.shader?.render(time);		
 	}
 
 	public async start(options: Options) {

@@ -19,8 +19,8 @@ export type Room = {
     name: string,
 	access: Access,
 	type: "ChatRoom" | "GameRoom",
-	owner?: User,
-	joined?: boolean,
+	owner: User,
+	joined: boolean,
 	self?: Member
 };
 
@@ -57,7 +57,7 @@ export type GameRoomMember = Member & {
 	player: Player | null,
 };
 
-export type Player = {
+export type Player = Entity & {
 	team: Team,
 	teamId: number,
 	user: User,

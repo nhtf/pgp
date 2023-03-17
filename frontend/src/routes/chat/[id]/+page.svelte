@@ -20,11 +20,11 @@
 
 	const role_colors = Object.values(CoalitionColors);
 	const role_names = [ "Members", "Admins", "Owner" ];
-	const load = 15;
+	const load = 10;
 
 	let messages = data.messages.sort(byDate);
 	let indices: number[] = [];
-	let relativeScroll = clamp(messages.length - load, 0, messages.length);
+	let relativeScroll = messages.length;
 
 	$: room = $roomStore.get(data.room.id)!;
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
@@ -32,7 +32,7 @@
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
 
 	$: messages;
-	$: relativeScroll;
+	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
 	$: min = clamp(relativeScroll - load, 0, messages.length);
 
 	onMount(() => {
@@ -44,21 +44,19 @@
 	});
 
 	onDestroy(() => {
-		updateManager.remove(indices);
 		roomSocket.disconnect();
+		updateManager.remove(indices);
 	});
 
 	addEventListener("wheel", (event: WheelEvent) => {
-		console.log(event.deltaY);
-		relativeScroll = clamp(clamp(event.deltaY, -1, 1), 0, messages.length);
-		// if (event.deltaY < 0) {
-		// 	relativeScroll = clamp(relativeScroll - 1, 0, messages.length);
-		// }
+		const delta = clamp(event.deltaY, -1, 1);
+	
+		relativeScroll += delta;
 	});
 
 	function updateMessages(update: UpdatePacket) {
 		switch (update.action) {
-			case Action.ADD:
+			case Action.INSERT:
 				if (update.value.roomId === room.id){
 					messages = [...messages, update.value];
 				}
@@ -97,6 +95,15 @@
 	function scrollToBottom(node: any, _: Message[]) {
 		return { update: () => node.scroll({ top: node.scrollHeight, behaviour: "smooth"}) };
 	}
+
+	function scroll() {
+		const element = document.getElementById("messages")!;
+
+		element.scroll({ top: element.scrollHeight, behavior: "smooth" });
+
+		setTimeout(() => relativeScroll = messages.length, 1000);
+	}
+
 </script>
 
 {#if room}
@@ -110,16 +117,15 @@
 					<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 				{/if}				
 			</div>
-			<div class="messages" use:scrollToBottom={messages}>
+			<div id="messages" class="messages" use:scrollToBottom={messages}>
 				{#each messages as message, index (message.id)}
 					{#if index >= min && !blockedIds.includes(message.userId)}
-						<MessageBox {message} {self} />
+						<MessageBox on:load|once={scroll} {message} {self} />
 					{/if}
 				{/each}
 			</div>
-			<div>{relativeScroll} - {messages.length}</div>
 			{#if relativeScroll + load < messages.length}
-				<button class="button middle">Go to bottom</button>
+				<button class="button middle" on:click={scroll}>Go to bottom</button>
 			{/if}
 			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
 		</div>

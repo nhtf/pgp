@@ -72,9 +72,9 @@ const option =
 {
     recursion: 8,
     epsilon: 1.19209290e-7,
-    pathEpsilon: .125,
+    pathEpsilon: 0.5,
     angleEpsilon: 0.01,
-    angleTolerance: 0.1,
+    angleTolerance: 0,
     cuspLimit: 0,
 }
 

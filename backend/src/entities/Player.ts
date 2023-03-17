@@ -1,12 +1,10 @@
-import { Exclude } from "class-transformer";
 import { Entity, ManyToOne, OneToOne, PrimaryGeneratedColumn, JoinColumn, RelationId } from "typeorm";
+import { GameRoomMember } from "./GameRoomMember";
 import { Team } from "./Team";
 import { User } from "./User";
-import { GameRoomMember } from "./GameRoomMember";
 
 @Entity()
 export class Player {
-	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 
@@ -22,7 +20,7 @@ export class Player {
 	@RelationId((player: Player) => player.user)
 	userId: number;
 
-	@OneToOne(() => GameRoomMember, (member) => member.player, { nullable: true, onDelete: "SET NULL" })
+	@OneToOne(() => GameRoomMember, (member) => member.player, { cascade: ["insert", "update"], nullable: true, onDelete: "SET NULL" })
 	@JoinColumn()
 	member: GameRoomMember | null;
 }
