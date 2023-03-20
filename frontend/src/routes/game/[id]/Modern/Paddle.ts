@@ -1,9 +1,11 @@
 import { Vector, isInConvexHull } from "../lib2D/Math2D";
 import type { PaddleObject } from "../lib2D/interfaces";
 import {
+	HEIGHT,
     linethickness,
     paddleHeight, 
     paddleWidth,
+	WIDTH,
 } from "./Constants";
 import type { Line, CollisionLine } from "../lib2D/Math2D";
 import type { Team } from "../lib2D/Team";
@@ -90,33 +92,30 @@ export class Paddle {
 		this.rotation = object.rotation;
 	}
 
-	public getCollisionLines(): CollisionLine[] {
-		const crot = Math.cos(this.rotation + Math.PI / 2);
-        const srot = Math.sin(this.rotation + Math.PI / 2);
-        const w = this.width;
-        const h = this.height / 2;
+	public getCollisionLines(level: any): CollisionLine[] {
+		const crot = Math.cos(this.rotation);
+		const srot = Math.sin(this.rotation);
 
-		const A = {x: (crot * -w + srot * -h) + this.position.x, y: (-srot * -w + crot * -h) + this.position.y};
-        const B = {x: (crot * w + srot * -h) + this.position.x, y: (-srot * w + crot * -h) + this.position.y};
-        const C = {x: (crot * -w + srot * h) + this.position.x, y: (-srot * -w + crot * h) + this.position.y};
-		const D = {x: (crot * w + srot * h) + this.position.x, y: (-srot * w + crot * h) + this.position.y};
+		let lines: CollisionLine[] = [];
 
-		// console.log("owner: ", this.owner);
-		const lineTop: Line = {	p0: new Vector(A.x, A.y), p1: new Vector(B.x, B.y), name: `paddle-${this.owner}-top`}
-		const lineBottom: Line = {p0: new Vector(D.x, D.y), p1: new Vector(C.x, C.y), name: `paddle-${this.owner}-bottom`};
-		const lineLeft: Line = {p0: new Vector(A.x, A.y), p1: new Vector(C.x, C.y), name: `paddle-${this.owner}-left`};
-		const lineRight: Line = {p0: new Vector(D.x, D.y), p1: new Vector(B.x, B.y), name: `paddle-${this.owner}-right`};
+		for (let i = 0; i < level.paddleContour.length;) {
+			const p1 = {x: level.paddleContour[i] - WIDTH / 2, y: level.paddleContour[i + 1] - HEIGHT / 2};
+			const p2 = {x: level.paddleContour[i + 2] - WIDTH / 2, y: level.paddleContour[i + 3] - HEIGHT / 2};
 
-		return [
-			{	p0: lineTop.p0, p1: lineTop.p1, name: lineTop.name,
-				normal: (lineTop.p1.sub(lineTop.p0).tangent().normalize())},
-			{	p0: lineBottom.p0, p1: lineBottom.p1, name: lineBottom.name,
-				normal: (lineBottom.p1.sub(lineBottom.p0).tangent().normalize())},
-			{	p0: lineLeft.p0, p1: lineLeft.p1, name: lineLeft.name,
-				normal: (lineLeft.p1.sub(lineLeft.p0).tangent().normalize())},
-			{	p0: lineRight.p0, p1: lineRight.p1, name: lineRight.name,
-				normal: (lineRight.p1.sub(lineRight.p0).tangent().normalize())},
-		];
+			const A = new Vector((crot * p1.x + srot * p1.y) + this.position.x, (-srot * p1.x + crot * p1.y) + this.position.y);
+			const B = new Vector((crot * p2.x + srot * p2.y) + this.position.x, (-srot * p2.x + crot * p2.y) + this.position.y);
+			const line = {p0: A, p1: B, name: `paddle-${this.owner}-${(i + 4) / 4}`};
+
+			const colLine: CollisionLine = {p0: line.p0, p1: line.p1, name: line.name, normal: (line.p1.sub(line.p0).tangent().normalize())};
+			lines.push(colLine);
+			i += 4;
+		}
+		// console.log("collission: ", lines);
+		// if (this.owner === 0) {
+		// 	console.log("pos: ", this.position);
+		// 	console.log(lines);
+		// }
+		return lines;
 	}
 
 	// public renderCollisionLines(context: CanvasRenderingContext2D) {

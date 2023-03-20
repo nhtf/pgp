@@ -62,7 +62,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			user = user ?? me;
 
 			if (user.id === me.id) {
-				return { ...instanceToPlain(user), auth_req: user.auth_req }
+				return { ...instanceToPlain(user), auth_req: user.auth_req, achievements: await this.get_achievements(user) }
 			}
 
 			return user;
@@ -167,6 +167,25 @@ export function GenericUserController(route: string, options: { param: string, c
 			return user.auth_req;
 		}
 
+		async get_achievements(user: User) {
+			const list = await this.view_repo.findBy({ user_id: user.id });
+			const ser = {};
+
+			for (const elem of list) {
+				if (!ser[elem.id]) {
+					ser[elem.id] = {
+						name: elem.name,
+						description: elem.description,
+						progress: elem.progress,
+						image: elem.image,
+						objectives: [],
+					};
+				}
+				ser[elem.id].objectives.push({ threshold: elem.threshold, color: elem.color });
+			}
+			return ser;
+		}
+
 		@Get(options.cparam + "/achievements")
 		@UseGuards(SetupGuard)
 		async list_achievements(
@@ -174,8 +193,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			const list = await this.view_repo.findBy({ user_id: user.id });
-			return list;
+
+			return this.get_achievements(user);
 		}
 
 		@Get(options.cparam + "/friend(s)?")

@@ -11,30 +11,12 @@ export class GameRoom extends Room {
 	state: GameState;
 
 	@Expose()
-	get gamemode(): Gamemode {
-		return this.state?.gamemode;
-	}
-
-	set gamemode(gamemode: Gamemode) {
-		this.state.gamemode = gamemode;
-	}
-
-	@Expose()
 	get teams(): Team[] {
 		return this.state?.teams;
 	}
 
 	set teams(teams: Team[]) {
 		this.state.teams = teams;
-	}
-
-	@Expose()
-	get teamsLocked(): boolean {
-		return this.state?.teamsLocked;
-	}
-
-	set teamsLocked(teamsLocked: boolean) {
-		this.state.teamsLocked = teamsLocked;
 	}
 
 	@Expose()

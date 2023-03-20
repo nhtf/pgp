@@ -8,28 +8,12 @@ import { Repository } from "typeorm";
 @Injectable()
 export class MemberMiddleware implements NestMiddleware {
 	constructor(@Inject("MEMBER_REPO") private readonly memberRepo: Repository<Member>) {}
-	async use(req: any, res: Response, next: NextFunction) {
-		const user: User = req.user;
-		const room: Room = req.room;
+	async use(request: Request & any, res: Response, next: NextFunction) {
+		const user: User = request.user;
+		const room: Room = request.room;
 	
 		if (user && room) {
-			req.member = await this.memberRepo.findOne({
-				where: {
-					user: {
-						id: user.id
-					},
-					room: {
-						id: room.id
-					}
-				},
-				relations: {
-					room: {
-						members: {
-							user: true,
-						}
-					}
-				}
-			});
+			request.member = await this.memberRepo.findOneBy({ user: { id: user.id }, room: { id: room.id } });
 		}
 	
 		next();

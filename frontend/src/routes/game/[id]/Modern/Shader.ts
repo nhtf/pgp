@@ -1,9 +1,9 @@
 import { Program, type uniforms } from "./Program";
-import { createBuffer } from "./Shader/fullShader";
+import { createBuffer } from "./fullShader";
 import type { m3 } from "./Matrix";
 import type { VectorObject } from "../lib2D/Math2D";
 
-type triangles = {
+export type triangles = {
     vertices: number[];
     indices: number[];
 }
@@ -98,5 +98,20 @@ export class Shader {
         gl.viewport(viewPort.xOffset, viewPort.yOffset, viewPort.width, viewPort.height);
         this.program.useProgram(gl, uniform);
         this.mesh.forEach((mesh) => this.renderMesh(gl, mesh, this.extendOptions(mesh, options), index));
+    }
+
+    public renderPoints(gl: WebGL2RenderingContext, vertices: number[], time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, transform: m3, color: number[]) {
+        const uniform: uniforms = {pos: pos, width: viewPort.width, height: viewPort.height, timer: time, resolution: resolution};
+        const buffer = createBuffer(gl, vertices);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		// gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(this.bufferPosData()), this.gl.STATIC_DRAW);
+		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(0);
+		this.program.useProgram(gl, uniform);
+        this.program.setUniform(gl, "transform", transform.matrix);
+        this.program.setUniform(gl, "color", color);
+		// gl.drawArrays(gl.POINTS, 0, vertices.length / 2);
+        // this.program.setUniform(gl, "color", [0,1,0,0.5]);
+        gl.drawArrays(gl.LINE_STRIP, 0, vertices.length / 2);
     }
 }

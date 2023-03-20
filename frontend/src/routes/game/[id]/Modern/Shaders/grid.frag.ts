@@ -1,5 +1,5 @@
 
-
+export const gridFrag = `
 // Helper vector. If you're doing anything that involves regular triangles or hexagons, the
 // 30-60-90 triangle will be involved in some way, which has sides of 1, sqrt(3) and 2.
 const highp vec2 s = vec2(1.7320508, 1);
@@ -136,4 +136,4 @@ void main()
     highp vec3 col = mix(gridColor,starColor, 0.4);
     col = col + 0.5 * gridColor;
     gl_FragColor = vec4(col, 1);
-}
+}`;

@@ -62,15 +62,19 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 				name = randomBytes(30).toString("hex");
 			}
 
-			if (!is_private && await this.room_repo.findOneBy({ name: name, is_private: false } as FindOptionsWhere<T>))
+			if (!is_private && await this.room_repo.findOneBy({ name, is_private: false } as FindOptionsWhere<T>))
 				throw new ForbiddenException(`A room with the name "${name}" already exists`);
 
 			const room = new this.type();
+		
 			room.name = name;
-			room.is_private = is_private || false;
-			if (!room.is_private && password)
-				room.password = await argon2.hash(password);
+			room.is_private = is_private;
 			room.members = [];
+		
+			if (!room.is_private && password) {
+				room.password = await argon2.hash(password);
+			}
+
 			return room;
 		}
 
@@ -102,36 +106,18 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 			return true;
 		}
 
-		async add_member(room: number | T, user:  User, role?: Role): Promise<U> {
-			room = await this.get_room(room);
-		
-			// const existing = await this.member_repo.findOneBy({
-			// 	room: {
-			// 		id: room.id,
-			// 	},
-			// 	user: {
-			// 		id: user.id,
-			// 	}
-			// } as FindOptionsWhere<U>);
-
-			const existing = room.members.find((member) => member.userId === user.id);
-		
-			if (existing) {
+		async add_member(room: T, user: User, role?: Role): Promise<U> {
+			if (room.users.map(({ id }) => id).includes(user.id)) {
 				throw new ForbiddenException("Already member of room");
 			}
 
 			const member = new MemberType;
 		
-			member.role = role || Role.MEMBER;
-			member.room = room;
 			member.user = user;
-
-			if (!room.members) {
-				room.members = [];
-			}
+			member.role = role ?? Role.MEMBER;
 
 			room.members.push(member);
-
+		
 			return member;
 		}
 
@@ -259,8 +245,9 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		loadRelations(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
 			return this.relations(qb
 				.leftJoinAndSelect("room.members", "member")
-				.leftJoinAndSelect("member.user", "user")
-				.leftJoinAndSelect("member.player", "player")
+				.leftJoinAndSelect("member.user", "self")
+				.leftJoinAndSelect("member.player", "selfPlayer")
+				.leftJoinAndSelect("selfPlayer.team", "selfTeam")
 			);
 		}
 
@@ -268,9 +255,9 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
 		}
 
-		async setup_room(room: T, dto: C): Promise<T> {
-			return room;
-		}
+		async onCreate(room: T, dto: C) { }
+		async beforeJoin(room: T, body: any) { }
+		async onJoin(room: T, member: U, body: any) { }
 
 		@Get("joined")
 		async joined(@Me() me: User) {
@@ -280,8 +267,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			return rooms.map((room) => {
 				return {
 					...instanceToPlain(room),
-					self: room.self(me),
 					joined: true,
+					self: room.self(me),
 				}
 			});
 		}
@@ -303,21 +290,19 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		@UsePipes(new ValidationPipe({ expectedType: c || CreateRoomDTO }))
 		async create_room(@Me() user: User, @Body() dto: C) {
 			const name = dto.name ? dto.name.trim() : genName();
+			const room = await this.service.create(name, dto.is_private, dto.password);
 		
-			let room = await this.service.create(name, dto.is_private, dto.password);
-			let member = await this.service.add_member(room, user, Role.OWNER);
+			await this.onCreate(room, dto);
+			await this.service.add_member(room, user, Role.OWNER);
+			await this.room_repo.save(room);
 
-			room = await this.setup_room(room, dto);
-			room = await this.room_repo.save(room);
-
-			this.update_service.send_update({
+			UpdateGateway.instance.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.UPDATE,
 				value: {
-					owner: room.owner,
-					self: instanceToPlain(member),
 					joined: true,
+					self: room.self(user),
 				}
 			}, user)
 
@@ -347,8 +332,29 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.UPDATE,
-				value:  { name: room.name, access: room.access },
+				value: { name: room.name, access: room.access },
 			});
+		}
+
+		@Delete("id/:id")
+		@RequiredRole(Role.OWNER)
+		async delete_room(@Param("id", ParseIDPipe(type, { invites: true })) room: T) {
+			await this.room_repo.remove(room);
+
+			// Cascade delete doesn't trigger subscriber because why would it
+			room.invites.forEach((invite) => {
+				UpdateGateway.instance.send_update({
+					subject: Subject.INVITE,
+					action: Action.REMOVE,
+					id: invite.id,
+				});
+			});
+		}
+
+		@Get("id/:id/member(s)?")
+		@RequiredRole(Role.MEMBER)
+		async list_members(@GetRoom() room: T) {
+			return room.members;
 		}
 
 		@Post("id/:id/member(s)?")
@@ -357,20 +363,23 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@Param("id", ParseIDPipe(type, { banned_users: true })) room: T,
 			@Body() body: any,
 		) {
-			const invites = await this.invite_repo.findBy({ room: {	id: room.id	}, to: { id: me.id } }) ?? [];
-			const password = body.password;
+			const invite = await this.invite_repo.findOneBy({ room: { id: room.id }, to: { id: me.id } });
 
-			if (room.access == Access.PRIVATE && !invites.length) {
-				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
-			}
-
-			if (room.access === Access.PROTECTED && !invites.length) {
-				if (!password) {
-					throw new BadRequestException("Missing password");
+			if (!invite) {
+				if (room.access === Access.PRIVATE) {
+					throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 				}
-
-				if (!await argon2.verify(room.password, password)) {
-					throw new ForbiddenException("Incorrect password");
+	
+				if (room.access === Access.PROTECTED) {
+					const password = body.password;
+			
+					if (!password) {
+						throw new BadRequestException("Missing password");
+					}
+	
+					if (!await argon2.verify(room.password, password)) {
+						throw new ForbiddenException("Incorrect password");
+					}
 				}
 			}
 
@@ -378,12 +387,14 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException("You have been banned from this channel");
 			}
 
-			let member = await this.service.add_member(room, me);
-		
-			member = await this.member_repo.save(member);
-		
-			await this.onJoin(room, member, body)
-			await this.invite_repo.remove(invites);
+			await this.beforeJoin(room, body);
+			await this.service.add_member(room, me);
+			await this.room_repo.save(room);
+			await this.onJoin(room, room.self(me), body)
+
+			if (invite) {
+				await this.invite_repo.remove(invite);
+			}
 
 			this.update_service.send_update({
 				subject: Subject.ROOM,
@@ -392,32 +403,15 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				value: {
 					...instanceToPlain(room),
 					joined: true,
-					self: instanceToPlain(member)
+					self: room.self(me),
 				},
 			}, me);
 		}
 
-		async onJoin(room: T, member: U, body: any) { }
-
 		@Get("id/:id/self")
 		@RequiredRole(Role.MEMBER)
 		async self(@Me() me: User, @GetRoom() room: T) {
-			return this.member_repo.findOneBy({ user: { id: me.id }, room: { id: room.id } } as FindOptionsWhere<U>);
-		}
-
-		@Get("id/:id/member(s)?")
-		@RequiredRole(Role.MEMBER)
-		async list_members(@GetRoom() room: T) {
-			return this.member_repo.find({
-				relations: {
-					user: true,
-				} as FindOptionsRelations<U>,
-				where: {
-					room: {
-						id: room.id,
-					},
-				} as FindOptionsWhere<U>,
-			});
+			return room.self(me);
 		}
 
 		@Delete("id/:id/member(s)?/me")
@@ -438,7 +432,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@Body("ban") ban: boolean,
 		) {
 			if (member.id !== target.id && target.role >= member.role) {
-				console.log(member.role + " " + target.role);
 				throw new ForbiddenException(ERR_PERM);
 			}
 
@@ -462,23 +455,6 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				id: room.id,
 				value: { joined: false },
 			}, target.user);
-
-			return {};
-		}
-
-		@Delete("id/:id")
-		@RequiredRole(Role.OWNER)
-		async delete_room(@Param("id", ParseIDPipe(type, { invites: true })) room: T) {
-			await this.room_repo.remove(room);
-
-			// Cascade delete doesn't trigger subscriber because why would it
-			room.invites.forEach((invite) => {
-				UpdateGateway.instance.send_update({
-					subject: Subject.INVITE,
-					action: Action.REMOVE,
-					id: invite.id,
-				});
-			});
 		}
 
 		@Patch("id/:id/member(s)?/:target")
@@ -506,18 +482,8 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Get("id/:id/invite(s)?")
 		@RequiredRole(Role.MEMBER)
-		async room_invites(@GetRoom() room: T) {
-			return this.invite_repo.find({
-				relations: {
-					from: true,
-					to: true,
-				},
-				where: {
-					room: {
-						id: room.id,
-					},
-				},
-			});
+		async invites(@GetRoom() room: T) {
+			return this.invite_repo.findBy({ room: { id: room.id } });
 		}
 
 		@Post("id/:id/invite(s)?")
@@ -539,7 +505,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException("Cannot invite banned user");
 			}
 
-			return await this.invite_repo.save({ from: me, to: target, room, type: room.type });
+			await this.invite_repo.save({ from: me, to: target, room, type: room.type });
 		}
 
 		@Delete("id/:id/invite(s)?/:invite")
@@ -559,7 +525,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 					throw new ForbiddenException(ERR_PERM);
 			}
 
-			return await this.invite_repo.remove(invite);
+			await this.invite_repo.remove(invite);
 		}
 
 		@Get("id/:id/ban(s)?")
@@ -582,7 +548,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 			room.banned_users.splice(index, 1);
 
-			return await this.room_repo.save(room);
+			await this.room_repo.save(room);
 		}
 	}
 	return RoomControllerFactory;

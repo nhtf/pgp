@@ -54,8 +54,8 @@
 		disabled={is_private}
 	/>
 	<div class="private-check">
-	<Checkbox bind:checked={is_private} class="checkbox" />
-	<span class="label">Private</span>
+		<Checkbox bind:checked={is_private} class="checkbox" />
+		<span class="label">Private</span>
 	</div>
 	{#if type === "GameRoom"}
 		<Select
@@ -99,7 +99,7 @@
 	.private-check {
 		align-items: center;
 		display: flex;
-		column-gap: 0.375rem;
+		column-gap: 0.5rem;
 	}
 
 </style>

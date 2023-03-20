@@ -24,11 +24,8 @@
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: invites = [...$inviteStore.values()];
 	$: notifications = invites.filter((invite) => invite.to.id === user.id);
-	$: notifMap = new Map(
-		notifications.map((invite) => [
-			invite,
-			notifMap.has(invite) ? notifMap.get(invite)! : Status.UNREAD,
-		])
+	$: notifMap = new Map(notifications.map(
+		(invite) => [invite, notifMap.get(invite) ?? Status.UNREAD])
 	);
 
 	$: newNotifs = [...notifMap.values()].some(

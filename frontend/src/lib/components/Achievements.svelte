@@ -272,6 +272,8 @@
 		scale: 0.65;
 		display: flex;
 		position: relative;
+		filter: none;
+		-webkit-filter: none;
 	}
 
 	#achievement-icon {

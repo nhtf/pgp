@@ -1,8 +1,10 @@
-import type { VectorObject } from "../../lib2D/Math2D";
-import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "../Constants";
-import { m3 } from "../Matrix";
-import { Shader} from "../Shader";
-import type { viewPort } from "../Shader";
+import type { VectorObject } from "../lib2D/Math2D";
+import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, paddleWidth, paddleHeight } from "./Constants";
+import { m3 } from "./Matrix";
+import { Shader, type triangles} from "./Shader";
+import type { viewPort } from "./Shader";
+import type { Line, CollisionLine } from "../lib2D/Math2D";
+import { Vector } from "../lib2D/Math2D";
 
 const ballSize = 7; //Visual size on the screen
 
@@ -28,23 +30,14 @@ export function setOriginRipple(x: number, y: number) {
 	position.y = 1 - ((y + 22.5) / HEIGHT);
 }
 
-const path = "/Assets/Shaders/";
-let VERT_PADDLE_SRC: string;
-let FRAG_PADDLE_SRC: string;
-let VERT_FIELD_SRC: string;
-let FRAG_FIELD_SRC: string;
-let VERT_GRID_SRC: string;
-let FRAG_GRID_SRC: string;
-let VERT_BALL_SRC: string;
-let FRAG_BALL_SRC: string;
-await fetch(path+"paddle.vert").then(r => r.text().then(d => VERT_PADDLE_SRC = d));
-await fetch(path+"paddle.frag").then(r => r.text().then(d => FRAG_PADDLE_SRC = d));
-await fetch(path+"field.vert").then(r => r.text().then(d => VERT_FIELD_SRC = d));
-await fetch(path+"field.frag").then(r => r.text().then(d => FRAG_FIELD_SRC = d));
-await fetch(path+"grid.vert").then(r => r.text().then(d => VERT_GRID_SRC = d));
-await fetch(path+"grid.frag").then(r => r.text().then(d => FRAG_GRID_SRC = d));
-await fetch(path+"ball.vert").then(r => r.text().then(d => VERT_BALL_SRC = d));
-await fetch(path+"ball.frag").then(r => r.text().then(d => FRAG_BALL_SRC = d));
+import { ballVert } from "./Shaders/ball.vert";
+import { ballFrag } from "./Shaders/ball.frag";
+import { paddleVert } from "./Shaders/paddle.vert";
+import { paddleFrag } from "./Shaders/paddle.frag";
+import { fieldVert } from "./Shaders/field.vert";
+import { fieldFrag } from "./Shaders/field.frag";
+import { gridVert } from "./Shaders/grid.vert";
+import { gridFrag } from "./Shaders/grid.frag";
 
 //TODO remake the debug renderer for the collisionlines
 export class FullShader {
@@ -55,6 +48,7 @@ export class FullShader {
 	private lastTime: number;
 	private ballPos: VectorObject;
 	private paddlePos: VectorObject[] = [];
+	private paddlePosCanvas: VectorObject[] = [];
 	private paddleRot: number[] = [];
 	private level;
 	private field: Shader;
@@ -68,10 +62,10 @@ export class FullShader {
 		this.gl.pixelStorei(this.gl.UNPACK_FLIP_Y_WEBGL, true);
 		this.gl.enable(this.gl.BLEND);
 		this.gl.blendFunc(this.gl.SRC_ALPHA, this.gl.ONE_MINUS_SRC_ALPHA);
-		this.paddleShader = new Shader(this.gl, VERT_PADDLE_SRC, FRAG_PADDLE_SRC);
-		this.field = new Shader(this.gl, VERT_FIELD_SRC, FRAG_FIELD_SRC);
-		this.grid = new Shader(this.gl, VERT_GRID_SRC, FRAG_GRID_SRC);
-		this.ball = new Shader(this.gl, VERT_BALL_SRC, FRAG_BALL_SRC);
+		this.paddleShader = new Shader(this.gl, paddleVert, paddleFrag);
+		this.field = new Shader(this.gl, fieldVert, fieldFrag);
+		this.grid = new Shader(this.gl, gridVert, gridFrag);
+		this.ball = new Shader(this.gl, ballVert, ballFrag);
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.gl.createBuffer());
 		
 		this.timer = 0;
@@ -80,6 +74,7 @@ export class FullShader {
 
 		for (let i = 0; i < level.players; i++) {
 			this.paddlePos.push(level.paddleStartPos[i]);
+			this.paddlePosCanvas.push({x: 0, y: 0});
 		}
 		this.paddleShader.addMesh(this.gl, level.paddleBorder, "paddleBorder", {color: level.paddleBorderColors});
 		this.paddleShader.addMesh(this.gl, level.paddleGradient, "paddleGradient", {color: level.paddleGradientColors});
@@ -126,6 +121,7 @@ export class FullShader {
 		const otherPos = {x: (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.scale(), y: (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.scale()};
 		const morePos = {x: (otherPos.x) / (WIDTH * this.scale() / 2) - 1, y: (otherPos.y) / (HEIGHT * this.scale() / 2) - 1};
 		this.paddlePos[paddleIndex] = morePos;
+		this.paddlePosCanvas[paddleIndex] = pos;
 	}
 
 	public rotatePaddle(angle: number, paddleIndex: number) {
@@ -167,6 +163,8 @@ export class FullShader {
 			mat.scaling(2 / WIDTH, 2 / HEIGHT);
 			mat.translation(this.paddlePos[i].x, this.paddlePos[i].y);
 			this.paddleShader.renderAll(this.gl, time, viewport, this.paddlePos[i], res, {transform: mat}, i);
+			// mat.scaling(2, 2);
+			this.paddleShader.renderPoints(this.gl, this.level.paddleContour, time, viewport, this.paddlePos[i], res, mat, [1, 0, 0, 1]);
 		}
 	}
 
@@ -180,7 +178,8 @@ export class FullShader {
 			matField.scaling(2 / WIDTH, 2 / HEIGHT);
 			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldGradient", {transform: matField, gradientRadius: {x: this.level.fieldGradientRadius.x * this.scale(), y: this.level.fieldGradientRadius.y * this.scale()}, ballRadius: ballRadius }, i);	
 			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalBorder", {transform: matField, ballRadius: ballRadius}, i);	
-			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalGradient", {transform: matField, ballRadius: ballRadius}, i);	
+			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalGradient", {transform: matField, ballRadius: ballRadius}, i);
+			this.field.renderPoints(this.gl, this.level.goalContour, time, viewport, this.ballPos, res, matField, [1, 0,0,1]);
 		}
 	}
 
@@ -211,7 +210,7 @@ export class FullShader {
 
 		this.grid.renderAll(this.gl, time, viewport, this.ballPos, res);
 		
-		this.renderPlayerFields(time, viewport, res, ballRadius);
+		
 
 		this.renderPaddles(time, viewport, res);
 		
@@ -219,6 +218,13 @@ export class FullShader {
 		
 		this.ball.renderAll(this.gl, time, viewport, this.ballPos, res,  {size: {x: ballSize * scale, y: ballSize * scale}});
 		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldBorder", {transform: normal,  ballRadius: ballRadius});
+		this.renderPlayerFields(time, viewport, res, ballRadius);
+		if (this.level.fieldContour) {
+			// this.field.renderPoints(this.gl, this.level.fieldContour, time, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+			console.log("fieldContourLines: ", this.level.fieldContour?.length / 4);
+		}
+
+		
 		
 		if (active) {
 			this.timer += time - this.lastTime;
@@ -228,7 +234,7 @@ export class FullShader {
 			}
 		}
 		const fps = 1/ (time -this.lastTime) * 1000;
-		console.log("fps: ", fps);
+		// console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

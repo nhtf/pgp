@@ -10,8 +10,8 @@ import { WsException, SubscribeMessage, ConnectedSocket } from "@nestjs/websocke
 
 export interface UpdatePacket {
 	subject: Subject;
-	id: number;
 	action: Action;
+	id: number;
 	value?: any;
 }
 

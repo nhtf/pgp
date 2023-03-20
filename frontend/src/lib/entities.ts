@@ -1,4 +1,5 @@
 import type { Access, Role, Status, Gamemode } from "./enums";
+import type { Achievement } from "./types";
 
 export type Entity = {
 	id: number,
@@ -12,6 +13,7 @@ export type User = {
 	avatar: string,
 	in_game: boolean,
 	activeRoomId: number | null,
+	achievements?: Achievement[],
 };
 
 export type Room = {
@@ -19,13 +21,13 @@ export type Room = {
     name: string,
 	access: Access,
 	type: "ChatRoom" | "GameRoom",
-	owner: User,
 	joined: boolean,
-	self?: Member
+	owner?: User,
 };
 
 export type ChatRoom = Room & {
 	// messages: Message[],
+	self?: ChatRoomMember
 };
 
 export type GameRoom = Room & {
@@ -33,6 +35,7 @@ export type GameRoom = Room & {
 	gamemode: Gamemode,
 	teamsLocked: boolean,
 	teams: Team[],
+	self?: GameRoomMember
 };
 
 export type GameState = {
@@ -47,11 +50,13 @@ export type Member = {
 	id: number,
 	user: User,
 	role: Role,
-	is_muted: boolean,
 	userId: number,
 	roomId: number,
-	player?: Player,
 };
+
+export type ChatRoomMember = Member & {
+	is_muted: boolean,
+}
 
 export type GameRoomMember = Member & {
 	player: Player | null,

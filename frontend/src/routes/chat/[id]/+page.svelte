@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Room, Message } from "$lib/entities";
+	import type { ChatRoom, Room, Message, ChatRoomMember } from "$lib/entities";
 	import type { PageData } from "./$types";
 	import type { UpdatePacket } from "$lib/types";
 	import { onDestroy, onMount } from "svelte";
@@ -26,9 +26,9 @@
 	let indices: number[] = [];
 	let relativeScroll = messages.length;
 
-	$: room = $roomStore.get(data.room.id)!;
+	$: room = $roomStore.get(data.room.id)! as ChatRoom;
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
-	$: self = $memberStore.get(room.self!.id)!;
+	$: self = $memberStore.get(room.self!.id)! as ChatRoomMember;
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
 
 	$: messages;

@@ -68,12 +68,12 @@ export class User {
 
 	@Exclude()
 	@ManyToMany(() => User, (friend) => friend.friends)
-	@JoinTable()
+	@JoinTable({ name: "Friend" })
 	friends: User[];
 
 	@Exclude()
 	@ManyToMany(() => User, (user) => user.blocked)
-	@JoinTable()
+	@JoinTable({ name: "Block" })
 	blocked: User[];
 
 	@Exclude()

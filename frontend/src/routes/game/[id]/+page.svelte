@@ -12,6 +12,8 @@
 
 	export let data: PageData;
 
+	const gamemode = data.room.state.gamemode;
+
 	let index: number;
 
 	onMount(() => {
@@ -28,11 +30,11 @@
 
 </script>
 
-{#if data.room.gamemode === Gamemode.VR}
+{#if gamemode === Gamemode.VR}
 	<VrGame />
-{:else if data.room.gamemode === Gamemode.CLASSIC}
+{:else if gamemode === Gamemode.CLASSIC}
 	<ClassicGame />
-{:else if data.room.gamemode === Gamemode.MODERN && data.room.teams.length === 2}
+{:else if gamemode === Gamemode.MODERN && data.room.state.teams.length === 2}
 	<ModernGameShader gameMode={GAME.TWOPLAYERS} />
 {:else}
 	<ModernGameShader gameMode={GAME.FOURPLAYERS} />

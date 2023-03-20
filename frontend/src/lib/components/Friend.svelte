@@ -7,6 +7,8 @@
 	import { blockStore, gameStateStore, teamStore, userStore } from "$lib/stores";
 	import { get, patch, post, remove } from "$lib/Web";
 	import { Avatar, Button, Dropdown, DropdownItem } from "flowbite-svelte";
+    import { afterUpdate, onMount } from "svelte";
+    import Match from "./Match.svelte";
 
 	export let user: User;
 
@@ -23,6 +25,11 @@
 	$: state = [...$gameStateStore.values()].find((state) => state.roomId === user.activeRoomId) ?? null;
 	$: teams = [...$teamStore.values()].filter((team) => team.stateId === state?.id) ??	null;
 	$: blockedIds = [...$blockStore.keys()];
+
+	afterUpdate(() => {
+		console.log(state);
+
+	});
 
 	async function unfriend(user: User) {
 		await remove(`/user/me/friends/${user.id}`);
@@ -129,7 +136,8 @@
 		{/if}
 	{/each}
 </Dropdown>
-{#if user.activeRoomId}
+{#if state}
+	<!-- <Match game={state}/> -->
 	<div class="flex row">
 		{#each teams as team, index (team.id)}
 			{#if index > 0}

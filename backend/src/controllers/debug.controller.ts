@@ -32,6 +32,7 @@ import { Achievement } from "src/entities/Achievement";
 import { Objective } from "src/entities/Objective";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { Message } from "src/entities/Message";
+import { Player } from "src/entities/Player";
 
 class UserDTO {
 	@IsString()
@@ -73,6 +74,8 @@ export class DebugController {
 		private readonly messageRepo: Repository<Message>,
 		@Inject("GAMESTATE_REPO")
 		private readonly gamestateRepo: Repository<GameState>,
+		@Inject("PLAYER_REPO")
+		private readonly playerRepo: Repository<Player>,
 		@Inject("ACHIEVEMENT_REPO")
 		private readonly achievementRepo: Repository<Achievement>,
 		@Inject("OBJECTIVE_REPO")
@@ -310,7 +313,6 @@ export class DebugController {
 
 		achievement.name = name;
 		achievement.max = max;
-		achievement.description = desc;
 		achievement.image = img;
 
 		/*
@@ -340,5 +342,10 @@ export class DebugController {
 	@Get("unlock")
 	async unlock(@Query("id", ParseIDPipe(GameRoom)) room: GameRoom) {
 		await this.gamestateRepo.save({ id: room.state.id, teamsLocked: false });
+	}
+
+	@Get("afk")
+	async playersWithoutUsers() {
+		return this.playerRepo.find({ where: { user: null }})
 	}
 }

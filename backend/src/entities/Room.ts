@@ -2,7 +2,7 @@ import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, Ma
 import { Member } from "./Member";
 import { User } from "./User";
 import { Access, Role } from "src/enums";
-import { Exclude, Expose } from "class-transformer";
+import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
 import { UpdateGateway, UpdatePacket } from "src/gateways/update.gateway";
 
@@ -26,7 +26,7 @@ export class Room {
 	password: string | null;
 
 	@Exclude()
-	@OneToMany(() => Member, (member) => member.room, { eager: true, orphanedRowAction: "delete", cascade: true })
+	@OneToMany(() => Member, (member) => member.room, { eager: true, cascade: true, orphanedRowAction: "delete" })
 	members: Member[];
 
 	@Exclude()
@@ -49,16 +49,16 @@ export class Room {
 	}
 
 	@Expose()
-	get owner(): User {
-		return this.members?.find(member => member.role === Role.OWNER)?.user;
+	get owner(): any {
+		return instanceToPlain(this.members?.find((member) => member.role === Role.OWNER)?.user);
 	}
 
 	get users(): User[] {
 		return this.members?.map(member => member.user);
 	}
 
-	self(user: User) {
-		return this.members?.find((member) => member.userId === user.id);
+	self(user: User): any {
+		return instanceToPlain(this.members?.find((member) => member.userId === user.id));
 	}
 
 	send_update(packet: UpdatePacket) {

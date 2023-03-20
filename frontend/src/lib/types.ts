@@ -17,6 +17,11 @@ export type Achievement = {
 	level_cost: number[],
 };
 
+export type Objective = {
+	threshold: number,
+	color: string,
+};
+
 export type Suggestion = {
 	title: string,
 	desc: string,

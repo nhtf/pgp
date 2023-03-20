@@ -8,7 +8,8 @@ import {
 } from "./Constants";
 
 import type { field, renderArc, gradient } from "./Constants";
-import type { CollisionLine, Line, Vector } from "../lib2D/Math2D"
+import type { CollisionLine, Line } from "../lib2D/Math2D"
+import { Vector } from "../lib2D/Math2D";
 
 export class Field {
 	public width: number;
@@ -27,8 +28,25 @@ export class Field {
 		// this.arcs = field.arcs;
 		// this.gradients = field.gradients;
 		this.collisionLines = field.collisions;
-		this.convexFieldBoxLines = field.convexFieldBoxLines;
+		// this.convexFieldBoxLines = field.convexFieldBoxLines;
+		this.convexFieldBoxLines = this.createCollisionLines(field);
 		this.playerAreas = field.playerAreas;
+	}
+
+	private createCollisionLines(level: any) {
+		let lines: CollisionLine[] = [];
+
+		for (let i = 0; i < level.fieldContour.length;) {
+			const p0 = new Vector(level.fieldContour[i], level.fieldContour[i + 1]);
+			const p1 = new Vector(level.fieldContour[i + 2], level.fieldContour[i + 3]);
+			const line = {p0: p0, p1: p1, name: `field-${(i + 4) / 4}`};
+
+			const colLine: CollisionLine = {p0: line.p0, p1: line.p1, name: line.name, normal: (line.p1.sub(line.p0).tangent().normalize())};
+			lines.push(colLine);
+			i += 4;
+		}
+		console.log("convexFieldLines: ", lines);
+		return lines;
 	}
 
 	// private drawGradients(context: CanvasRenderingContext2D) {
@@ -136,9 +154,9 @@ export class Field {
 	// 	});
 	// }
 
-	public getCollisionLines() {
-		return this.collisionLines;
-	}
+	// public getCollisionLines() {
+	// 	return this.collisionLines;
+	// }
 
 	public getConvexFieldBoxLines() {
 		return this.convexFieldBoxLines;
@@ -148,22 +166,22 @@ export class Field {
 		return this.playerAreas;
 	}
 
-	public isInField(entityPos: Vector): boolean {
-		for (let line of this.collisionLines) {
-			const maxY = Math.max(line.p0.y, line.p1.y);
-			const minY = Math.min(line.p0.y, line.p1.y);
-			const maxX = Math.max(line.p0.x, line.p1.x);
-			const minX = Math.min(line.p0.x, line.p1.x);
+	// public isInField(entityPos: Vector): boolean {
+	// 	for (let line of this.collisionLines) {
+	// 		const maxY = Math.max(line.p0.y, line.p1.y);
+	// 		const minY = Math.min(line.p0.y, line.p1.y);
+	// 		const maxX = Math.max(line.p0.x, line.p1.x);
+	// 		const minX = Math.min(line.p0.x, line.p1.x);
 
-			if (line.normal.x > 0 && entityPos.x > line.p0.x && entityPos.y >= minY && entityPos.y <= maxY)
-				return false;
-			else if (line.normal.x < 0 && entityPos.x < line.p0.x && entityPos.y >= minY && entityPos.y <= maxY)
-				return false;
-			if (line.normal.y > 0 && entityPos.y > line.p0.y && entityPos.x >= minX && entityPos.x <= maxX)
-				return false;
-			else if (line.normal.y < 0 && entityPos.y < line.p0.y && entityPos.x >= minX && entityPos.x <= maxX)
-				return false;
-		}
-		return true;
-	}
+	// 		if (line.normal.x > 0 && entityPos.x > line.p0.x && entityPos.y >= minY && entityPos.y <= maxY)
+	// 			return false;
+	// 		else if (line.normal.x < 0 && entityPos.x < line.p0.x && entityPos.y >= minY && entityPos.y <= maxY)
+	// 			return false;
+	// 		if (line.normal.y > 0 && entityPos.y > line.p0.y && entityPos.x >= minX && entityPos.x <= maxX)
+	// 			return false;
+	// 		else if (line.normal.y < 0 && entityPos.y < line.p0.y && entityPos.x >= minX && entityPos.x <= maxX)
+	// 			return false;
+	// 	}
+	// 	return true;
+	// }
 }

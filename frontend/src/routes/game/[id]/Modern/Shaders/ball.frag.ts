@@ -1,3 +1,4 @@
+export const ballFrag: string = `
 uniform sampler2D tex;
 varying highp vec2 coord;
 uniform highp vec2 center; //position ball
@@ -19,4 +20,5 @@ void main()
     highp vec3 ballFillColor = vec3(0.871, 0.898, 0.07);
     highp vec4 col = vec4(mix(ballFillColor, ballStrokeColor, r1), r2);
     gl_FragColor = vec4(col);
-}
+}`;
+

@@ -39,7 +39,6 @@ const ignoredColumns = [
 @EventSubscriber()
 export class EntitySubscriber implements EntitySubscriberInterface {
 	async afterInsert(event: InsertEvent<any>) {
-		// console.log("Insert", event.metadata.targetName);
 		await this.update(event, Action.INSERT, (entity) => instanceToPlain(entity));
 	}
 
@@ -47,29 +46,21 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		const updatedColumns = this.updatedNames(event);
 
 		if (updatedColumns.length) {
-			// console.log("Update", event.metadata.targetName, updatedColumns);
 			await this.update(event, Action.UPDATE, this.columnToEntity.bind({}, updatedColumns));
 		}
 	}
 
 	async beforeRemove(event: RemoveEvent<any>) {
-		// console.log("Remove", event.metadata.targetName);
 		await this.update(event, Action.REMOVE, () => undefined);
 	}
 
 	async update(event: any, action: Action, valueFun: (entity: any) => any) {
 		const entity = event.entity;
 
-		if (action !== Action.UPDATE) {
-			console.log(Action[action], event.metadata.targetName);
-		} else {
-			const updatedColumns = this.updatedNames(event);
-
-			console.log(Action[action], event.metadata.targetName, updatedColumns);
-		}
-	
 		try {
 			const info = this.subjectEntry(event.metadata.targetName);
+		
+			this.log(event, action);
 		
 			UpdateGateway.instance.send_update({
 				subject: info.subject,
@@ -131,5 +122,20 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			.concat(event.updatedRelations
 				.map((column) => column.propertyName))
 			.filter((column) => !ignoredColumns.includes(column));
+	}
+
+	// TODO: remove
+	log(event: any, action: Action) {
+		if (action !== Action.UPDATE) {
+			console.log(Action[action], event.metadata.name);
+		} else {
+			const updatedColumns = this.updatedNames(event);
+
+			if (updatedColumns.length === 1 && updatedColumns[0] === "score") {
+				return ;
+			}
+		
+			console.log(Action[action], event.metadata.name, updatedColumns);
+		}
 	}
 }

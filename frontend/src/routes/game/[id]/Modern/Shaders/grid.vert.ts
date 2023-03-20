@@ -1,3 +1,4 @@
+export const gridVert = `
 attribute vec2 vertPos;
 attribute vec2 vertCoord;
 
@@ -10,4 +11,4 @@ uniform mat4 u_matrix;
 void main() {
 	gl_Position = vec4(vertPos, 0, 1.0);
 	coord = vertCoord;
-}
+}`;

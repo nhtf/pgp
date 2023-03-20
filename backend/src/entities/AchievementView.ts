@@ -3,8 +3,9 @@ import type { Objective } from "./Objective";
 
 @ViewEntity({
 	expression: `
-	SELECT "achievement"."id" as "id", "achievement"."name" as "name", "achievement"."description" as "description",
-	"achievement"."max" as "max", "objective"."threshold" as "threshold", COALESCE ("achievement_progress"."progress", 0) as "progress",
+	SELECT "achievement"."id" as "id", "achievement"."name" as "name", "objective"."description" as "description",
+	"achievement"."max" as "max", "achievement"."image" as "image", "objective"."threshold" as "threshold", "objective"."color" as "color",
+	COALESCE ("achievement_progress"."progress", 0) as "progress",
 	"user"."id" as "user_id" FROM "achievement" "achievement"
 	LEFT JOIN "objective" "objective" ON "objective"."achievementId" = "achievement"."id"
 	CROSS JOIN "user" "user"
@@ -23,6 +24,9 @@ export class AchievementView {
 	description: string;
 
 	@ViewColumn()
+	image: string;
+
+	@ViewColumn()
 	max: number;
 
 	@ViewColumn()
@@ -30,6 +34,9 @@ export class AchievementView {
 
 	@ViewColumn()
 	progress: number;
+
+	@ViewColumn()
+	color: string;
 
 	@ViewColumn()
 	user_id: number;

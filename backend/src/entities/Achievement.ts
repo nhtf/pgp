@@ -11,19 +11,14 @@ export class Achievement {
 	name: string;
 
 	@Column()
-	description: string;
-
-	@Column({
-	    nullable: true
-	})
-	image: string | null;
+	image: string;
 
 	@Column({
 	    nullable: true
 	})
 	max: number | null;
 
-	@OneToMany(() => Objective, (objective) => objective.achievement)
+	@OneToMany(() => Objective, (objective) => objective.achievement, { cascade: true })
 	objectives: Objective[];
 
 	@OneToMany(() => AchievementProgress, (progress) => progress.achievement, { nullable: false })

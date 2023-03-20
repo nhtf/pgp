@@ -10,9 +10,51 @@ import {
 	BACKEND_PORT,
 } from "./vars";
 import { join } from "path";
-import { sessionMiddleware } from "./app.module";
+import { dataSource, sessionMiddleware } from "./app.module";
 import { IoAdapter } from "@nestjs/platform-socket.io";
 import * as compression from "compression";
+import { Achievement } from "src/entities/Achievement";
+import { Objective } from "src/entities/Objective";
+
+interface ObjectiveDef {
+	threshold: number,
+	color: string,
+	description: string,
+}
+
+interface AchievementDef {
+	name: string,
+	image: string,
+	max: number,
+	objectives: ObjectiveDef[],
+}
+
+const achievements: AchievementDef[] = [
+	{
+		name: "Loser",
+		max: 20,
+		image: "/Assets/achievement-icons/pong.svg",
+		objectives: [
+			{
+				threshold: 5,
+				color: "#FF00FF",
+				description: "You lost 5 games",
+			}
+		],
+	},
+	{
+		name: "Popular",
+		max: 15,
+		image: "/Assets/achievement-icons/popular.svg",
+		objectives: [
+			{
+				threshold: 5,
+				color: "#FF00FF",
+				description: "Made 5 friends",
+			}
+		],
+	}
+];
 
 //https://docs.nestjs.com/websockets/adapter
 //https://socket.io/get-started/chat
@@ -59,6 +101,29 @@ async function bootstrap() {
 	app.useWebSocketAdapter(betterAdapter);
 
 	app.useStaticAssets(join(__dirname, "..", "avatar"), { prefix: "/avatar/" });
+
+	const repo = dataSource.getRepository(Achievement);
+	const tmp = await repo.find();
+	if (tmp.length === 0) {
+		await repo.save(achievements.map((value) => {
+			const achievement = new Achievement();
+
+			achievement.name = value.name;
+			achievement.max = value.max;
+			achievement.image = value.image;
+
+			achievement.objectives = value.objectives.map((obj) => {
+				const objective = new Objective();
+
+				objective.threshold = obj.threshold;
+				objective.color = obj.color;
+				objective.description = obj.description;
+				return objective;
+			});
+
+			return achievement;
+		}));
+	}
 	
 	app.listen(BACKEND_PORT);
 }

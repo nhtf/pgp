@@ -68,7 +68,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			action: Action.UPDATE,
 			id: state.id,
 			value: instanceToPlain(state),
-		}, ...friends);
+		}, ...[user, ...friends]);
 	}
 
 	@SubscribeMessage("broadcast")

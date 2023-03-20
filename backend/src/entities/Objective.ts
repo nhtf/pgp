@@ -6,6 +6,14 @@ export class Objective {
 	@PrimaryGeneratedColumn()
 	id: number;
 
+	@Column({
+		default: "#FF00FF",
+	})
+	color: string;
+
+	@Column()
+	description: string;
+
 	@Column()
 	threshold: number;
 

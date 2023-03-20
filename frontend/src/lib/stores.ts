@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite, Room, GameState, Team, Player } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room, GameState, Team, Player, GameRoom } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -81,6 +81,16 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	if (update.action === Action.INSERT) {
 		updateStore(userStore, [update.value]);
+	}
+});
+
+// Add state and teams from new room
+updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
+	if (update.action === Action.INSERT && update.value.type === "GameRoom") {
+		const room: GameRoom = update.value;
+	
+		updateStore(gameStateStore, [room.state]);
+		updateStore(teamStore, room.state.teams);
 	}
 });
 

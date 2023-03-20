@@ -4,7 +4,7 @@
 
 	export let game: GameState;
 
-	console.log(game);
+	console.log(game.teams);
 
 	const team = game.teams.find((team) => team.players.map((player) => player.userId).includes($page.data.user.id))!;
 	const players = game.teams.reduce((sum: Player[], team) => sum.concat(team.players), []);

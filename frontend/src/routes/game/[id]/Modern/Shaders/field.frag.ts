@@ -1,4 +1,4 @@
-
+export const fieldFrag = `
 uniform sampler2D tex;
 uniform highp vec2 size; //Size of the field/image
 uniform highp vec2 resolution; //Size of the /image
@@ -55,4 +55,4 @@ void main()
     
     endColor = mix(endColor, endColor * 2., smoothstep(1.0, .0, progress));
     gl_FragColor = endColor;
-}
+}`;

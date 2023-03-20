@@ -19,7 +19,7 @@ export class Ball {
 
 	public collision(lines: CollisionLine[]): [Line, Vector, number] | null {
 		let closest: [Line, Vector, number] | null = null;
-
+		// console.log("ballpos: ", this.position);
 		for (let line of lines) {
 			const p0 = new Vector(line.p0.x, line.p0.y);
 			const p1 = new Vector(line.p1.x, line.p1.y);
@@ -33,7 +33,10 @@ export class Ball {
 				}
 			}
 		}
-
+		// if (closest && !closest[0].name.startsWith("goal"))
+		// 	console.log("closest: ", closest[0].name );
+		// else
+		// 	console.log("lines checked", lines, closest[3]);
 		return closest;
 	}
 
