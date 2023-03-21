@@ -1,10 +1,9 @@
 import type { VectorObject } from "../lib2D/Math2D";
-import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, paddleWidth, paddleHeight } from "./Constants";
-import { m3 } from "./Matrix";
-import { Shader, type triangles} from "./Shader";
+import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "./Constants";
+import { m3 } from "../lib2D/Matrix";
+import { Shader} from "./Shader";
 import type { viewPort } from "./Shader";
-import type { Line, CollisionLine } from "../lib2D/Math2D";
-import { Vector } from "../lib2D/Math2D";
+import type { level } from "./Constants";
 
 const ballSize = 7; //Visual size on the screen
 
@@ -55,7 +54,7 @@ export class FullShader {
 	private grid: Shader;
 	private ball: Shader;
 
-	public constructor(canvas: HTMLCanvasElement, level: any) {
+	public constructor(canvas: HTMLCanvasElement, level: level) {
 		this.canvas = canvas;
 		this.level = level;
 		this.gl = canvas.getContext("webgl2", {antialias: true})!;
@@ -163,8 +162,6 @@ export class FullShader {
 			mat.scaling(2 / WIDTH, 2 / HEIGHT);
 			mat.translation(this.paddlePos[i].x, this.paddlePos[i].y);
 			this.paddleShader.renderAll(this.gl, time, viewport, this.paddlePos[i], res, {transform: mat}, i);
-			// mat.scaling(2, 2);
-			this.paddleShader.renderPoints(this.gl, this.level.paddleContour, time, viewport, this.paddlePos[i], res, mat, [1, 0, 0, 1]);
 		}
 	}
 
@@ -179,7 +176,31 @@ export class FullShader {
 			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldGradient", {transform: matField, gradientRadius: {x: this.level.fieldGradientRadius.x * this.scale(), y: this.level.fieldGradientRadius.y * this.scale()}, ballRadius: ballRadius }, i);	
 			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalBorder", {transform: matField, ballRadius: ballRadius}, i);	
 			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalGradient", {transform: matField, ballRadius: ballRadius}, i);
-			this.field.renderPoints(this.gl, this.level.goalContour, time, viewport, this.ballPos, res, matField, [1, 0,0,1]);
+		}
+	}
+
+	private debugRenderer(viewport: viewPort, res: VectorObject) {
+		const normal = new m3();
+		normal.translation(-WIDTH / 2, -HEIGHT / 2);
+		normal.scaling(2 / WIDTH, 2 / HEIGHT);
+
+		//Renders the collision for the field and goal lines
+		this.field.renderPoints(this.gl, this.level.collisionVertices, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+
+		//Renders the convex shape for the fieldBorder
+		this.field.renderPoints(this.gl, this.level.fieldContour, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+
+		normal.translation(+ 120/WIDTH, 70 / HEIGHT);
+		this.field.renderPoints(this.gl, this.level.playerAreaCollision, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+
+		//Renders the collision lines for all the paddles
+		for (let i = 0; i < this.level.players; i++) {
+			const mat = new m3();
+			mat.translation(-WIDTH / 2, -HEIGHT / 2);
+			mat.rotationZAxis(this.paddleRot[i]);
+			mat.scaling(2 / WIDTH, 2 / HEIGHT);
+			mat.translation(this.paddlePos[i].x, this.paddlePos[i].y);
+			this.paddleShader.renderPoints(this.gl, this.level.paddleContour, 0, viewport, this.paddlePos[i], res, mat, [1, 0, 0, 1]);
 		}
 	}
 
@@ -209,22 +230,17 @@ export class FullShader {
 		normal.scaling(2 / WIDTH, 2 / HEIGHT);
 
 		this.grid.renderAll(this.gl, time, viewport, this.ballPos, res);
-		
-		
+
+		this.renderPlayerFields(time, viewport, res, ballRadius);
+		this.renderMiddleLine(time, viewport, res, ballRadius);
 
 		this.renderPaddles(time, viewport, res);
 		
-		this.renderMiddleLine(time, viewport, res, ballRadius);
-		
 		this.ball.renderAll(this.gl, time, viewport, this.ballPos, res,  {size: {x: ballSize * scale, y: ballSize * scale}});
-		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldBorder", {transform: normal,  ballRadius: ballRadius});
-		this.renderPlayerFields(time, viewport, res, ballRadius);
-		if (this.level.fieldContour) {
-			// this.field.renderPoints(this.gl, this.level.fieldContour, time, viewport, this.ballPos, res, normal, [1, 0,0,1]);
-			console.log("fieldContourLines: ", this.level.fieldContour?.length / 4);
-		}
 
-		
+		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldBorder", {transform: normal,  ballRadius: ballRadius});
+
+		// this.debugRenderer(viewport, res);
 		
 		if (active) {
 			this.timer += time - this.lastTime;

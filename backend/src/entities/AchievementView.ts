@@ -3,14 +3,18 @@ import type { Objective } from "./Objective";
 
 @ViewEntity({
 	expression: `
-	SELECT "achievement"."id" as "id", "achievement"."name" as "name", "objective"."description" as "description",
-	"achievement"."max" as "max", "achievement"."image" as "image", "objective"."threshold" as "threshold", "objective"."color" as "color",
-	COALESCE ("achievement_progress"."progress", 0) as "progress",
-	"user"."id" as "user_id" FROM "achievement" "achievement"
-	LEFT JOIN "objective" "objective" ON "objective"."achievementId" = "achievement"."id"
-	CROSS JOIN "user" "user"
-	LEFT JOIN "achievement_progress" "achievement_progress" ON "achievement_progress"."userId" = "user"."id"
-	WHERE "user"."api_secret" IS NULL
+	SELECT achievement."id" as "id",
+	achievement.name as name, achievement.image as image, achievement.max as max,
+	objective.name as objective_name, objective.description as description, objective.color as color, objective.threshold as threshold,
+	"user"."id" as user_id,
+	COALESCE(progress.progress, 0) as progress
+	FROM achievement
+	LEFT JOIN objective ON objective."achievementId" = achievement."id"
+	CROSS JOIN "user"
+	LEFT JOIN achievement_progress as progress
+	ON progress."userId" = "user"."id"
+	AND progress."achievementId" = achievement."id"
+	WHERE "user".api_secret IS NULL;
 	`,
 })
 export class AchievementView {
@@ -28,6 +32,9 @@ export class AchievementView {
 
 	@ViewColumn()
 	max: number;
+
+	@ViewColumn()
+	objective_name: string;
 
 	@ViewColumn()
 	threshold: number;

@@ -76,10 +76,6 @@ export interface Line {
 	name: string,
 }
 
-export interface CollisionLine extends Line {
-	normal: Vector;
-}
-
 function compare(a: Vector, b: Vector): number {
 	if (a.x == b.x)
 		return a.y < b.y ? -1 : 1;
@@ -140,7 +136,7 @@ function convexHull(points: Vector[]) {
 }
 
 //Also for lines themselves now
-export function isInConvexHull(entityPos: Vector, lines: CollisionLine[], linePartOfHull: boolean) {
+export function isInConvexHull(entityPos: Vector, lines: Line[], linePartOfHull: boolean) {
 		let points = [];
 		points.push(entityPos);
 		for (let line of lines) {

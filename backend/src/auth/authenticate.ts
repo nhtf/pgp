@@ -11,8 +11,13 @@ import { AuthDTO } from "src/util";
 import { HttpStatus } from "@nestjs/common";
 
 export async function authenticateOrReject(request: IncomingMessage, get_user: (id: number) =>  Promise<User | null>): Promise<User> {
-	const key = request.headers?.authorization;
+	let key = request.headers?.authorization;
+
 	if (key) {
+		if (!key.startsWith("Bearer "))
+			throw { message: "Invalid scheme", code: HttpStatus.BAD_REQUEST};
+		key = key.slice(7).trim();
+
 		if (!isBase64(key))
 			throw { message: "Invalid key", code: HttpStatus.BAD_REQUEST };
 

@@ -1,11 +1,41 @@
-import type { Entity, User, Member, Invite, Room, GameState, Team, Player, GameRoom } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room, GameState, GameRoom } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
 import { writable, type Writable } from "svelte/store";
 import { Access } from "$lib/enums"
 
-function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
+// From typeorm
+type ObjectLiteral = { [key: string]: any; }
+type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]>; } : T;
+
+function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
+	// console.group("enter", entity);
+	Object.keys(update).forEach((key) => {
+		if (!entity[key]) {
+			entity[key] = {};
+		}
+		if (typeof update[key] === "object" && update[key]) {
+			updateDeepPartial(entity[key], update[key])
+		} else {
+
+			console.log(`${key}: ${typeof update[key]} = ${update[key]}`);
+
+			const copy = entity[key];
+		
+			entity[key] = update[key];
+			Object.keys(copy).forEach((key) => {
+				// console.log(key);
+				if (copy[key] && !entity[key]) {
+					entity[key] = copy[key];
+				}
+			})
+		}
+	});
+	// console.groupEnd();
+}
+
+function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: Subject) {
 	updateManager.set(subject, (update: UpdatePacket) => {
 		store.update((entities) => {
 			switch (update.action) {
@@ -18,8 +48,10 @@ function setUpdate<T>(store: Writable<Map<number, T>>, subject: Subject) {
 						break;
 					}
 
-					const entity = entities.get(update.id) as { [key: string]: any };
-				
+					const entity = entities.get(update.id) as ObjectLiteral;
+
+					updateDeepPartial(entity, update.value);
+
 					Object.entries(update.value).forEach(([key, value]) => {
 						entity[key] = value;
 					});
@@ -54,12 +86,10 @@ export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, e
 
 export const userStore = storeFactory<User>(Subject.USER);
 export const roomStore = storeFactory<Room>(Subject.ROOM);
-export const teamStore = storeFactory<Team>(Subject.TEAM);
 export const blockStore = storeFactory<Entity>(Subject.BLOCK);
 export const memberStore = storeFactory<Member>(Subject.MEMBER);
 export const inviteStore = storeFactory<Invite>(Subject.INVITE);
 export const friendStore = storeFactory<Entity>(Subject.FRIEND);
-export const playerStore = storeFactory<Player>(Subject.PLAYER);
 export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE);
 
 // Removed from private room
@@ -84,19 +114,9 @@ updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	}
 });
 
-// Add state and teams from new room
+// Add state from new room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 	if (update.action === Action.INSERT && update.value.type === "GameRoom") {
-		const room: GameRoom = update.value;
-	
-		updateStore(gameStateStore, [room.state]);
-		updateStore(teamStore, room.state.teams);
-	}
-});
-
-// Add teams from new gamestate
-updateManager.set(Subject.GAMESTATE, (update: UpdatePacket) => {
-	if (update.action === Action.INSERT) {
-		updateStore(teamStore, update.value.teams);
+		updateStore(gameStateStore, [update.value.state]);
 	}
 });

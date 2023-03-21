@@ -1,12 +1,15 @@
 import type { Socket } from "socket.io";
-import type { User } from "../entities/User";
+import type { User } from "src/entities/User";
+import type { Room } from "src/entities/Room"
+import type { GameState } from "src/entities/GameState"
 import type { SessionObject } from "src/services/session.service";
 import { Inject, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
-import { Repository, In } from "typeorm"
+import { Repository, In, DeepPartial } from "typeorm"
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { PURGE_INTERVAL } from "../vars";
 import { Action, Status, Subject } from "src/enums";
 import { WsException, SubscribeMessage, ConnectedSocket } from "@nestjs/websockets";
+import { instanceToPlain } from "class-transformer"
 
 export interface UpdatePacket {
 	subject: Subject;
@@ -28,13 +31,17 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 	static instance: UpdateGateway;
 
-	constructor(@Inject("USER_REPO") private readonly user_repo: Repository<User>) {
+	constructor(
+		@Inject("USER_REPO") private readonly user_repo: Repository<User>,
+		@Inject("GAMESTATE_REPO") private readonly stateRepo: Repository<GameState>,
+	) {
 		super(user_repo);
 		UpdateGateway.instance = this;
 		setInterval(this.tick.bind(this), PURGE_INTERVAL);
 	}
 
-	async onConnect(client: Socket, user: User) {
+	async onConnect(client: Socket) {
+		const user = client.user;
 		const now = new Date;
 		const id = user.id;
 
@@ -53,7 +60,8 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		this.update(user);
 	}
 
-	async onDisconnect(client: Socket, user: User) {
+	async onDisconnect(client: Socket) {
+		const user = client.user;
 		const id = user.id
 		const sockets = this.sockets.get(id);
 		const index = sockets.findIndex((socket) => socket.request.session.id === client.request.session.id);
@@ -66,7 +74,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 		if (!sockets.length) {
 			user.has_session = false;
-			user = await this.user_repo.save(user);
+			await this.user_repo.save(user);
 		
 			this.update(user);
 			this.status.delete(user.id);
@@ -94,7 +102,12 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		const last_status = this.status.get(user.id) ?? Status.OFFLINE;
 
 		if (user.status !== last_status) {
-			user.send_update({ status: user.status });
+			this.send_update({ 
+				subject: Subject.USER,
+				action: Action.UPDATE,
+				id: user.id,
+				value: { status: user.status }
+			});
 
 			this.status.set(user.id, user.status);
 		}
@@ -120,6 +133,27 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		const user = await this.user_repo.findOne({ where: { id }});
 
 		await this.heartbeat(user);
+	}
+
+	// TODO: receivers
+	async send_state_update(room: Partial<Room>, value?: DeepPartial<GameState>) {
+		const state = await this.stateRepo.findOne({
+			where: { room: { id: room.id } },
+			relations: {
+				teams: {
+					players: {
+						user: true,
+					}
+				}
+			}
+		});
+
+		this.send_update({
+			subject: Subject.GAMESTATE,
+			action: Action.UPDATE,
+			id: state.id,
+			value: value ?? instanceToPlain(state),
+		});
 	}
 
 }

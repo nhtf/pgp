@@ -46,4 +46,5 @@ export enum Subject {
 	TEAM,
 	BLOCK,
 	PLAYER,
+	ACHIEVEMENT,
 }

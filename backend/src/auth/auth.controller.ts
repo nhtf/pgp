@@ -77,7 +77,7 @@ export class AuthController {
 	async get_access_token(code: string): Promise<AccessToken | undefined> {
 		try {
 			const access_token = await this.client.getToken({
-				code: code,
+				code,
 				redirect_uri: BACKEND_ADDRESS + "/oauth/callback",
 				scope: "public",
 			});
@@ -96,9 +96,7 @@ export class AuthController {
 		]);
 		const res = await rest_client.get<result_dto>("/v2/me");
 		if (res.statusCode != 200) {
-			console.error(
-				"received " + res.statusCode + " from intra when retrieving user id",
-			);
+			console.error("received " + res.statusCode + " from intra when retrieving user id");
 			return undefined;
 		}
 
@@ -118,16 +116,15 @@ export class AuthController {
 	) {
 		const access_token = await this.get_access_token(token.code);
 
-
 		const oauth_id = await this.get_id(access_token);
 		if (!oauth_id)
 			throw new HttpException("Could not verify identity", HttpStatus.UNAUTHORIZED);
 
-		let user = await this.userRepo.findOneBy({ oauth_id: oauth_id });
+		let user = await this.userRepo.findOneBy({ oauth_id });
 		if (!user) {
-			user = new User();
-			user.oauth_id = oauth_id;
-			await this.userRepo.save(user);
+			// user = new User();
+			// user.oauth_id = oauth_id;
+			await this.userRepo.save({ oauth_id } as User);
 		}
 
 		if (!(await this.session_utils.regenerate_session_req(request)))
@@ -141,7 +138,7 @@ export class AuthController {
 		request.session.auth_level = AuthLevel.OAuth;
 
 		await this.session_utils.save_session(request.session);
-		if (request.session.auth_level != user.auth_req)
+		if (request.session.auth_level !== user.auth_req)
 			response.redirect(FRONTEND_ADDRESS + "/otp_verify");
 		else
 			response.redirect(FRONTEND_ADDRESS + "/profile");

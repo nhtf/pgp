@@ -7,7 +7,7 @@
 	import { icon_path } from "$lib/constants";
 	import { Access } from "$lib/enums";
 	import { post, remove, patch, get } from "$lib/Web";
-	import { gameStateStore, playerStore, teamStore, userStore } from "$lib/stores";
+	import { gameStateStore, userStore } from "$lib/stores";
     import { onDestroy, onMount } from "svelte";
     import { updateManager } from "$lib/updateSocket";
 	import Invite from "./Invite.svelte";
@@ -24,8 +24,6 @@
 		`${icon_path}/hexagon4p.svg`,
 	];
 
-	console.log(room.state);
-
 	const route = room.type.replace("Room", "").toLowerCase();
 	const icon = (room.type === "GameRoom" ? 
 		(room.state.gamemode === Gamemode.MODERN && room.state.teams?.length === 4 ? 
@@ -33,27 +31,12 @@
 
 	let password = "";
 	let state: GameState | null = room.state ?? null;
-	let player = room.self?.player ?? null;
-	let index: number;
 
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: owner = room.owner ? $userStore.get(room.owner.id)! : null;
 	$: state = state ? $gameStateStore.get(state.id)! : null;
-	$: player = player ? $playerStore.get(player.id)! : null;
 
-	onMount(() => {
-		const teamIds = room.state?.teams?.map((team) => team.id) ?? null;
-
-		index = updateManager.set(Subject.PLAYER, (update: UpdatePacket) => {
-			if (update.action === Action.INSERT && teamIds.includes(update.value.teamId)) {
-				player = update.value;
-			}
-		});
-	});
-
-	onDestroy(() => {
-		updateManager.remove(index);
-	});
+	$: team = state?.teams.find((team) => team.players.map((player) => player.userId).includes(user.id));
 
 	function teamSelector(room: T): Promise<number | null> {
 		const inputOptions = room.state.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
@@ -72,7 +55,7 @@
 		});
 
 		const elements = document.getElementsByName("swal2-radio") as NodeListOf<HTMLInputElement>;
-		const element = [...elements].find((element) => Number(element.value) === (player?.teamId ?? 0))!;
+		const element = [...elements].find((element) => Number(element.value) === (team?.id ?? 0))!;
 
 		element.checked = true;
 	
@@ -80,26 +63,13 @@
 	}
 
 	async function join(room: T) {
-		const body: any = {};
 
-		if (password) {
-			body.password = password;
-		}
-
-		if (room.type === "GameRoom") {
-			if (!room.state.teamsLocked) {
-				try {
-					body.id = await teamSelector(room);
-				} catch (_) {
-					return;
-				}
-			} else {
-				body.id = null;
-			}
+		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
+	
+		if (room.type === "GameRoom" && !room.state.teamsLocked) {
+			changeTeam(room);
 		}
 	
-		await unwrap(post(`/${route}/id/${room.id}/members`, body));
-
 		password = "";
 	}
 
@@ -127,21 +97,18 @@
 </script>
 
 <div class="room" style={`filter: brightness(${room.joined ? "100" : "80"}%)`}>
-	{#if room.type === "ChatRoom" && owner}
-		<img class="avatar" src={owner.avatar} alt="avatar"/>
+	{#if room.type === "ChatRoom"}
+		<img class="avatar" src={owner?.avatar} alt="avatar"/>
 	{:else}
 		<img class="icon" src={icon} alt="icon"/>
 	{/if}
 	<div class="room-name">{room.name}</div>
-	{#if owner && owner.id === user.id}
+	{#if owner?.id === user.id}
 		<img class="icon-owner" src={crown} alt="crown"/>
 	{/if}
-	<!-- {#if room.access === Access.PROTECTED}
-		<img class="icon" src={`${icon_path}/lock.svg`} alt="lock"/>
-	{/if} -->
 	<div class="grow"/>
 	{#if room.joined}
-		{#if owner && owner.id === user.id}
+		{#if owner?.id === user.id}
 			<Invite {room}/>
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 			{#if room.type === "GameRoom" && !state?.teamsLocked}
@@ -159,7 +126,7 @@
 		{#if state && !state.teamsLocked}
 			<button class="button border-yellow" on:click={() => changeTeam(room)}>Change team</button>
 		{/if}
-		<a class="button border-blue" href={`/${route}/${room.id}`}>{room.type === "ChatRoom" ? "Enter" : player ? `Play as ${player.team.name}` : "Spectate"}</a>
+		<a class="button border-blue" href={`/${route}/${room.id}`}>{room.type === "ChatRoom" ? "Enter" : team ? `Play as ${team.name}` : "Spectate"}</a>
 	{:else}
 		{#if room.access === Access.PROTECTED}
 			<input class="input" placeholder="Password" type="password" bind:value={password}>

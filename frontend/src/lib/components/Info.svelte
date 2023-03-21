@@ -33,16 +33,6 @@
 	})
 
 	function clickfunction(event: MouseEvent) {
-		if (!event || !event.target)
-			return;
-		const element = event.target as Element;
-		if (!element.matches(".icon") && !element.matches(".achievement_cell") && !element.matches(".icon-block")) {
-			const achievements = document.getElementsByClassName("achievement-display");
-			for (let i = 0; i < achievements.length; i += 1) {
-				const ach = achievements[i] as HTMLElement;
-				ach.style.display = "none";
-			}
-		}
 	}
 
 	async function changeUsername() {

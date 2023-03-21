@@ -6,8 +6,6 @@ import {
 	Req,
 	Get,
 	Query,
-	NotFoundException,
-	UseGuards,
 } from "@nestjs/common";
 import {
 	Length,
@@ -19,7 +17,7 @@ import {
 import { User } from "../entities/User";
 import { GameState } from "src/entities/GameState"
 import { AuthLevel, Role } from "src/enums";
-import { Repository, TreeRepository } from "typeorm";
+import { Repository, IsNull, Not } from "typeorm";
 import { Request } from "express";
 import { SessionService } from "src/services/session.service"
 import { ParseIDPipe } from "../util";
@@ -30,9 +28,9 @@ import { DEFAULT_AVATAR } from "../vars";
 import { Invite } from "src/entities/Invite";
 import { Achievement } from "src/entities/Achievement";
 import { Objective } from "src/entities/Objective";
-import { HttpAuthGuard } from "src/auth/auth.guard";
 import { Message } from "src/entities/Message";
 import { Player } from "src/entities/Player";
+import { AchievementProgress } from "src/entities/AchievementProgress";
 
 class UserDTO {
 	@IsString()
@@ -80,6 +78,8 @@ export class DebugController {
 		private readonly achievementRepo: Repository<Achievement>,
 		@Inject("OBJECTIVE_REPO")
 		private readonly objectiveRepo: Repository<Objective>,
+		@Inject("ACHIEVEMENTPROGRESS_REPO")
+		private readonly progressRepo: Repository<AchievementProgress>,
 	) {}
 
 	@Get("useradd")
@@ -223,12 +223,7 @@ export class DebugController {
 
 	@Get("invites")
 	async invites() {
-		return this.inviteRepo.find({
-			relations: {
-				from: true,
-				to: true,
-			},
-		});
+		return this.inviteRepo.find();
 	}
 
 	@Get("invite(s)?/delete")
@@ -306,14 +301,14 @@ export class DebugController {
 		@Query("name") name?: string,
 		@Query("max") max?: number,
 		@Query("desc") desc?: string,
-		@Query("img") img?: string,
+		@Query("img") image?: string,
 	)
 	{
-		const achievement = new Achievement();
+		// const achievement = new Achievement();
 
-		achievement.name = name;
-		achievement.max = max;
-		achievement.image = img;
+		// achievement.name = name;
+		// achievement.max = max;
+		// achievement.image = image;
 
 		/*
 		if (parent && parent != "") {
@@ -325,7 +320,7 @@ export class DebugController {
 			achievement.parent = up;
 
 		}*/
-		return await this.achievementRepo.save(achievement);
+		this.achievementRepo.save({ name, max, image });
 	}
 
 	@Get("addobj")
@@ -333,10 +328,7 @@ export class DebugController {
 		@Query("threshold") threshold: number,
 		@Query("ach", ParseIDPipe(Achievement)) achievement: Achievement
 	) {
-		const objective = new Objective();
-		objective.threshold = threshold;
-		objective.achievement = achievement;
-		return this.objectiveRepo.save(objective);
+		return this.objectiveRepo.save({ threshold, achievement } as Objective);
 	}
 
 	@Get("unlock")
@@ -344,8 +336,30 @@ export class DebugController {
 		await this.gamestateRepo.save({ id: room.state.id, teamsLocked: false });
 	}
 
-	@Get("afk")
-	async playersWithoutUsers() {
-		return this.playerRepo.find({ where: { user: null }})
+	@Get("wipe")
+	async clearRooms() {
+		return this.roomRepo.remove(await this.roomRepo.find());
+	}
+
+	@Get("bot(s)?")
+	async bots() {
+		return this.userRepo.findBy({ api_secret: Not(IsNull()) });
+	}
+
+	@Get("emptyPlayer")
+	async emptyPlayer() {
+		return this.playerRepo.remove( await this.playerRepo.findBy({ user: IsNull() }));
+	}
+
+	@Get("clearProgress")
+	async clearProgress() {
+		const all = await this.progressRepo.find();
+
+		all.forEach((progress) => {
+			progress.progress = 0;
+		});
+
+		await this.progressRepo.save(all);
+		
 	}
 }

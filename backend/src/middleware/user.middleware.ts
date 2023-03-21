@@ -16,7 +16,9 @@ export class UserMiddleware implements NestMiddleware {
 		let id = request.session?.user_id;
 	
 		if (request.headers?.authorization) {
-			const auth = request.headers.authorization;
+			if (!request.headers.authorization.startsWith("Bearer "))
+				throw new BadRequestException("Invalid scheme");
+			const auth = request.headers.authorization = request.headers.authorization.slice(7).trim();
 			if (!isBase64(auth))
 				throw new BadRequestException("Invalid key");
 

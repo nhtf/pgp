@@ -1,4 +1,4 @@
-import { Controller, ForbiddenException, UseGuards, Post, Inject, Body, Get, Delete, Param } from "@nestjs/common";
+import { Controller, ForbiddenException, UseGuards, Post, Inject, Body, Get, Delete, Param, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { User } from "src/entities/User";
 import { HttpAuthGuard } from "src/auth/auth.guard";
@@ -25,6 +25,7 @@ const BOT_API_KEYSIZE = 32;
 
 @Controller("bot(s)?")
 @UseGuards(HttpAuthGuard, SetupGuard, HumanGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class BotController {
 	constructor(@Inject("USER_REPO") private readonly user_repo: Repository<User>) {}
 

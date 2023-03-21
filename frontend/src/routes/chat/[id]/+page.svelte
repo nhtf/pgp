@@ -166,6 +166,8 @@
 		flex-direction: column;
 		flex-grow: 1;
 		align-items: stretch;
+		/* TODO */
+		width: 80vw;
 	}
 
 	.room-title {

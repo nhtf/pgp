@@ -6,6 +6,7 @@ import type { Member } from "src/entities/Member"
 import type { Player } from "src/entities/Player"
 import type { Message } from "src/entities/Message"
 import type { GameState } from "src/entities/GameState"
+import type { AchievementProgress } from "src/entities/AchievementProgress"
 import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, FindOptionsRelations } from "typeorm"
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { ReceiverFinder } from "src/ReceiverFinder" 
@@ -14,20 +15,31 @@ import { Action, Subject } from "src/enums"
 
 type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User | User[], relations?: FindOptionsRelations<any> };
 
-// Eager relations are skipped for brevity
 const subjects: SubjectInfo[] = [
-	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [], relations: {} },
+	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [] },
+	{ subject: Subject.ACHIEVEMENT, names: [ "Achievement" ], fun: (ach: AchievementProgress) => [] },
 	{ subject: Subject.ROOM, names: [ "Room", "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room?.users : [] },
 	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to] },
-	{ subject: Subject.MEMBER, names: [ "Member", "ChatRoomMember", "GameRoomMember" ], fun: (member: Member) => member.room?.users, relations: { room: true } },
-	{ subject: Subject.MESSAGE, names: [ "Message" ], fun: (message: Message) => message.room?.users, relations: { room: true } },
-	{ subject: Subject.TEAM, names: [ "Team" ], fun: (team: Team) => { 
-			return team.state?.room?.users.concat(team.state?.room?.users?.map((user) => user.friends).flat());
-		}, relations: { state: { room: { members: { user: { friends: true } } } } }
+	{ subject: Subject.MEMBER, names: [ "Member", "ChatRoomMember", "GameRoomMember" ],
+		fun: (member: Member) => member.room?.users,
+		relations: { room: { members: { user: true } } }
 	},
-	// Users don't load for some reason
-	{ subject: Subject.GAMESTATE, names: [ "GameState" ], fun: (state: GameState) => state.room?.users, relations: { room: { members: { user: true }} } },
-	{ subject: Subject.PLAYER, names: [ "Player" ], fun: (player: Player) => player.user, relations: { user: true } },
+	{ subject: Subject.MESSAGE, names: [ "Message" ],
+		fun: (message: Message) => message.room?.users,
+		relations: { room: { members: { user: true } } }
+	},
+	// { subject: Subject.TEAM, names: [ "Team" ],
+	// 	fun: (team: Team) => team.state?.room?.users.concat(team.state?.room?.users?.map((user) => user.friends).flat()),
+	// 	relations: { state: { room: { members: { user: { friends: true } } } } }
+	// },
+	{ subject: Subject.GAMESTATE, names: [ "GameState" ],
+		fun: (state: GameState) => state.room?.users,
+		relations: { room: { members: { user: true }} }
+	},
+	// { subject: Subject.PLAYER, names: [ "Player" ],
+	// 	fun: (player: Player) => player.team?.state?.room?.users,
+	// 	relations: { team: { state: { room: { members: { user: true } } } } }
+	// },
 ];
 
 const ignoredColumns = [ 
@@ -61,7 +73,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			const info = this.subjectEntry(event.metadata.targetName);
 		
 			this.log(event, action);
-		
+
 			UpdateGateway.instance.send_update({
 				subject: info.subject,
 				action,

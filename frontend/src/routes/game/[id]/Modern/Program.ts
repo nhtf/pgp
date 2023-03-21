@@ -1,4 +1,4 @@
-import { mat3Identity } from "./Matrix";
+import { mat3Identity } from "../lib2D/Matrix";
 import type { VectorObject } from "../lib2D/Math2D";
 
 export type uniforms = {
@@ -15,7 +15,6 @@ export class Program {
 
     public program: WebGLProgram;
     private timeLocation: WebGLUniformLocation;
-    // private uniformScale: WebGLUniformLocation;
     private originPos: WebGLUniformLocation;
     private shockParams: WebGLUniformLocation;
     private uniformTex: WebGLUniformLocation;

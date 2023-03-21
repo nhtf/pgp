@@ -197,6 +197,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 	],
 })
 export class AppModule implements NestModule {
+	// TODO: remove debug exeption
 	configure(consumer: MiddlewareConsumer) {
 		consumer.apply(SessionExpiryMiddleware).exclude(
 			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");

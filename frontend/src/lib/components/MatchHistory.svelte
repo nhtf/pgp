@@ -6,7 +6,10 @@
 </script>
 
 <div class="flex-col">
-	{#each history as game}
-		<Match {game}/>
+	{#each history as game (game.id)}
+		<!-- TODO -->
+		{#if game.roomId}
+			<Match {game}/>
+		{/if}
 	{/each}
 </div>

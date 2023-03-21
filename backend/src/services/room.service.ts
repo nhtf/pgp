@@ -136,9 +136,6 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 			if (ban === true) {
 				let user = member.user;
 
-				if (user === undefined)
-					console.error("member.user was undefined, please make sure to also load the user relation for the member");
-
 				user = await this.user_repo.findOneBy({ members: { id: member.id } });
 
 				if (!room.banned_users) {
@@ -256,8 +253,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		}
 
 		async onCreate(room: T, dto: C) { }
-		async beforeJoin(room: T, body: any) { }
-		async onJoin(room: T, member: U, body: any) { }
+		async onJoin(room: T, member: U) { }
 
 		@Get("joined")
 		async joined(@Me() me: User) {
@@ -387,10 +383,9 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException("You have been banned from this channel");
 			}
 
-			await this.beforeJoin(room, body);
 			await this.service.add_member(room, me);
 			await this.room_repo.save(room);
-			await this.onJoin(room, room.self(me), body)
+			await this.onJoin(room, room.self(me))
 
 			if (invite) {
 				await this.invite_repo.remove(invite);
@@ -473,10 +468,10 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException(ERR_PERM);
 			}
 
-			await this.member_repo.save({ id: target.id, role } as DeepPartial<U>);
+			await this.member_repo.save({ id: target.id, role } as U);
 
 			if (role === Role.OWNER) {
-				await this.member_repo.save({ id: member.id, role: Role.ADMIN } as DeepPartial<U>);
+				await this.member_repo.save({ id: member.id, role: Role.ADMIN } as U);
 			}
 		}
 

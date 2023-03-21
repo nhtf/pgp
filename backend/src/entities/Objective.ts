@@ -7,6 +7,11 @@ export class Objective {
 	id: number;
 
 	@Column({
+		nullable: true //TODO set to false
+	})
+	name: string;
+
+	@Column({
 		default: "#FF00FF",
 	})
 	color: string;

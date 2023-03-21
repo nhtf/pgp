@@ -2,7 +2,7 @@
 	import { onMount, onDestroy } from "svelte";
 	import { page } from "$app/stores";
 	import { Classic } from "./Classic";
-	import { Shader } from "../Shader";
+	import { Shader } from "./Shader";
 
 	let canvas: HTMLCanvasElement;
 

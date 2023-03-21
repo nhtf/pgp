@@ -1,6 +1,6 @@
 import type { GameRoom } from "$lib/entities";
 import type { PageLoad } from "./$types"
-import { userStore, roomStore, updateStore, playerStore, gameStateStore, teamStore } from "$lib/stores";
+import { userStore, roomStore, updateStore, gameStateStore } from "$lib/stores";
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
 
@@ -19,8 +19,6 @@ export const load: PageLoad = (async ({ fetch }) => {
     updateStore(roomStore, rooms);
 	updateStore(userStore, rooms.map((room) => room.owner!));
 	updateStore(gameStateStore, gameStates);
-	updateStore(teamStore, teams)
-	updateStore(playerStore, joined.filter((room) => room.self!.player).map((room) => room.self!.player!));
 	
 	return { rooms };
 }) satisfies PageLoad;

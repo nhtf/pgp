@@ -19,6 +19,7 @@ import { Objective } from "src/entities/Objective";
 interface ObjectiveDef {
 	threshold: number,
 	color: string,
+	name: string,
 	description: string,
 }
 
@@ -31,15 +32,84 @@ interface AchievementDef {
 
 const achievements: AchievementDef[] = [
 	{
+		name: "VR Pong",
+		max: 4200,
+		image: "/Assets/achievement-icons/vrpong.svg",
+		objectives: [
+			{
+				name: "Enter the matrix",
+				description: "Play a game of VR Pong",
+				threshold: 1,
+				color: "#cd7f32",
+			},
+			{
+				name: "I'm getting the hang of this",
+				description: "Play 50 games of VR Pong",
+				threshold: 50,
+				color: "#c0c0c0",
+			},
+			{
+				name: "I am the metaverse",
+				description: "Play 200 games of VR Pong",
+				threshold: 200,
+				color: "#ffd700",
+			},
+			{
+				name: "No Game No Life",
+				description: "Play 4200 games of VR Pong",
+				threshold: 4200,
+				color: "#99ffff",
+			},
+		],
+	},
+	{
+		name: "Chatty",
+		max: 5000,
+		image: "/Assets/achievement-icons/chatroom.svg",
+		objectives: [
+			{
+				name: "Hello world!",
+				description: "Send a message in a chatroom",
+				threshold: 1,
+				color: "#cd7f32",
+			},
+			{
+				name: "I know right?",
+				description: "Send 100 messages in chatrooms",
+				threshold: 100,
+				color: "#c0c0c0",
+			},
+			{
+				name: "Influencer",
+				description: "Send 1000 messages in chatrooms",
+				threshold: 1000,
+				color: "#ffd700",
+			},
+			{
+				name: "b.r.b.g.g.f.m.d",
+				description: "Send 5000 messages in chatrooms",
+				threshold: 5000,
+				color: "#99ffff",
+			},
+		],
+	},
+	{
 		name: "Loser",
 		max: 20,
 		image: "/Assets/achievement-icons/pong.svg",
 		objectives: [
 			{
+				name: "placeholder",
 				threshold: 5,
 				color: "#FF00FF",
 				description: "You lost 5 games",
-			}
+			},
+			{
+				name: "placeholder",
+				threshold: 10,
+				color: "#FFFFFF",
+				description: "You lost 10 games",
+			},
 		],
 	},
 	{
@@ -48,10 +118,11 @@ const achievements: AchievementDef[] = [
 		image: "/Assets/achievement-icons/popular.svg",
 		objectives: [
 			{
+				name: "placeholder",
 				threshold: 5,
 				color: "#FF00FF",
 				description: "Made 5 friends",
-			}
+			},
 		],
 	}
 ];
@@ -104,26 +175,26 @@ async function bootstrap() {
 
 	const repo = dataSource.getRepository(Achievement);
 	const tmp = await repo.find();
-	if (tmp.length === 0) {
-		await repo.save(achievements.map((value) => {
-			const achievement = new Achievement();
+	const missing = achievements.filter((value) => !tmp.find((x) => x.name === value.name));
+	await repo.save(missing.map((value) => {
+		const achievement = new Achievement();
 
-			achievement.name = value.name;
-			achievement.max = value.max;
-			achievement.image = value.image;
+		achievement.name = value.name;
+		achievement.max = value.max;
+		achievement.image = value.image;
 
-			achievement.objectives = value.objectives.map((obj) => {
-				const objective = new Objective();
+		achievement.objectives = value.objectives.map((obj) => {
+			const objective = new Objective();
 
-				objective.threshold = obj.threshold;
-				objective.color = obj.color;
-				objective.description = obj.description;
-				return objective;
-			});
+			objective.threshold = obj.threshold;
+			objective.color = obj.color;
+			objective.description = obj.description;
+			objective.name = obj.name;
+			return objective;
+		});
 
-			return achievement;
-		}));
-	}
+		return achievement;
+	}));
 	
 	app.listen(BACKEND_PORT);
 }

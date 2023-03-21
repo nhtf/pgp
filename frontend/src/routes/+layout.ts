@@ -1,6 +1,6 @@
 import type { Invite, User, GameState } from "$lib/entities";
 import type { LayoutLoad } from "./$types";
-import { updateStore, userStore, inviteStore, friendStore, teamStore, gameStateStore, blockStore } from "$lib/stores";
+import { updateStore, userStore, inviteStore, friendStore, gameStateStore, blockStore } from "$lib/stores";
 import { get } from "$lib/Web";
 
 export const ssr = false;
@@ -19,9 +19,7 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 		const gameStates: GameState[] = await Promise.all(friends
 			.filter((user) => user.activeRoomId)
 			.map((user) => get(`/game/id/${user.activeRoomId}/state`)));
-		const teams = gameStates.map((state) => state.teams).flat();
 
-		updateStore(teamStore, teams);
 		updateStore(inviteStore, invites);
 		updateStore(gameStateStore, gameStates);
 		updateStore(userStore, [user, ...friends]);

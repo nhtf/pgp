@@ -1,30 +1,28 @@
 <script lang="ts">
-    import type { GameState, Player } from "$lib/entities";
+    import type { GameState } from "$lib/entities";
+    import { gameStateStore } from "$lib/stores";
     import { page } from "$app/stores";
 
 	export let game: GameState;
 
-	console.log(game.teams);
-
-	const team = game.teams.find((team) => team.players.map((player) => player.userId).includes($page.data.user.id))!;
-	const players = game.teams.reduce((sum: Player[], team) => sum.concat(team.players), []);
-	const player = players.find((player) => player.userId === $page.data.user.id)!;
-
-	const result = team.score - Math.max(...game.teams
-		.filter(team => team.id !== player.teamId)
-		.map(team => team.score));
+	$: game = $gameStateStore.get(game.id)!;
+	$: team = game.teams.find((team) => team.players.map((player) => player.userId).includes($page.data.user.id))!;
+	$: result = team.score - Math.max(...game.teams
+		.filter((x) => x.id !== team.id)
+		.map(({ score }) => score));
+	
 </script>
 
 <div class="match match-{result < 0 ? "loss" : result == 0 ? "draw" : "win"}">
 	<div class="match-mode">{["Classic", "VR", "Modern"][game.gamemode]}</div>
 	<div class="match-teams">
-		{#each game.teams as team}
+		{#each game.teams as team (team.id)}
 			<div class="match-team-wrapper">
 				<div class="match-team">
 					<div class="match-team-score">{Math.abs(team.score)}</div>
 					<div class="match-team-name">{team.name}</div>
-					{#each team.players as player}
-						<div class="match-team-player">{player.user.username}</div>
+					{#each team.players as player (player.id)}
+						<div class="match-team-player">{player.user?.username}</div>
 					{/each}
 				</div>
 			</div>

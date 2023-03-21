@@ -7,9 +7,7 @@ export class AchievementProgress {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@Column({
-	       default: 0
-	})
+	@Column({ default: 0 })
 	progress: number;
 
 	@ManyToOne(() => Achievement, (achievement) => achievement.progress, { eager: true, nullable : false })

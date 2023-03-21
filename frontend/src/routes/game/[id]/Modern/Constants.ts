@@ -1,5 +1,6 @@
-import type { Line, CollisionLine } from "../lib2D/Math2D";
-import type { Vector } from "../lib2D/Math2D";
+import type { Line } from "../lib2D/Math2D";
+import type { VectorObject } from "../lib2D/Math2D";
+import type { triangles } from "./Shader";
 
 export const WIDTH = 440;
 export const HEIGHT = 250;
@@ -63,40 +64,56 @@ export type gradient = {
     c1: string;
 }
 
-export type goal = {
-    x: number;
-    y: number;
-    angle: number;
-    cf: string;
-    cs: string;
-}
-
 export type paddle = {
     x: number;
     y: number;
     angle: number;
-    cf: string;
-    cs: string;
 }
 
-export type renderArc = {
-    pos: Vector;
-    angle1: number;
-    angle2: number;
+type rot = {
+    x: number;
+    y: number;
+    z: number;
 }
 
-export type field = {
+export type level = {
     players: number;
-    goals: goal[];
-    lines: Line[][];
     paddles: paddle[];
-    gradients: gradient[];
-    arcs: renderArc[];
-    collisions: CollisionLine[];
-    convexFieldBoxLines: CollisionLine[];
-    playerAreas: CollisionLine[][];
+    collisions: Line[];
+    convexFieldBoxLines: Line[];
+    playerAreas: Line[][];
     width: number;
     height:number;
+    paddleStartPos: VectorObject[];
+    paddleBorderColors: number[][];
+    paddleGradientColors: number[][];
+    paddleBorder: triangles;
+    paddleGradient: triangles;
+
+    fieldBorderColor: number[];
+    fieldGradientColors: number[][];
+    fieldGradientPos: VectorObject[];
+    fieldGradientRot: rot[];
+    fieldBorder: triangles;
+    fieldGradient: triangles;
+    fieldGradientRadius: VectorObject;
+
+
+    goalBorder: triangles;
+    goalGradient: triangles;
+    goalBorderColors: number[][];
+    goalGradientColors: number[][];
+
+    circleBorder: triangles;
+    circleGradient: triangles;
+    middleLineMesh: triangles;
+    middleLineColor: number[];
+    middleCircleColor: number[];
+
+    collisionVertices: number[];
+    fieldContour: number[];
+    playerAreaCollision: number[];
+    paddleContour: number[];
 }
 
 export const levels = ["/Assets/game/twoplayerLevel.json", "/Assets/game/fourPlayerLevel.json"];
@@ -123,28 +140,3 @@ export const ballVelociy = [
     [{x: 2, y: 0}, {x: -2, y: 0}],
     [{x: 1.41, y: 1.41}, {x: 1.41, y: -1.41},{x: -1.41, y: -1.41}, {x: -1.41, y: 1.41}]
 ];
-
-
-
-
-// stuff for the 4 player field
-
-// 0: (115, 12)
-// 1: (70, 90)
-// 2: (115, 168)
-// 3: (205, 168)
-// 4: (250, 90)
-// 5: (205, 12)
-// 6: (160, 90)
-// 7: (160, 12)
-// 8: (160, 168)
-
-/*
-    arcs
-0: 7pi/6 -> 9pi/6
-1: 5pi/6 -> 7pi/6
-2: 3pi/6 -> 5pi/6
-3: 1pi/6 -> 3pi /6
-4: 11pi/6 -> 1pi/6
-5: 9pi/6 -> 11pi/6
-*/

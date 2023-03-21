@@ -16,6 +16,7 @@ declare module "http" {
 
 declare module "socket.io" {
 	export interface Socket {
+		user?: User,
 		room?: number;
 	}
 }
@@ -42,19 +43,15 @@ export function ProtectedGateway(namespace?: string) {
 				client.disconnect();
 				return;
 			}
+
+			client.user = user;
 			
-			this.onConnect(client, user);
+			this.onConnect(client);
 		}
 
 		async handleDisconnect(client: Socket) {
-			const id = client.request.session.user_id;
-
-			if (id) {
-				const user = await this.userRepo.findOneBy({ id });
-
-				if (user) {
-					this.onDisconnect(client, user);
-				}
+			if (client.user) {
+				this.onDisconnect(client);
 			}
 		}
 
@@ -68,12 +65,16 @@ export function ProtectedGateway(namespace?: string) {
 				throw new WsException(error.message);
 			}
 
-			await this.onJoin(client, user);
+			client.join(String(client.room));
+
+			await this.onJoin(client);
+
+			return "";
 		}
 
-		async onConnect(client: Socket, user: User) {}
-		async onDisconnect(client: Socket, user: User) {}
-		async onJoin(client: Socket, user: User) {}
+		async onConnect(client: Socket) {}
+		async onDisconnect(client: Socket) {}
+		async onJoin(client: Socket) {}
 	}
 
 	return ProtectedGatewayFactory;

@@ -1,15 +1,17 @@
 import { Net } from "../Net";
 import type { Event as NetEvent } from "../Net";
 import {intersection, Vector, paddleBounce, isInConvexHull} from "../lib2D/Math2D";
-import type { VectorObject, Line, CollisionLine } from "../lib2D/Math2D";
+import type { Line } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
 import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT, ballVelociy } from "./Constants";
-import { GAME, type field} from "./Constants";
+import { GAME} from "./Constants";
+import type { level } from "./Constants";
 import { Ball } from "./Ball";
 import type { Snapshot, Options, PingEvent } from "../lib2D/interfaces";
 import { Field } from "./Field";
 import { Score } from "./Score";
 import { Team } from "../lib2D/Team";
+import { FullShader } from "./fullShader";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
@@ -31,7 +33,7 @@ export interface ScoreEvent extends NetEvent {
 	s: number; //scorechange
 }
 
-function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: Ball) {
+function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 
 	const ballLine: Line = {p0: ball.position, p1: ball.position.add(paddleVelo), name: "ballLine"};
 	let closest: [Line, Vector, number] | null = null;
@@ -54,40 +56,17 @@ function moveCollision(paddleLines: CollisionLine[], paddleVelo: Vector, ball: B
 	return {closest: null, other: other};
 }
 
-import { FullShader } from "./fullShader";
-
-// function getCollisionLinesPaddle(paddle: number, level: any, paddlePos: VectorObject, paddleRot: number): CollisionLine[] {
-// 	const crot = Math.cos(paddleRot);
-// 	const srot = Math.sin(paddleRot);
-
-// 	let lines: CollisionLine[] = [];
-
-// 	for (let i = 0; i < level.paddleContour.length;) {
-// 		const p1 = {x: level.paddleContour[i] - 217.5, y: level.paddleContour[i + 1] - 112.5};
-// 		const p2 = {x: level.paddleContour[i + 2] - 217.5, y: level.paddleContour[i + 3] - 112.5};
-
-// 		const A = new Vector((crot * p1.x + srot * p1.y) + paddlePos.x, (-srot * p1.x + crot * p1.y) + paddlePos.y);
-// 		const B = new Vector((crot * p2.x + srot * p2.y) + paddlePos.x, (-srot * p2.x + crot * p2.y) + paddlePos.y);
-
-// 		const line: CollisionLine = {p0: A, p1: B, name: `paddle-${paddle}-${i}`, normal: new Vector(0,0)};
-// 		lines.push(line);
-// 		i += 4;
-// 	}
-// 	console.log("collission: ", lines);
-// 	return lines;
-// }
-
 export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
 	public field: Field;
 	public players: GAME;
-	public level: field;
+	public level: level;
 	public score?: Score;
 	public teams: Array<Team>;
 	public shader: FullShader;
 
-	public constructor(players: GAME, level: field, shader: FullShader) {
+	public constructor(players: GAME, level: level, shader: FullShader) {
 		super();
 		this.level = level;
 		this.players = players;
@@ -113,8 +92,7 @@ export class Game extends Net {
 				paddle.ping = this.time;
 
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
-				// const oldLines = paddle.getCollisionLines();
-				const oldLines = paddle.getCollisionLines(this.level);
+				const oldLines = paddle.getCollisionLines();
 
 				if (paddle.isInPlayerArea(new Vector(paddle.position.x + event.x, paddle.position.y), this.field.getPlayerAreas()[paddle.owner]))
 					paddle.position.x += event.x;
@@ -134,7 +112,7 @@ export class Game extends Net {
 					let i = 0;
 					while (true) {
 						i+=1;
-						const col = moveCollision(paddle.getCollisionLines(this.level), this.ball.velocity, this.ball).closest;
+						const col = moveCollision(paddle.getCollisionLines(), this.ball.velocity, this.ball).closest;
 						otherclosest.push(col);
 						if (col && col[2] < 1) {
 							this.bounceBall(col, paddleMovement);
@@ -189,13 +167,13 @@ export class Game extends Net {
 		this.ball.velocity = this.ball.velocity.add(vel.scale(1 / UPS));
 		this.ball.position = this.ball.position.add(vel.scale(1.001));
 		if (!isInConvexHull(this.ball.position, this.field.getConvexFieldBoxLines(), true)) {
-			console.log("ERROR: ball outside field. Resetting position.");
+			console.log("ERROR: ball outside field. Resetting position. ConvexHull Check.");
 			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
 			this.ball.velocity = this.ball.velocity.tangent();
 		}
 		for (let paddle of this.paddles) {
-			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(this.level), false)) {
-				if (isInConvexHull(closest[1], paddle.getCollisionLines(this.level), false))
+			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(), false)) {
+				if (isInConvexHull(closest[1], paddle.getCollisionLines(), false))
 				{
 					console.log("ERROR: ball in paddle.");
 				}
@@ -233,15 +211,14 @@ export class Game extends Net {
 
 	//TODO move as much as possible outside of lateTick please
 	public lateTick() {
-		// console.log("ball: ", this.ball.position);
 		let time = 1;
 		const maxSpeed = 30;
 		while (time > 0) {
-			let collisionLines: CollisionLine[] = [];
-			collisionLines.push(...this.level.collisions);
+			let collisionLines: Line[] = [];
+			collisionLines.push(...this.field.getCollisionLines());
 			this.paddles.forEach((paddle, index) => {
 				// paddle.getCollisionLines();
-				collisionLines.push(...paddle.getCollisionLines(this.level));
+				collisionLines.push(...paddle.getCollisionLines());
 			});
 			
 			const collision = this.ball.collision(collisionLines);
@@ -269,7 +246,6 @@ export class Game extends Net {
 				
 				break;
 			} else {
-				// console.log("collision: ", collision[0].name);
 				if (collision[0].name.startsWith("paddle")) {
 					this.bounceBall(collision,  new Vector(0, 0));
 				}
@@ -293,10 +269,10 @@ export class Game extends Net {
 			}
 		}
 
-		if (this.ball.position.x < -2 * border || this.ball.position.x > this.field.width + 2 * border ||
-			this.ball.position.y < 90 - this.field.height / 2 - border || this.ball.position.y > 90 + this.field.height / 2 + border)
+		if (this.ball.position.x < -4 * border || this.ball.position.x > this.field.width + 4 * border ||
+			this.ball.position.y < 0 || this.ball.position.y > this.field.height + 2 * border)
 		{
-			console.log("pos: ", this.ball.position.x);
+			console.log("pos: ", this.ball.position);
 			console.log("ERROR: ball outside field. Resetting position.");
 			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
 			this.ball.velocity = this.ball.velocity.tangent();
@@ -316,7 +292,7 @@ export class Game extends Net {
 
 		let index = 0;
 		for (let paddle of this.level.paddles) {
-			this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, paddle.cf, paddle.cs, index, this.teams[index]))
+			this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, index, this.teams[index], this.level.paddleContour))
 			this.shader.movePaddle({x: paddle.x, y: paddle.y}, index);
 			this.shader.rotatePaddle(paddle.angle, index);
 			index +=1;
@@ -336,7 +312,7 @@ export class Modern {
 	private game: Game | null;
 	private lastTime?: number;
 	private players: GAME;
-	private field: field | null;
+	private field: level | null;
 	private interval?: number;
 	private options?: Options;
 

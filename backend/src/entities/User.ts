@@ -112,11 +112,12 @@ export class User {
 	owner: User;
 
 	@Column({
-		   nullable: true
+		nullable: true
 	})
 	@Exclude()
 	api_secret: string | null;
 
+	@Expose()
 	get is_bot(): boolean {
 		return this.api_secret !== null;
 	}
@@ -165,15 +166,6 @@ export class User {
 		if (index >= 0) {
 			this.friends.splice(index, 1);
 		}
-	}
-
-	send_update(value: any) {
-		UpdateGateway.instance.send_update({
-			subject: Subject.USER,
-			id: this.id,
-			action: Action.UPDATE,
-			value,
-		});
 	}
 
 	send_friend_update(action: Action, friend: User) {

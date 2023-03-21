@@ -9,6 +9,7 @@ export enum Subject {
 	TEAM,
 	BLOCK,
 	PLAYER,
+	ACHIEVEMENT,
 }
 
 export enum Action {

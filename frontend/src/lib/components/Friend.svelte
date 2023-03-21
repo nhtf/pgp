@@ -4,15 +4,13 @@
 	import { swal, unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
 	import { Gamemode, Status } from "$lib/enums";
-	import { blockStore, gameStateStore, teamStore, userStore } from "$lib/stores";
+	import { blockStore, gameStateStore, userStore } from "$lib/stores";
 	import { get, patch, post, remove } from "$lib/Web";
 	import { Avatar, Button, Dropdown, DropdownItem } from "flowbite-svelte";
-    import { afterUpdate, onMount } from "svelte";
     import Match from "./Match.svelte";
 
 	export let user: User;
 
-	const options = [ "Classic", "Modern", "VR" ];
 	const items = [
 		{ condition: (user: User) => user.status === Status.INGAME, fun: spectate },
 		{ condition: (user: User) => user.status !== Status.OFFLINE, fun: invite },
@@ -23,13 +21,7 @@
 
 	$: user = $userStore.get(user.id)!;
 	$: state = [...$gameStateStore.values()].find((state) => state.roomId === user.activeRoomId) ?? null;
-	$: teams = [...$teamStore.values()].filter((team) => team.stateId === state?.id) ??	null;
 	$: blockedIds = [...$blockStore.keys()];
-
-	afterUpdate(() => {
-		console.log(state);
-
-	});
 
 	async function unfriend(user: User) {
 		await remove(`/user/me/friends/${user.id}`);
@@ -37,14 +29,24 @@
 		swal().fire({ icon: "success", timer: 3000 });
 	}
 
-	// TODO
 	async function invite(user: User) {
-		const { value } = await swal().fire({
+		const promise = swal().fire({
 			title: "Invite to match",
 			input: "radio",
-			inputOptions: options,
+			inputOptions: [ "Classic", "Modern", "VR" ],
 			confirmButtonText: "Invite",
+			showCancelButton: true,
 		});
+		
+		const elements = document.getElementsByName("swal2-radio") as NodeListOf<HTMLInputElement>;
+		const element = [...elements].find((element) => Number(element.value) === 0)!;
+
+		element.checked = true;
+	
+		const { isConfirmed, value } = await promise;
+		if (!isConfirmed) {
+			return ;
+		}
 
 		const gamemode = value ? Number(value) : Gamemode.CLASSIC;
 
@@ -102,7 +104,6 @@
 		swal().fire({ icon: "success", timer: 3000 });
 	}
 
-
 	function capitalize(name: string) {
 		return `${name.slice(0, 1).toUpperCase()}${name.slice(1).toLowerCase()}`
 	}
@@ -137,15 +138,7 @@
 	{/each}
 </Dropdown>
 {#if state}
-	<!-- <Match game={state}/> -->
-	<div class="flex row">
-		{#each teams as team, index (team.id)}
-			{#if index > 0}
-				<pre> - </pre>
-			{/if}
-			<div>{`${team.score}`}</div>
-		{/each}
-	</div>
+	<Match game={state}/>
 {/if}
 
 <style>

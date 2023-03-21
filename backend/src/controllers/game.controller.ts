@@ -17,6 +17,7 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { Me, parseId } from "src/util"
 import { instanceToPlain } from "class-transformer"
 import { RequiredRole } from "src/guards/role.guard"
+import { Subject, Action } from "src/enums"
 
 
 class CreateGameRoomDTO extends CreateRoomDTO {
@@ -58,43 +59,6 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
 
-	async beforeJoin(room: GameRoom, body: any) {
-		let team: Team;
-	
-		if (body.id === undefined) {
-			throw new BadRequestException("Missing team id");
-		}
-
-		if (body.id === null) {
-			return ;
-		}
-	
-		try {
-			team = await parseId(Team, body.id, this.teamRepo);
-		} catch (error) {
-			throw new BadRequestException("Not a valid team id");
-		}
-
-		if (team.stateId !== room.state.id) {
-			throw new BadRequestException("Team of another room");
-		}
-	}
-
-	async onJoin(room: GameRoom, member: GameRoomMember, body: any) {
-		const id = body.id;
-	
-		if (id ) {
-			const player = new Player;
-	
-			player.team = await parseId(Team, id, this.teamRepo);
-			player.user = member.user;
-			player.member = member;
-
-			await this.player_repo.save(player);
-			// await this.member_repo.save({ id: member.id, player });
-		}
-	}
-
 	onCreate(room: GameRoom, dto: CreateGameRoomDTO) {
 		const playerOptions = playerNumbers.get(dto.gamemode);
 		const state = new GameState;
@@ -110,6 +74,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			const team = new Team;
 
 			team.name = `team ${numbers[i]}`;
+			team.players = [];
 			state.teams.push(team);
 		}
 
@@ -174,6 +139,10 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			throw new ForbiddenException(ERR_PERM);
 		}
 
+		if (!member.player) {
+			member.player = await this.player_repo.findOneBy({ user: { id: me.id }, team: { state: { room: { id: room.id } } } });
+		}
+
 		if (!member.player && team) {
 			member.player = new Player;
 			member.player.user = member.user;
@@ -190,6 +159,8 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		}
 
 		await this.member_repo.save(member);
+		
+		await UpdateGateway.instance.send_state_update(room);
 	}
 
 	@Get("id/:id/state")

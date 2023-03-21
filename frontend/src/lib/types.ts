@@ -18,8 +18,19 @@ export type Achievement = {
 };
 
 export type Objective = {
-	threshold: number,
+	name: string,
+	description: string,
 	color: string,
+	threshold: number,
+};
+
+export type NewAchievement = {
+	id: number,
+	name: string,
+	image: string,
+	max: number,
+	progress: number,
+	objectives: Objective[],
 };
 
 export type Suggestion = {

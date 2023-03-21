@@ -11,6 +11,17 @@ import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
 import { Action, Role, Subject } from "src/enums";
 import { RequiredRole } from "src/guards/role.guard"
+import { Embed } from "src/entities/Embed";
+import * as linkify from "linkifyjs";
+
+type Link = {
+    type: string;
+    value: string;
+    isLink: boolean;
+    href: string;
+    start: number;
+    end: number;
+}
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
 
@@ -127,6 +138,16 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 				}, ...target.room.users);
 			});
 		}
+	}
+
+	@Post("id/:id/message(s)?/")
+	@RequiredRole(Role.MEMBER)
+	async sendMessage(
+		@GetMember() member: ChatRoomMember,
+		@Body() text: string,//TODO validate size
+	) {
+		if (member.is_muted)
+			throw new ForbiddenException("You have been muted");
 	}
 
 	@Delete("id/:id/message(s)?/:message")

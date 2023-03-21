@@ -18,9 +18,12 @@ import { BOUNCER_KEY, EMBED_MAXLENGTH } from "src/vars";
 import { createHmac } from "node:crypto";
 import { Embed } from "src/entities/Embed";
 import { Role } from "src/enums"
+import { AchievementProgress } from "src/entities/AchievementProgress";
+import type { Achievement } from "src/entities/Achievement";
 import * as linkify from "linkifyjs";
 import "linkify-plugin-mention";
 import axios from "axios";
+import { instanceToPlain } from "class-transformer";
 
 const embedLimit = 3;
 
@@ -48,22 +51,34 @@ export class RoomGateway extends ProtectedGateway("room") {
 		private readonly memberRepo: Repository<ChatRoomMember>,
 		@Inject("ROOMINVITE_REPO")
 		private readonly inviteRepo: Repository<RoomInvite>,
+		@Inject("ACHIEVEMENTPROGRESS_REPO")
+		private readonly progressRepo: Repository<AchievementProgress>,
+		@Inject("ACHIEVEMENT_REPO")
+		private readonly achievementRepo: Repository<Achievement>,
 	) {
 		super(userRepo);
 	}
 
 	@SubscribeMessage("message")
 	async message(@ConnectedSocket() client: Socket, @MessageBody() content: string) {
+		if (!client.room) {
+			throw new WsException("Must have joined a room");
+		}
+	
 		const room = await this.roomRepo.findOneBy({ id: client.room });
 		const member = await this.memberRepo.findOneBy({
 			room: {	id: room.id },
-			user: {	id: client.request.session.user_id },
+			user: {	id: client.user.id },
 		});
 
 		if (!member) {
 			throw new WsException("not found");
 		}
 		
+		if (typeof content !== "string") {
+			throw new WsException("Content must be a string");
+		}
+
 		if (member.mute > new Date) {
 			throw new WsException("muted");
 		}
@@ -74,8 +89,9 @@ export class RoomGateway extends ProtectedGateway("room") {
 			.filter((embed) => embed !== null)
 			.slice(0, embedLimit));
 	
-		let message = new Message;
 		
+		let message = new Message;
+
 		message.content = content;
 		message.member = member;
 		message.room = room;
@@ -93,7 +109,22 @@ export class RoomGateway extends ProtectedGateway("room") {
 			});
 		}
 
-		// this.server.in(String(client.room)).emit("message", instanceToPlain(message));
+		let progress = await this.progressRepo.findOneBy({
+			achievement: { name: "Chatty" },
+			user: {	id: member.user.id },
+		});
+	
+		if (!progress) {
+			progress = new AchievementProgress();
+			progress.progress = 0;
+			progress.user = member.user;
+			progress.achievement = await this.achievementRepo.findOneBy({ name: "Chatty" }); //TODO make chatty a constant variable
+		}
+		progress.progress += 1;
+
+		await this.progressRepo.save(progress);
+
+		this.server.in(String(client.room)).emit("message", instanceToPlain(message));
 	}
 
 	async createEmbed(link: Link): Promise<Embed | null> {
@@ -131,11 +162,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 	async invite(username: string, room: ChatRoom, me: User) {
 		const user = await this.userRepo.findOneBy({ username });
 
-		if (!user) {
-			return ;
-		}
-
-		if (room.users.map((user) => user.id).includes(user.id)) {
+		if (!user || room.users.map((user) => user.id).includes(user.id)) {
 			return ;
 		}
 

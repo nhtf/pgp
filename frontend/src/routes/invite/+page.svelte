@@ -22,90 +22,49 @@
 		defaultClass="flex flex-wrap space-x-2 bg-c rounded"
 		contentClass="tab-content-background"
 	>
-		{#key invites}
-			<TabItem
-				bind:open={open[0]}
-				class="bg-c rounded"
-				defaultClass="rounded"
-				title="sent"
-			>
-				<div>
-					{#each send as invite (invite.id)}
-						<div class="invite">
-							<div>
-								{#if invite.to && invite.to.avatar}
-									<img
-										class="avatar"
-										src={invite.to.avatar}
-										alt=""
-									/>
-								{:else}
-									<img
-										class="avatar"
-										src="/avatar-default.png"
-										alt=""
-									/>
-								{/if}
-							</div>
-							<div>
-								{invite.type} invitation to {invite.to.username}
-							</div>
-							<div>
-								<button
-									class="deny"
-									on:click={() => respond(invite, "deny")}
-									>Cancel</button
-								>
-							</div>
-						</div>
-					{/each}
+		<TabItem
+			bind:open={open[0]}
+			class="bg-c rounded"
+			defaultClass="rounded"
+			title="received"
+		>
+			{#each received as invite (invite.id)}
+				<div class="invite">
+					<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
+					<div>{invite.type} invite from {invite.from.username}</div>
+					<div class="buttons">
+						<button
+							class="border-green"
+							on:click={() => respond(invite, "accept")}
+							>Accept</button
+						>
+						<button
+							class="border-red"
+							on:click={() => respond(invite, "deny")}
+							>Deny</button
+						>
+					</div>
 				</div>
-			</TabItem>
-
-			<TabItem
-				bind:open={open[1]}
-				class="bg-c rounded"
-				defaultClass="rounded"
-				title="received"
-			>
-				<div>
-					{#each received as invite (invite.id)}
-						<div class="invite">
-							<div>
-								{#if invite.from && invite.from.avatar}
-									<img
-										class="avatar"
-										src={invite.from.avatar}
-										alt=""
-									/>
-								{:else}
-									<img
-										class="avatar"
-										src="/avatar-default.png"
-										alt=""
-									/>
-								{/if}
-							</div>
-							<div>
-								{invite.type} invite from {invite.from.username}
-							</div>
-							<div class="buttons">
-								<button
-									class="confirm"
-									on:click={() => respond(invite, "accept")}
-									>Accept</button
-								>
-								<button
-									class="deny"
-									on:click={() => respond(invite, "deny")}
-									>Deny</button
-								>
-							</div>
-						</div>
-					{/each}
-				</div>
-			</TabItem>
-		{/key}
+			{/each}
+		</TabItem>
+		<TabItem
+			bind:open={open[1]}
+			class="bg-c rounded"
+			defaultClass="rounded"
+			title="sent"
+		>
+				{#each send as invite (invite.id)}
+					<div class="invite">
+						<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
+						<div>{invite.type} invitation to {invite.to.username}</div>
+						<button
+							class="border-red"
+							on:click={() => respond(invite, "deny")}
+							>Cancel</button
+						>
+					</div>
+				{/each}
+		</TabItem>
 	</Tabs>
 </div>
 
@@ -163,19 +122,6 @@
 		width: 40px;
 		height: 40px;
 		border-radius: 100%;
-	}
-
-	.confirm {
-		border: 1px solid var(--green) !important;
-	}
-
-	.confirm:hover,
-	.deny:hover {
-		background-color: var(--box-hover-color);
-	}
-
-	.deny {
-		border: 1px solid var(--red) !important;
 	}
 
 	@media (max-width: 500px) {

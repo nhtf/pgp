@@ -2,6 +2,7 @@ import type { Invite } from "./entities";
 import { post, remove } from "./Web";
 
 export async function respond(invite: Invite, action: "accept" | "deny") {
+	console.log(invite.type);
 	switch (invite.type) {
 		case "Friend":
 			if (action === "accept") {

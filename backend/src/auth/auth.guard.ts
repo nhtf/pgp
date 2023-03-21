@@ -24,14 +24,13 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 			
 			if (!user)
 				return false;
-			if (user.is_bot) {
+			if (request.headers.authorization) {
 				//auth header is already checked in middleware, so no validation is done here
 				if (await argon2.verify(
 					user.api_secret,
 					Buffer.from(plainToClass(AuthDTO,
 											 JSON.parse(Buffer.from(request.headers.authorization, "base64").toString())).secret, "base64")))
 					return true;
-				console.log(user.api_secret);
 				return false;
 			}
 			return (session && session.auth_level >= user.auth_req);

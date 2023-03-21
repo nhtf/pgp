@@ -61,12 +61,13 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user ?? me;
 
+			user.achievements = await this.get_achievements(user);
+
 			if (user.id === me.id) {
-				return { ...instanceToPlain(user), auth_req: user.auth_req, achievements: await this.get_achievements(user) }
+				return { ...instanceToPlain(user), auth_req: user.auth_req }
 			}
 
 			return user;
-
 		}
 
 		@Put(options.cparam + "/username")
@@ -167,23 +168,29 @@ export function GenericUserController(route: string, options: { param: string, c
 			return user.auth_req;
 		}
 
-		async get_achievements(user: User) {
+		async get_achievements(user: User): Promise<any[]> {
 			const list = await this.view_repo.findBy({ user_id: user.id });
-			const ser = {};
+			const map = new Map();
 
 			for (const elem of list) {
-				if (!ser[elem.id]) {
-					ser[elem.id] = {
+				if (!map.has(elem.id)) {
+					map.set(elem.id, {
+						id: elem.id,
 						name: elem.name,
-						description: elem.description,
 						progress: elem.progress,
 						image: elem.image,
 						objectives: [],
-					};
+
+					});
 				}
-				ser[elem.id].objectives.push({ threshold: elem.threshold, color: elem.color });
+				map.get(elem.id).objectives.push({
+					threshold: elem.threshold,
+					color: elem.color,
+					description: elem.description,
+					name: elem.objective_name
+				});
 			}
-			return ser;
+			return Array.from(map, ([_, value]) => value);
 		}
 
 		@Get(options.cparam + "/achievements")
@@ -194,7 +201,8 @@ export function GenericUserController(route: string, options: { param: string, c
 		) {
 			user = user || me;
 
-			return this.get_achievements(user);
+			return await this.view_repo.findBy({ user_id: user.id });
+			//return await this.get_achievements(user);
 		}
 
 		@Get(options.cparam + "/friend(s)?")
@@ -284,20 +292,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			if (await this.request_repo.findOneBy({ from: { id: user.id }, to: { id: target.id } }))
 				throw new ForbiddenException("Already sent request");
 
-			const request = await this.request_repo.findOne({
-				relations: {
-					from: true,
-					to: true,
-				},
-				where: {
-					from: {
-						id: target.id
-					},
-					to: {
-						id: user.id
-					}
-				}
-			});
+			const request = await this.request_repo.findOneBy({	from: {	id: target.id},	to: { id: user.id }	});
+		
 			if (request) {
 				user.add_friend(target);
 				target.add_friend(user);
@@ -308,9 +304,8 @@ export function GenericUserController(route: string, options: { param: string, c
 				user.send_friend_update(Action.INSERT, target);
 				target.send_friend_update(Action.INSERT, user);
 			} else {
-				await this.request_repo.save({ from: user, to: target});
+				await this.request_repo.save({ from: user, to: target } as FriendRequest);
 			}
-			return {};
 		}
 
 		@Delete(options.cparam + "/friend(s)?/request(s)?/:request_id")
@@ -325,21 +320,15 @@ export function GenericUserController(route: string, options: { param: string, c
 				throw new ForbiddenException();
 			if (user.id !== request.from.id && user.id !== request.to.id)
 				throw new NotFoundException();
-			return await this.request_repo.remove(request);
+			await this.request_repo.remove(request);
 		}
 
 		@Get(`${options.cparam}/invites`)
 		async invites(@Me() user: User) {
-			return this.invite_repo.find({
-				relations: {
-					from: true,
-					to: true,
-				},
-				where: [
-					{ from: { id: user.id } },
-					{ to: { id: user.id } },
-				],
-			});
+			return this.invite_repo.find({ where: [
+				{ from: { id: user.id } },
+				{ to: { id: user.id } }
+			] });
 		}
 
 		@Get(`${options.cparam}/blocked`)
