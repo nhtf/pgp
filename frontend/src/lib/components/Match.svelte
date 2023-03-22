@@ -1,12 +1,13 @@
 <script lang="ts">
-    import type { GameState } from "$lib/entities";
+    import type { GameState, User } from "$lib/entities";
     import { gameStateStore } from "$lib/stores";
     import { page } from "$app/stores";
 
 	export let game: GameState;
+	export let user: User = $page.data.user;
 
 	$: game = $gameStateStore.get(game.id)!;
-	$: team = game.teams.find((team) => team.players.map((player) => player.userId).includes($page.data.user.id))!;
+	$: team = game.teams.find((team) => team.players.map((player) => player.userId).includes(user.id))!;
 	$: result = team.score - Math.max(...game.teams
 		.filter((x) => x.id !== team.id)
 		.map(({ score }) => score));

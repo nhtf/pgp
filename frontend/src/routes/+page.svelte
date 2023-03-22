@@ -1,12 +1,15 @@
 <script lang="ts">
-	import MatchHistory from "$lib/components/MatchHistory.svelte";
-    import type { PageData } from "./$types";
+	import type { PageData } from "./$types";
+	import Match from "$lib/components/Match.svelte";
+    import UserSearch from "$lib/components/UserSearch.svelte";
 
 	export let data: PageData;
-	
-	const history = data.games;
 </script>
 
-{#if history}
-	<MatchHistory {history}/>
+<UserSearch/>
+
+{#if data.games}
+	{#each data.games as game (game.id)}
+		<Match {game} />
+	{/each}
 {/if}

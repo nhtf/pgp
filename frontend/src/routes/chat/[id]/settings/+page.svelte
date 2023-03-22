@@ -99,14 +99,14 @@
 				{#each banned as user}
 					<Avatar
 						src={user.avatar}
-						id="avatar-{user.username}"
+						id="avatar-{user.id}"
 						class="bg-c"
 					/>
-					<Tooltip triggeredBy="#avatar-{user.username}"
+					<Tooltip triggeredBy="#avatar-{user.id}"
 						>{user.username}</Tooltip
 					>
 					<Dropdown
-						triggeredBy="#avatar-{user.username}"
+						triggeredBy="#avatar-{user.id}"
 						class="bor-c bg-c shadow rounded max-w-sm"
 					>
 						<DropdownHeader>

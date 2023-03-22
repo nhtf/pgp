@@ -41,7 +41,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	async onConnect(client: Socket) {
-		const user = client.user;
+		const user = await this.user_repo.findOneBy({ id: client.user });
 		const now = new Date;
 		const id = user.id;
 
@@ -61,9 +61,13 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	}
 
 	async onDisconnect(client: Socket) {
-		const user = client.user;
-		const id = user.id
-		const sockets = this.sockets.get(id);
+		const user = await this.user_repo.findOneBy({ id: client.user });
+		const sockets = this.sockets.get(user.id);
+
+		if (!sockets) {
+			return ;
+		}
+		
 		const index = sockets.findIndex((socket) => socket.request.session.id === client.request.session.id);
 
 		if (index < 0) {
@@ -81,14 +85,25 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		}
 	}
 
+	remove_user(user: User) {
+		this.sockets.get(user.id)?.forEach((socket) => {
+			socket.disconnect();
+		});
+	
+		this.sockets.delete(user.id);
+		this.status.delete(user.id);
+	}
+
 	send_update(packet: UpdatePacket, ...receivers: User[]) {
 		if (!receivers.length) {
 			this.server.emit("update", packet);
 		}
 
-		for (const receiver of receivers) {
-			this.sockets.get(receiver.id)?.forEach((socket) => socket.emit("update", packet));
-		}
+		receivers.forEach((receiver) => {
+			this.sockets.get(receiver.id)?.forEach((socket) => {
+				socket.emit("update", packet);
+			});
+		});
 	}
 
 	async tick() {
@@ -152,7 +167,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			subject: Subject.GAMESTATE,
 			action: Action.UPDATE,
 			id: state.id,
-			value: value ?? instanceToPlain(state),
+			value: value ?? { teams: instanceToPlain(state.teams) },
 		});
 	}
 

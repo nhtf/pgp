@@ -26,9 +26,9 @@
 	let indices: number[] = [];
 	let relativeScroll = messages.length;
 
-	$: room = $roomStore.get(data.room.id)! as ChatRoom;
+	$: room = $roomStore.get(data.room.id) as ChatRoom;
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
-	$: self = $memberStore.get(room.self!.id)! as ChatRoomMember;
+	$: self = $memberStore.get(room?.self!.id)! as ChatRoomMember;
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
 
 	$: messages;
@@ -36,10 +36,10 @@
 	$: min = clamp(relativeScroll - load, 0, messages.length);
 
 	onMount(() => {
-		roomSocket.emit("join", { id: room.id });
+		roomSocket.emit("join", { id: room!.id });
 
 		indices.push(onRemove(Subject.ROOM, room!.id, async () => await goto(`/chat`)));
-		indices.push(onRemove(Subject.MEMBER, self.id, async () => await goto(`/chat`)));
+		indices.push(onRemove(Subject.MEMBER, self!.id, async () => await goto(`/chat`)));
 		indices.push(updateManager.set(Subject.MESSAGE, updateMessages));
 	});
 

@@ -9,6 +9,7 @@ import {
 	HttpStatus,
 	Inject,
 	Session,
+	BadGatewayException,
 } from "@nestjs/common";
 import { Request, Response } from "express";
 import { AuthorizationCode, AccessToken } from "simple-oauth2";
@@ -20,13 +21,14 @@ import { AuthLevel } from "src/enums";
 import { IsAlphanumeric } from "class-validator";
 import { BACKEND_ADDRESS, FRONTEND_ADDRESS } from "../vars";
 import { Repository } from "typeorm";
+import { authenticate } from "src/auth/authenticate";
 
-interface result_dto {
+interface ResultDTO {
 	id: number;
 	login: string;
 }
 
-class token_dto {
+class TokenDTO {
 	@IsAlphanumeric()
 	code: string;
 }
@@ -52,12 +54,16 @@ export class AuthController {
 
 	@Get("login")
 	async login(@Req() request: Request, @Res() response: Response) {
-		const auth_uri = this.client.authorizeURL({
-			redirect_uri: `${BACKEND_ADDRESS}/oauth/callback`,
-			scope: "public",
-		});
-		response.redirect(auth_uri);
-		return response.send();
+		const user = await authenticate(request, this.userRepo);
+		if (user) {
+			response.redirect(`${FRONTEND_ADDRESS}/profile`);
+		} else {
+			const auth_uri = this.client.authorizeURL({
+				redirect_uri: `${BACKEND_ADDRESS}/oauth/callback`,
+				scope: "public",
+			});
+			response.redirect(auth_uri);
+		}
 	}
 
 	@Post("logout")
@@ -83,10 +89,8 @@ export class AuthController {
 			});
 			return access_token;
 		} catch (error) {
-			throw new HttpException(
-				error.output.payload.error,
-				error.output.statusCode,
-			);
+			console.error(error);
+			throw new BadGatewayException();
 		}
 	}
 
@@ -94,7 +98,7 @@ export class AuthController {
 		let rest_client = new rm.RestClient("pgp", "https://api.intra.42.fr", [
 			new BearerCredentialHandler(access_token.token.access_token as string, false),
 		]);
-		const res = await rest_client.get<result_dto>("/v2/me");
+		const res = await rest_client.get<ResultDTO>("/v2/me");
 		if (res.statusCode != 200) {
 			console.error("received " + res.statusCode + " from intra when retrieving user id");
 			return undefined;
@@ -110,28 +114,21 @@ export class AuthController {
 
 	@Get("callback")
 	async get_token(
-		@Query() token: token_dto,
+		@Query() token: TokenDTO,
 		@Req() request: Request,
 		@Res() response: Response,
 	) {
 		const access_token = await this.get_access_token(token.code);
 
 		const oauth_id = await this.get_id(access_token);
-		if (!oauth_id)
+		if (oauth_id == undefined)
 			throw new HttpException("Could not verify identity", HttpStatus.UNAUTHORIZED);
 
 		let user = await this.userRepo.findOneBy({ oauth_id });
-		if (!user) {
-			// user = new User();
-			// user.oauth_id = oauth_id;
-			await this.userRepo.save({ oauth_id } as User);
-		}
+		if (!user)
+			user = await this.userRepo.save({ oauth_id } as User);
 
-		if (!(await this.session_utils.regenerate_session_req(request)))
-			throw new HttpException(
-				"failed to create session",
-				HttpStatus.SERVICE_UNAVAILABLE,
-			);
+		await this.session_utils.regenerate_session_req(request);
 
 		request.session.access_token = access_token.token.access_token.toString();
 		request.session.user_id = user.id;

@@ -1,16 +1,39 @@
-import { Controller, Get, Inject, Param, HttpStatus, Body, UseInterceptors, UploadedFile, ParseFilePipeBuilder, UseGuards, ClassSerializerInterceptor,Res, Delete, Post, PipeTransform, ArgumentMetadata, Put, ForbiddenException, NotFoundException, UnprocessableEntityException } from "@nestjs/common";
+import {
+	Controller,
+	Get,
+	Inject,
+	Param,
+	HttpStatus,
+	Body,
+	UseInterceptors,
+	UploadedFile,
+	ParseFilePipeBuilder,
+	UseGuards,
+	ClassSerializerInterceptor,
+	Res,
+	Delete,
+	Post,
+	PipeTransform,
+	ArgumentMetadata,
+	Put,
+	ForbiddenException,
+	NotFoundException,
+	UnprocessableEntityException,
+	HttpCode,
+	Query
+} from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { Express, Response } from "express";
 import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
-import { Repository, FindManyOptions } from "typeorm";
+import { Repository, Like } from "typeorm";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe, UsernameDTO } from "../util";
 import { randomBytes } from "node:crypto";
 import { rm } from "node:fs/promises";
 import { join } from "path";
-import { AVATAR_DIR, DEFAULT_AVATAR, AVATAR_EXT } from "../vars";
+import { AVATAR_DIR, DEFAULT_AVATAR, AVATAR_EXT, FUZZY_THRESHOLD } from "../vars";
 import { SetupGuard } from "src/guards/setup.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Action, Subject } from "src/enums";
@@ -18,7 +41,9 @@ import * as gm from "gm";
 import type { Achievement } from "src/entities/Achievement";
 import type { AchievementView } from "src/entities/AchievementView";
 import { AchievementProgress } from "src/entities/AchievementProgress";
-import { instanceToPlain } from "class-transformer"
+import { instanceToPlain } from "class-transformer";
+import { AchievementService } from "src/services/achievement.service";
+import { FRIEND_COUNT_ACHIEVEMENT, AVATAR_ACHIEVEMENT } from "src/achievements";
 
 declare module "express" {
 	export interface Request {
@@ -26,7 +51,10 @@ declare module "express" {
 	}
 }
 
-export function GenericUserController(route: string, options: { param: string, cparam: string, pipe: any }) {
+export function GenericUserController(
+	route: string,
+	options: { param: string; cparam: string; pipe: any }
+) {
 	@Controller(route)
 	@UseGuards(HttpAuthGuard)
 	@UseInterceptors(ClassSerializerInterceptor)
@@ -45,7 +73,8 @@ export function GenericUserController(route: string, options: { param: string, c
 			readonly progress_repo: Repository<AchievementProgress>,
 			@Inject("ACHIEVEMENTVIEW_REPO")
 			readonly view_repo: Repository<AchievementView>,
-		) { }
+			readonly achievement_service: AchievementService
+		) {}
 
 		@Get()
 		@UseGuards(SetupGuard)
@@ -64,7 +93,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			user.achievements = await this.get_achievements(user);
 
 			if (user.id === me.id) {
-				return { ...instanceToPlain(user), auth_req: user.auth_req }
+				return { ...instanceToPlain(user), auth_req: user.auth_req };
 			}
 
 			return user;
@@ -74,7 +103,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		async set_username(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Body() dto: UsernameDTO,
+			@Body() dto: UsernameDTO
 		) {
 			user = user || me;
 
@@ -94,7 +123,7 @@ export function GenericUserController(route: string, options: { param: string, c
 		async get_avatar(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Res() response: Response,
+			@Res() response: Response
 		) {
 			user = user || me;
 			response.redirect(user.avatar);
@@ -103,31 +132,32 @@ export function GenericUserController(route: string, options: { param: string, c
 		@Put(options.cparam + "/avatar")
 		@UseInterceptors(FileInterceptor("avatar"))
 		@UseGuards(SetupGuard)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async set_avatar(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
 			@UploadedFile(
-				new ParseFilePipeBuilder().addMaxSizeValidator({
-					maxSize: 10485760
-				}).build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY }))
-			uploaded_file: Express.Multer.File,
+				new ParseFilePipeBuilder()
+					.addMaxSizeValidator({
+						maxSize: 10485760,
+					})
+					.build({ errorHttpStatusCode: HttpStatus.UNPROCESSABLE_ENTITY })
+			)
+			uploaded_file: Express.Multer.File
 		) {
 			user = user || me;
-			if (user.id !== me.id)
-				throw new ForbiddenException();
+			if (user.id !== me.id) throw new ForbiddenException();
 
 			let new_base = "";
 			do {
 				new_base = user.id + randomBytes(20).toString("hex");
 			} while (new_base === user.avatar_base);
 
-			// console.log(uploaded_file.buffer instanceof Buffer);
 			const promise = new Promise((resolve, reject) => {
 				gm.subClass({ imageMagick: true })(uploaded_file.buffer)
 					.resize(256, 256, "!")
-					.write(join(AVATAR_DIR, new_base + AVATAR_EXT), error => {
-						if (error)
-							reject(error);
+					.write(join(AVATAR_DIR, new_base + AVATAR_EXT), (error) => {
+						if (error) reject(error);
 						resolve("yes");
 					});
 			});
@@ -150,10 +180,10 @@ export function GenericUserController(route: string, options: { param: string, c
 				subject: Subject.USER,
 				action: Action.UPDATE,
 				id: user.id,
-				value: { avatar: user.avatar }
-			})
-		
-			return {};
+				value: { avatar: user.avatar },
+			});
+
+			await this.achievement_service.inc_progress(AVATAR_ACHIEVEMENT, user, 1);
 		}
 
 		@Get(options.cparam + "/auth_req")
@@ -163,8 +193,7 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			if (user.id !== me.id)
-				throw new ForbiddenException();
+			if (user.id !== me.id) throw new ForbiddenException();
 			return user.auth_req;
 		}
 
@@ -180,14 +209,13 @@ export function GenericUserController(route: string, options: { param: string, c
 						progress: elem.progress,
 						image: elem.image,
 						objectives: [],
-
 					});
 				}
 				map.get(elem.id).objectives.push({
 					threshold: elem.threshold,
 					color: elem.color,
 					description: elem.description,
-					name: elem.objective_name
+					name: elem.objective_name,
 				});
 			}
 			return Array.from(map, ([_, value]) => value);
@@ -212,42 +240,51 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			if (user.id !== me.id)
-				throw new ForbiddenException();
-			return this.user_repo.findBy({
+			if (user.id !== me.id) throw new ForbiddenException();
+			return await this.user_repo.findBy({
 				friends: {
-					id: user.id
+					id: user.id,
 				},
 			});
 		}
 
 		@Delete(options.cparam + "/friend(s)?/:friend")
 		@UseGuards(SetupGuard)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async unfriend(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Param("friend", ParseIDPipe(User, { friends: true })) friend: User,
+			@Param("friend", ParseIDPipe(User, { friends: true })) friend: User
 		) {
 			user = user || me;
 			if (user.id !== me.id) {
 				throw new ForbiddenException();
 			}
 
-			user.friends = await this.user_repo.findBy({ friends: { id: user.id } }) ?? [];
+			user.friends =
+				(await this.user_repo.findBy({ friends: { id: user.id } })) ?? [];
 
 			if (!user.friends.map((x) => x.id).includes(friend.id)) {
-				throw new NotFoundException;
+				throw new NotFoundException();
 			}
-		
+
 			user.remove_friend(friend);
 			friend.remove_friend(user);
-		
+
 			[user, friend] = await this.user_repo.save([user, friend]);
 
 			user.send_friend_update(Action.REMOVE, friend);
 			friend.send_friend_update(Action.REMOVE, user);
-
-			return {};
+			await this.achievement_service.inc_progress(
+				FRIEND_COUNT_ACHIEVEMENT,
+				user,
+				-1
+			);
+			await this.achievement_service.inc_progress(
+				FRIEND_COUNT_ACHIEVEMENT,
+				friend,
+				-1
+			);
 		}
 
 		@Get(options.cparam + "/friend(s)?/request(s)?")
@@ -257,43 +294,47 @@ export function GenericUserController(route: string, options: { param: string, c
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			if (user.id !== me.id)
-				throw new ForbiddenException();
+			if (user.id !== me.id) throw new ForbiddenException();
 			return this.request_repo.find({
 				relations: {
 					from: true,
 					to: true,
 				},
-				where: [
-					{ from: { id: user.id } },
-					{ to: { id: user.id } },
-				],
+				where: [{ from: { id: user.id } }, { to: { id: user.id } }],
 			});
 		}
 
 		@Post(options.cparam + "/friend(s)?/request(s)?")
 		@UseGuards(SetupGuard)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async create_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Body("username", ParseUsernamePipe) target: User,
+			@Body("username", ParseUsernamePipe) target: User
 		) {
 			user = user || me;
-			if (user.id !== me.id)
-				throw new ForbiddenException();
+			if (user.id !== me.id) throw new ForbiddenException();
 
 			if (user.id === target.id)
 				throw new UnprocessableEntityException("Cannot befriend yourself");
 
 			const user_friends = user.friends;
-			if (user_friends?.find(friend => friend.id === target.id))
+			if (user_friends?.find((friend) => friend.id === target.id))
 				throw new ForbiddenException("Already friends");
 
-			if (await this.request_repo.findOneBy({ from: { id: user.id }, to: { id: target.id } }))
+			if (
+				await this.request_repo.findOneBy({
+					from: { id: user.id },
+					to: { id: target.id },
+				})
+			)
 				throw new ForbiddenException("Already sent request");
 
-			const request = await this.request_repo.findOneBy({	from: {	id: target.id},	to: { id: user.id }	});
-		
+			const request = await this.request_repo.findOneBy({
+				from: { id: target.id },
+				to: { id: user.id },
+			});
+
 			if (request) {
 				user.add_friend(target);
 				target.add_friend(user);
@@ -303,21 +344,35 @@ export function GenericUserController(route: string, options: { param: string, c
 
 				user.send_friend_update(Action.INSERT, target);
 				target.send_friend_update(Action.INSERT, user);
+
+				await this.achievement_service.inc_progress(
+					FRIEND_COUNT_ACHIEVEMENT,
+					user,
+					1
+				);
+				await this.achievement_service.inc_progress(
+					FRIEND_COUNT_ACHIEVEMENT,
+					target,
+					1
+				);
 			} else {
-				await this.request_repo.save({ from: user, to: target } as FriendRequest);
+				await this.request_repo.save({
+					from: user,
+					to: target,
+				} as FriendRequest);
 			}
 		}
 
 		@Delete(options.cparam + "/friend(s)?/request(s)?/:request_id")
 		@UseGuards(SetupGuard)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async delete_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
 			@Param("request_id", ParseIDPipe(FriendRequest)) request: FriendRequest
 		) {
 			user = user || me;
-			if (user.id !== me.id)
-				throw new ForbiddenException();
+			if (user.id !== me.id) throw new ForbiddenException();
 			if (user.id !== request.from.id && user.id !== request.to.id)
 				throw new NotFoundException();
 			await this.request_repo.remove(request);
@@ -325,67 +380,105 @@ export function GenericUserController(route: string, options: { param: string, c
 
 		@Get(`${options.cparam}/invites`)
 		async invites(@Me() user: User) {
-			return this.invite_repo.find({ where: [
-				{ from: { id: user.id } },
-				{ to: { id: user.id } }
-			] });
+			return this.invite_repo.find({
+				where: [{ from: { id: user.id } }, { to: { id: user.id } }],
+			});
 		}
 
 		@Get(`${options.cparam}/blocked`)
 		async blocked(@Me() me: User) {
-			const { blocked } = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
-		
+			const { blocked } = await this.user_repo.findOne({
+				where: { id: me.id },
+				relations: { blocked: true },
+			});
+
 			return blocked;
 		}
 
-		@Post(`${options.cparam}/block/:target`)
-		async block(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
-			me = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
+		@Post(`${options.cparam}/blocked/`)
+		@HttpCode(HttpStatus.NO_CONTENT)
+		async block(@Me() me: User, @Body("id", ParseIDPipe(User)) target: User) {
+			me = await this.user_repo.findOne({
+				where: { id: me.id },
+				relations: { blocked: true },
+			});
 
 			if (me.blocked.map((user) => user.id).includes(target.id)) {
 				throw new ForbiddenException("Already blocked");
 			}
 
-			await this.user_repo.save({ id: me.id, blocked: [...me.blocked, target] });
+			await this.user_repo.save({
+				id: me.id,
+				blocked: [...me.blocked, target],
+			});
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
 				action: Action.INSERT,
 				id: target.id,
-				value: { id: target.id }
+				value: { id: target.id },
 			}, me);
-
-			return {};
 		}
-	
-		@Delete(`${options.cparam}/unblock/:target`)
-		async unblock(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
-			me = await this.user_repo.findOne({ where: { id: me.id }, relations: { blocked: true }});
+
+		@Delete(`${options.cparam}/blocked/:target`)
+		@HttpCode(HttpStatus.NO_CONTENT)
+		async unblock(
+			@Me() me: User,
+			@Param("target", ParseIDPipe(User)) target: User
+		) {
+			me = await this.user_repo.findOne({
+				where: { id: me.id },
+				relations: { blocked: true },
+			});
 
 			if (!me.blocked.map((user) => user.id).includes(target.id)) {
 				throw new ForbiddenException("Not blocked");
 			}
 
-			await this.user_repo.save({ id: me.id, blocked: me.blocked.filter((user) => user.id !== target.id) });
-		
+			await this.user_repo.save({
+				id: me.id,
+				blocked: me.blocked.filter((user) => user.id !== target.id),
+			});
+
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
 				action: Action.REMOVE,
 				id: target.id,
 			}, me);
+		}
 
-			return {};
+		@Get(`${options.cparam}/fuzzy`)
+		async fuzzySearch(@Query("username") username: string) {
+			if (typeof username !== "string") {
+				throw new ForbiddenException("username must be a string");
+			}
+
+			return this.user_repo.createQueryBuilder("user")
+				.where("similarity(user.username, :username) > :threshold", { username, threshold: FUZZY_THRESHOLD })
+				.getMany();
 		}
 	}
 	return UserControllerFactory;
 }
 
 class NullPipe implements PipeTransform {
-	async transform(value: any, metadata: ArgumentMetadata) {
+	async transform(_value: any, _metadata: ArgumentMetadata) {
 		return null;
 	}
 }
 
-export class UserMeController extends GenericUserController("user(s)?/", { param: "me", cparam: "me", pipe: NullPipe }) { }
-export class UserIDController extends GenericUserController("user(s)?/id", { param: "id", cparam: ":id", pipe: ParseIDPipe(User, { friends: true }) }) { }
-export class UserUsernameController extends GenericUserController("user(s)?/", { param: "username", cparam: ":username", pipe: ParseUsernamePipe }) { }
+export class UserMeController extends GenericUserController("user(s)?/", {
+	param: "me",
+	cparam: "me",
+	pipe: NullPipe,
+}) {}
+export class UserIDController extends GenericUserController("user(s)?/id", {
+	param: "id",
+	cparam: ":id",
+	pipe: ParseIDPipe(User, { friends: true }),
+}) {}
+export class UserUsernameController extends GenericUserController("user(s)?/", {
+	param: "username",
+	cparam: ":username",
+	pipe: ParseUsernamePipe,
+}) {}

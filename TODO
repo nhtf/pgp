@@ -1,5 +1,4 @@
-add ability to mention in chat (and invite with it)
-title bar does not get updated correctly when logging in
+title bar does not get updated correctly when logging in (d: fixed?)
 
 fix gameroom updates (m: fix what?)
 
@@ -14,8 +13,7 @@ chat invite for game (also how to determine which kind of game)
 matchmaking system!!
 
 Member entity (en andere?) hebben dubbele IDs in DB, kan beter via relations
-
-promote/demote causes wrong order in membergroup
+m: wie en waar heb je het over
 
 partially merge friend dropdown and member dropdown
 
@@ -23,4 +21,6 @@ store more state in database, like who's turn it is to serve the ball
 
 team one is right side?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!
 
-invite missing room type
+invite missing friend type
+
+create extension pg_trgm on startup

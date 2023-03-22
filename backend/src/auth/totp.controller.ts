@@ -25,6 +25,8 @@ import * as qrcode from "qrcode";
 import { Me } from "../util";
 import { User } from "../entities/User";
 import { Repository } from "typeorm";
+import { UpdateGateway } from "src/gateways/update.gateway"
+import { Subject, Action } from "src/enums"
 
 @Injectable()
 class OAuthGuard implements CanActivate {
@@ -59,10 +61,12 @@ export class TotpController {
 	@HttpCode(HttpStatus.ACCEPTED)
     @UseGuards(HttpAuthGuard, SetupGuard)
 	async setup(@Me() user: User, @Req() request: Request) {
-		let session = request.session;
-		if (user.auth_req === AuthLevel.TWOFA)
+		if (user.auth_req === AuthLevel.TWOFA) {
 			throw new HttpException("already setup 2fa", HttpStatus.FORBIDDEN);
+		}
 
+		let session = request.session;
+	
 		//https://www.rfc-editor.org/rfc/rfc4226 section 4
 		const secret = authenticator.generateSecret(20);
 
@@ -73,8 +77,7 @@ export class TotpController {
 		const otpauth = authenticator.keyuri(user.username, "pgp", secret);
 		const promise = new Promise((resolve: (value: string) => void, reject) => {
 			qrcode.toDataURL(otpauth, (error, image_url) => {
-				if (error) reject(error);
-				else resolve(image_url);
+				error ? reject(error) : resolve(image_url);
 			});
 		});
 
@@ -101,6 +104,14 @@ export class TotpController {
 		const id = request.session.user_id;
 
 		await this.userRepo.save(user);
+
+		UpdateGateway.instance.send_update({
+			subject: Subject.USER,
+			action: Action.UPDATE,
+			id: user.id,
+			value: { auth_req: user.auth_req },
+		}, user);
+	
 		if (!(await this.session_utils.regenerate_session_req(request)))
 			throw new HttpException(
 				"unable to create session",
@@ -109,6 +120,7 @@ export class TotpController {
 		request.session.auth_level = AuthLevel.OAuth;
 		request.session.access_token = access_token;
 		request.session.user_id = id;
+	
 	}
 
 	async authenticate(
@@ -146,6 +158,13 @@ export class TotpController {
 		user.secret = secret;
 
 		await this.userRepo.save(user);
+
+		UpdateGateway.instance.send_update({
+			subject: Subject.USER,
+			action: Action.UPDATE,
+			id: user.id,
+			value: { auth_req: user.auth_req },
+		}, user);
 	}
 
 	@Post("verify")

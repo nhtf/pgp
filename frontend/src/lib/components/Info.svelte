@@ -13,6 +13,7 @@
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
     import { swal } from "$lib/Alert";
+    import Match from "./Match.svelte";
 
 	const edit_icon = "/Assets/icons/pen.png";
 
@@ -119,6 +120,9 @@
 			</div>
 		</div>
 	{/if}
+	{#each $page.data.games as game}
+		<Match {game}/>
+	{/each}
 </div>
 
 <style>

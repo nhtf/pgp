@@ -38,6 +38,7 @@
 	
 </script>
 
+{password}
 <div class="room">
 	<input
 		class="input"

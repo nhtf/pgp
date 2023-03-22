@@ -68,7 +68,7 @@ export class RoomGateway extends ProtectedGateway("room") {
 		const room = await this.roomRepo.findOneBy({ id: client.room });
 		const member = await this.memberRepo.findOneBy({
 			room: {	id: room.id },
-			user: {	id: client.user.id },
+			user: {	id: client.user },
 		});
 
 		if (!member) {

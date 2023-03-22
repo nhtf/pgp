@@ -31,6 +31,7 @@ import { Objective } from "src/entities/Objective";
 import { Message } from "src/entities/Message";
 import { Player } from "src/entities/Player";
 import { AchievementProgress } from "src/entities/AchievementProgress";
+import { UserService } from "src/services/user.service";
 
 class UserDTO {
 	@IsString()
@@ -80,6 +81,7 @@ export class DebugController {
 		private readonly objectiveRepo: Repository<Objective>,
 		@Inject("ACHIEVEMENTPROGRESS_REPO")
 		private readonly progressRepo: Repository<AchievementProgress>,
+		private readonly userService: UserService,
 	) {}
 
 	@Get("useradd")
@@ -128,7 +130,9 @@ export class DebugController {
 		const user = await this.userRepo.findOneBy({ username: dto.username });
 		if (!user)
 			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
-		await this.userRepo.remove(user);
+		await this.userService.remove(user);
+		/*
+		await this.userRepo.remove(user);*/
 		return "deleted user";
 	}
 

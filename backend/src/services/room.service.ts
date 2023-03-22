@@ -6,7 +6,7 @@ import { User } from "../entities/User";
 import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder, DeepPartial } from "typeorm";
 import { Access, Role, Subject, Action } from "src/enums";
-import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException, Req } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException, Req, HttpCode } from "@nestjs/common";
 import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions } from "class-validator";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
@@ -41,10 +41,11 @@ export class CreateRoomDTO {
 
 export interface IRoomService<T extends Room, U extends Member> {
 	create(name?: string, is_private?: boolean, password?: string): Promise<T>;
-	destroy(room: number | T): Promise<boolean>;
+	destroy(...rooms: T[]): Promise<void>;
 	add_member(room: number | T, user: number | User, role?: Role): Promise<U>;
 	edit_member(room: number | T, role: Role, member: U | User | number): Promise<U>;
 	del_member(room: number | T, member: U | User | number, ban?: boolean): Promise<boolean>;
+	owned_rooms(user: User): Promise<T[]>;
 }
 
 export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
@@ -100,10 +101,8 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 		}
 
 		// Unused
-		async destroy(room: number | T) {
-			room = await this.get_room(room);
-			await this.room_repo.remove(room);
-			return true;
+		async destroy(...rooms: T[]) {
+			await this.room_repo.remove(rooms);
 		}
 
 		async add_member(room: T, user: User, role?: Role): Promise<U> {
@@ -162,6 +161,10 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 				throw new NotFoundException("Member not found");
 			member.role = role;
 			return this.member_repo.save(member);
+		}
+
+		async owned_rooms(user: User): Promise<T[]> {
+			return this.room_repo.findBy({ members: { role: Role.OWNER, user: { id: user.id } } } as FindOptionsWhere<T>)
 		}
 	}
 	return new RoomService<T>(room_repo, member_repo, invite_repo, user_repo, type);
@@ -313,6 +316,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Patch("id/:id")
 		@RequiredRole(Role.OWNER)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async edit_room(@GetRoom() room: T, @Body() dto: CreateRoomDTO) {
 			if (dto.is_private && dto.password) {
 				throw new UnprocessableEntityException("A private room cannot have a password");
@@ -334,6 +338,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Delete("id/:id")
 		@RequiredRole(Role.OWNER)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async delete_room(@Param("id", ParseIDPipe(type, { invites: true })) room: T) {
 			await this.room_repo.remove(room);
 
@@ -354,6 +359,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		}
 
 		@Post("id/:id/member(s)?")
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async join(
 			@Me() me: User,
 			@Param("id", ParseIDPipe(type, { banned_users: true })) room: T,
@@ -420,6 +426,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Delete("id/:id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async remove_member(
 			@GetMember() member: U,
 			@GetRoom() room: T,
@@ -454,6 +461,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Patch("id/:id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async edit_member(
 			@GetMember() member: U,
 			@GetRoom() room: T,
@@ -483,6 +491,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Post("id/:id/invite(s)?")
 		@RequiredRole(Role.ADMIN)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async create_invite(
 			@Me() me: User,
 			@Param("id", ParseIDPipe(type, { banned_users: true, invites: true })) room: T,
@@ -504,6 +513,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		}
 
 		@Delete("id/:id/invite(s)?/:invite")
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async delete_invite(
 			@Me() me: User,
 			@GetRoom() room: T,
@@ -531,6 +541,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 
 		@Delete("id/:id/ban(s)?/:user_id")
 		@RequiredRole(Role.ADMIN)
+		@HttpCode(HttpStatus.NO_CONTENT)
 		async remove_ban(
 			@GetRoom() room: T,
 			@Param("user_id", ParseIDPipe(User)) target: User,

@@ -18,7 +18,7 @@ export class Achievement {
 	})
 	max: number | null;
 
-	@OneToMany(() => Objective, (objective) => objective.achievement, { cascade: true })
+	@OneToMany(() => Objective, (objective) => objective.achievement, { eager: true, cascade: true })
 	objectives: Objective[];
 
 	@OneToMany(() => AchievementProgress, (progress) => progress.achievement, { nullable: false })

@@ -18,7 +18,7 @@
 		Toggle,
 	} from "flowbite-svelte";
 	import { goto, invalidate } from "$app/navigation";
-	import { disable_2fa, enable_2fa } from "./two_facter_functions";
+	import { disable_twofa, enable_twofa } from "$lib/two_factor";
 	import { userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
@@ -32,11 +32,10 @@
 	const HEARTBEATCOOLDOWN = 1000;
 
 	let currentTheme: string;
-	// let timer: NodeJS.Timeout | null = null;
 	let timer: number | null = null;
 
-	$: user = data.user ? $userStore.get(data.user.id)! : null;
-	$: twofa_enabled = user ? user.auth_req === 2 : false;
+	$: user = data.user ? $userStore.get(data.user.id) : null;
+	$: twofa_enabled = user?.auth_req === 2;
 
 	onMount(() => {
 		applyTheme();
@@ -93,20 +92,6 @@
 		}
 	};
 
-	async function disable_twofa() {
-		const res = await disable_2fa();
-		if (res) {
-			twofa_enabled = false;
-		}
-	}
-
-	async function enable_twofa() {
-		const res = await enable_2fa();
-		if (res) {
-			twofa_enabled = true;
-		}
-	}
-
 	const links = [
 		{ url: "/chat", name: "Chat Rooms" },
 		{ url: "/game", name: "Game Rooms" },
@@ -146,8 +131,7 @@
 				>profile</DropdownItem
 			>
 			{#if twofa_enabled}
-				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem
-				>
+				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
 			{:else}
 				<DropdownItem on:click={enable_twofa}>enable 2fa</DropdownItem>
 			{/if}

@@ -96,19 +96,40 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 	}
 
 	// TODO: One query
-	@Get("history")
-	async history(@Me() me: User) {
+	@Get("history/:user")
+	async history(@Param("user", ParseIDPipe(User)) user: User) {
+		/*
+		SELECT game_state."id", team."id", "user".username
+		FROM game_state
+		LEFT JOIN team ON team."stateId" = game_state."id"
+		LEFT JOIN player ON player."teamId" = team."id"
+		LEFT JOIN "user" ON "user"."id" = player."userId"
+		WHERE EXISTS (
+			SELECT "user"."id"
+			FROM game_state LEFT JOIN team ON team."stateId" = game_state."id"
+			LEFT JOIN player ON player."teamId" = team."id"
+			LEFT JOIN "user" on "user"."id" = player."userId"
+			WHERE "user"."id" = 10
+		);		
+		*/
 		const states = await this.gamestate_repo.find({
 			where: {
 				teams: {
 					players: {
 						user: {
-							id: me.id,
+							id: user.id,
 						}
 					}
 				}
 			},
 		});
+		/*TODO finish this
+		const states = await this.gamestate_repo
+			.createQueryBuilder("state")
+			.leftJoinAndSelect(Team, "team", "team.stateId = state.id")
+			.leftJoinAndSelect(Player, "player", "player.teamId = team.id")
+			.leftJoinAndSelect(User, "user", "user.id = player.userId")
+			.where(*/
 
 		const ids = states.map((state) => state.id);
 
@@ -138,7 +159,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		if ((target.role >= member.role && target.user.id !== me.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
 			throw new ForbiddenException(ERR_PERM);
 		}
-
+		
 		if (!member.player) {
 			member.player = await this.player_repo.findOneBy({ user: { id: me.id }, team: { state: { room: { id: room.id } } } });
 		}
@@ -159,7 +180,7 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		}
 
 		await this.member_repo.save(member);
-		
+
 		await UpdateGateway.instance.send_state_update(room);
 	}
 

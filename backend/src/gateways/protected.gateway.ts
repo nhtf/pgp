@@ -16,7 +16,7 @@ declare module "http" {
 
 declare module "socket.io" {
 	export interface Socket {
-		user?: User,
+		user?: number,
 		room?: number;
 	}
 }
@@ -44,7 +44,7 @@ export function ProtectedGateway(namespace?: string) {
 				return;
 			}
 
-			client.user = user;
+			client.user = user.id;
 			
 			this.onConnect(client);
 		}
@@ -57,7 +57,7 @@ export function ProtectedGateway(namespace?: string) {
 
 		@SubscribeMessage("join")
 		async join(@ConnectedSocket() client: Socket, @MessageBody() data: { id: number }) {
-			const user = await authenticate(client.request, this.userRepo);
+			await authenticate(client.request, this.userRepo);
 		
 			try {
 				client.room = validate_id(data.id);
@@ -69,7 +69,7 @@ export function ProtectedGateway(namespace?: string) {
 
 			await this.onJoin(client);
 
-			return "";
+			return "joined";
 		}
 
 		async onConnect(client: Socket) {}

@@ -35,6 +35,8 @@ import { ReceiverFinder } from "src/ReceiverFinder"
 import { RateLimitMiddleware } from "src/middleware/ratelimit.middleware";
 import { TREE_KEY } from "src/util";//TODO delete
 import { BotController } from "src/controllers/bot.controller";
+import { AchievementService } from "src/services/achievement.service";
+import { UserService } from "src/services/user.service";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -146,7 +148,7 @@ const entityProviders = entityFiles.map<{
 	};
 });
 
-const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room).map(value => {
+const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room || value.name == "Room").map(value => {
 	const name = value.name.toUpperCase();
 	return {
 		provide: name + "_PGPSERVICE",
@@ -154,7 +156,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any, entityClasses.find(clazz => clazz.name === (value.name + "Member")) as any);
 			return tmp;
 		},
-		inject: [name + "_REPO", name + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
+		inject: [name + "_REPO", (name == "ROOM" ? "" : name) + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
 	};
 });
 
@@ -188,6 +190,8 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		SessionService,
 		SetupGuard,
 		ReceiverFinder,
+		AchievementService,
+		UserService,
 		...databaseProviders,
 		...entityProviders,
 		...roomServices,

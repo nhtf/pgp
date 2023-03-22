@@ -67,13 +67,13 @@ export class User {
 	received_invites: Invite[];
 
 	@Exclude()
-	@ManyToMany(() => User, (friend) => friend.friends)
-	@JoinTable({ name: "Friend" })
+	@ManyToMany(() => User, (friend) => friend.friends, { onDelete: "NO ACTION" })
+	@JoinTable({ name: "Friend" }) //TODO make table name lowercase to be consistent
 	friends: User[];
 
 	@Exclude()
 	@ManyToMany(() => User, (user) => user.blocked)
-	@JoinTable({ name: "Block" })
+	@JoinTable({ name: "Block" }) //TODO make table name lowercase to be consistent
 	blocked: User[];
 
 	@Exclude()
@@ -140,12 +140,12 @@ export class User {
 		return `${BACKEND_ADDRESS}/${this.avatar_path}`;
 	}
 
-	get avatar_basename(): string {
-		return `${this.avatar_base}${AVATAR_EXT}`;
-	}
-
 	get avatar_path(): string {
 		return `${AVATAR_DIR}/${this.avatar_basename}`;
+	}
+
+	get avatar_basename(): string {
+		return `${this.avatar_base}${AVATAR_EXT}`;
 	}
 
 	add_friend(target: User) {

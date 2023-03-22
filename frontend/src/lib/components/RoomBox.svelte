@@ -8,7 +8,7 @@
 	import { Access } from "$lib/enums";
 	import { post, remove, patch, get } from "$lib/Web";
 	import { gameStateStore, userStore } from "$lib/stores";
-    import { onDestroy, onMount } from "svelte";
+    import { afterUpdate, onDestroy, onMount } from "svelte";
     import { updateManager } from "$lib/updateSocket";
 	import Invite from "./Invite.svelte";
 
@@ -36,7 +36,7 @@
 	$: owner = room.owner ? $userStore.get(room.owner.id)! : null;
 	$: state = state ? $gameStateStore.get(state.id)! : null;
 
-	$: team = state?.teams.find((team) => team.players.map((player) => player.userId).includes(user.id));
+	$: team = state?.teams.find((team) => team.players?.map((player) => player.userId).includes(user.id));
 
 	function teamSelector(room: T): Promise<number | null> {
 		const inputOptions = room.state.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
@@ -104,7 +104,7 @@
 	{/if}
 	<div class="room-name">{room.name}</div>
 	{#if owner?.id === user.id}
-		<img class="icon-owner" src={crown} alt="crown"/>
+		<img class="icon-owner" src={crown} alt="crown" title="You are the owner of this room"/>
 	{/if}
 	<div class="grow"/>
 	{#if room.joined}

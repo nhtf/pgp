@@ -38,37 +38,29 @@ export class GameGateway extends ProtectedGateway("game") {
 	}
 
 	async onDisconnect(client: Socket) {
-		await this.userRepo.save({ id: client.user.id, activeRoom: null });
+		await this.userRepo.save({ id: client.user, activeRoom: null });
 
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			action: Action.UPDATE,
-			id: client.user.id,
+			id: client.user,
 			value: { activeRoomId: null }
 		});
 	}
 
 	async onJoin(client: Socket) {
-		await this.userRepo.save({ id: client.user.id, activeRoom: { id: client.room }});
+		await this.userRepo.save({ id: client.user, activeRoom: { id: client.room }});
 	
 		client.join(String(client.room));
 	
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			action: Action.UPDATE,
-			id: client.user.id,
+			id: client.user,
 			value: { activeRoomId: client.room }
 		});
 
-		const state = await this.gameStateRepo.findOneBy({ room: { id: client.room } });
-		const friends = await this.userRepo.findBy({ friends: { id: client.user.id }});
-
-		UpdateGateway.instance.send_update({
-			subject: Subject.GAMESTATE,
-			action: Action.UPDATE,
-			id: state.id,
-			value: instanceToPlain(state),
-		}, ...[client.user, ...friends]);
+		await UpdateGateway.instance.send_state_update({ id: client.room });
 	}
 
 	@SubscribeMessage("broadcast")
@@ -78,11 +70,9 @@ export class GameGateway extends ProtectedGateway("game") {
 		if (data.name === "synchronize") {
 			data.snapshot.state.teams.forEach(async (team) => {
 				await this.teamRepo.save({ id: team.id, score: team.score });
-
-				UpdateGateway.instance.send_state_update({ id: client.room }, { teams: [{ id: team.id, score: team.score }]});	
-
 			});
-
+		
+			UpdateGateway.instance.send_state_update({ id: client.room });	
 		}
 	}
 

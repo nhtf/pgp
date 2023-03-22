@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Member, User } from "$lib/entities";
+	import type { ChatRoomMember, Member, User } from "$lib/entities";
 	import { swal, unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
 	import { Role, roles } from "$lib/enums";
@@ -9,15 +9,15 @@
 	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
     import { goto } from "$app/navigation";
 
-	export let member: Member | null;
+	export let member: ChatRoomMember | null;
 	export let user: User = $userStore.get(member!.userId)!;
-	export let self: Member;
+	export let self: ChatRoomMember;
 	export let memberGroup: boolean;
 
 	type Action = {
 		role: Role;
-		condition?: (member: Member) => boolean;
-		param?: ((member: Member) => any) | any;
+		condition?: (member: ChatRoomMember) => boolean;
+		param?: ((member: ChatRoomMember) => any) | any;
 		fun: Function;
 		name: string;
 	};
@@ -30,13 +30,13 @@
 	$: user = $userStore.get(user!.id)!;
 	$: blockedIds = [...$blockStore.keys()];
 
-	async function edit(member: Member, role: Role) {
+	async function edit(member: ChatRoomMember, role: Role) {
 		await unwrap(
 			patch(`/chat/id/${member.roomId}/members/${member.id}`, { role })
 		);
 	}
 
-	async function kick(member: Member, ban: boolean) {
+	async function kick(member: ChatRoomMember, ban: boolean) {
 		await unwrap(
 			remove(`/chat/id/${member.roomId}/members/${member.id}`, { ban })
 		);
@@ -44,7 +44,7 @@
 		swal().fire({ icon: "success", timer: 3000 });
 	}
 
-	async function mute(member: Member, minutes: number) {
+	async function mute(member: ChatRoomMember, minutes: number) {
 		const millis = minutes * 60 * 1000;
 
 		await unwrap(
@@ -57,13 +57,13 @@
 	}
 
 	async function block(user: User) {
-		await unwrap(post(`/user/me/block/${user.id}`));
+		await unwrap(post(`/user/me/blocked`, { id: user.id }));
 
 		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function unblock(user: User) {
-		await unwrap(remove(`/user/me/unblock/${user.id}`));
+		await unwrap(remove(`/user/me/blocked/${user.id}`));
 	
 		swal().fire({ icon: "success", timer: 3000 });
 	}
@@ -95,14 +95,14 @@
 		{
 			role: Role.OWNER,
 			fun: edit,
-			param: (member: Member) => member.role + 1,
+			param: (member: ChatRoomMember) => member.role + 1,
 			name: "Promote",
 		},
 		{
 			role: Role.OWNER,
-			condition: (member: Member) => member.role >= 1,
+			condition: (member: ChatRoomMember) => member.role >= 1,
 			fun: edit,
-			param: (member: Member) => member.role - 1,
+			param: (member: ChatRoomMember) => member.role - 1,
 			name: "Demote",
 		},
 		{
@@ -119,14 +119,14 @@
 		},
 		{
 			role: Role.ADMIN,
-			condition: (member: Member) => !member.is_muted,
+			condition: (member: ChatRoomMember) => !member.is_muted,
 			param: mute_duration,
 			fun: mute,
 			name: "Mute",
 		},
 		{
 			role: Role.ADMIN,
-			condition: (member: Member) => member.is_muted,
+			condition: (member: ChatRoomMember) => member.is_muted,
 			param: 0,
 			fun: mute,
 			name: "Unmute",
@@ -136,22 +136,22 @@
 
 <Avatar
 	src={user.avatar}
-	id="avatar-{user.username}box{memberGroup}"
+	id="avatar-{user.id}box{memberGroup}"
 	dot={{
 		placement: "bottom-right",
 		color: status_colors[user.status],
 	}}
 	class="bg-c"
 />
-<Tooltip triggeredBy="#avatar-{user.username}box{memberGroup}"
+<Tooltip triggeredBy="#avatar-{user.id}box{memberGroup}"
 	>{user.username}</Tooltip
 >
 <!-- //TODO dropdown menu placement is wrong if message is at the bottom (or membergroup at the bottom) -->
 <Dropdown
-	triggeredBy="#avatar-{user.username}box{memberGroup}"
+	triggeredBy="#avatar-{user.id}box{memberGroup}"
 	class="bor-c bg-c shadow rounded max-w-sm"
 >
-	<DropdownItem href={`/profile/${user.username}`}>Profile</DropdownItem>
+	<DropdownItem href={`/profile/${encodeURIComponent(user.username)}`}>Profile</DropdownItem>
 	<DropdownDivider/>
 	{#if me.id !== user.id}
 		{#each roles as role}

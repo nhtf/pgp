@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite, Room, GameState, GameRoom } from "$lib/entities"
+import type { Entity, User, Member, Invite, Room, GameState } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -7,32 +7,16 @@ import { Access } from "$lib/enums"
 
 // From typeorm
 type ObjectLiteral = { [key: string]: any; }
-type DeepPartial<T> = T extends object ? { [K in keyof T]?: DeepPartial<T[K]>; } : T;
 
 function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
-	// console.group("enter", entity);
 	Object.keys(update).forEach((key) => {
-		if (!entity[key]) {
-			entity[key] = {};
-		}
-		if (typeof update[key] === "object" && update[key]) {
+	
+		if (typeof update[key] === "object"	&& !Array.isArray(update[key]) && update[key] !== null) {
 			updateDeepPartial(entity[key], update[key])
 		} else {
-
-			console.log(`${key}: ${typeof update[key]} = ${update[key]}`);
-
-			const copy = entity[key];
-		
 			entity[key] = update[key];
-			Object.keys(copy).forEach((key) => {
-				// console.log(key);
-				if (copy[key] && !entity[key]) {
-					entity[key] = copy[key];
-				}
-			})
 		}
-	});
-	// console.groupEnd();
+	});	
 }
 
 function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: Subject) {
@@ -45,16 +29,10 @@ function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: S
 				case Action.UPDATE:
 					if (!entities.has(update.id)) {
 						entities.set(update.id, update.value);
-						break;
+						break ;
 					}
 
-					const entity = entities.get(update.id) as ObjectLiteral;
-
-					updateDeepPartial(entity, update.value);
-
-					Object.entries(update.value).forEach(([key, value]) => {
-						entity[key] = value;
-					});
+					updateDeepPartial(entities.get(update.id) as ObjectLiteral, update.value);
 					break;
 				case Action.REMOVE:
 					entities.delete(update.id);

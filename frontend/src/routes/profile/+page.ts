@@ -5,7 +5,7 @@ export const load: PageLoad = (async ({ fetch, parent }) => {
 	window.fetch = fetch;
 
 	const { user } = await parent();
-	const URL = user ? `/profile/${user.username}` : `/account_setup`;
+	const URL = user ? `/profile/${encodeURIComponent(user.username)}` : `/account_setup`;
 	
 	throw redirect(302, URL);
 }) satisfies PageLoad;

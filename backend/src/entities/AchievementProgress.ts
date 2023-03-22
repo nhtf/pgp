@@ -10,9 +10,12 @@ export class AchievementProgress {
 	@Column({ default: 0 })
 	progress: number;
 
+	@Column({ default: 0})
+	checkpoint: number;
+
 	@ManyToOne(() => Achievement, (achievement) => achievement.progress, { eager: true, nullable : false })
 	achievement: Achievement;
 
-	@ManyToOne(() => User, (user) => user.achievements, { eager: true, nullable: false })
+	@ManyToOne(() => User, (user) => user.achievements, { eager: true, nullable: false, onDelete: "CASCADE" })
 	user: User;
 }

@@ -93,13 +93,13 @@
 	}
 
 	async function block(user: User) {
-		await unwrap(post(`/user/me/block/${user.id}`));
+		await unwrap(post("/user/me/blocked", { id: user.id }));
 
 		swal().fire({ icon: "success", timer: 3000 });
 	}
 
 	async function unblock(user: User) {
-		await unwrap(remove(`/user/me/unblock/${user.id}`));
+		await unwrap(remove(`/user/me/blocked/${user.id}`));
 	
 		swal().fire({ icon: "success", timer: 3000 });
 	}
@@ -138,7 +138,7 @@
 	{/each}
 </Dropdown>
 {#if state}
-	<Match game={state}/>
+	<!-- <Match game={state} {user}/> -->
 {/if}
 
 <style>

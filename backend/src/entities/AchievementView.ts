@@ -14,7 +14,8 @@ import type { Objective } from "./Objective";
 	LEFT JOIN achievement_progress as progress
 	ON progress."userId" = "user"."id"
 	AND progress."achievementId" = achievement."id"
-	WHERE "user".api_secret IS NULL;
+	WHERE "user".api_secret IS NULL
+	ORDER BY "objective"."threshold";
 	`,
 })
 export class AchievementView {
