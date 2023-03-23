@@ -15,6 +15,7 @@
 	import MessageBox from "$lib/components/MessageBox.svelte"
 	import MemberBox from "$lib/components/MemberBox.svelte";
 	import ScratchPad from "$lib/components/ScratchPad.svelte";
+    import RoomHeader from "$lib/components/RoomHeader.svelte";
 
 	export let data: PageData;
 
@@ -23,11 +24,11 @@
 	const load = 10;
 
 	let messages = data.messages.sort(byDate);
-	let indices: number[] = [];
 	let relativeScroll = messages.length;
+	let index: number;
 
 	$: room = $roomStore.get(data.room.id) as ChatRoom;
-	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id);
+	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id) as ChatRoomMember[];
 	$: self = $memberStore.get(room?.self!.id)! as ChatRoomMember;
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
 
@@ -36,16 +37,14 @@
 	$: min = clamp(relativeScroll - load, 0, messages.length);
 
 	onMount(() => {
-		roomSocket.emit("join", { id: room!.id });
+		roomSocket.emit("join", { id: room.id });
 
-		indices.push(onRemove(Subject.ROOM, room!.id, async () => await goto(`/chat`)));
-		indices.push(onRemove(Subject.MEMBER, self!.id, async () => await goto(`/chat`)));
-		indices.push(updateManager.set(Subject.MESSAGE, updateMessages));
+		index = updateManager.set(Subject.MESSAGE, updateMessages);
 	});
 
 	onDestroy(() => {
 		roomSocket.disconnect();
-		updateManager.remove(indices);
+		updateManager.remove(index);
 	});
 
 	addEventListener("wheel", (event: WheelEvent) => {
@@ -65,14 +64,6 @@
 				messages = messages.filter((message) => message.id !== update.id);
 				break;
 		}
-	}
-
-	function onRemove(subject: Subject, id: number, fun: Function) {
-		return updateManager.set(subject, async (update: UpdatePacket) => {
-			if (update.id === id && update.action === Action.REMOVE) {
-				fun();
-			}
-		});
 	}
 
 	function clamp(n: number, min: number, max: number): number {
@@ -101,7 +92,7 @@
 
 		element.scroll({ top: element.scrollHeight, behavior: "smooth" });
 
-		setTimeout(() => relativeScroll = messages.length, 1000);
+		setTimeout(() => relativeScroll = messages.length - load, 1000);
 	}
 
 </script>
@@ -109,14 +100,7 @@
 {#if room}
 	<div class="room">
 		<div class="room-container">
-			<div class="room-title">
-				<a class="button border-blue" href={`/chat`}>Back</a>
-				<div class="room-name">{room.name}</div>
-				<button class="button border-red" on:click={() => leave(room)}>Leave</button>
-				{#if self?.role >= Role.ADMIN}
-					<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
-				{/if}				
-			</div>
+			<RoomHeader {room}/>
 			<div id="messages" class="messages" use:scrollToBottom={messages}>
 				{#each messages as message, index (message.id)}
 					{#if index >= min && !blockedIds.includes(message.userId)}
@@ -155,7 +139,7 @@
 	.room {
 		display: flex;
 		flex-direction: row;
-		margin: 0.5rem;
+		margin: 0.25rem;
 		align-items: stretch;
 		/* TODO */
 		height: 90vh;
@@ -170,30 +154,11 @@
 		width: 80vw;
 	}
 
-	.room-title {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		border-radius: 1rem;
-		background-color: var(--box-color);
-		position: relative;
-		box-shadow: 0px 4px 4px 0px rgba(0, 0, 0, 0.4);
-		margin-bottom: 0.75rem;
-		padding: 0.25rem;
-	}
-
-	.room-name {
-		text-align: center;
-		font-size: 1.5rem;
-		margin: 0 auto;
-		white-space: nowrap;
-	}
-
 	.member-container {
 		display: flex;
 		flex-direction: column;
 		padding: 0.5rem;
-		margin: 0 0.5rem;
+		margin: 0 0.25rem;
 		background-color: var(--box-color);
 		border-radius: 0.375rem;
 		gap: 0.5em;
@@ -212,6 +177,7 @@
 		flex-direction: column;
 		flex-grow: 1;
 		overflow-y: auto;
+		margin: 0.25rem;
 	}
 
 </style>

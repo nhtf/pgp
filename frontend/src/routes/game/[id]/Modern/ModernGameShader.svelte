@@ -3,13 +3,14 @@
 	import { page } from "$app/stores";
 	import { Modern } from "./Modern";
 	import type { GAME } from "./Constants";
+    import type { GameRoom } from "$lib/entities";
 	// import {triangulate} from "$lib/svgMesh/triangulateContours";
 	// import {contours } from "$lib/svgMesh/svgPathContours";
 	// import {parse} from "$lib/svgMesh/parseSvgPath";
 
 	let canvas: HTMLCanvasElement;
 
-	export let gameMode: GAME;
+	export let room: GameRoom;
 	
 	let modern: Modern;
 	let animation: number;
@@ -21,11 +22,13 @@
 	// const triangles = triangulate(contour);
 	// console.log("triangles: ", triangles);
 
-	//TODO implement powerups
 	onMount(async () => {
+		const gameMode = room.state.teams.length / 2 - 1;
+
 		modern = new Modern(gameMode);
+
 		await modern.init(canvas);
-		await modern.start({ room: $page.data.room, member: {user: $page.data.user, ...$page.data.member }});
+		await modern.start({ room, member: { ...room.self!, user: $page.data.user } as any});
 
 		animation = window.requestAnimationFrame(function render(time) {
 			modern.update(time);
@@ -35,7 +38,7 @@
 
 		//this is to lock the cursor, with this mouse only sends mousemove instead of location
 		//TODO if specator don't do this
-		canvas.addEventListener('click', function() { canvas.requestPointerLock();}, false);
+		// canvas.addEventListener('click', function() { canvas.requestPointerLock();}, false);
 	});
 
 	onDestroy(() => {
@@ -49,13 +52,3 @@
 
 
 <canvas bind:this={canvas}></canvas>
-
-<style>
-	canvas {
-		position: fixed;
-		height: calc(100vh - 82px);
-		width: calc(100vw - 10px);
-		inset: 77px 5px 5px 5px;
-		border-radius: 6px;
-	}
-</style>

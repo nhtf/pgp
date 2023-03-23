@@ -1,6 +1,6 @@
 import { Net } from "../Net";
 import type { Event as NetEvent } from "../Net";
-import {intersection, Vector, paddleBounce, isInConvexHull} from "../lib2D/Math2D";
+import {intersection, Vector, paddleBounce, isInConvexHull, type VectorObject} from "../lib2D/Math2D";
 import type { Line } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
 import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT, ballVelociy } from "./Constants";
@@ -37,12 +37,9 @@ function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 
 	const ballLine: Line = {p0: ball.position, p1: ball.position.add(paddleVelo), name: "ballLine"};
 	let closest: [Line, Vector, number] | null = null;
-	let other = [];
 	for (let line of paddleLines) {
 		const [t0, t1] = intersection([ballLine.p0, paddleVelo], [line.p0, line.p1.sub(line.p0)]);
-		other.push([t0, t1] );
-		if (t1 >= 0 && t1 <= 1 && t0 > -0.001)
-		{
+		if (t1 >= 0 && t1 <= 1 && t0 > -0.001) {
 			if (closest === null || t0 < closest[2]) {
 				const pos = ball.position.add(paddleVelo.scale(t0));
 				let newLine: Line = {p0: line.p0, p1: line.p1, name: line.name};
@@ -50,10 +47,7 @@ function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 			}
 		}
 	}
-	if (closest !== null) {
-		return {closest: closest, other: other}
-	}
-	return {closest: null, other: other};
+	return closest;
 }
 
 export class Game extends Net {
@@ -94,30 +88,23 @@ export class Game extends Net {
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
 				const oldLines = paddle.getCollisionLines();
 
-				if (paddle.isInPlayerArea(new Vector(paddle.position.x + event.x, paddle.position.y), this.field.getPlayerAreas()[paddle.owner]))
-					paddle.position.x += event.x;
-				if (paddle.isInPlayerArea(new Vector(paddle.position.x, paddle.position.y + event.y), this.field.getPlayerAreas()[paddle.owner]))
-					paddle.position.y += event.y;
+				paddle.position.x += event.x;
+				paddle.position.y += event.y;
 				
 				this.shader.movePaddle(paddle.position, paddle.owner);
 				const paddleMovement = new Vector((paddle.position.x - oldPos.x), (paddle.position.y - oldPos.y));
 				const negvelocity = paddleMovement.scale(-1);
 				
-				const closest = moveCollision(oldLines, negvelocity, this.ball).closest;
-				let otherclosest = [];
-				let ballpos = [];
+				const closest = moveCollision(oldLines, negvelocity, this.ball);
 				if (closest && closest[2] < 1) {
 					this.bounceBall(closest, paddleMovement);
-					ballpos.push(this.ball.position);
+					const lines = paddle.getCollisionLines();
 					let i = 0;
-					while (true) {
+					while (i < 3) {
 						i+=1;
-						const col = moveCollision(paddle.getCollisionLines(), this.ball.velocity, this.ball).closest;
-						otherclosest.push(col);
-						if (col && col[2] < 1) {
+						const col = moveCollision(lines, this.ball.velocity, this.ball);
+						if (col && col[2] < 1)
 							this.bounceBall(col, paddleMovement);
-							ballpos.push(this.ball.position);
-						}
 						else break;
 					}
 				}
@@ -156,7 +143,7 @@ export class Game extends Net {
 	}
 
 	private bounceBall(closest: [Line, Vector, number], vel: Vector) {	
-		hit.play();
+		this.pray("paddle-sound", 30, () => (hit.cloneNode(true) as HTMLAudioElement).play());
 		this.ball.position = closest[1];
 		this.ball.velocity = this.ball.velocity.reflect(closest[0].p1.sub(closest[0].p0));
 
@@ -171,14 +158,17 @@ export class Game extends Net {
 			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
 			this.ball.velocity = this.ball.velocity.tangent();
 		}
-		for (let paddle of this.paddles) {
-			if (isInConvexHull(this.ball.position, paddle.getCollisionLines(), false)) {
-				if (isInConvexHull(closest[1], paddle.getCollisionLines(), false))
-				{
-					console.log("ERROR: ball in paddle.");
-				}
-			}
-		}
+
+		//Debug
+		// for (let paddle of this.paddles) {
+		// 	const colLines = paddle.getCollisionLines();
+		// 	if (isInConvexHull(this.ball.position, colLines, false)) {
+		// 		if (isInConvexHull(closest[1], colLines, false))
+		// 		{
+		// 			console.log("ERROR: ball in paddle.");
+		// 		}
+		// 	}
+		// }
 		this.shader.moveBall(this.ball.position);
 	}
 
@@ -209,15 +199,13 @@ export class Game extends Net {
 		return null;
 	}
 
-	//TODO move as much as possible outside of lateTick please
 	public lateTick() {
 		let time = 1;
 		const maxSpeed = 30;
 		while (time > 0) {
 			let collisionLines: Line[] = [];
 			collisionLines.push(...this.field.getCollisionLines());
-			this.paddles.forEach((paddle, index) => {
-				// paddle.getCollisionLines();
+			this.paddles.forEach((paddle) => {
 				collisionLines.push(...paddle.getCollisionLines());
 			});
 			
@@ -226,7 +214,7 @@ export class Game extends Net {
 				this.ball.position = this.ball.position.add(this.ball.velocity.scale(time));
 				break;
 			} else if (collision[0].name.startsWith("goal")) {
-				scoreSound.play();
+				this.pray("score-sound", 30, () => (scoreSound.cloneNode(true) as HTMLAudioElement).play());
 				let goal: number = +collision[0].name.charAt(4);
 				if (this.level.players > 2)
 					this.teams[goal].score -= 1;
@@ -250,7 +238,7 @@ export class Game extends Net {
 					this.bounceBall(collision,  new Vector(0, 0));
 				}
 				else {
-					wall.play();
+					this.pray("wall-sound", 30, () => (wall.cloneNode(true) as HTMLAudioElement).play());
 					this.ball.position = collision[1];
 					this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
 				}
@@ -306,7 +294,6 @@ export class Game extends Net {
 	}
 }
 
-//TODO fix the collissionlines, either by using the actual lines or updating them
 export class Modern {
 	private shader?: FullShader;
 	private game: Game | null;
@@ -345,7 +332,7 @@ export class Modern {
 		this.options = options;
 		this.interval = setInterval(() => {
 			this.game?.send("ping", {
-				u: options.member.user.id,
+				u: options.member.userId,
 			});
 		}, 1000 / PADDLE_PING_INTERVAL);
 
@@ -357,12 +344,22 @@ export class Modern {
 			return;
 		}
 			if (this.options.member.player != null) {
-			this.game!.send("mousemove", {
-				u: this.options.member.userId,
-				x: moveX,
-				y: moveY,
-				t: this.options.member.player?.team?.id,
-			});
+				if (this.game) {
+					let paddle = this.game.getPaddle(this.options.member.userId);
+
+					let movement: VectorObject = {x: 0, y: 0};
+					if (paddle?.isInPlayerArea({x: paddle.position.x + moveX, y: paddle.position.y}, this.game.field.getPlayerAreas()[paddle.owner]))
+						movement.x = moveX;
+					if (paddle?.isInPlayerArea({x: paddle.position.x, y: paddle.position.y + moveY}, this.game.field.getPlayerAreas()[paddle.owner]))
+						movement.y = moveY;
+					this.game!.send("mousemove", {
+						u: this.options.member.userId,
+						x: movement.x,
+						y: movement.y,
+						t: this.options.member.player?.team?.id,
+					});
+				}
+			
 		}
 	}
 

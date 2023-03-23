@@ -1,4 +1,4 @@
-import type { GameRoom } from "$lib/entities";
+import type { GameRoom, User } from "$lib/entities";
 import type { PageLoad } from "./$types"
 import { userStore, roomStore, updateStore, gameStateStore } from "$lib/stores";
 import { get } from "$lib/Web";
@@ -14,10 +14,9 @@ export const load: PageLoad = (async ({ fetch }) => {
 	const rooms = joined.concat(joinable);
 
 	const gameStates = rooms.map((room) => room.state);
-	const teams = gameStates.map((gameState) => gameState.teams).flat();
 
     updateStore(roomStore, rooms);
-	updateStore(userStore, rooms.map((room) => room.owner!));
+	updateStore(userStore, (rooms.filter(({ owner }) => owner).map(({ owner }) => owner)) as User[]);
 	updateStore(gameStateStore, gameStates);
 	
 	return { rooms };

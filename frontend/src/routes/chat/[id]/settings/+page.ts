@@ -20,7 +20,7 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 		throw error(401, "Must be admin or owner");
 	}
 
-	updateStore(roomStore, [room]);
+	updateStore(roomStore, room);
 	updateStore(memberStore, members);
 	updateStore(userStore, banned);
 

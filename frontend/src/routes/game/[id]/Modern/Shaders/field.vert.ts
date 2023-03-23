@@ -1,10 +1,6 @@
 export const fieldVert = `
 attribute vec2 vertPos;
 // attribute vec2 vertCoord;
-
-uniform highp float scale;
-uniform vec2 u_translation;
-uniform vec2 size;
 varying highp vec2 coord;
 uniform mat3 u_matrix;
 

@@ -17,7 +17,6 @@ export class Program {
     private timeLocation: WebGLUniformLocation;
     private originPos: WebGLUniformLocation;
     private shockParams: WebGLUniformLocation;
-    private uniformTex: WebGLUniformLocation;
     private uniformSize: WebGLUniformLocation;
     private uniformResolution: WebGLUniformLocation;
     private uniformColor: WebGLUniformLocation;
@@ -31,7 +30,6 @@ export class Program {
     public constructor(gl: WebGL2RenderingContext, vert: string, frag: string) {
         this.program = this.createProgram(gl, vert, frag);
         this.timeLocation = gl.getUniformLocation(this.program, "time")!;
-        this.uniformTex = gl.getUniformLocation(this.program, "tex")!;
         this.uniformSize = gl.getUniformLocation(this.program, "size")!;
         this.uniformResolution = gl.getUniformLocation(this.program, "resolution")!;
         this.uniformTransform = gl.getUniformLocation(this.program, "u_matrix")!;
@@ -47,18 +45,10 @@ export class Program {
 
     public useProgram(gl: WebGL2RenderingContext, uniform: uniforms) {
         gl.useProgram(this.program);
-        gl.uniform3f(this.shockParams, 10.0, 0.9, 0.1);
         gl.uniform1f(this.timeLocation, uniform.timer * 0.0025);
-        gl.uniform1i(this.uniformTex, 0);
         gl.uniform2f(this.uniformSize, uniform.width, uniform.height);
         gl.uniform2f(this.uniformResolution, uniform.resolution.x, uniform.resolution.y);
         gl.uniform2f(this.originPos, uniform.pos.x, uniform.pos.y);
-        if (uniform.color)
-            gl.uniform4f(this.uniformColor, uniform.color[0], uniform.color[1], uniform.color[2], uniform.color[3]);
-        gl.uniformMatrix3fv(this.uniformTransform, false, mat3Identity);
-        gl.uniform1i(this.uniformGradient, 0);
-        gl.uniform2f(this.uniformGradientPos, 0, 0);
-        gl.uniform2f(this.uniformGradientRadius, 0, 0);
     }
 
     //For setting individual values

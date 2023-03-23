@@ -7,7 +7,7 @@ export class Counter {
 	private samples: { time: number, value: number }[];
 
 	private static getTime(): number {
-		return new Date().getTime() / 1000;
+		return Date.now() / 1000;
 	}
 
 	public constructor(maxTime: number) {

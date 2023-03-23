@@ -20,9 +20,7 @@ export class Room {
 	is_private: boolean;
 
 	@Exclude()
-	@Column({
-		nullable: true
-	})
+	@Column({ nullable: true })
 	password: string | null;
 
 	@Exclude()

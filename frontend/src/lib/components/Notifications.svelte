@@ -133,8 +133,7 @@
 				<Avatar src={invite.from.avatar} />
 				<div class="pl-3 w-full !ml-0 !mr-0 py-2">
 					{invite.from.username}
-					{invite.type}
-					{#if invite.type === "Friend"}
+					{#if invite.type === "FriendRequest"}
 					<div
 						class="text-gray-500 text-sm dark:text-gray-400"
 					>

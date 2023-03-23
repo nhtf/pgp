@@ -1,18 +1,15 @@
 <script lang="ts">
-	import type { Team, ChatRoom, GameRoom, GameState } from "$lib/entities";
-    import type { UpdatePacket } from "$lib/types";
-	import { Action, Gamemode, Subject } from "$lib/enums";
+	import type { ChatRoom, GameRoom, GameState } from "$lib/entities";
+	import {  Gamemode } from "$lib/enums";
 	import { page } from "$app/stores";
 	import { swal, unwrap } from "$lib/Alert";
 	import { icon_path } from "$lib/constants";
 	import { Access } from "$lib/enums";
 	import { post, remove, patch, get } from "$lib/Web";
 	import { gameStateStore, userStore } from "$lib/stores";
-    import { afterUpdate, onDestroy, onMount } from "svelte";
-    import { updateManager } from "$lib/updateSocket";
 	import Invite from "./Invite.svelte";
 
-	type T = ChatRoom & GameRoom;
+	type T = ChatRoom | GameRoom;
 
 	export let room: T;
 
@@ -25,12 +22,18 @@
 	];
 
 	const route = room.type.replace("Room", "").toLowerCase();
-	const icon = (room.type === "GameRoom" ? 
-		(room.state.gamemode === Gamemode.MODERN && room.state.teams?.length === 4 ? 
-			gamemode_icons[3] : gamemode_icons[room.state.gamemode]) : null);
 
 	let password = "";
-	let state: GameState | null = room.state ?? null;
+	let state: GameState | null = (room as GameRoom).state ?? null;
+	let icon: string | null = null;
+	
+	if (room.type === "GameRoom") {
+		icon = gamemode_icons[state.gamemode];
+
+		if (state.gamemode === Gamemode.MODERN && state.teams?.length === 4) {
+			icon = gamemode_icons[3]
+		}
+	} 
 
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: owner = room.owner ? $userStore.get(room.owner.id)! : null;
@@ -39,7 +42,7 @@
 	$: team = state?.teams.find((team) => team.players?.map((player) => player.userId).includes(user.id));
 
 	function teamSelector(room: T): Promise<number | null> {
-		const inputOptions = room.state.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
+		const inputOptions = state!.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
 		const promise = swal().fire({
 			input: "radio",
 			inputOptions,
@@ -66,7 +69,7 @@
 
 		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
 	
-		if (room.type === "GameRoom" && !room.state.teamsLocked) {
+		if (room.type === "GameRoom" && !(room as GameRoom).state.teamsLocked) {
 			changeTeam(room);
 		}
 	
@@ -144,6 +147,7 @@
 		border-radius: 1rem;
 		padding: 1rem;
 		flex-wrap: wrap;
+		margin: 0.25rem;
 	}
 
 	.room-name {

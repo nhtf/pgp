@@ -3,11 +3,11 @@
 	import { page } from "$app/stores";
 	import { Classic } from "./Classic";
 	import { Shader } from "./Shader";
+    import type { GameRoom } from "$lib/entities";
+
+	export let room: GameRoom;
 
 	let canvas: HTMLCanvasElement;
-
-	//TODO cap the speed of the ball
-
 	let classic: Classic;
 	let frame: number;
 
@@ -17,7 +17,7 @@
 		shader.addEventListener(classic);
 
 		await classic.start({
-			room: $page.data.room,
+			room,
 			member: {
 				user: $page.data.user,
 				...$page.data.member,
@@ -38,13 +38,3 @@
 </script>
 
 <canvas bind:this={canvas}></canvas>
-
-<style>
-	canvas {
-		position: fixed;
-		height: calc(100vh - 82px);
-		width: calc(100vw - 10px);
-		inset: 77px 5px 5px 5px;
-		border-radius: 6px;
-	}
-</style>

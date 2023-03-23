@@ -118,23 +118,28 @@ export function ParseOptionalIDPipe<T>(type: (new () => T), relations?: FindOpti
 	return ParseOptionalIDPipe;
 }
 
-@Injectable()
-export class ParseUsernamePipe implements PipeTransform {
-	constructor(
-		@Inject("USER_REPO")
-		private readonly user_repo: Repository<User>
-	) { }
 
-	async transform(value: any, metadata: ArgumentMetadata) {
-		if (!value || value === null)
-			throw new HttpException("username not specified", HttpStatus.BAD_REQUEST);
-		if (typeof value !== "string")
-			throw new HttpException("username must be a string", HttpStatus.BAD_REQUEST);
-		if (!isLength(value, { min: 3, max: 20 }))
-			throw new HttpException("username must be 3 to 20 characters long", HttpStatus.BAD_REQUEST);
-		const entity = await this.user_repo.findOneBy({ username: value });
-		if (!entity)
-			throw new HttpException("user not found", HttpStatus.NOT_FOUND);
-		return entity;
-	}
+export function ParseUsernamePipe(relations?: any) {
+	@Injectable()
+	class ParseUsernamePipe implements PipeTransform {
+		constructor(@Inject("USER_REPO") readonly userRepo: Repository<User>) {}
+
+		async transform(value: any, metadata: ArgumentMetadata) {
+			try {
+				const entity = await this.userRepo.findOne({
+					where: { username: value },
+					relations,
+				});
+			
+				if (!entity) {
+					throw new HttpException("not found", HttpStatus.NOT_FOUND);
+				}
+
+				return entity;
+			} catch (error) {
+				throw new BadRequestException(error.message);
+			}
+		}
+	};
+	return ParseUsernamePipe;
 }

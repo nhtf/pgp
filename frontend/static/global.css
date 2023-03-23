@@ -497,6 +497,12 @@ table {
 	padding: 0.25rem 1rem !important;
 	margin: 0.25rem !important;
 	text-align: center !important;
+	opacity: 100%;
+}
+
+canvas {
+	height: calc(100vh - 10rem);
+	width: calc(100vw - 1rem);
 }
 
 .icon {
@@ -507,6 +513,7 @@ table {
 	align-self: center;
 }
 
+.button:disabled,
 .input:disabled {
 	opacity: 0.25;
 }
@@ -526,6 +533,10 @@ table {
 
 .link:visited {
 	color: blue;
+}
+
+.search {
+	max-width: 20ch !important;
 }
 
 .swal2-radio {

@@ -1,9 +1,8 @@
+import { swal } from "$lib/Alert"
+import { post } from "$lib/Web"
 import Swal from "sweetalert2";
 import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
-import { BACKEND } from "$lib/constants";
-import { swal } from "$lib/Alert"
-import { post } from "$lib/Web"
 
 export async function enable_twofa() {
 	const { qr, secret } = await post(`/otp/setup`);

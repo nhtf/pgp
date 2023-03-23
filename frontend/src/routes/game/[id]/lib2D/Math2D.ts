@@ -76,27 +76,27 @@ export interface Line {
 	name: string,
 }
 
-function compare(a: Vector, b: Vector): number {
+function compare(a: VectorObject, b: VectorObject): number {
 	if (a.x == b.x)
 		return a.y < b.y ? -1 : 1;
 	return a.x < b.x ? -1 : 1;
 }
 
-function ccw(a: Vector, b: Vector, c: Vector) {
+function ccw(a: VectorObject, b: VectorObject, c: VectorObject) {
 	let p = a.x * (b.y - c.y)
 		+ b.x * (c.y - a.y)
 		+ c.x * (a.y - b.y);
 	return p > 0;
 }
 
-function cw(a: Vector, b: Vector, c: Vector) {
+function cw(a: VectorObject, b: VectorObject, c: VectorObject) {
 	let p = a.x * (b.y - c.y)
 		+ b.x * (c.y - a.y)
 		+ c.x * (a.y - b.y);
 	return p < 0;
 }
 
-function convexHull(points: Vector[]) {
+function convexHull(points: VectorObject[]) {
 	points.sort((a, b) => {
 		return compare(a, b);
 	});
@@ -136,7 +136,7 @@ function convexHull(points: Vector[]) {
 }
 
 //Also for lines themselves now
-export function isInConvexHull(entityPos: Vector, lines: Line[], linePartOfHull: boolean) {
+export function isInConvexHull(entityPos: VectorObject, lines: Line[], linePartOfHull: boolean) {
 		let points = [];
 		points.push(entityPos);
 		for (let line of lines) {

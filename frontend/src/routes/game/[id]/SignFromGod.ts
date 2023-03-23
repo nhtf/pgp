@@ -30,7 +30,7 @@ export class Bible {
 	public publish(): Bible {
 		const bible = new Bible();
 
-		for (let subject in this.signsFromGod) {
+		for (let subject of this.signsFromGod.keys()) {
 			bible.revise(subject, this.read(subject)!);
 		}
 
@@ -61,7 +61,7 @@ export class Father {
 	}
 
 	public publishBible(): Bible {
-		return this.currentBible.publish();
+		return this.oldBible.publish();
 	}
 
 	public regress(bible: Bible) {

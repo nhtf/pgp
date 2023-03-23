@@ -95,56 +95,28 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 		return { ...instanceToPlain(room), joined: true, self: room.self(me) }
 	}
 
-	// TODO: One query
 	@Get("history/:user")
 	async history(@Param("user", ParseIDPipe(User)) user: User) {
-		/*
-		SELECT game_state."id", team."id", "user".username
-		FROM game_state
-		LEFT JOIN team ON team."stateId" = game_state."id"
-		LEFT JOIN player ON player."teamId" = team."id"
-		LEFT JOIN "user" ON "user"."id" = player."userId"
-		WHERE EXISTS (
-			SELECT "user"."id"
-			FROM game_state LEFT JOIN team ON team."stateId" = game_state."id"
-			LEFT JOIN player ON player."teamId" = team."id"
-			LEFT JOIN "user" on "user"."id" = player."userId"
-			WHERE "user"."id" = 10
-		);		
-		*/
-		const states = await this.gamestate_repo.find({
-			where: {
-				teams: {
-					players: {
-						user: {
-							id: user.id,
-						}
-					}
-				}
-			},
-		});
-		/*TODO finish this
-		const states = await this.gamestate_repo
+		return await this.gamestate_repo
 			.createQueryBuilder("state")
-			.leftJoinAndSelect(Team, "team", "team.stateId = state.id")
-			.leftJoinAndSelect(Player, "player", "player.teamId = team.id")
-			.leftJoinAndSelect(User, "user", "user.id = player.userId")
-			.where(*/
-
-		const ids = states.map((state) => state.id);
-
-		return await this.gamestate_repo.find({
-			where: {
-				id: In(ids)
-			},
-			relations: {
-				teams: {
-					players: {
-						user: true,
-					}
-				}
-			},
-		});
+			.where((qb) => {
+				const subQuery = qb
+					.subQuery()
+					.select("1")
+					.from(GameState, "tstate")
+					.leftJoin("tstate.teams", "teams")
+					.leftJoin("teams.players", "players")
+					.leftJoin("players.user", "user")
+					.where("user.id = :id")
+					.andWhere("tstate.id = state.id")
+					.getQuery();
+				return `EXISTS ${subQuery}`;
+			})
+			.setParameter("id", user.id)
+			.leftJoinAndSelect("state.teams", "teams")
+			.leftJoinAndSelect("teams.players", "players")
+			.leftJoinAndSelect("players.user", "user")
+			.getMany();
 	}
 
 	@Patch("id/:id/team/:target")

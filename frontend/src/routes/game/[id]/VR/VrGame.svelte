@@ -4,6 +4,9 @@
 	import { Pong } from "./VRPong";
 	import { page } from "$app/stores";
 	import type { PageData } from '../$types';
+    import type { GameRoom } from "$lib/entities";
+
+	export let room: GameRoom;
 
 	let world: Pong | undefined;
 	let container: Element;
@@ -22,7 +25,7 @@
 
 		await world.start({
 			container,
-			room: $page.data.room,
+			room,
 			member: {
 				user: $page.data.user,
 				...$page.data.member,
@@ -53,12 +56,6 @@
 		position: fixed;
 		inset: 77px 5px 5px 5px;
 		z-index: 10000;
-	}
-
-	canvas {
-		position: fixed;
-		inset: 77px 5px 5px 5px;
-		border-radius: 6px;
 	}
 
 	#threejs-unfucker {

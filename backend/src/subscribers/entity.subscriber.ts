@@ -28,18 +28,10 @@ const subjects: SubjectInfo[] = [
 		fun: (message: Message) => message.room?.users,
 		relations: { room: { members: { user: true } } }
 	},
-	// { subject: Subject.TEAM, names: [ "Team" ],
-	// 	fun: (team: Team) => team.state?.room?.users.concat(team.state?.room?.users?.map((user) => user.friends).flat()),
-	// 	relations: { state: { room: { members: { user: { friends: true } } } } }
-	// },
 	{ subject: Subject.GAMESTATE, names: [ "GameState" ],
 		fun: (state: GameState) => state.room?.users,
 		relations: { room: { members: { user: true }} }
 	},
-	// { subject: Subject.PLAYER, names: [ "Player" ],
-	// 	fun: (player: Player) => player.team?.state?.room?.users,
-	// 	relations: { team: { state: { room: { members: { user: true } } } } }
-	// },
 ];
 
 const ignoredColumns = [ 

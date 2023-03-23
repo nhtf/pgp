@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { GameRoomMember, User } from "$lib/entities";
+	import type { GameRoomMember, Room, User } from "$lib/entities";
+    import type { SweetAlertResult } from "sweetalert2";
 	import { goto } from "$app/navigation";
 	import { swal, unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
@@ -20,16 +21,14 @@
 	]
 
 	$: user = $userStore.get(user.id)!;
-	$: state = [...$gameStateStore.values()].find((state) => state.roomId === user.activeRoomId) ?? null;
 	$: blockedIds = [...$blockStore.keys()];
+	$: state = user.activeRoomId ? [...$gameStateStore.values()].find((state) => state.roomId === user.activeRoomId) : null;
 
 	async function unfriend(user: User) {
 		await remove(`/user/me/friends/${user.id}`);
-
-		swal().fire({ icon: "success", timer: 3000 });
 	}
 
-	async function invite(user: User) {
+	async function gamemodeSelector(): Promise<SweetAlertResult<Gamemode>> {
 		const promise = swal().fire({
 			title: "Invite to match",
 			input: "radio",
@@ -43,7 +42,12 @@
 
 		element.checked = true;
 	
-		const { isConfirmed, value } = await promise;
+		return promise;
+	}
+
+	async function invite(user: User) {
+		const { isConfirmed, value } = await gamemodeSelector();
+	
 		if (!isConfirmed) {
 			return ;
 		}
@@ -64,7 +68,12 @@
 	
 		await unwrap(post(`/game/id/${room.id}/invite`, { username: user.username }));
 		await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
+		await roomPrompt(room);
+	}
 
+	async function roomPrompt(room: Room) {
+		const route = room.type.replace("Room", "").toLowerCase();
+	
 		swal().fire({
 			title: "Go to game?",
 			showConfirmButton: true,
@@ -72,7 +81,7 @@
 			confirmButtonText: "Go",
 		}).then(async (result) => {
 			if (result.isConfirmed) {
-				await goto(`/game/${room.id}`);
+				await goto(`/${route}/${room.id}`);
 			}
 		});
 	}
@@ -111,7 +120,6 @@
 </script>
 
 <Button color="alternative" class="friend-button avatar-status{user.status}">
-	<!-- //TODO try and use the indicator instead of dot so it's possible to have custom colors -->
 	<Avatar
 		src={user.avatar}
 		dot={{
@@ -138,7 +146,7 @@
 	{/each}
 </Dropdown>
 {#if state}
-	<!-- <Match game={state} {user}/> -->
+	<Match game={state} {user}/>
 {/if}
 
 <style>

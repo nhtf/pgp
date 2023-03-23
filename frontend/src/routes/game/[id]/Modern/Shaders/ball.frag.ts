@@ -1,5 +1,4 @@
 export const ballFrag: string = `
-uniform sampler2D tex;
 varying highp vec2 coord;
 uniform highp vec2 center; //position ball
 uniform highp vec2 size; //Size of the canvas/image

@@ -53,8 +53,6 @@ highp vec4 getHex(highp vec2 p)
         : vec4(h.zw, hC.zw + .5);
 }
 
-
-uniform sampler2D tex;
 uniform highp vec2 size; //Size of the canvas/image
 uniform highp vec2 resolution; //Size of the /image
 varying highp vec2 coord;

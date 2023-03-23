@@ -36,7 +36,6 @@ export interface PingEvent extends NetEvent {
 };
 
 export interface Options extends NetOptions {
-	// user: User; // TODO: replace by .member
 	member: GameRoomMember;
 }
 

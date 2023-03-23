@@ -1,5 +1,5 @@
 export const paddleFrag = `
-uniform sampler2D tex;
+
 uniform highp vec2 size; //Size of the field/image
 uniform highp vec2 resolution; //Size of the /image
 varying highp vec2 coord;

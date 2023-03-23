@@ -1,5 +1,4 @@
 import { Program, type uniforms } from "./Program";
-import { createBuffer } from "./fullShader";
 import type { m3 } from "../lib2D/Matrix";
 import type { VectorObject } from "../lib2D/Math2D";
 
@@ -19,8 +18,9 @@ type Options = {
 }
 
 type Mesh = {
-    buffer: WebGLBuffer;
-    indices: number[];
+    verticeBuffer: WebGLBuffer;
+    indiceBuffer: WebGLBuffer;
+    indiceLength: number;
     options?: Options;
 }
 
@@ -41,10 +41,24 @@ export class Shader {
     }
 
     public addMesh(gl: WebGL2RenderingContext, triangles: triangles, name: string, options?: Options) {
-        const indices: number[] = triangles.indices;
-        const buffer: WebGLBuffer = createBuffer(gl, triangles.vertices);
-        const mesh: Mesh = { buffer: buffer, indices: indices, options: options};
+        const verticeBuffer: WebGLBuffer = this.createVerticeBuffer(gl, triangles.vertices);
+        const indiceBuffer: WebGLBuffer = this.createIndiceBuffer(gl, triangles.indices);
+        const mesh: Mesh = { verticeBuffer: verticeBuffer, indiceBuffer: indiceBuffer, indiceLength: triangles.indices.length, options: options};
         this.mesh.set(name, mesh);
+    }
+
+    private createVerticeBuffer(gl: WebGLRenderingContext, data: number[]): WebGLBuffer {
+        const buffer = gl.createBuffer()!;
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
+        return buffer;
+    }
+
+    private createIndiceBuffer(gl: WebGL2RenderingContext, data: number[]) {
+        const buffer = gl.createBuffer()!;
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
+        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), gl.STATIC_DRAW);
+        return buffer;
     }
 
     private extendOptions(mesh: Mesh, options?: Options) {
@@ -62,8 +76,8 @@ export class Shader {
     private renderMesh(gl: WebGL2RenderingContext, mesh: Mesh, options?: Options, index: number = 0) {
         if (options?.color)
             this.program.setUniform(gl, "color", options.color[index]);
-        if (options?.gradient)
-            this.program.setUniform(gl, "gradient", 1);
+        if (options?.gradient !== undefined)
+            this.program.setUniform(gl, "gradient", options.gradient);
         if (options?.transform)
             this.program.setUniform(gl, "transform", options.transform.matrix);
         if (options?.gradientPos)
@@ -74,11 +88,11 @@ export class Shader {
             this.program.setUniform(gl, "transform", options.transform.matrix);
         if (options?.ballRadius)
             this.program.setUniform(gl, "ballRadius", options.ballRadius);
-        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.buffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.verticeBuffer);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(0);
-        gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(mesh.indices), gl.STATIC_DRAW);
-        gl.drawElements(gl.TRIANGLES, mesh.indices.length, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indiceBuffer);
+        gl.drawElements(gl.TRIANGLES, mesh.indiceLength, gl.UNSIGNED_SHORT, 0);
     }
 
     public renderNamed(gl: WebGL2RenderingContext, time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, name: string, options?: Options, index: number = 0) {
@@ -103,7 +117,7 @@ export class Shader {
     //For debugRendering
     public renderPoints(gl: WebGL2RenderingContext, vertices: number[], time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, transform: m3, color: number[]) {
         const uniform: uniforms = {pos: pos, width: viewPort.width, height: viewPort.height, timer: time, resolution: resolution};
-        const buffer = createBuffer(gl, vertices);
+        const buffer = this.createVerticeBuffer(gl, vertices);
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(0);

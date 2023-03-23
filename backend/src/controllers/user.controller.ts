@@ -74,7 +74,7 @@ export function GenericUserController(
 			@Inject("ACHIEVEMENTVIEW_REPO")
 			readonly view_repo: Repository<AchievementView>,
 			readonly achievement_service: AchievementService
-		) {}
+		) { }
 
 		@Get()
 		@UseGuards(SetupGuard)
@@ -218,7 +218,7 @@ export function GenericUserController(
 					name: elem.objective_name,
 				});
 			}
-			return Array.from(map, ([_, value]) => value);
+			return Array.from(map.values());
 		}
 
 		@Get(options.cparam + "/achievements")
@@ -261,10 +261,9 @@ export function GenericUserController(
 				throw new ForbiddenException();
 			}
 
-			user.friends =
-				(await this.user_repo.findBy({ friends: { id: user.id } })) ?? [];
+			user.friends = await this.user_repo.findBy({ friends: { id: user.id } });
 
-			if (!user.friends.map((x) => x.id).includes(friend.id)) {
+			if (!user.friends.find((user) => user.id === friend.id)) {
 				throw new NotFoundException();
 			}
 
@@ -294,7 +293,10 @@ export function GenericUserController(
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			if (user.id !== me.id) throw new ForbiddenException();
+			if (user.id !== me.id) {
+				throw new ForbiddenException()
+			};
+
 			return this.request_repo.find({
 				relations: {
 					from: true,
@@ -310,30 +312,26 @@ export function GenericUserController(
 		async create_request(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Body("username", ParseUsernamePipe) target: User
+			@Body("username", ParseUsernamePipe({ friends: true })) target: User
 		) {
 			user = user || me;
-			if (user.id !== me.id) throw new ForbiddenException();
+			if (user.id !== me.id) {
+				throw new ForbiddenException()
+			};
 
-			if (user.id === target.id)
+			if (user.id === target.id) {
 				throw new UnprocessableEntityException("Cannot befriend yourself");
+			}
 
-			const user_friends = user.friends;
-			if (user_friends?.find((friend) => friend.id === target.id))
+			if (target.friends.find((friend) => friend.id === user.id)) {
 				throw new ForbiddenException("Already friends");
+			}
 
-			if (
-				await this.request_repo.findOneBy({
-					from: { id: user.id },
-					to: { id: target.id },
-				})
-			)
+			if (await this.request_repo.findOneBy({ from: { id: user.id }, to: { id: target.id } })) {
 				throw new ForbiddenException("Already sent request");
+			}
 
-			const request = await this.request_repo.findOneBy({
-				from: { id: target.id },
-				to: { id: user.id },
-			});
+			const request = await this.request_repo.findOneBy({	from: { id: target.id }, to: { id: user.id } });
 
 			if (request) {
 				user.add_friend(target);
@@ -356,10 +354,12 @@ export function GenericUserController(
 					1
 				);
 			} else {
-				await this.request_repo.save({
-					from: user,
-					to: target,
-				} as FriendRequest);
+				const invite = new FriendRequest;
+
+				invite.from = user;
+				invite.to = target;
+
+				await this.request_repo.save({ from: user, to: target, type: "FriendRequest" });
 			}
 		}
 
@@ -372,9 +372,13 @@ export function GenericUserController(
 			@Param("request_id", ParseIDPipe(FriendRequest)) request: FriendRequest
 		) {
 			user = user || me;
-			if (user.id !== me.id) throw new ForbiddenException();
+			if (user.id !== me.id) {
+				throw new ForbiddenException()
+			};
+
 			if (user.id !== request.from.id && user.id !== request.to.id)
 				throw new NotFoundException();
+
 			await this.request_repo.remove(request);
 		}
 
@@ -447,8 +451,8 @@ export function GenericUserController(
 			}, me);
 		}
 
-		@Get(`${options.cparam}/fuzzy`)
-		async fuzzySearch(@Query("username") username: string) {
+		@Get(`${options.cparam}/fuzzySearch`)
+		async fuzzySearch(@Me() me: User, @Query("username") username: string) {
 			if (typeof username !== "string") {
 				throw new ForbiddenException("username must be a string");
 			}
@@ -467,18 +471,18 @@ class NullPipe implements PipeTransform {
 	}
 }
 
-export class UserMeController extends GenericUserController("user(s)?/", {
+export class UserMeController extends GenericUserController("user(s)?", {
 	param: "me",
-	cparam: "me",
+	cparam: "/me",
 	pipe: NullPipe,
-}) {}
+}) { }
 export class UserIDController extends GenericUserController("user(s)?/id", {
 	param: "id",
-	cparam: ":id",
-	pipe: ParseIDPipe(User, { friends: true }),
-}) {}
-export class UserUsernameController extends GenericUserController("user(s)?/", {
+	cparam: "/:id",
+	pipe: ParseIDPipe(User),
+}) { }
+export class UserUsernameController extends GenericUserController("user(s)?", {
 	param: "username",
-	cparam: ":username",
-	pipe: ParseUsernamePipe,
-}) {}
+	cparam: "/:username",
+	pipe: ParseUsernamePipe(),
+}) { }

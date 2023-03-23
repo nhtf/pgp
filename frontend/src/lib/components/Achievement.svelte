@@ -4,7 +4,7 @@
 	export let achievement: NewAchievement;
 	const radius = 30;
 	const cirmum = radius * 2 * Math.PI;
-	let current_obj: Objective;
+	let current_obj: Objective = achievement.objectives[0];
 	let display = false;
 
 	for (const obj of achievement.objectives) { 
@@ -13,37 +13,45 @@
 	}
 
 	//https://svelte.dev/repl/0ace7a508bd843b798ae599940a91783?version=3.16.7
-	function clickOutside(node) {
-		const handleClick = event => {
-			if (node && !node.contains(event.target) && !event.defaultPrevented)
-				node.dispatchEvent(new CustomEvent("click_outside"), node);
-		}
+	//https://github.com/sveltejs/svelte/issues/3012#issuecomment-1407898151
+	function clickOutside(node: HTMLElement, ignore?: string) {
+		
+		const handleClick = (event: Event) => {
+			const target = event.target as HTMLElement;
+			if (!event.target || ignore && target.closest(ignore)) {
+				return;
+			}
+			if (node && !node.contains(target) && !event.defaultPrevented)
+				node.dispatchEvent(new CustomEvent("click_outside"));
+		};
 
-		document.addEventListener("click", handleClick, true);
+		document.addEventListener('click', handleClick);
 
 		return {
 			destroy() {
-				document.removeEventListener("click", handleClick, true);
+				document.removeEventListener('click', handleClick);
 			}
 		}
 	}
 
 	const progress = achievement.progress / (current_obj?.threshold ?? 1);
+	const achieved = achievement.progress > achievement.objectives[0].threshold;
+	const color = achieved ? current_obj!.color : "gray";
 </script>
 
 <div
 	class="achievement_cell"
 	id="achievement-icon"
 	on:click={() => display = true}
+	on:keypress={() => display = true}
 	use:clickOutside
 	on:click_outside={() => display = false}
-	on:keypress={() => display = true}
 >
-	<div class="block-hor icon-block" style="border: 4px solid {current_obj.color};">
+	<div class="block-hor icon-block unlocked-{achieved}" style="border: 4px solid {color};">
 		<div
 			class="icon"
 			title={achievement.name}
-			style="mask-image: url({achievement.image});-webkit-mask-image: url({achievement.image});background-color: {current_obj.color};"
+			style="mask-image: url({achievement.image});-webkit-mask-image: url({achievement.image});background-color: {color};"
 		/>
 	</div>
 	<div class="block-hor">
@@ -72,7 +80,7 @@
 						<div class="block-hor" id="big">
 							<div
 								class="icon-block-big"
-								style="border: 4px solid {current_obj.color};"
+								style="border: 4px solid {color};"
 							>
 								<svg class="prog-ring">
 									<circle
@@ -93,7 +101,7 @@
 									class="icon move"
 									title={achievement.name}
 									style="mask-image: url({achievement.image});
-									-webkit-mask-image: url({achievement.image});background-color: {current_obj.color};"
+									-webkit-mask-image: url({achievement.image});background-color: {color};"
 								/>
 							</div>
 						</div>
@@ -258,6 +266,11 @@
 		flex-direction: column;
 		/* cursor: pointer; */
 	}
+
+	.unlocked-false{
+		filter: opacity(0.2);
+	}
+
 	#wrap {
 		flex-wrap: wrap;
 	}

@@ -7,13 +7,6 @@ import type { level } from "./Constants";
 
 const ballSize = 7; //Visual size on the screen
 
-export function createBuffer(gl: WebGLRenderingContext, data: number[]): WebGLBuffer {
-	const buffer = gl.createBuffer()!;
-	gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-	gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
-	return buffer;
-}
-
 export interface Events {
 	mousemove(moveX: number, moveY: number): void;
     mouseWheel(deltaY: number): void;
@@ -38,7 +31,6 @@ import { fieldFrag } from "./Shaders/field.frag";
 import { gridVert } from "./Shaders/grid.vert";
 import { gridFrag } from "./Shaders/grid.frag";
 
-//TODO remake the debug renderer for the collisionlines
 export class FullShader {
 	private gl: WebGL2RenderingContext;
 	private canvas: HTMLCanvasElement;
@@ -78,13 +70,13 @@ export class FullShader {
 		this.paddleShader.addMesh(this.gl, level.paddleBorder, "paddleBorder", {color: level.paddleBorderColors});
 		this.paddleShader.addMesh(this.gl, level.paddleGradient, "paddleGradient", {color: level.paddleGradientColors});
 
-		this.field.addMesh(this.gl, level.fieldBorder, "fieldBorder", {color: [level.fieldBorderColor]});
+		this.field.addMesh(this.gl, level.fieldBorder, "fieldBorder", {color: [level.fieldBorderColor], gradient: false});
 		this.field.addMesh(this.gl, level.fieldGradient, "fieldGradient", {color: level.fieldGradientColors, gradient: true, gradientPos: level.fieldGradientPos});
-		this.field.addMesh(this.gl, level.goalBorder, "goalBorder", {color: level.goalBorderColors});
-		this.field.addMesh(this.gl, level.goalGradient, "goalGradient", {color: level.goalGradientColors});
-		this.field.addMesh(this.gl, level.circleBorder, "circleBorder", {color: [level.middleLineColor]});
-		this.field.addMesh(this.gl, level.circleGradient, "circleGradient", {color: [level.middleCircleColor]});
-		this.field.addMesh(this.gl, level.middleLineMesh, "middleLineMesh", {color: [level.middleLineColor]});
+		this.field.addMesh(this.gl, level.goalBorder, "goalBorder", {color: level.goalBorderColors, gradient: false});
+		this.field.addMesh(this.gl, level.goalGradient, "goalGradient", {color: level.goalGradientColors, gradient: false});
+		this.field.addMesh(this.gl, level.circleBorder, "circleBorder", {color: [level.middleLineColor], gradient: false});
+		this.field.addMesh(this.gl, level.circleGradient, "circleGradient", {color: [level.middleCircleColor], gradient: false});
+		this.field.addMesh(this.gl, level.middleLineMesh, "middleLineMesh", {color: [level.middleLineColor], gradient: false});
 
 		this.grid.addMesh(this.gl, {vertices: [-1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1], indices: [0, 1, 2, 3, 4, 5]}, "grid");
 		this.ball.addMesh(this.gl, {vertices: [-1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1], indices: [0, 1, 2, 3, 4, 5]}, "ball");
@@ -184,14 +176,40 @@ export class FullShader {
 		normal.translation(-WIDTH / 2, -HEIGHT / 2);
 		normal.scaling(2 / WIDTH, 2 / HEIGHT);
 
+		let collisionVertices: number[] = [];
+		this.level.collisions.forEach((line) => {
+			collisionVertices.push(line.p0.x + 60);
+			collisionVertices.push(line.p0.y + 35);
+			collisionVertices.push(line.p1.x + 60);
+			collisionVertices.push(line.p1.y + 35);
+		});
+
+		let playerAreaCollisionLines: number[] = [];
+		this.level.playerAreas.forEach((area) => {
+			area.forEach((line) => {
+				playerAreaCollisionLines.push(line.p0.x);
+				playerAreaCollisionLines.push(line.p0.y);
+				playerAreaCollisionLines.push(line.p1.x);
+				playerAreaCollisionLines.push(line.p1.y);
+			});
+		});
+
+		let convexField: number[] = [];
+		this.level.convexFieldBoxLines.forEach((line) => {
+			convexField.push(line.p0.x + 60);
+			convexField.push(line.p0.y + 35);
+			convexField.push(line.p1.x + 60);
+			convexField.push(line.p1.y + 35);
+		});
+
 		//Renders the collision for the field and goal lines
-		this.field.renderPoints(this.gl, this.level.collisionVertices, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+		this.field.renderPoints(this.gl, collisionVertices, 0, viewport, this.ballPos, res, normal, [0, 0,1,1]);
 
 		//Renders the convex shape for the fieldBorder
-		this.field.renderPoints(this.gl, this.level.fieldContour, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+		this.field.renderPoints(this.gl, convexField, 0, viewport, this.ballPos, res, normal, [1, 1,1,1]);
 
 		normal.translation(+ 120/WIDTH, 70 / HEIGHT);
-		this.field.renderPoints(this.gl, this.level.playerAreaCollision, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+		this.field.renderPoints(this.gl, playerAreaCollisionLines, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
 
 		//Renders the collision lines for all the paddles
 		for (let i = 0; i < this.level.players; i++) {
@@ -200,7 +218,7 @@ export class FullShader {
 			mat.rotationZAxis(this.paddleRot[i]);
 			mat.scaling(2 / WIDTH, 2 / HEIGHT);
 			mat.translation(this.paddlePos[i].x, this.paddlePos[i].y);
-			this.paddleShader.renderPoints(this.gl, this.level.paddleContour, 0, viewport, this.paddlePos[i], res, mat, [1, 0, 0, 1]);
+			this.paddleShader.renderPoints(this.gl, this.level.paddleContour, 0, viewport, this.paddlePos[i], res, mat, [0, 1, 0, 1]);
 		}
 	}
 

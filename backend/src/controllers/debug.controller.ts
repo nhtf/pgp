@@ -13,6 +13,7 @@ import {
 	IsOptional,
 	IsInt,
 	IsEnum,
+	IsNumberString,
 } from "class-validator";
 import { User } from "../entities/User";
 import { GameState } from "src/entities/GameState"
@@ -34,6 +35,10 @@ import { AchievementProgress } from "src/entities/AchievementProgress";
 import { UserService } from "src/services/user.service";
 
 class UserDTO {
+	@IsNumberString()
+	@IsOptional()
+	id: string
+
 	@IsString()
 	@Length(1, 20)
 	@IsOptional()
@@ -127,7 +132,7 @@ export class DebugController {
 
 	@Get("userdel")
 	async userdel(@Query() dto: UserDTO) {
-		const user = await this.userRepo.findOneBy({ username: dto.username });
+		const user = await this.userRepo.findOneBy(dto.username ? { username: dto.username } : { id: Number(dto.id) });
 		if (!user)
 			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
 		await this.userService.remove(user);

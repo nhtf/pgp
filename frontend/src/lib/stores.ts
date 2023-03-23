@@ -5,14 +5,16 @@ import { updateManager } from "$lib/updateSocket";
 import { writable, type Writable } from "svelte/store";
 import { Access } from "$lib/enums"
 
-// From typeorm
 type ObjectLiteral = { [key: string]: any; }
 
 function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 	Object.keys(update).forEach((key) => {
-	
-		if (typeof update[key] === "object"	&& !Array.isArray(update[key]) && update[key] !== null) {
-			updateDeepPartial(entity[key], update[key])
+		if (typeof update[key] === "object"	
+			&& !Array.isArray(update[key]) 
+			&& entity[key] !== undefined
+			&& update[key] !== null 
+		) {
+			updateDeepPartial(entity[key], update[key]);
 		} else {
 			entity[key] = update[key];
 		}
@@ -52,9 +54,13 @@ function storeFactory<T extends Entity>(subject: Subject): Writable<Map<number, 
 	return store;
 }
 
-export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T[]) {
+export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T[] | T) {
+	if (!Array.isArray(entities)) {
+		entities = [entities];
+	}
+
 	store.update((stored) => {
-		entities.forEach((entity) => {
+		(entities as T[]).forEach((entity) => {
 			stored.set(entity.id, entity)
 		});
 
@@ -88,13 +94,13 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 // Add new friend to userStore
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	if (update.action === Action.INSERT) {
-		updateStore(userStore, [update.value]);
+		updateStore(userStore, update.value);
 	}
 });
 
 // Add state from new room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 	if (update.action === Action.INSERT && update.value.type === "GameRoom") {
-		updateStore(gameStateStore, [update.value.state]);
+		updateStore(gameStateStore, update.value.state);
 	}
 });

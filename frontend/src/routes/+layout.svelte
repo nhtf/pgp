@@ -1,7 +1,8 @@
 <script lang="ts">
+	import type { UpdatePacket } from "$lib/types";
+	import type { LayoutData } from "./$types";
 	import "../app.postcss";
 	import { onMount } from "svelte";
-	import type { LayoutData } from "./$types";
 	import { page } from "$app/stores";
 	import Notifications from "$lib/components/Notifications.svelte";
 	import { BACKEND } from "$lib/constants";
@@ -22,7 +23,8 @@
 	import { userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
-    import { updateSocket } from "$lib/updateSocket";
+    import { updateManager, updateSocket } from "$lib/updateSocket";
+    import { Action, Subject } from "$lib/enums";
 
 	export let data: LayoutData;
 
@@ -42,6 +44,14 @@
 		window
 			.matchMedia(DARK_PREFERENCE)
 			.addEventListener("change", applyTheme);
+	});
+
+	updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
+		if (update.action === Action.REMOVE && update.id === Number($page.params.id)) {
+			const route = $page.url.toString().includes("chat") ? "chat" : "game";
+	
+			await goto(`/${route}`);
+		}
 	});
 
 	addEventListener("mousemove", heartBeat);
@@ -118,7 +128,7 @@
 			<Notifications />
 		{/if}
 	</div>
-	{#if user && user.username}
+	{#if user?.username}
 		<Dropdown
 			triggeredBy="#avatar-menu"
 			placement="bottom"
@@ -149,9 +159,7 @@
 	<NavUl {hidden} class="navbar-bg">
 		<NavLi href="/" active={$page.url.pathname === "/"}>Home</NavLi>
 		{#each links as { url, name }}
-			<NavLi href={url} active={$page.url.pathname.includes(url)}
-				>{name}</NavLi
-			>
+			<NavLi href={url} active={$page.url.pathname.includes(url)}>{name}</NavLi>
 		{/each}
 		{#if !user?.username}
 			<NavLi

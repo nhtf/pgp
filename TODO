@@ -12,15 +12,10 @@ chat invite for game (also how to determine which kind of game)
 
 matchmaking system!!
 
-Member entity (en andere?) hebben dubbele IDs in DB, kan beter via relations
-m: wie en waar heb je het over
-
 partially merge friend dropdown and member dropdown
 
 store more state in database, like who's turn it is to serve the ball
 
 team one is right side?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!
-
-invite missing friend type
 
 create extension pg_trgm on startup

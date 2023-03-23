@@ -1,13 +1,15 @@
+import type { GameRoom, GameRoomMember } from "$lib/entities";
+import type { PageLoad } from "./$types"
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
 
 export const ssr = false;
 
-export async function load({ fetch, params }: any) {
+export const load: PageLoad = async ({ fetch, params }) => {
 	window.fetch = fetch;
 
-	const room = await unwrap(get(`/game/id/${params.id}`));
-	const member = room.self;
+	const room: GameRoom = await unwrap(get(`/game/id/${params.id}`));
+	const member = room.self as GameRoomMember;
 
-	return { params, room, member };
+	return { room, member };
 };

@@ -7,6 +7,6 @@ export class FriendRequest extends Invite {
 
 	@Expose()
 	get type(): string {
-		return "Friend";
+		return "FriendRequest";
 	}
 }

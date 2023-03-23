@@ -495,7 +495,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		async create_invite(
 			@Me() me: User,
 			@Param("id", ParseIDPipe(type, { banned_users: true, invites: true })) room: T,
-			@Body("username", ParseUsernamePipe) target: User
+			@Body("username", ParseUsernamePipe()) target: User
 		) {
 			if (room.members.find((member) => member.user.id === target.id)) {
 				throw new ForbiddenException("User already member of this room");

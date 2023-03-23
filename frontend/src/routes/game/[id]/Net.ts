@@ -3,7 +3,7 @@ import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
 import { Father, Bible } from "./SignFromGod";
-import Swal from "sweetalert2";
+import { swal } from "$lib/Alert";
 
 export const PING_INTERVAL = 20;
 export const SNAPSHOT_INTERVAL = 6;

@@ -19,6 +19,7 @@ type BroadcastData = {
 			teams: Team[],
 		},
 	},
+	events: any[],
 }
 
 export class GameGateway extends ProtectedGateway("game") {
@@ -72,7 +73,7 @@ export class GameGateway extends ProtectedGateway("game") {
 				await this.teamRepo.save({ id: team.id, score: team.score });
 			});
 		
-			UpdateGateway.instance.send_state_update({ id: client.room });	
+			UpdateGateway.instance.send_state_update({ id: client.room });
 		}
 	}
 

@@ -48,7 +48,6 @@ export type GameState = {
 
 export type Member = {
 	id: number,
-	user: User,
 	role: Role,
 	userId: number,
 	roomId: number,
@@ -82,7 +81,7 @@ export type Invite = {
 	date: Date,
 	from: User,
 	to: User,
-	type: "ChatRoom" | "GameRoom" | "Friend",
+	type: "ChatRoom" | "GameRoom" | "FriendRequest",
 	room?: Room,
 };
 

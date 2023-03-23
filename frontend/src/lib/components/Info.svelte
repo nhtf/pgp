@@ -98,21 +98,19 @@
 			<Achievements/>
 		</div>
 	</div>
-	<div class="block-hor">
+	<!-- <div class="block-hor">
 		<div class="block-cell">
 			<h3>Last game played</h3>
 			<div class="block-hor" id="legend">
 				<div class="block-cell table-cell" id="no-grow">opponent</div>
 				<div class="block-cell table-cell">me</div>
-				<!-- <div class="block-cell">other stats</div> -->
 			</div>
 			<div class="block-hor" id="content">
 				<div class="block-cell table-cell" id="no-grow">5</div>
 				<div class="block-cell table-cell">3</div>
-				<!-- <div class="block-cell table-cell">nope</div> -->
 			</div>
 		</div>
-	</div>
+	</div> -->
 	{#if !$page.data.user?.in_game}
 		<div class="block-hor">
 			<div class="block-cell">
