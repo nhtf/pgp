@@ -22,6 +22,13 @@ export function setOriginRipple(x: number, y: number) {
 	position.y = 1 - ((y + 22.5) / HEIGHT);
 }
 
+enum DebugVertices  {
+	CONVEXHULL,
+	PLAYERAREA,
+	FIELDGOAL,
+	PADDLE,
+}
+
 import { ballVert } from "./Shaders/ball.vert";
 import { ballFrag } from "./Shaders/ball.frag";
 import { paddleVert } from "./Shaders/paddle.vert";
@@ -45,6 +52,8 @@ export class FullShader {
 	private field: Shader;
 	private grid: Shader;
 	private ball: Shader;
+	private minScale: number;
+	private debugVertices: number[][];
 
 	public constructor(canvas: HTMLCanvasElement, level: level) {
 		this.canvas = canvas;
@@ -58,6 +67,7 @@ export class FullShader {
 		this.grid = new Shader(this.gl, gridVert, gridFrag);
 		this.ball = new Shader(this.gl, ballVert, ballFrag);
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.gl.createBuffer());
+		this.minScale = this.scale();
 		
 		this.timer = 0;
 		this.lastTime = 0;
@@ -80,6 +90,48 @@ export class FullShader {
 
 		this.grid.addMesh(this.gl, {vertices: [-1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1], indices: [0, 1, 2, 3, 4, 5]}, "grid");
 		this.ball.addMesh(this.gl, {vertices: [-1, 1, 1, 1, 1, -1, -1, 1, 1, -1, -1, -1], indices: [0, 1, 2, 3, 4, 5]}, "ball");
+
+		this.debugVertices = this.getDebugVertices();
+	}
+
+	private getDebugVertices() {
+		let debugVertices: number[][] = [];
+		debugVertices.push([]);
+		let collisionVertices: number[] = [];
+		this.level.collisions.forEach((line) => {
+			collisionVertices.push(line.p0.x + 60);
+			collisionVertices.push(line.p0.y + 35);
+			collisionVertices.push(line.p1.x + 60);
+			collisionVertices.push(line.p1.y + 35);
+		});
+		debugVertices[DebugVertices.CONVEXHULL].push(...collisionVertices);
+
+		debugVertices.push([]);
+		let playerAreaCollisionLines: number[] = [];
+		this.level.playerAreas.forEach((area) => {
+			area.forEach((line) => {
+				playerAreaCollisionLines.push(line.p0.x);
+				playerAreaCollisionLines.push(line.p0.y);
+				playerAreaCollisionLines.push(line.p1.x);
+				playerAreaCollisionLines.push(line.p1.y);
+			});
+		});
+
+		debugVertices[DebugVertices.PLAYERAREA].push(...playerAreaCollisionLines);
+
+		debugVertices.push([]);
+		let convexField: number[] = [];
+		this.level.convexFieldBoxLines.forEach((line) => {
+			convexField.push(line.p0.x + 60);
+			convexField.push(line.p0.y + 35);
+			convexField.push(line.p1.x + 60);
+			convexField.push(line.p1.y + 35);
+		});
+
+		debugVertices[DebugVertices.FIELDGOAL].push(...convexField);
+		debugVertices.push([]);
+		debugVertices[DebugVertices.PADDLE].push(...this.level.paddleContour);
+		return debugVertices;
 	}
 
 	private scale(): number {
@@ -109,8 +161,8 @@ export class FullShader {
 	}
 
 	public movePaddle(pos: VectorObject, paddleIndex: number) {
-		const otherPos = {x: (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.scale(), y: (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.scale()};
-		const morePos = {x: (otherPos.x) / (WIDTH * this.scale() / 2) - 1, y: (otherPos.y) / (HEIGHT * this.scale() / 2) - 1};
+		const otherPos = {x: (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.minScale, y: (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.minScale};
+		const morePos = {x: (otherPos.x) / (WIDTH * this.minScale / 2) - 1, y: (otherPos.y) / (HEIGHT * this.minScale / 2) - 1};
 		this.paddlePos[paddleIndex] = morePos;
 		this.paddlePosCanvas[paddleIndex] = pos;
 	}
@@ -120,97 +172,73 @@ export class FullShader {
 	}
 
 	public moveBall(pos: VectorObject) {
-		const xOffset = Math.floor((this.canvas.width - WIDTH * this.scale()) / 2);
-		const yOffset = Math.floor((this.canvas.height - HEIGHT * this.scale()) / 2);
-		this.ballPos.x = (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.scale() + xOffset;
-		this.ballPos.y = (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.scale() + yOffset;
+		const xOffset = Math.floor((this.canvas.width - WIDTH * this.minScale) / 2);
+		const yOffset = Math.floor((this.canvas.height - HEIGHT * this.minScale) / 2);
+		this.ballPos.x = (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.minScale + xOffset;
+		this.ballPos.y = (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.minScale + yOffset;
 	}
 
-	private renderMiddleLine(time: number, viewport: viewPort, res: VectorObject, ballRadius: number) {
-		const normal = new m3();
-		normal.translation(-WIDTH / 2, -HEIGHT / 2);
-		normal.scaling(2 / WIDTH, 2 / HEIGHT);
-		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "circleBorder", {transform: normal, ballRadius: ballRadius});
-		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "circleGradient", {transform: normal, ballRadius: ballRadius});
-		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "middleLineMesh", {transform: normal, ballRadius: ballRadius});
-
-		normal.rotationZAxis(Math.PI);
-		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "middleLineMesh", {transform: normal, ballRadius: ballRadius});
+	private renderMiddleLine() {
+		this.field.renderNamed(this.gl, "circleBorder", {transform: this.level.normalMatrix});
+		this.field.renderNamed(this.gl, "circleGradient");
+		this.field.renderNamed(this.gl, "middleLineMesh");
+		this.field.renderNamed(this.gl, "middleLineMesh", {transform: this.level.rotMatrix});
 		if (this.level.players === 4) {
-			normal.rotationZAxis(Math.PI / 2);
-			normal.scaling(1.073, 1.25);
-			normal.translation(-24/440, 0);
-			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "middleLineMesh", {transform: normal, ballRadius: ballRadius});
-			normal.rotationZAxis(Math.PI);
-			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "middleLineMesh", {transform: normal, ballRadius: ballRadius});
+			this.field.renderNamed(this.gl, "middleLineMesh", {transform: this.level.middleLineMatrix[0]});
+			this.field.renderNamed(this.gl, "middleLineMesh", {transform: this.level.middleLineMatrix[1]});
 		}
 	}
 
 	private renderPaddles(time: number, viewport: viewPort, res: VectorObject) {
+		this.paddleShader.setUniform(this.gl, time, viewport, this.ballPos, res);
 		for (let i = 0; i < this.level.players; i++) {
 			const mat = new m3();
 			mat.translation(-WIDTH / 2, -HEIGHT / 2);
 			mat.rotationZAxis(this.paddleRot[i]);
 			mat.scaling(2 / WIDTH, 2 / HEIGHT);
 			mat.translation(this.paddlePos[i].x, this.paddlePos[i].y);
-			this.paddleShader.renderAll(this.gl, time, viewport, this.paddlePos[i], res, {transform: mat}, i);
+			this.paddleShader.renderAll(this.gl, {transform: mat.matrix}, i);
 		}
 	}
 
 	private renderPlayerFields(time: number, viewport: viewPort, res: VectorObject, ballRadius: number) {
+		this.field.setUniform(this.gl, time, viewport, this.ballPos, res, {gradientRadius: {x: this.level.fieldGradientRadius.x * this.minScale, y: this.level.fieldGradientRadius.y * this.minScale}, ballRadius: ballRadius});
 		for (let i = 0; i < this.level.players; i++) {
-			
-			const matField = new m3();
-			matField.translation(-WIDTH / 2, -HEIGHT / 2);
-			matField.rotationZAxis(this.level.fieldGradientRot[i].z);
-			matField.rotationXAxis(this.level.fieldGradientRot[i].x);
-			matField.scaling(2 / WIDTH, 2 / HEIGHT);
-			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldGradient", {transform: matField, gradientRadius: {x: this.level.fieldGradientRadius.x * this.scale(), y: this.level.fieldGradientRadius.y * this.scale()}, ballRadius: ballRadius }, i);	
-			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalBorder", {transform: matField, ballRadius: ballRadius}, i);	
-			this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "goalGradient", {transform: matField, ballRadius: ballRadius}, i);
+			this.field.renderNamed(this.gl, "fieldGradient", {transform: this.level.playerFieldMatrices[i]}, i);	
+			this.field.renderNamed(this.gl, "goalBorder", {}, i);	
+			this.field.renderNamed(this.gl, "goalGradient", {}, i);
 		}
+		this.renderMiddleLine();
+	}
+
+	private renderBackGround(time: number, viewport: viewPort, res: VectorObject) {
+		this.grid.setUniform(this.gl, time, viewport, this.ballPos, res);
+		this.grid.renderNamed(this.gl, "grid");
+	}
+
+	private renderForeGround(time: number, viewport: viewPort, res: VectorObject) {
+		this.renderPlayerFields(time, viewport, res, 15 * this.minScale);
+
+		this.renderPaddles(time, viewport, res);
+		
+		this.ball.setUniform(this.gl, time, viewport, this.ballPos, res,  {size: {x: ballSize * this.minScale, y: ballSize * this.minScale}});
+		this.ball.renderNamed(this.gl, "ball");
+
+		this.field.setUniform(this.gl, time, viewport, this.ballPos, res);
+		this.field.renderNamed(this.gl, "fieldBorder", {transform: this.level.normalMatrix});
 	}
 
 	private debugRenderer(viewport: viewPort, res: VectorObject) {
-		const normal = new m3();
-		normal.translation(-WIDTH / 2, -HEIGHT / 2);
-		normal.scaling(2 / WIDTH, 2 / HEIGHT);
-
-		let collisionVertices: number[] = [];
-		this.level.collisions.forEach((line) => {
-			collisionVertices.push(line.p0.x + 60);
-			collisionVertices.push(line.p0.y + 35);
-			collisionVertices.push(line.p1.x + 60);
-			collisionVertices.push(line.p1.y + 35);
-		});
-
-		let playerAreaCollisionLines: number[] = [];
-		this.level.playerAreas.forEach((area) => {
-			area.forEach((line) => {
-				playerAreaCollisionLines.push(line.p0.x);
-				playerAreaCollisionLines.push(line.p0.y);
-				playerAreaCollisionLines.push(line.p1.x);
-				playerAreaCollisionLines.push(line.p1.y);
-			});
-		});
-
-		let convexField: number[] = [];
-		this.level.convexFieldBoxLines.forEach((line) => {
-			convexField.push(line.p0.x + 60);
-			convexField.push(line.p0.y + 35);
-			convexField.push(line.p1.x + 60);
-			convexField.push(line.p1.y + 35);
-		});
 
 		//Renders the collision for the field and goal lines
-		this.field.renderPoints(this.gl, collisionVertices, 0, viewport, this.ballPos, res, normal, [0, 0,1,1]);
+		this.field.renderPoints(this.gl, this.debugVertices[DebugVertices.CONVEXHULL], this.level.normalMatrix, [0, 0,1,1]);
 
 		//Renders the convex shape for the fieldBorder
-		this.field.renderPoints(this.gl, convexField, 0, viewport, this.ballPos, res, normal, [1, 1,1,1]);
+		this.field.renderPoints(this.gl, this.debugVertices[DebugVertices.FIELDGOAL], this.level.normalMatrix, [1, 1,1,1]);
 
-		normal.translation(+ 120/WIDTH, 70 / HEIGHT);
-		this.field.renderPoints(this.gl, playerAreaCollisionLines, 0, viewport, this.ballPos, res, normal, [1, 0,0,1]);
+		this.field.renderPoints(this.gl, this.debugVertices[DebugVertices.PLAYERAREA], this.level.debugMatrix, [1, 0,0,1]);
 
+		this.paddleShader.setUniform(this.gl, 0, viewport, this.ballPos, res);
 		//Renders the collision lines for all the paddles
 		for (let i = 0; i < this.level.players; i++) {
 			const mat = new m3();
@@ -218,46 +246,36 @@ export class FullShader {
 			mat.rotationZAxis(this.paddleRot[i]);
 			mat.scaling(2 / WIDTH, 2 / HEIGHT);
 			mat.translation(this.paddlePos[i].x, this.paddlePos[i].y);
-			this.paddleShader.renderPoints(this.gl, this.level.paddleContour, 0, viewport, this.paddlePos[i], res, mat, [0, 1, 0, 1]);
+			this.paddleShader.renderPoints(this.gl, this.debugVertices[DebugVertices.PADDLE], mat.matrix, [0, 1, 0, 1]);
 		}
 	}
 
 	//TODO lerp/slerp the paddle (and ball?) for smoother motion
 	public render(time: number) {
-		
+		let refresh = false;
+
 		if (this.canvas.clientWidth != this.canvas.width) {
 			this.canvas.width = this.canvas.clientWidth;
+			refresh = true;
 		}
 
 		if (this.canvas.clientHeight != this.canvas.height) {
 			this.canvas.height = this.canvas.clientHeight;
+			refresh = true;
 		}
 
-		//For clearing the whole screen
-		this.gl.viewport(0, 0, this.canvas.width, this.canvas.height);
-		this.gl.clearColor(0.0, 0.0, 0.0, 0.0);
-		this.gl.clear(this.gl.COLOR_BUFFER_BIT);
-		const scale = this.scale();
-		const xOffset = Math.floor((this.canvas.width - WIDTH * scale) / 2);
-		const yOffset = Math.floor((this.canvas.height - HEIGHT * scale) / 2);
-		const viewport = {xOffset: xOffset, yOffset: yOffset, width: WIDTH * scale, height: HEIGHT * scale};
-		const ballRadius = 15 * scale;
+		if (refresh)
+			this.minScale = this.scale();
+
+		const xOffset = Math.floor((this.canvas.width - WIDTH * this.minScale) / 2);
+		const yOffset = Math.floor((this.canvas.height - HEIGHT * this.minScale) / 2);
+		const viewport = {xOffset: xOffset, yOffset: yOffset, width: WIDTH * this.minScale, height: HEIGHT * this.minScale};
 		const res = {x: this.canvas.width, y: this.canvas.height};
-		const normal = new m3();
-		normal.translation(-WIDTH / 2, -HEIGHT / 2);
-		normal.scaling(2 / WIDTH, 2 / HEIGHT);
 
-		this.grid.renderAll(this.gl, time, viewport, this.ballPos, res);
+		this.gl.viewport(xOffset, yOffset, WIDTH * this.minScale, HEIGHT * this.minScale);		
 
-		this.renderPlayerFields(time, viewport, res, ballRadius);
-		this.renderMiddleLine(time, viewport, res, ballRadius);
-
-		this.renderPaddles(time, viewport, res);
-		
-		this.ball.renderAll(this.gl, time, viewport, this.ballPos, res,  {size: {x: ballSize * scale, y: ballSize * scale}});
-
-		this.field.renderNamed(this.gl, time, viewport, this.ballPos, res, "fieldBorder", {transform: normal,  ballRadius: ballRadius});
-
+		this.renderBackGround(time, viewport, res);
+		this.renderForeGround(time, viewport, res)
 		// this.debugRenderer(viewport, res);
 		
 		if (active) {

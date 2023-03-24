@@ -339,6 +339,7 @@ export class Modern {
 		await this.game?.start(options);
 	}
 
+	//TODO fix that now sometimes paddle can get outside of playerfield( but if move again it's in again?)
 	public mousemove(moveX: number, moveY: number) {
 		if (!this.options) {
 			return;

@@ -87,7 +87,7 @@ export class World extends Net {
 		this.blueprints = new Map();
 		
 		this.renderer.setPixelRatio(window.devicePixelRatio);
-		this.renderer.physicallyCorrectLights = true;
+		this.renderer.useLegacyLights = false;
 		this.renderer.shadowMap.enabled = true;
 		this.renderer.shadowMap.type = THREE.PCFSoftShadowMap;
 		this.renderer.xr.enabled = true;

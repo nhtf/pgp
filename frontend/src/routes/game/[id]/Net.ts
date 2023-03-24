@@ -91,15 +91,41 @@ export class Net {
 		this.allEvents = this.allEvents.filter(x => x.time >= this.time - HISTORY_LIFETIME);
 	}
 
-	public earlyTick() {
-		for (let event of this.allEvents) {
-			if (event.time == this.time) {
-				const listeners = this.listeners.get(event.name);
+	private getEventIndex(time: number): number {
+		let begin = 0;
+		let end = this.allEvents.length;
 
-				if (listeners !== undefined) {
-					listeners.forEach(listener => listener(event));
-				}
+		while (true) {
+			let middle = Math.floor((begin + end) / 2);
+
+			if (end == middle) {
+				return end;
 			}
+
+			if (this.allEvents[middle].time < time) {
+				if (begin == middle) {
+					return end;
+				}
+
+				begin = middle;
+			} else {
+				end = middle;
+			}
+		}
+	}
+
+	public earlyTick() {
+		let index = this.getEventIndex(this.time);
+
+		while (index < this.allEvents.length && this.allEvents[index].time == this.time) {
+			const event = this.allEvents[index]
+			const listeners = this.listeners.get(event.name);
+
+			if (listeners !== undefined) {
+				listeners.forEach(listener => listener(event));
+			}
+
+			index += 1;
 		}
 	}
 
@@ -180,7 +206,7 @@ export class Net {
 		event.name = name;
 		event.time = this.time;
 		event.uuid = randomHex(8);
-		this.allEvents.push(event as Event);
+		this.allEvents.splice(this.getEventIndex(event.time), 0, event as Event);
 		this.newEvents.push(event as Event);
 	}
 
@@ -200,6 +226,8 @@ export class Net {
 				}
 			}
 		}
+
+		this.allEvents.sort((a, b) => a.time - b.time);
 	}
 
 	private getLatest(before: number): [Snapshot, Bible] | null {

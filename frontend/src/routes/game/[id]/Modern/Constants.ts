@@ -114,6 +114,12 @@ export type level = {
     fieldContour: number[];
     playerAreaCollision: number[];
     paddleContour: number[];
+
+    normalMatrix: number[];
+    debugMatrix: number[];
+    rotMatrix: number[];
+    middleLineMatrix: number[][];
+    playerFieldMatrices: number[][];
 }
 
 export const levels = ["/Assets/game/twoplayerLevel.json", "/Assets/game/fourPlayerLevel.json"];

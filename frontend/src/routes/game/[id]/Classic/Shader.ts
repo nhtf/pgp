@@ -253,9 +253,9 @@ export class Shader {
 		this.bufferPos = createBuffer(this.gl, this.bufferPosData());
 		this.bufferCoord = createBuffer(this.gl, [1, 1, 0, 1, 1, 0, 0, 0]);
 		this.texture = createTexture(this.gl);
-		this.lines = new Array(256);
+		this.lines = new Array(64);
 
-		for (let i = 0; i < 256; i++) {
+		for (let i = 0; i < 64; i++) {
 			this.lines[i] = new Line();
 		}
 	}

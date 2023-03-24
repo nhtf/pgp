@@ -8,7 +8,7 @@ export type triangles = {
 }
 
 type Options = {
-    transform?: m3;
+    transform?: number[];
     gradient?: boolean;
     color?: number[][]; //For example paddle has one mesh but multiple colors
     gradientPos?: VectorObject[];
@@ -79,13 +79,11 @@ export class Shader {
         if (options?.gradient !== undefined)
             this.program.setUniform(gl, "gradient", options.gradient);
         if (options?.transform)
-            this.program.setUniform(gl, "transform", options.transform.matrix);
+            this.program.setUniform(gl, "transform", options.transform);
         if (options?.gradientPos)
             this.program.setUniform(gl, "gradientPos", options.gradientPos[index]);
         if (options?.gradientRadius)
             this.program.setUniform(gl, "gradientRadius", options.gradientRadius);
-        if (options?.transform)
-            this.program.setUniform(gl, "transform", options.transform.matrix);
         if (options?.ballRadius)
             this.program.setUniform(gl, "ballRadius", options.ballRadius);
         gl.bindBuffer(gl.ARRAY_BUFFER, mesh.verticeBuffer);
@@ -95,34 +93,36 @@ export class Shader {
         gl.drawElements(gl.TRIANGLES, mesh.indiceLength, gl.UNSIGNED_SHORT, 0);
     }
 
-    public renderNamed(gl: WebGL2RenderingContext, time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, name: string, options?: Options, index: number = 0) {
-        const uniform: uniforms = {pos: pos, width: viewPort.width, height: viewPort.height, timer: time, resolution: resolution};
-        gl.viewport(viewPort.xOffset, viewPort.yOffset, viewPort.width, viewPort.height);
-        this.program.useProgram(gl, uniform);
+    public renderNamed(gl: WebGL2RenderingContext, name: string, options?: Options, index: number = 0) {
         const mesh = this.mesh.get(name)!;
         this.renderMesh(gl, mesh, this.extendOptions(mesh, options), index);
     }
 
-    public renderAll(gl: WebGL2RenderingContext, time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, options?: Options, index: number = 0,) {
+    public setUniform(gl: WebGL2RenderingContext, time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, options?: Options) {
         const uniform: uniforms = {pos: pos, width: viewPort.width, height: viewPort.height, timer: time, resolution: resolution};
         if (options?.size) {
             uniform.height = options.size.y;
             uniform.width = options.size.x;
         }
-        gl.viewport(viewPort.xOffset, viewPort.yOffset, viewPort.width, viewPort.height);
         this.program.useProgram(gl, uniform);
+        if (options?.gradientRadius) {
+            this.program.setUniform(gl, "gradientRadius", options.gradientRadius);
+        }
+        if (options?.ballRadius)
+            this.program.setUniform(gl, "ballRadius", options.ballRadius);
+    }
+
+    public renderAll(gl: WebGL2RenderingContext, options?: Options, index: number = 0) {
         this.mesh.forEach((mesh) => this.renderMesh(gl, mesh, this.extendOptions(mesh, options), index));
     }
 
     //For debugRendering
-    public renderPoints(gl: WebGL2RenderingContext, vertices: number[], time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, transform: m3, color: number[]) {
-        const uniform: uniforms = {pos: pos, width: viewPort.width, height: viewPort.height, timer: time, resolution: resolution};
+    public renderPoints(gl: WebGL2RenderingContext, vertices: number[], transform: number[], color: number[]) {
         const buffer = this.createVerticeBuffer(gl, vertices);
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(0);
-		this.program.useProgram(gl, uniform);
-        this.program.setUniform(gl, "transform", transform.matrix);
+        this.program.setUniform(gl, "transform", transform);
         this.program.setUniform(gl, "color", color);
         gl.drawArrays(gl.LINES, 0, vertices.length / 2);
     }

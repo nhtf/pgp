@@ -5,6 +5,7 @@ export function randomHex(size: number): string {
 export class Counter {
 	private maxTime: number;
 	private samples: { time: number, value: number }[];
+	private lastClean: number;
 
 	private static getTime(): number {
 		return Date.now() / 1000;
@@ -13,17 +14,22 @@ export class Counter {
 	public constructor(maxTime: number) {
 		this.maxTime = maxTime;
 		this.samples = [];
+		this.lastClean = 0;
 	}
 
 	public clean() {
 		const time = Counter.getTime();
 		this.samples = this.samples.filter(s => time - s.time < this.maxTime);
+		this.lastClean = time;
 	}
 
 	public add(value: number) {
 		const time = Counter.getTime();
 		this.samples.push({ time, value });
-		this.clean();
+
+		if (time - this.lastClean > 1) {
+			this.clean();
+		}
 	}
 
 	public sum(): number {

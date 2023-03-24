@@ -66,31 +66,35 @@ async function createTexture(world: Pong, path: string) {
 }
 
 async function createMaterial(world: Pong) {
-	const textureMap = await createTexture(world, "/Assets/harshbricks-Unreal-Engine/harshbricks-albedo.png");
-	const textureAoMap = await createTexture(world, "/Assets/harshbricks-Unreal-Engine/harshbricks-ao2.png");
-	const textureRoughnessMap = await createTexture(world, "/Assets/harshbricks-Unreal-Engine/harshbricks-roughness.png");
-	const textureDisplacementMap = await createTexture(world, "/Assets/harshbricks-Unreal-Engine/harshbricks-height5-16.png");
-	const textureMetalnessMap = await createTexture(world, "/Assets/harshbricks-Unreal-Engine/harshbricks-metalness.png");
-	const textureNormalMap = await createTexture(world, "/Assets/harshbricks-Unreal-Engine/harshbricks-normal.png");
+	const path = "/Assets/textures/";
+	const texture = "patchy_cement1_Unreal-Engine";
+	const extension = ".png";
+	const textureMap = await createTexture(world, path + texture + "/albedo2" + extension);
+	const textureAoMap = await createTexture(world, path + texture + "/ao" + extension);
+	const textureRoughnessMap = await createTexture(world, path + texture + "/roughness" + extension);
+	// const textureDisplacementMap = await createTexture(world, path + texture + "/height" + extension);
+	const textureMetalnessMap = await createTexture(world, path + texture + "/metalness" + extension);
+	const textureNormalMap = await createTexture(world, path + texture + "/normal" + extension);
 
 	return world.addThreeObject(new THREE.MeshStandardMaterial({
 		map: textureMap,
-		side: THREE.DoubleSide,
+		side: THREE.FrontSide,
 		aoMap: textureAoMap,
 		roughnessMap: textureRoughnessMap,
 		metalnessMap: textureMetalnessMap,
 		normalMap: textureNormalMap,
 		normalScale: new THREE.Vector2(1, 1),
-		displacementMap: textureDisplacementMap,
-		displacementScale: 0.04,
+		// displacementMap: textureDisplacementMap,
+		// displacementScale: 0.04,
 	}));
 }
 
+//TODO make a simple room enviroment
 async function createFloor(world: Pong) {
 	const geometry = world.addThreeObject(new THREE.PlaneGeometry(10, 10));
 	const material = await createMaterial(world);
 	const mesh = new THREE.Mesh(geometry, material);
-
+	mesh.receiveShadow = true;
 	mesh.rotation.set(-Math.PI / 2, 0, 0);
 	world.scene.add(mesh);
 }
@@ -333,6 +337,7 @@ export class Pong extends World {
 	}
 
 	private controllerConnected(event: any, index: number) {
+		console.log("connected: ", event);
 		if (!event.data.gamepad) {
 			if (index === 0) {
 				this.leftController = event.target;
@@ -362,7 +367,7 @@ export class Pong extends World {
 		if (this.time >= this.maxTime && this.member!.player != null) {
 			this.sendCreateOrUpdate({
 				name: "paddle",
-				userID: this.member!.user.id,
+				userID: this.member!.userId,
 				teamID: this.member!.player?.team?.id,
 			}, {
 				uuid: this.paddleUUID,
@@ -380,18 +385,31 @@ export class Pong extends World {
 		this.cameraGroup.getWorldDirection(forward);
 		cross.crossVectors(forward, new THREE.Vector3(0, 1, 0));
 
-		if (this.rightGamepad) {
-			if (Math.abs(this.rightGamepad.axes[1]) > 0.1) {
-				this.cameraGroup.position.add(cross.multiplyScalar(-this.rightGamepad.axes[1] / TICKS_PER_SECOND));
-			} else if (Math.abs(this.rightGamepad.axes[0]) > 0.1) {
-				this.cameraGroup.position.add(forward.multiplyScalar(-this.rightGamepad.axes[0] / TICKS_PER_SECOND));
-			}
+		let handedness = "unknown";
+		const session = this.renderer.xr.getSession();
+		if (session) {
+			for (const source of session.inputSources) {
+                if (source && source.handedness) {
+                    handedness = source.handedness; //left or right controllers
+                }
+				if (!source.gamepad) continue;
+				const data = {
+					handedness: handedness,
+					buttons: source.gamepad.buttons.map((b) => b.value),
+					axes: source.gamepad.axes.slice(0)
+				};
+				if (handedness === "right") {
+					if (Math.abs(data.axes[2]) > 0.1)
+						this.cameraGroup.position.add(cross.multiplyScalar(-data.axes[2] / TICKS_PER_SECOND));
+					if (Math.abs(data.axes[3]) > 0.1)
+						this.cameraGroup.position.add(forward.multiplyScalar(data.axes[3] / TICKS_PER_SECOND));
+				}
+				else if (handedness === "left") {
+					if (Math.abs(data.axes[2]) > 0.1) {
+						this.cameraGroup.rotateY(-data.axes[2] * Math.PI / TICKS_PER_SECOND);
+					}
+				}
 		}
-
-		if (this.leftGamepad) {
-			if (Math.abs(this.leftGamepad.axes[0]) > 0.1) {
-				this.cameraGroup.rotateY(-this.leftGamepad.axes[0] * Math.PI / TICKS_PER_SECOND);
-			}
 		}
 
 		super.clientTick();
@@ -404,7 +422,6 @@ export class Pong extends World {
 			const text = object.userData as DynamicText;
 			text.text = scoreText;
 		}
-
 		super.render(deltaTime);
 	}
 	
