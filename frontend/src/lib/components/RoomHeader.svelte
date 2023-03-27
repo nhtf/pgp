@@ -22,7 +22,7 @@
 
 </script>
 
-<div class="header">
+<div class="room">
 	<a class="button border-blue" href={`/${route}`}>Back</a>
 	<div class="grow"/>
 	<div class="text-4xl">{room.name}</div>
@@ -32,16 +32,3 @@
 		<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 	{/if}				
 </div>
-
-<style>
-	
-	.header {
-		display: flex;
-		flex-direction: row;
-		border-radius: 1rem;
-		background-color: var(--box-color);
-		margin: 0.25rem;
-		padding: 1rem;
-	}
-
-</style>

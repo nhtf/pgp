@@ -3,9 +3,8 @@
 	import type { PageData } from "./$types";
 	import type { UpdatePacket } from "$lib/types";
 	import { onDestroy, onMount } from "svelte";
-	import { roomSocket } from "../websocket";
 	import { unwrap } from "$lib/Alert";
-	import { remove } from "$lib/Web";
+	import { remove, post } from "$lib/Web";
 	import { goto } from "$app/navigation";
 	import { Action, CoalitionColors, Role, roles, Subject } from "$lib/enums";
 	import { blockStore, memberStore, roomStore } from "$lib/stores";
@@ -37,13 +36,10 @@
 	$: min = clamp(relativeScroll - load, 0, messages.length);
 
 	onMount(() => {
-		roomSocket.emit("join", { id: room.id });
-
 		index = updateManager.set(Subject.MESSAGE, updateMessages);
 	});
 
 	onDestroy(() => {
-		roomSocket.disconnect();
 		updateManager.remove(index);
 	});
 
@@ -70,17 +66,10 @@
 		return n < min ? min : n > max ? max : n;
 	}
 	
-	function sendMessage(message: string): boolean {
-		if (message.length) {
-			roomSocket.emit("message", message);
-			return true;
+	async function sendMessage(content: string) {
+		if (content.length) {
+			await unwrap(post(`/chat/id/${room.id}/messages`, { content }));
 		}
-		return false;
-	}
-
-	async function leave(room: Room) {
-		await unwrap(remove(`/chat/id/${room.id}/members/me`));
-		await goto(`/chat`);
 	}
 
 	function scrollToBottom(node: any, _: Message[]) {
@@ -98,7 +87,7 @@
 </script>
 
 {#if room}
-	<div class="room">
+	<div class="room-page">
 		<div class="room-container">
 			<RoomHeader {room}/>
 			<div id="messages" class="messages" use:scrollToBottom={messages}>
@@ -136,7 +125,7 @@
 		left: 40vw;
 		bottom: 10vh;
 	}
-	.room {
+	.room-page {
 		display: flex;
 		flex-direction: row;
 		margin: 0.25rem;

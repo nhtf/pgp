@@ -14,7 +14,6 @@ import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
 import { ChatRoomController } from "./controllers/chat.controller";
-import { RoomGateway } from "./gateways/room.gateway";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
@@ -184,7 +183,6 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 	],
 	providers: [
 		GameGateway,
-		RoomGateway,
 		UpdateGateway,
 		HttpAuthGuard,
 		SessionService,
@@ -203,12 +201,12 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 export class AppModule implements NestModule {
 	// TODO: remove debug exeption
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(SessionExpiryMiddleware).exclude(
-			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
 		consumer.apply(UserMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
 			{ path: "debug(.*)", method: RequestMethod.ALL })
 			.forRoutes("*");
+		consumer.apply(SessionExpiryMiddleware).exclude(
+			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);

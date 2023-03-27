@@ -6,7 +6,7 @@ import { User } from "../entities/User";
 import { Member } from "../entities/Member";
 import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder, DeepPartial } from "typeorm";
 import { Access, Role, Subject, Action } from "src/enums";
-import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException, Req, HttpCode } from "@nestjs/common";
+import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException, Req, HttpCode, ParseBoolPipe } from "@nestjs/common";
 import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions } from "class-validator";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
@@ -431,7 +431,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@GetMember() member: U,
 			@GetRoom() room: T,
 			@Param("target", ParseIDPipe(MemberType)) target: U,
-			@Body("ban") ban: boolean,
+			@Body("ban", ParseBoolPipe) ban?: boolean,
 		) {
 			if (member.id !== target.id && target.role >= member.role) {
 				throw new ForbiddenException(ERR_PERM);

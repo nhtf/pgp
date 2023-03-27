@@ -1,4 +1,4 @@
-import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post, Delete } from "@nestjs/common";
+import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post, Delete, HttpCode, HttpStatus } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { IRoomService, GenericRoomController, GetRoom, GetMember } from "src/services/room.service";
 import { ChatRoom } from "src/entities/ChatRoom";
@@ -13,6 +13,12 @@ import { Action, Role, Subject } from "src/enums";
 import { RequiredRole } from "src/guards/role.guard"
 import { Embed } from "src/entities/Embed";
 import * as linkify from "linkifyjs";
+import { EMBED_LIMIT, BOUNCER_KEY, EMBED_MAXLENGTH } from "src/vars";
+import { CHAT_ACHIEVEMENT } from "src/achievements";
+import { AchievementService } from "src/services/achievement.service";
+import axios from "axios";
+import { createHmac } from "node:crypto";
+import { IsString, MaxLength } from "class-validator";
 
 type Link = {
     type: string;
@@ -21,6 +27,12 @@ type Link = {
     href: string;
     start: number;
     end: number;
+}
+
+class MessageDTO {
+	@IsString()
+	@MaxLength(2000)
+	content: string;
 }
 
 export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
@@ -37,6 +49,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		update_service: UpdateGateway,
 		@Inject("MESSAGE_REPO")
 		private readonly message_repo: Repository<Message>,
+		private readonly achievementService: AchievementService,
 	) {
 		super(room_repo, member_repo, invite_repo, service, update_service);
 	}
@@ -61,20 +74,30 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		await this.message_repo.save(messages);
 	}
 
-	@Get("id/:id/messages")
-	@RequiredRole(Role.MEMBER)
-	async get_messages(@GetRoom() room: ChatRoom) {
-		return await this.message_repo.find({
-			relations: {
-				member: true,
-				user: true,
-			},
-			where: {
-				room: {
-					id: room.id,
-				},
-			},
-		});
+	async createEmbed(link: Link): Promise<Embed | null> {
+		try {
+			const response = await axios.head(link.href, { maxContentLength: EMBED_MAXLENGTH, maxRedirects: 5 });
+		
+			// TODO check if address is not a local address
+			// const client = response.request as ClientRequest;
+			// const address = client.socket.remoteAddress;
+			// console.log(client.socket.localAddress);
+			const type: string = response.headers["content-type"];
+
+			if (!type) {
+				return null;
+			}
+
+			const embed = new Embed;
+		
+			embed.url = new URL(link.href).toString();
+			embed.digest = createHmac("sha256", BOUNCER_KEY).update(embed.url).digest("hex");
+			embed.rich = type.startsWith("text/html");
+
+			return embed;
+		} catch (err){
+			return null;
+		}
 	}
 
 	@Get("id/:id/users")
@@ -103,7 +126,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		});
 
 		const users = [...members.map((member) => member.user), ...messages.map((message) => message.user)];
-		const unique = new Map<number, User>(users.map((user) => [user.id, user]));
+		const unique = new Map(users.map((user) => [user.id, user]));
 
 		return [...unique.values()];
 	}
@@ -140,14 +163,51 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		}
 	}
 
+	@Get("id/:id/messages")
+	@RequiredRole(Role.MEMBER)
+	async get_messages(@GetRoom() room: ChatRoom) {
+		return await this.message_repo.find({
+			relations: {
+				member: true,
+				user: true,
+			},
+			where: {
+				room: {
+					id: room.id,
+				},
+			},
+		});
+	}
+
 	@Post("id/:id/message(s)?/")
 	@RequiredRole(Role.MEMBER)
+	@HttpCode(HttpStatus.NO_CONTENT)
 	async sendMessage(
 		@GetMember() member: ChatRoomMember,
-		@Body() text: string,//TODO validate size
+		@GetRoom() room: ChatRoom,
+		@Body() dto: MessageDTO,
 	) {
-		if (member.is_muted)
+		if (member.is_muted) {
 			throw new ForbiddenException("You have been muted");
+		}
+
+		const content = dto.content;
+
+		const links: Link[] = linkify.find(content, "url");
+		const embeds = (await Promise.all(links.map((link) => this.createEmbed(link))))
+			.filter((embed) => embed !== null)
+			.slice(0, EMBED_LIMIT);
+		
+		const message = new Message();
+	
+		message.user = member.user;
+		message.content = content;
+		message.embeds = embeds;
+		message.member = member;
+		message.room = room;
+
+		await this.message_repo.save(message);
+		await this.achievementService.inc_progress(CHAT_ACHIEVEMENT, member.user, 1);
 	}
 
 	@Delete("id/:id/message(s)?/:message")

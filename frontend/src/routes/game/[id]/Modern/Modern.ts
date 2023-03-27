@@ -334,7 +334,7 @@ export class Modern {
 			this.game?.send("ping", {
 				u: options.member.userId,
 			});
-		}, 1000 / PADDLE_PING_INTERVAL);
+		}, 1000 / UPS * PADDLE_PING_INTERVAL);
 
 		await this.game?.start(options);
 	}

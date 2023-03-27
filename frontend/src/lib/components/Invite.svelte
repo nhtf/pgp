@@ -2,8 +2,9 @@
 	import type { Member, Room, User } from "$lib/entities";
 	import { Avatar, Dropdown, DropdownItem } from "flowbite-svelte";
 	import { friendStore, userStore } from "$lib/stores";
-	import { swal, unwrap } from "$lib/Alert";
+	import { unwrap } from "$lib/Alert";
 	import { get, post } from "$lib/Web";
+    import Swal from "sweetalert2";
 
 	export let room: Room;
 
@@ -20,7 +21,7 @@
 
 	async function invite(room: Room) {
 		if (!invitee.length) {
-			return swal().fire({
+			return Swal.fire({
 				icon: "warning",
 				text: "Please select a user",
 				timer: 3000,
@@ -31,7 +32,7 @@
 			post(`/${route}/id/${room.id}/invite`, { username: invitee })
 		);
 
-		swal().fire({ icon: "success", timer: 1000 });
+		Swal.fire({ icon: "success", timer: 1000 });
 	}
 
 	function match(user: User) {

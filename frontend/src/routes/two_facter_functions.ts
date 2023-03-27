@@ -1,15 +1,13 @@
+import { post } from "$lib/Web"
 import Swal from "sweetalert2";
 import "@sweetalert2/theme-dark/dark.scss";
 import * as validator from "validator";
-import { BACKEND } from "$lib/constants";
-import { post } from "$lib/Web"
-import { swal } from "$lib/Alert"
 
 export async function enable_2fa() {
     const data = await post(`/otp/setup`);
 
 	const promise = new Promise(async (resolve, reject) => {
-		await swal().fire({
+		await Swal.fire({
 		    title: "Setup 2FA",
 		    footer: `${data.secret}`,
 		    input: "text",
@@ -42,7 +40,7 @@ export async function enable_2fa() {
 		    allowOutsideClick: () => !Swal.isLoading(),
 		}).then((result) => {
 		    if (result.isConfirmed) {
-				swal().fire({
+				Swal.fire({
 					position: "top-end",
 					icon: "success",
 					title: "Successfully setup 2FA",
@@ -63,7 +61,7 @@ export async function enable_2fa() {
 
 export async function disable_2fa() {
 	const promise = new Promise(async (resolve, reject) => {
-		await swal().fire({
+		await Swal.fire({
 			title: "Are you sure?",
 			icon: "warning",
 			showCancelButton: true,
@@ -84,7 +82,7 @@ export async function disable_2fa() {
 			},
 			}).then((result) => {
 			if (result.isConfirmed) {
-			    swal().fire({
+			    Swal.fire({
 				position: "top-end",
 				icon: "success",
 				title: "Successfully disabled 2FA",

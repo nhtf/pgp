@@ -2,12 +2,13 @@
 	import type { ChatRoom, GameRoom, GameState } from "$lib/entities";
 	import {  Gamemode } from "$lib/enums";
 	import { page } from "$app/stores";
-	import { swal, unwrap } from "$lib/Alert";
+	import { unwrap } from "$lib/Alert";
 	import { icon_path } from "$lib/constants";
 	import { Access } from "$lib/enums";
 	import { post, remove, patch, get } from "$lib/Web";
 	import { gameStateStore, userStore } from "$lib/stores";
 	import Invite from "./Invite.svelte";
+    import Swal from "sweetalert2";
 
 	type T = ChatRoom | GameRoom;
 
@@ -43,7 +44,7 @@
 
 	function teamSelector(room: T): Promise<number | null> {
 		const inputOptions = state!.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
-		const promise = swal().fire({
+		const promise = Swal.fire({
 			input: "radio",
 			inputOptions,
 			confirmButtonText: "Join",
@@ -77,7 +78,7 @@
 	}
 
 	async function leave(room: T) {
-		await unwrap(remove(`/${route}/id/${room.id}/members/me`));
+		await unwrap(remove(`/${route}/id/${room.id}/members/me`, { ban: false }));
 	}
 	
 	async function erase(room: T) {
@@ -139,17 +140,6 @@
 </div>
 
 <style>
-	.room {
-		display: flex;
-		justify-content: flex-end;
-		gap: 0.5rem;
-		background: var(--box-color);
-		border-radius: 1rem;
-		padding: 1rem;
-		flex-wrap: wrap;
-		margin: 0.25rem;
-	}
-
 	.room-name {
 		font-size: larger;
 		align-self: center;

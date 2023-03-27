@@ -14,6 +14,7 @@ import {
 	Delete,
 	Post,
 	PipeTransform,
+	ParseBoolPipe,
 	ArgumentMetadata,
 	Put,
 	ForbiddenException,
@@ -44,11 +45,22 @@ import { AchievementProgress } from "src/entities/AchievementProgress";
 import { instanceToPlain } from "class-transformer";
 import { AchievementService } from "src/services/achievement.service";
 import { FRIEND_COUNT_ACHIEVEMENT, AVATAR_ACHIEVEMENT } from "src/achievements";
+import { IsBooleanString, IsOptional, IsString } from "class-validator";
 
 declare module "express" {
 	export interface Request {
 		user?: User;
 	}
+}
+
+class SearchQuery {
+	@IsBooleanString()
+	@IsOptional()
+	human: string;
+
+	@IsString()
+	@IsOptional()
+	username: string;
 }
 
 export function GenericUserController(
@@ -78,8 +90,15 @@ export function GenericUserController(
 
 		@Get()
 		@UseGuards(SetupGuard)
-		async list_all() {
-			return this.user_repo.find();
+		async list_all(@Query() filters: SearchQuery) {
+			const query = this.user_repo.createQueryBuilder("user");
+
+			if (filters.human === "true")
+				query.andWhere("user.api_secret IS NULL");
+			if (filters.username)
+				query.andWhere("similarity(user.username, :username) > :threshold", { username: filters.username, threshold: FUZZY_THRESHOLD })
+
+			return query.getMany();
 		}
 
 		@Get(options.cparam)
@@ -193,7 +212,9 @@ export function GenericUserController(
 			@Param(options.param, options.pipe) user: User
 		) {
 			user = user || me;
-			if (user.id !== me.id) throw new ForbiddenException();
+			if (user.id !== me.id) {
+				throw new ForbiddenException();
+			}
 			return user.auth_req;
 		}
 
@@ -241,7 +262,7 @@ export function GenericUserController(
 		) {
 			user = user || me;
 			if (user.id !== me.id) throw new ForbiddenException();
-			return await this.user_repo.findBy({
+			return this.user_repo.findBy({
 				friends: {
 					id: user.id,
 				},
@@ -399,7 +420,7 @@ export function GenericUserController(
 			return blocked;
 		}
 
-		@Post(`${options.cparam}/blocked/`)
+		@Post(`${options.cparam}/blocked`)
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async block(@Me() me: User, @Body("id", ParseIDPipe(User)) target: User) {
 			me = await this.user_repo.findOne({
@@ -424,11 +445,11 @@ export function GenericUserController(
 			}, me);
 		}
 
-		@Delete(`${options.cparam}/blocked/:target`)
+		@Delete(`${options.cparam}/blocked`)
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async unblock(
 			@Me() me: User,
-			@Param("target", ParseIDPipe(User)) target: User
+			@Body("id", ParseIDPipe(User)) target: User
 		) {
 			me = await this.user_repo.findOne({
 				where: { id: me.id },
@@ -449,17 +470,6 @@ export function GenericUserController(
 				action: Action.REMOVE,
 				id: target.id,
 			}, me);
-		}
-
-		@Get(`${options.cparam}/fuzzySearch`)
-		async fuzzySearch(@Me() me: User, @Query("username") username: string) {
-			if (typeof username !== "string") {
-				throw new ForbiddenException("username must be a string");
-			}
-
-			return this.user_repo.createQueryBuilder("user")
-				.where("similarity(user.username, :username) > :threshold", { username, threshold: FUZZY_THRESHOLD })
-				.getMany();
 		}
 	}
 	return UserControllerFactory;

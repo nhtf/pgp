@@ -4,7 +4,7 @@
 	import { unwrap } from "$lib/Alert";
 	import { get } from "$lib/Web";
 
-	export let callback: (content: string) => boolean;
+	export let callback: (content: string) => void;
 	export let disabled: boolean;
 
 	//http://alistapart.com/article/expanding-text-areas-made-elegant/
@@ -150,11 +150,11 @@
 		suggestions = [];
 	}
 
-	function sendMessage() {
+	async function sendMessage() {
 		if (content.length) {
-			if (callback(content)) {
-				content = "";
-			} 
+			callback(content);
+
+			content = "";
 		}
 	}
 </script>

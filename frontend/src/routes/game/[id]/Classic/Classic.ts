@@ -222,10 +222,7 @@ export class Game extends Net {
 				this.ball.velocity = this.ball.velocity.reflect(collision[0].p1.sub(collision[0].p0));
 
 				if (collision[0].name.startsWith("paddle-")) {
-					this.pray("paddle-sound", 30, () => {
-						console.log("played");
-						paddleHitSound.play()
-					});
+					this.pray("paddle-sound", 30, () => paddleHitSound.play());
 					const magnitude = this.ball.velocity.magnitude() + 0.1;
 					this.ball.velocity = this.ball.velocity.normalize();
 					this.ball.velocity = paddleBounce(collision[0], this.ball);
@@ -268,7 +265,6 @@ export class Classic {
 	private context: CanvasRenderingContext2D;
 	private game: Game;
 	private lastTime?: number;
-	// private interval?: NodeJS.Timer;
 	private interval?: number;
 	private options?: Options;
 
@@ -341,7 +337,9 @@ export class Classic {
 			this.game.send("ping", {
 				u: options.member.userId,
 			});
-		}, 1000 / PADDLE_PING_INTERVAL);
+
+			console.log(this.game.bandwidthUpload.averageOverTime());
+		}, 1000 / UPS * PADDLE_PING_INTERVAL);
 
 		await this.game.start(options);
 	}

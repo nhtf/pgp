@@ -10,7 +10,6 @@ import { GameRoomMember } from "src/entities/GameRoomMember";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { Action, Subject } from "src/enums"
-import { instanceToPlain } from "class-transformer"
 
 type BroadcastData = {
 	name: "update" | "synchronize" | "desync-check",
@@ -50,18 +49,18 @@ export class GameGateway extends ProtectedGateway("game") {
 	}
 
 	async onJoin(client: Socket) {
-		await this.userRepo.save({ id: client.user, activeRoom: { id: client.room }});
+		const user = await this.userRepo.save({ id: client.user, activeRoom: { id: client.room }});
 	
 		client.join(String(client.room));
 	
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			action: Action.UPDATE,
-			id: client.user,
+			id: user.id,
 			value: { activeRoomId: client.room }
 		});
 
-		await UpdateGateway.instance.send_state_update({ id: client.room });
+		await UpdateGateway.instance.send_state_update(user, { id: client.room });
 	}
 
 	@SubscribeMessage("broadcast")
@@ -70,10 +69,21 @@ export class GameGateway extends ProtectedGateway("game") {
 
 		if (data.name === "synchronize") {
 			data.snapshot.state.teams.forEach(async (team) => {
-				await this.teamRepo.save({ id: team.id, score: team.score });
+				const old = await this.teamRepo.findOneBy({ id: team.id });
+			
+				if (team.score > old.score) {
+					await this.teamRepo.save({ id: team.id, score: team.score });
+
+					UpdateGateway.instance.send_update({
+						subject: Subject.TEAM,
+						action: Action.UPDATE,
+						id: team.id,
+						value: { stateId: old.stateId, score: team.score }
+					});
+				}
 			});
 		
-			UpdateGateway.instance.send_state_update({ id: client.room });
+			// UpdateGateway.instance.send_state_update({ id: client.room });
 		}
 	}
 

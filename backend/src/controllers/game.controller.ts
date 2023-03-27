@@ -1,4 +1,5 @@
-import { Get, Post, Patch, Param, Body, BadRequestException, ForbiddenException, Inject } from "@nestjs/common";
+import type { Response } from "express";
+import { Get, Post, Patch, Param, Body, BadRequestException, ForbiddenException, Inject, Res } from "@nestjs/common";
 import { GenericRoomController, CreateRoomDTO } from "src/services/room.service";
 import { GameRoom } from "src/entities/GameRoom";
 import { IsEnum, IsNumber } from "class-validator";
@@ -119,6 +120,15 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			.getMany();
 	}
 
+	@Patch("id/:id/team/me")
+	@RequiredRole(Role.MEMBER)
+	async change_my_team(
+		@Res() response: Response,
+		@GetMember() member: GameRoomMember,
+	) {
+		response.redirect(`${member.id}`);
+	}
+
 	@Patch("id/:id/team/:target")
 	@RequiredRole(Role.MEMBER)
 	async change_team(
@@ -153,12 +163,25 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 
 		await this.member_repo.save(member);
 
-		await UpdateGateway.instance.send_state_update(room);
+		await UpdateGateway.instance.send_state_update(me, room);
 	}
 
 	@Get("id/:id/state")
 	async state(@GetRoom() room: GameRoom) {
-		return this.gamestate_repo.findOneBy({ room: { id: room.id } });
+		return this.gamestate_repo.findOne({ 
+			where: {
+				room: {
+					id: room.id
+				}
+			}, 
+			relations: {
+				teams: {
+					players: {
+						user: true
+					}
+				}
+			}
+		});
 	}
 
 	@Post("id/:id/lock")

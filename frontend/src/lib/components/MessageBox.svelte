@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Member, Message } from "$lib/entities";
+	import type { ChatRoomMember, Message } from "$lib/entities";
 	import { BOUNCER, icon_path } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
@@ -12,7 +12,7 @@
 	import "linkify-plugin-mention";
 
 	export let message: Message;
-	export let self: Member;
+	export let self: ChatRoomMember;
 
 	// const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const role_colors = Object.values(CoalitionColors);
@@ -24,7 +24,7 @@
 	const text_align = from_self ? "right" : "left";
 
 	$: user = $userStore.get(message.userId)!;
-	$: member = message.memberId ? $memberStore.get(message.memberId)! : null;
+	$: member = message.memberId ? $memberStore.get(message.memberId)! as ChatRoomMember : null;
 
 	async function censor() {
 		await unwrap(remove(`/chat/id/${self.roomId}/messages/${message.id}`));
@@ -61,7 +61,7 @@
 		</div>
 		{#each message.embeds as embed}
 			{#if embed.rich}
-				<EmbedBox digest={embed.digest} url={embed.url} />
+				<EmbedBox {embed} />
 			{:else}
 				<img
 					class="message-image"

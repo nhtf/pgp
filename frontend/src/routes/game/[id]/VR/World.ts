@@ -128,6 +128,7 @@ export class World extends Net {
 				this.removedEntities.splice(this.removedEntities.indexOf(entity), 1);
 				this.add(entity);
 				entity.removed = false;
+				entity.lastUpdate = this.time;
 			}
 		}
 
@@ -370,6 +371,7 @@ export class World extends Net {
 				}
 
 				previousTime += stepDelta / TICKS_PER_SECOND * 1000;
+				console.log(this.latencyNetwork.averageOverSamples());
 			} else {
 				previousTime = currentTime;
 			}

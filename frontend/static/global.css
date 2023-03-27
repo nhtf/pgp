@@ -518,6 +518,21 @@ canvas {
 	opacity: 0.25;
 }
 
+.dropdown {
+	background-color: var(--box-color) !important;
+	display: inline-block;
+}
+
+.dropdown-item {
+	background-color: var(--box-color) !important;
+	text-align: center !important;
+	width: 100%;
+}
+
+.dropdown-item:hover {
+	background-color: var(--box-hover-color) !important;
+}
+
 .link:link {
 	color: #0dcaf0;
 }
@@ -535,11 +550,35 @@ canvas {
 	color: blue;
 }
 
+.room {
+	background: var(--box-color);
+	border-radius: 1rem;
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.5rem;
+	justify-content: flex-end;
+	margin: 0.25rem;
+	padding: 1rem;
+}
+
 .search {
 	max-width: 20ch !important;
 }
 
-.swal2-radio {
-	color: var(--text-color) !important;
+.swal2-popup {
 	background-color: var(--box-color) !important;
+	color: var(--text-color) !important;
+}
+
+.swal2-confirm {
+	background-color: var(--confirm-color) !important;
+}
+
+.swal2-cancel {
+	background-color: var(--cancel-color) !important;
+}
+
+.swal2-radio {
+	background-color: var(--box-color) !important;
+	color: var(--text-color) !important;
 }

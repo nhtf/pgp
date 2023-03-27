@@ -146,6 +146,8 @@ export class SessionService {
 
 
 	async heartbeat(req: Request) {
+		if (req.user?.is_bot)
+			return;
 		const last_activity = req.session.last_activity;
 		if (last_activity) {
 			if (Date.now() - last_activity >= SESSION_REGENERATE_TIME) {

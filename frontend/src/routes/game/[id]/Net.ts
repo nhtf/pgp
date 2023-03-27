@@ -3,7 +3,7 @@ import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
 import { Father, Bible } from "./SignFromGod";
-import { swal } from "$lib/Alert";
+import Swal from "sweetalert2"
 
 export const PING_INTERVAL = 20;
 export const SNAPSHOT_INTERVAL = 6;
@@ -272,9 +272,9 @@ export class Net {
 		});
 
 		this.socket.on("exception", (err) => {
-			swal().fire({
+			Swal.fire({
 				icon: "error",
-				text: `${err.message}`,
+				text: `Net.ts: ${err.message}`,
 			});
 		});
 

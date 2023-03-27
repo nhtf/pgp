@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { ChatRoomMember, Member, User } from "$lib/entities";
-	import { swal, unwrap } from "$lib/Alert";
+	import { unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
 	import { Role, roles } from "$lib/enums";
 	import { blockStore, userStore } from "$lib/stores";
@@ -8,6 +8,7 @@
 	import { page } from "$app/stores";
 	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
     import { goto } from "$app/navigation";
+    import Swal from "sweetalert2";
 
 	export let member: ChatRoomMember | null;
 	export let user: User = $userStore.get(member!.userId)!;
@@ -41,7 +42,7 @@
 			remove(`/chat/id/${member.roomId}/members/${member.id}`, { ban })
 		);
 
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	async function mute(member: ChatRoomMember, minutes: number) {
@@ -53,23 +54,23 @@
 			})
 		);
 
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	async function block(user: User) {
 		await unwrap(post(`/user/me/blocked`, { id: user.id }));
 
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	async function unblock(user: User) {
-		await unwrap(remove(`/user/me/blocked/${user.id}`));
+		await unwrap(remove(`/user/me/blocked`, { id: user.id }));
 	
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	async function invite(user: User) {
-		const { value } = await swal().fire({
+		const { value } = await Swal.fire({
 			title: "Invite to match",
 			input: "radio",
 			inputOptions: options,

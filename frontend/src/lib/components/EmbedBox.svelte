@@ -1,11 +1,11 @@
 <script lang="ts">
+    import type { Embed } from "$lib/entities";
 	import { BOUNCER } from "$lib/constants";
 	import { bounceEmbed } from "$lib/Web";
 
-	export let url: string;
-	export let digest: string;
+	export let embed: Embed;
 
-	const urlInfo = new URL(url);
+	const urlInfo = new URL(embed.url);
 
 	function resize(node: any, ratio: number) {
 		let frame = requestAnimationFrame(function onResize() {
@@ -20,7 +20,7 @@
 </script>
 
 <div class="embed">
-	{#await bounceEmbed(digest, url)}
+	{#await bounceEmbed(embed.digest, embed.url)}
 		<div class="embed-spinner">
 			<div class="embed-spinner-circle" />
 			<div class="embed-spinner-circle" />

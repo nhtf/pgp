@@ -12,7 +12,6 @@
 	import Swal from "sweetalert2";
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
-    import { swal } from "$lib/Alert";
     import Match from "./Match.svelte";
 
 	const edit_icon = "/Assets/icons/pen.png";
@@ -37,7 +36,7 @@
 	}
 
 	async function changeUsername() {
-		await swal().fire({
+		await Swal.fire({
 			title: "Change username",
 			input: "text",
 			showCancelButton: true,
@@ -111,16 +110,18 @@
 			</div>
 		</div>
 	</div> -->
-	{#if !$page.data.user?.in_game}
-		<div class="block-hor">
-			<div class="block-cell">
-				<p>Current game stats</p>
+	<div>
+		{#if !$page.data.user?.in_game}
+			<div class="block-hor">
+				<div class="block-cell">
+					<p>Current game stats</p>
+				</div>
 			</div>
-		</div>
-	{/if}
-	{#each $page.data.games as game}
-		<Match {game}/>
-	{/each}
+		{/if}
+		{#each $page.data.games as game}
+			<Match user={profile} {game}/>
+		{/each}
+	</div>
 </div>
 
 <style>

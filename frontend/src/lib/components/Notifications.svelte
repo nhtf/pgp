@@ -7,8 +7,9 @@
 	import { inviteStore, userStore } from "$lib/stores";
 	import { onMount } from "svelte";
     import { goto } from "$app/navigation";
-    import { swal, unwrap } from "$lib/Alert";
+    import { unwrap } from "$lib/Alert";
     import { get, patch } from "$lib/Web";
+    import Swal from "sweetalert2";
 
 	enum Status {
 		UNREAD,
@@ -47,7 +48,7 @@
 		
 			await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
 
-			swal().fire({
+			Swal.fire({
 				title: "Go to game?",
 				showConfirmButton: true,
 				showCancelButton: true,

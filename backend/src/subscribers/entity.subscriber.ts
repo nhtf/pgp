@@ -62,15 +62,16 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		const entity = event.entity;
 
 		try {
-			const info = this.subjectEntry(event.metadata.targetName);
-		
 			this.log(event, action);
 
+			const info = this.subjectEntry(event.metadata.targetName);
+			const value = valueFun(entity);		
+			
 			UpdateGateway.instance.send_update({
 				subject: info.subject,
 				action,
 				id: entity.id,
-				value: valueFun(entity)
+				value,
 			}, ...await this.receivers(entity, info));
 		} catch (error) {
 			// console.log(error);
@@ -130,12 +131,14 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 
 	// TODO: remove
 	log(event: any, action: Action) {
+		const ignored = "score";
+	
 		if (action !== Action.UPDATE) {
 			console.log(Action[action], event.metadata.name);
 		} else {
 			const updatedColumns = this.updatedNames(event);
 
-			if (updatedColumns.length === 1 && updatedColumns[0] === "score") {
+			if (updatedColumns.every((column) => ignored.includes(column))) {
 				return ;
 			}
 		

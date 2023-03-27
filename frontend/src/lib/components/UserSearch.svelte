@@ -4,13 +4,16 @@
 	import { friendStore, inviteStore } from "$lib/stores";
 	import { get, post } from "$lib/Web";
 	import { Dropdown, DropdownHeader, DropdownItem, Search } from "flowbite-svelte";
-	import { swal, unwrap } from "$lib/Alert";
+	import { unwrap } from "$lib/Alert";
+    import Swal from "sweetalert2";
 
 	let users: User[] = [];
 	let button: HTMLButtonElement;
 	let open = false;
 	let value = "";
 
+	$: friendIds = [...$friendStore.keys()];
+	$: invites = [...$inviteStore.values()];
 	$: befriendable = users.filter(isBefriendable);
 
 	function onWindowClick(event: MouseEvent) {
@@ -23,19 +26,20 @@
 	}
 
 	async function onInput() {
-		users = await get(`/user/me/fuzzySearch`, { username: value });
+		users = await get(`/users`, { username: value, human: true });
 	}
 
 	async function befriend(username: string) {
 		await unwrap(post(`/user/me/friends/request`, { username }));
-		await swal().fire({	icon: "success", timer: 1000, showConfirmButton: false });
+	
+		Swal.fire({	icon: "success", timer: 1000, showConfirmButton: false });
 	}
 
 	function isBefriendable(user: User) {
 		return (
 			user.id !== $page.data.user?.id &&
-			![...$friendStore.keys()].includes(user.id) &&
-			![...$inviteStore.values()].find((invite) => {
+			!friendIds.includes(user.id) &&
+			!invites.find((invite) => {
 				invite.type === "FriendRequest" && invite.to.id === user.id
 			})
 		);

@@ -1,9 +1,8 @@
 <script lang="ts">
-	import type { UpdatePacket } from "$lib/types";
 	import type { ChatRoom, User } from "$lib/entities";
 	import type { PageData } from "./$types";
 	import { goto } from "$app/navigation";
-	import { swal, unwrap } from "$lib/Alert";
+	import { unwrap } from "$lib/Alert";
 	import { Role } from "$lib/enums";
 	import { memberStore, roomStore } from "$lib/stores";
 	import { patch, remove } from "$lib/Web";
@@ -16,6 +15,8 @@
 	} from "flowbite-svelte";
 	import RoomInput from "$lib/components/RoomInput.svelte";
 	import Invite from "$lib/components/Invite.svelte";
+    import Swal from "sweetalert2";
+    import RoomHeader from "$lib/components/RoomHeader.svelte";
 
 	export let data: PageData;
 
@@ -30,11 +31,6 @@
 		await unwrap(patch(`/chat/id/${room.id}`, edit));
 	}
 
-	async function leave(room: ChatRoom) {
-		await unwrap(remove(`/chat/id/${room.id}/members/me`));
-		await goto(`/chat`);
-	}
-
 	async function erase(room: ChatRoom) {
 		await unwrap(remove(`/chat/id/${room.id}`));
 		await goto(`/chat`);
@@ -43,32 +39,22 @@
 	async function unban(user: User) {
 		await unwrap(remove(`/chat/id/${room.id}/bans/${user.id}`));
 
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	
-		banned = banned.filter((user) => user.id !== user.id);
+		banned = banned.filter((x) => x.id !== user.id);
 	}
 </script>
 
-<div class="room">
-	<div class="room-title">
-		<a class="button border-blue" href={`/chat/${room.id}`}>Back</a>
-		<div class="room-name">{room.name} settings</div>
-		{#if self.role < Role.OWNER}
-			<button class="button border-red" on:click={() => leave(room)}
-				>Leave</button
-			>
-		{:else}
-			<button class="button border-red" on:click={() => erase(room)}
-				>Delete</button
-			>
-		{/if}
-	</div>
+<RoomHeader {room}/>
+<div class="room-settings">
 	<div class="box">
 		<Invite {room} />
 	</div>
 	{#if self.role >= Role.OWNER}
 		<RoomInput {room} click={edit} />
+		<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 	{/if}
+
 	<div class="box">
 		<h1>Banned Users</h1>
 		<div class="banned">
@@ -98,7 +84,7 @@
 </div>
 
 <style>
-	.room {
+	.room-settings {
 		display: flex;
 		flex-direction: column;
 		align-items: flex-end;
@@ -106,28 +92,9 @@
 		gap: 0.5rem;
 	}
 
-	.room-title {
-		display: flex;
-		flex-direction: row;
-		justify-content: space-between;
-		background-color: var(--box-color);
-		position: relative;
-		top: 0.5rem;
-		box-shadow: 2px 4px 6px 2px rgba(0, 0, 0, 0.4);
-		margin-bottom: 0.5rem;
-		padding: 0.25rem;
-		border-radius: 0.375rem;
-		width: 100%;
-	}
-
-	.room-name {
-		text-align: center;
-		font-size: 1.5rem;
-		margin: 0 auto;
-	}
-
 	.box {
 		display: flex;
+		flex-direction: row;
 		justify-content: space-between;
 		align-items: center;
 		background: var(--box-color);
@@ -135,7 +102,6 @@
 		border-radius: 0.375rem;
 		padding: 0.5rem;
 		margin-top: 0.25rem;
-		flex-direction: column;
 		column-gap: 0.5rem;
 	}
 

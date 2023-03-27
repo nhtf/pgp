@@ -2,13 +2,14 @@
 	import type { GameRoomMember, Room, User } from "$lib/entities";
     import type { SweetAlertResult } from "sweetalert2";
 	import { goto } from "$app/navigation";
-	import { swal, unwrap } from "$lib/Alert";
+	import { unwrap } from "$lib/Alert";
 	import { status_colors } from "$lib/constants";
 	import { Gamemode, Status } from "$lib/enums";
 	import { blockStore, gameStateStore, userStore } from "$lib/stores";
 	import { get, patch, post, remove } from "$lib/Web";
 	import { Avatar, Button, Dropdown, DropdownItem } from "flowbite-svelte";
     import Match from "./Match.svelte";
+    import Swal from "sweetalert2";
 
 	export let user: User;
 
@@ -29,7 +30,7 @@
 	}
 
 	async function gamemodeSelector(): Promise<SweetAlertResult<Gamemode>> {
-		const promise = swal().fire({
+		const promise = Swal.fire({
 			title: "Invite to match",
 			input: "radio",
 			inputOptions: [ "Classic", "Modern", "VR" ],
@@ -74,7 +75,7 @@
 	async function roomPrompt(room: Room) {
 		const route = room.type.replace("Room", "").toLowerCase();
 	
-		swal().fire({
+		Swal.fire({
 			title: "Go to game?",
 			showConfirmButton: true,
 			showCancelButton: true,
@@ -104,13 +105,13 @@
 	async function block(user: User) {
 		await unwrap(post("/user/me/blocked", { id: user.id }));
 
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	async function unblock(user: User) {
-		await unwrap(remove(`/user/me/blocked/${user.id}`));
+		await unwrap(remove(`/user/me/blocked`, { id: user.id }));
 	
-		swal().fire({ icon: "success", timer: 3000 });
+		Swal.fire({ icon: "success", timer: 3000 });
 	}
 
 	function capitalize(name: string) {

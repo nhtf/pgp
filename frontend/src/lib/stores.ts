@@ -104,3 +104,17 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 		updateStore(gameStateStore, update.value.state);
 	}
 });
+
+// Score update
+updateManager.set(Subject.TEAM, (update: UpdatePacket) => {
+	if (update.action === Action.UPDATE) {
+		gameStateStore.update((old) => {
+			const state = old.get(update.value.stateId)!;
+			const team = state.teams.find(({ id }) => id === update.id)!;
+
+			team.score = update.value.score;
+
+			return old;
+		})
+	}
+});

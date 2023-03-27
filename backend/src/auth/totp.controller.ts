@@ -97,7 +97,7 @@ export class TotpController {
 		if (request.session.auth_level != AuthLevel.TWOFA)
 			throw new HttpException("No totp has been set up", HttpStatus.FORBIDDEN);
 
-		user.secret = undefined;
+		user.secret = null;
 		user.auth_req = AuthLevel.OAuth;
 
 		const access_token = request.session.access_token;

@@ -1,11 +1,12 @@
 <script lang="ts">
 	import { friendStore, userStore } from "$lib/stores";
     import { byStatusThenName } from "$lib/sorting";
+    import UserDropdown from "./UserDropdown.svelte";
     import UserSearch from "./UserSearch.svelte";
 	import Friend from "./Friend.svelte";
 
-	$: friends = [...$friendStore]
-		.map(([id, _]) => $userStore.get(id)!)
+	$: friends = [...$friendStore.keys()]
+		.map((id) => $userStore.get(id)!)
 		.sort(byStatusThenName);
 
 </script>
@@ -19,6 +20,12 @@
 			<Friend {user} />
 		{/each}
 	</div>
+</div>
+
+<div class="flex flex-col gap-4">
+	{#each friends as user (user.id)}
+		<UserDropdown {user}/>
+	{/each}
 </div>
 
 <style>

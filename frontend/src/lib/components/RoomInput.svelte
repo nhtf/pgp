@@ -84,22 +84,10 @@
 </div>
 
 <style>
-	.room {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		column-gap: 0.5rem;
-		background: var(--box-color);
-		border: 1px var(--border-color);
-		border-radius: 0.5rem;
-		padding: 0.5rem;
-		flex-wrap: wrap;
-	}
-
 	.private-check {
 		align-items: center;
-		display: flex;
 		column-gap: 0.5rem;
+		display: flex;
 	}
 
 </style>

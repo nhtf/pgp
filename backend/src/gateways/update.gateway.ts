@@ -94,7 +94,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		this.status.delete(user.id);
 	}
 
-	send_update(packet: UpdatePacket, ...receivers: User[]) {
+	send_update(packet: UpdatePacket, ...receivers: Partial<User>[]) {
 		if (!receivers.length) {
 			this.server.emit("update", packet);
 		}
@@ -117,18 +117,20 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		const last_status = this.status.get(user.id) ?? Status.OFFLINE;
 
 		if (user.status !== last_status) {
+			this.status.set(user.id, user.status);
+		
 			this.send_update({ 
 				subject: Subject.USER,
 				action: Action.UPDATE,
 				id: user.id,
 				value: { status: user.status }
 			});
-
-			this.status.set(user.id, user.status);
 		}
 	}
 
 	async heartbeat(user: User) {
+		if (user.is_bot)
+			return;
 		user = await this.setActive(user);
 
 		this.update(user);
@@ -136,10 +138,8 @@ export class UpdateGateway extends ProtectedGateway("update") {
 
 	async setActive(user: User) {
 		user.last_activity = new Date;
-
-		await this.user_repo.save({ id: user.id, last_activity: user.last_activity });
-
-		return user;
+	
+		return await this.user_repo.save(user);
 	}
 
 	@SubscribeMessage("heartbeat")
@@ -150,8 +150,8 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		await this.heartbeat(user);
 	}
 
-	// TODO: receivers
-	async send_state_update(room: Partial<Room>, value?: DeepPartial<GameState>) {
+	async send_state_update(user: Partial<User>, room: Partial<Room>, value?: DeepPartial<GameState>) {
+		const friends = await this.userRepo.findBy({ friends: { id: user.id } });
 		const state = await this.stateRepo.findOne({
 			where: { room: { id: room.id } },
 			relations: {
@@ -168,7 +168,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			action: Action.UPDATE,
 			id: state.id,
 			value: value ?? { teams: instanceToPlain(state.teams) },
-		});
+		}, ...[user, ...friends]);
 	}
 
 }
