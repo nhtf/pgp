@@ -39,9 +39,8 @@
 
 </script>
 
-{JSON.stringify(blockedIds)}
 <Avatar
-	src={user.avatar}
+	src={user?.avatar}
 	id="avatar-{user.id}"
 	dot={{
 		placement: "bottom-right",
@@ -54,19 +53,9 @@
 		<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
 	</DropdownItem>
 	<DropdownDivider/>
-	<!-- {#if !friendIds.includes(user.id)}
-		<DropdownItem class="dropdown-item" on:click={() => befriend(user)}>Befriend</DropdownItem>
-	{:else}
-		<DropdownItem class="dropdown-item" on:click={() => unfriend(user)}>Unfriend</DropdownItem>
-	{/if}
-	{#if !blockedIds.includes(user.id)}
-		<DropdownItem class="dropdown-item" on:click={() => block(user)}>Block</DropdownItem>
-	{:else}
-		<DropdownItem class="dropdown-item" on:click={() => unblock(user)}>Unblock</DropdownItem>
-	{/if} -->
-	{#each actions as { fun, condition }}
-		{#if !condition || condition(user, member)}
-			<DropdownItem class="dropdown-item" on:click={() => fun(user, member)}>{capitalize(fun.name)}</DropdownItem>
+	{#each actions as { condition, fun }}
+		{#if !condition || condition({ user, member, friendIds, blockedIds, my_role })}
+			<DropdownItem class="dropdown-item" on:click={() => fun({ user, member })}>{capitalize(fun.name)}</DropdownItem>
 		{/if}
 	{/each}
 

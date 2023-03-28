@@ -1,7 +1,7 @@
 import { Net } from "../Net";
 import type { Event as NetEvent } from "../Net";
-import {intersection, Vector, paddleBounce, isInConvexHull, type VectorObject} from "../lib2D/Math2D";
-import type { Line } from "../lib2D/Math2D";
+import { intersection, Vector, paddleBounce, isInConvexHull, serializeNumber, deserializeNumber } from "../lib2D/Math2D";
+import type { VectorObject, Line } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
 import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT, ballVelociy } from "./Constants";
 import { GAME} from "./Constants";
@@ -18,13 +18,15 @@ const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
 const wall = new Audio("/Assets/sounds/wall.wav");
 const music = new Audio("/Assets/sounds/zetauri.wav");
 
+// TODO: fix typescript errors in save and load
+
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
 	u: number; //userid
-	x: number; //xpos
-	y: number; //ypos
+	x: string; //xpos
+	y: string; //ypos
 	t: number; //teamId
-	r: number; //rotation
+	r: string; //rotation
 }
 
 export interface ScoreEvent extends NetEvent {
@@ -88,8 +90,8 @@ export class Game extends Net {
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
 				const oldLines = paddle.getCollisionLines();
 
-				paddle.position.x += event.x;
-				paddle.position.y += event.y;
+				paddle.position.x += deserializeNumber(event.x);
+				paddle.position.y += deserializeNumber(event.y);
 				
 				this.shader.movePaddle(paddle.position, paddle.owner);
 				const paddleMovement = new Vector((paddle.position.x - oldPos.x), (paddle.position.y - oldPos.y));
@@ -127,7 +129,12 @@ export class Game extends Net {
 				paddle.userID = event.u;
 				paddle.ping = this.time;
 
-				paddle.rotation += event.r;
+				paddle.rotation += deserializeNumber(event.r);
+
+				if (paddle.rotation != deserializeNumber(serializeNumber(paddle.rotation))) {
+					console.error("how did we get here");
+				}
+
 				this.shader.rotatePaddle(paddle.rotation, paddle.owner);
 			}
 		});
@@ -355,8 +362,8 @@ export class Modern {
 						movement.y = moveY;
 					this.game!.send("mousemove", {
 						u: this.options.member.userId,
-						x: movement.x,
-						y: movement.y,
+						x: serializeNumber(movement.x),
+						y: serializeNumber(movement.y),
 						t: this.options.member.player?.team?.id,
 					});
 				}
@@ -372,10 +379,10 @@ export class Modern {
 		if (this.options.member.player != null && this.players === GAME.FOURPLAYERS) {
 			this.game!.send("mousescroll", {
 				u: this.options.member.userId,
-				x: 0,
-				y: 0,
+				x: serializeNumber(0),
+				y: serializeNumber(0),
 				t: this.options.member.player?.team?.id,
-				r: deltaY
+				r: serializeNumber(deltaY),
 			});
 		}
 	}

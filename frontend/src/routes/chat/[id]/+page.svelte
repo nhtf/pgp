@@ -1,20 +1,19 @@
 <script lang="ts">
-	import type { ChatRoom, Room, Message, ChatRoomMember } from "$lib/entities";
+	import type { ChatRoom, Message, ChatRoomMember } from "$lib/entities";
 	import type { PageData } from "./$types";
 	import type { UpdatePacket } from "$lib/types";
 	import { onDestroy, onMount } from "svelte";
 	import { unwrap } from "$lib/Alert";
-	import { remove, post } from "$lib/Web";
-	import { goto } from "$app/navigation";
-	import { Action, CoalitionColors, Role, roles, Subject } from "$lib/enums";
-	import { blockStore, memberStore, roomStore } from "$lib/stores";
+	import { post } from "$lib/Web";
+	import { Action, CoalitionColors, roles, Subject } from "$lib/enums";
+	import { blockStore, memberStore, roomStore, userStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
-	import { page } from "$app/stores";
 	import { byDate } from "$lib/sorting";
 	import MessageBox from "$lib/components/MessageBox.svelte"
 	import MemberBox from "$lib/components/MemberBox.svelte";
 	import ScratchPad from "$lib/components/ScratchPad.svelte";
     import RoomHeader from "$lib/components/RoomHeader.svelte";
+    import { goto } from "$app/navigation";
 
 	export let data: PageData;
 
@@ -27,9 +26,11 @@
 	let index: number;
 
 	$: room = $roomStore.get(data.room.id) as ChatRoom;
+	$: { !room && goto(`/chat`) }
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id) as ChatRoomMember[];
 	$: self = $memberStore.get(room?.self!.id)! as ChatRoomMember;
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
+	$: users = members.map((member) => $userStore.get(member.userId)!);
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
@@ -103,6 +104,9 @@
 			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
 		</div>
 		<div class="member-container">
+			<!-- {#each users as user}
+				<UserDropdown {user} {room}/>
+			{/each} -->
 			{#each roles.slice().reverse() as role}
 				{#if members.some((member) => member.role === role)}
 					<div class="member-group">

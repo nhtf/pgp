@@ -5,7 +5,6 @@ import { Net } from "../Net";
 import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "../Net";
 import type { Entity, EntityObject, EntityUpdate } from "./Entity";
 import { Vector, Quaternion } from "../Math";
-import type { VectorObject, QuaternionObject } from "../Math";
 import { Counter, Map2 } from "../Util";
 
 export const TICKS_PER_SECOND = 60;
@@ -371,7 +370,6 @@ export class World extends Net {
 				}
 
 				previousTime += stepDelta / TICKS_PER_SECOND * 1000;
-				console.log(this.latencyNetwork.averageOverSamples());
 			} else {
 				previousTime = currentTime;
 			}

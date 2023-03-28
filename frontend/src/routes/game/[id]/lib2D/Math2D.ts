@@ -1,3 +1,16 @@
+import { serialize, deserialize } from "../Math";
+
+export function serializeNumber(num: number): string {
+	const buffer = new Float64Array(1);
+	buffer[0] = num;
+	return serialize(buffer.buffer);
+}
+
+export function deserializeNumber(buf: string): number {
+	const buffer = new Float64Array(deserialize(buf));
+	return buffer[0];
+}
+
 export interface VectorObject {
 	x: number;
 	y: number;

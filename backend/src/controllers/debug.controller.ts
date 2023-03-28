@@ -242,11 +242,7 @@ export class DebugController {
 
 	@Get("room/setOwner")
 	async setOwner(@Query("id") id: string) {
-		const member = await this.memberRepo.findOneBy({ id: Number(id) });
-	
-		member.role = Role.OWNER;
-
-		return await this.memberRepo.save(member);
+		return this.memberRepo.save({ id: Number(id), role: Role.OWNER });
 	}
 
 	@Get("room/demote")
@@ -257,7 +253,7 @@ export class DebugController {
 			member.role -= 1;
 		}
 
-		return await this.memberRepo.save(member);
+		return this.memberRepo.save(member);
 	}
 
 	@Get("test")

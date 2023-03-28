@@ -74,7 +74,7 @@
 
 	async function roomPrompt(room: Room) {
 		const route = room.type.replace("Room", "").toLowerCase();
-	
+
 		Swal.fire({
 			title: "Go to game?",
 			showConfirmButton: true,

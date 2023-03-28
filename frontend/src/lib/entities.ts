@@ -11,31 +11,26 @@ export type User = {
 	username: string,
 	status: Status,
 	avatar: string,
-	in_game: boolean,
 	activeRoomId: number | null,
 	achievements?: Achievement[],
 };
 
-export type Room = {
-    id: number,
-    name: string,
-	access: Access,
-	type: "ChatRoom" | "GameRoom",
-	joined: boolean,
-	owner?: User,
+export class Room<U extends Member = Member> {
+    id: number;
+    name: string;
+	access: Access;
+	type: "ChatRoom" | "GameRoom";
+	joined: boolean;
+	owner?: User;
+	self?: U;
 };
 
-export type ChatRoom = Room & {
-	// messages: Message[],
-	self?: ChatRoomMember
+export class ChatRoom extends Room<ChatRoomMember> {
+	// messages: Message[];
 };
 
-export type GameRoom = Room & {
-	state: GameState,
-	gamemode: Gamemode,
-	teamsLocked: boolean,
-	teams: Team[],
-	self?: GameRoomMember
+export class GameRoom extends Room<GameRoomMember> {
+	state?: GameState;
 };
 
 export type GameState = {

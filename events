@@ -1,5 +1,5 @@
-PACKET = { SUBJECT } { IDENTIFIER } { ACTION } { VALUE }
+PACKET = { SUBJECT } { ACTION } { IDENTIFIER } { VALUE }
+SUBJECT = enum
+ACTION = insert | update | remove
 IDENTIFIER = id
-SUBJECT = user | invites | room | member
-ACTION = set | add | remove
-VALUE = ...
+VALUE = undefined | partial

@@ -5,7 +5,6 @@ import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { Message } from "src/entities/Message";
 import { RoomInvite } from "src/entities/RoomInvite";
-import { User } from "src/entities/User";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
@@ -16,9 +15,9 @@ import * as linkify from "linkifyjs";
 import { EMBED_LIMIT, BOUNCER_KEY, EMBED_MAXLENGTH } from "src/vars";
 import { CHAT_ACHIEVEMENT } from "src/achievements";
 import { AchievementService } from "src/services/achievement.service";
-import axios from "axios";
 import { createHmac } from "node:crypto";
 import { IsString, MaxLength } from "class-validator";
+import axios from "axios";
 
 type Link = {
     type: string;
@@ -62,7 +61,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 				},
 				member: null,
 				user: {
-					id: member.userId,
+					id: member.user.id,
 				},
 			}
 		});
@@ -142,7 +141,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		if (target.room.id !== room.id) {
 			throw new BadRequestException("Target not a member of this room");
 		}
-
+		
 		if (target.role >= member.role) {
 			throw new ForbiddenException(ERR_PERM);
 		}
@@ -150,6 +149,13 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 		target.mute = new Date(Date.now() + duration);
 		
 		await this.member_repo.save(target);
+	
+		UpdateGateway.instance.send_update({
+			subject: Subject.MEMBER,
+			action: Action.UPDATE,
+			id: target.id,
+			value: { is_muted: target.is_muted },
+		}, ...target.room.users);
 	
 		if (target.mute > new Date) {
 			setTimeout(() => {
@@ -159,7 +165,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 					id: target.id,
 					value: { is_muted: false },
 				}, ...target.room.users);
-			});
+			}, duration);
 		}
 	}
 

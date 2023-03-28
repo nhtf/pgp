@@ -26,7 +26,7 @@ function patch(scene: THREE.Group) {
 	});
 }
 
-export async function loadModel(path: string, options: ModelOptions | null = null): Promise<THREE.Object3D> {
+export async function loadModel(path: string, options: ModelOptions | null = null): Promise<THREE.Group> {
 	const gltf = await loader.loadAsync(path);
 	patch(gltf.scene);
 
@@ -42,7 +42,7 @@ export async function loadModel(path: string, options: ModelOptions | null = nul
 		matrix.makeTranslation(translate.x, translate.y, translate.z);
 		gltf.scene.applyMatrix4(matrix);
 	}
-
+	console.log("gltf: ", gltf.scene);
 	const root = new THREE.Group();
 	root.add(gltf.scene);
 	return root;

@@ -48,4 +48,5 @@ export enum Subject {
 	PLAYER,
 	ACHIEVEMENT,
 	SCORE,
+	REDIRECT,
 }

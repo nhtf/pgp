@@ -11,8 +11,8 @@ export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
-export const DESYNC_CHECK_INTERVAL = 0;
-export const DESYNC_CHECK_DELTA = 0;
+export const DESYNC_CHECK_INTERVAL = 300;
+export const DESYNC_CHECK_DELTA = 120;
 export const SAVE_ALL_SNAPSHOTS = false;
 
 export interface Snapshot {
@@ -103,11 +103,7 @@ export class Net {
 			}
 
 			if (this.allEvents[middle].time < time) {
-				if (begin == middle) {
-					return end;
-				}
-
-				begin = middle;
+				begin = middle + 1;
 			} else {
 				end = middle;
 			}
@@ -178,7 +174,7 @@ export class Net {
 				if (latest !== null) {
 					this.broadcast({
 						name: "desync-check",
-						snapshot: latest,
+						snapshot: latest[0],
 					});
 				}
 			}
@@ -208,6 +204,14 @@ export class Net {
 		event.uuid = randomHex(8);
 		this.allEvents.splice(this.getEventIndex(event.time), 0, event as Event);
 		this.newEvents.push(event as Event);
+
+		this.allEvents.sort((a, b) => {
+			if (a.time != b.time) {
+				return a.time - b.time;
+			} else {
+				return a.uuid.localeCompare(b.uuid);
+			}
+		});
 	}
 
 	private merge(events: Event[]) {
@@ -227,7 +231,13 @@ export class Net {
 			}
 		}
 
-		this.allEvents.sort((a, b) => a.time - b.time);
+		this.allEvents.sort((a, b) => {
+			if (a.time != b.time) {
+				return a.time - b.time;
+			} else {
+				return a.uuid.localeCompare(b.uuid);
+			}
+		});
 	}
 
 	private getLatest(before: number): [Snapshot, Bible] | null {
@@ -248,6 +258,10 @@ export class Net {
 		if (this.minTime !== null) {
 			let latest = this.getLatest(this.minTime);
 
+			if (latest === null) {
+				console.error("possible desync in applyMerge");
+			}
+
 			if (latest === null && this.snapshots.length > 0) {
 				latest = this.snapshots[0];
 			}
@@ -258,6 +272,8 @@ export class Net {
 				this.forward(this.maxTime);
 			}
 		}
+
+		// console.log("apply merge", new Date().getTime());
 
 		this.minTime = null;
 	}

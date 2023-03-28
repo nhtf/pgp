@@ -4,10 +4,10 @@ import { Room } from "../entities/Room";
 import { randomBytes } from "node:crypto";
 import { User } from "../entities/User";
 import { Member } from "../entities/Member";
-import { Repository, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder, DeepPartial } from "typeorm";
+import { Repository, FindOptionsWhere, FindOneOptions, SelectQueryBuilder } from "typeorm";
 import { Access, Role, Subject, Action } from "src/enums";
 import { Controller, Inject, Get, Param, HttpStatus, Post, Body, Delete, Patch, ParseEnumPipe, UseGuards, createParamDecorator, ExecutionContext, UseInterceptors, ClassSerializerInterceptor, Injectable, CanActivate, mixin, Put, Query, UsePipes, ValidationPipe, SetMetadata, ForbiddenException, NotFoundException, BadRequestException, UnprocessableEntityException, Res, GoneException, Req, HttpCode, ParseBoolPipe } from "@nestjs/common";
-import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions } from "class-validator";
+import { IsString, Length, IsBoolean, ValidateIf, ValidationOptions, IsOptional } from "class-validator";
 import { Me, ParseUsernamePipe, ParseIDPipe } from "../util";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { RoomInvite } from "../entities/RoomInvite";
@@ -39,65 +39,58 @@ export class CreateRoomDTO {
 	password: string | null;
 }
 
+export class LeaveDTO {
+	@IsBoolean()
+	@IsOptional()
+	ban?: boolean;
+}
+
 export interface IRoomService<T extends Room, U extends Member> {
+	save(room: T): Promise<T>;
 	create(name?: string, is_private?: boolean, password?: string): Promise<T>;
 	destroy(...rooms: T[]): Promise<void>;
-	add_member(room: number | T, user: number | User, role?: Role): Promise<U>;
-	edit_member(room: number | T, role: Role, member: U | User | number): Promise<U>;
-	del_member(room: number | T, member: U | User | number, ban?: boolean): Promise<boolean>;
+	add_member(room: T, user: User, role?: Role): Promise<U>;
+	edit_member(room: T, member: U, role: Role): Promise<U>;
+	del_member(room: T, member: U, ban?: boolean);
 	owned_rooms(user: User): Promise<T[]>;
 }
 
-export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
+export function GenericRoomService<T extends Room, U extends Member>(RoomType: (new () => T), MemberType: (new () => U)) {
 	class RoomService<T extends Room> implements IRoomService<T, U> {
 		constructor(
 			readonly room_repo: Repository<T>,
 			readonly member_repo: Repository<U>,
 			readonly invite_repo: Repository<RoomInvite>,
 			readonly user_repo: Repository<User>,
-			readonly type: (new () => T),
 		) { }
+
+		async save(room: T): Promise<T> {
+			return this.room_repo.save(room);
+		}
 
 		async create(name: string | null, is_private: boolean, password: string | null): Promise<T> {
 			if (!name) {
-				name = randomBytes(30).toString("hex");
+				name = randomBytes(30).toString("base64");
 			}
 
 			if (!is_private && await this.room_repo.findOneBy({ name, is_private: false } as FindOptionsWhere<T>))
 				throw new ForbiddenException(`A room with the name "${name}" already exists`);
 
-			const room = new this.type();
+			const room = new RoomType;
 		
 			room.name = name;
 			room.is_private = is_private;
 			room.members = [];
+			room.invites = [];
+			room.banned_users = [];
 		
 			if (!room.is_private && password) {
 				room.password = await argon2.hash(password);
 			}
 
-			return room;
-		}
+			// return await this.room_repo.save(room as unknown as T);
 
-		async get_room(room: number | T): Promise<T | null> {
-			if (typeof room === "number")
-				return this.room_repo.findOne({
-					relations: {
-						members: {
-							user: true,
-						},
-						banned_users: true,
-					} as FindOptionsRelations<T>,
-					where: { id: room } as FindOptionsWhere<T>,
-				});
-			return room;
-		}
-
-		async get_room_or_fail(room: number | T): Promise<T> {
-			room = await this.get_room(room);
-			if (!room)
-				throw new NotFoundException(ERR_ROOM_NOT_FOUND);
-			return room;
+			return room as unknown as T;
 		}
 
 		// Unused
@@ -106,7 +99,7 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 		}
 
 		async add_member(room: T, user: User, role?: Role): Promise<U> {
-			if (room.users.map(({ id }) => id).includes(user.id)) {
+			if (room.users.some(({ id }) => id === user.id)) {
 				throw new ForbiddenException("Already member of room");
 			}
 
@@ -114,60 +107,51 @@ export function getRoomService<T extends Room, U extends Member>(room_repo: Repo
 		
 			member.user = user;
 			member.role = role ?? Role.MEMBER;
+			member.room = room;
 
 			room.members.push(member);
-		
+			
+			// return await this.member_repo.save(member);
+
 			return member;
 		}
 
-		async del_member(room: number | T, member: U | User | number, ban?: boolean) {
-			room = await this.get_room(room);
+		// Unused
+		async edit_member(room: T, member: U, role: Role): Promise<U> {
+			member.role = role;
+	
+			return this.member_repo.save(member);
+		}
 
-			if (!(member instanceof Member))
-				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id } } as FindOptionsWhere<U>);
-			if (!member)
-				return false;
-
-			const index = room.members?.findIndex(x => x.id === (member as Member).id);
-			if (index === undefined || index < 0)
+		async del_member(room: T, member: U, ban?: boolean) {
+			const index = room.members?.findIndex((x) => x.id === member.id);
+		
+			if (index < 0) {
 				throw new NotFoundException("Member not found");
-			room.members.splice(index, 1);
+			}
+		
+			// room.members.splice(index, 1);
+		
 			if (ban === true) {
-				let user = member.user;
+				room = await this.room_repo.findOne({ where: { id: room.id }, relations: { banned_users: true } } as FindOneOptions<T>)
 
-				user = await this.user_repo.findOneBy({ members: { id: member.id } });
-
-				if (!room.banned_users) {
-					room.banned_users = [];
-				}
-
-				room.banned_users.push(user);
+				room.banned_users.push({ id: member.userId } as User);
 			
 				await this.room_repo.save(room);
 			}
 
 			await this.member_repo.remove(member);
-
-			return true;
-		}
-
-		// Unused
-		async edit_member(room: number | T, role: Role, member: U | User | number): Promise<U> {
-			room = await this.get_room(room);
-
-			if (!(member instanceof Member))
-				member = await this.member_repo.findOneBy({ room: { id: room.id }, user: { id: typeof member === "number" ? member : member.id } } as FindOptionsWhere<U>);
-			if (!member)
-				throw new NotFoundException("Member not found");
-			member.role = role;
-			return this.member_repo.save(member);
 		}
 
 		async owned_rooms(user: User): Promise<T[]> {
 			return this.room_repo.findBy({ members: { role: Role.OWNER, user: { id: user.id } } } as FindOptionsWhere<T>)
 		}
 	}
-	return new RoomService<T>(room_repo, member_repo, invite_repo, user_repo, type);
+	return RoomService;
+}
+
+export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
+	return new (GenericRoomService<T, U>(type, MemberType))(room_repo, member_repo, invite_repo, user_repo);
 }
 
 export const GetMember = createParamDecorator(
@@ -293,7 +277,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 		
 			await this.onCreate(room, dto);
 			await this.service.add_member(room, user, Role.OWNER);
-			await this.room_repo.save(room);
+			await this.service.save(room);
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.ROOM,
@@ -385,13 +369,15 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				}
 			}
 
-			if (room.banned_users.find((user) => user.id === me.id)) {
+			if (room.banned_users.some((user) => user.id === me.id)) {
 				throw new ForbiddenException("You have been banned from this channel");
 			}
 
-			await this.service.add_member(room, me);
-			await this.room_repo.save(room);
-			await this.onJoin(room, room.self(me))
+			const member = await this.service.add_member(room, me);
+		
+			await this.onJoin(room, member)
+
+			await this.service.save(room);
 
 			if (invite) {
 				await this.invite_repo.remove(invite);
@@ -404,7 +390,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				value: {
 					...instanceToPlain(room),
 					joined: true,
-					self: room.self(me),
+					self: instanceToPlain(room.self(me)),
 				},
 			}, me);
 		}
@@ -431,8 +417,10 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 			@GetMember() member: U,
 			@GetRoom() room: T,
 			@Param("target", ParseIDPipe(MemberType)) target: U,
-			@Body("ban", ParseBoolPipe) ban?: boolean,
+			@Body() dto: LeaveDTO,
 		) {
+			const ban = dto.ban;
+		
 			if (member.id !== target.id && target.role >= member.role) {
 				throw new ForbiddenException(ERR_PERM);
 			}

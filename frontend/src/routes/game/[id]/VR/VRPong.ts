@@ -12,9 +12,8 @@ import { Vector, Quaternion } from "../Math";
 import { randomHex } from "../Util";
 import type { Event as NetEvent } from "../Net";
 import * as THREE from "three";
+import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper';
 
-import { get } from "$lib/Web";
-import { unwrap } from "$lib/Alert";
 import type { GameRoomMember } from "$lib/entities";
 
 export interface Snapshot extends WorldSnapshot {
@@ -39,21 +38,28 @@ export type PaddleUpdate = Partial<PaddleObject>;
 const textureLoader = new THREE.TextureLoader();
 
 async function createLights(world: Pong) {
-    const light = new THREE.SpotLight("white", 450, 0, Math.PI * 0.45, 0.0, 2);
-    const pointLight = new THREE.PointLight("white", 20, 0, 2);
-    const ambient = new THREE.AmbientLight("white", 0.5);
-    const hemisphere = new THREE.HemisphereLight(0xffffff, "grey", 1.0);
-
-    light.position.y = 19;
-    pointLight.position.y = 4;
-    pointLight.castShadow = true;
-    pointLight.shadow.mapSize.width = 2048;
-    pointLight.shadow.mapSize.height = 2048;
-
+    const ambient = new THREE.AmbientLight("white", 0.9);
+	const light = new THREE.PointLight("white", 25);
+	light.position.y = 4;
+	light.castShadow = true;
+	light.shadow.mapSize.width = 2048;
+	light.shadow.mapSize.height = 2048;
 	world.scene.add(light);
-	world.scene.add(pointLight);
+	const areaLight = new THREE.RectAreaLight("white", 20, 62, 0.4);
+	areaLight.position.y = 11;
+	areaLight.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
+	const areaLightL = new THREE.RectAreaLight("white", 20, 62, 0.4);
+	areaLightL.position.set(-10, 11, 0);
+	areaLightL.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
+	const areaLightR = new THREE.RectAreaLight("white", 20, 62, 0.4);
+	areaLightR.position.set(10, 11, 0);
+	areaLightR.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
+	const helper = new RectAreaLightHelper( areaLight, "red" );
+	world.scene.add(areaLight);
+	world.scene.add(areaLightL);
+	world.scene.add(areaLightR);
+	world.scene.add(helper);
 	world.scene.add(ambient);
-	world.scene.add(hemisphere);
 }
 
 async function createTexture(world: Pong, path: string) {
@@ -238,6 +244,7 @@ export class Paddle extends Entity {
 
 	public earlyTick() {
 		if (this.lastUpdate < this.world.time - Paddle.LIFETIME) {
+			console.log("Removing paddle", this.uuid, this.lastUpdate, this.world.time, Paddle.LIFETIME);
 			this.removed = true;
 		}
 
@@ -271,6 +278,7 @@ export class Pong extends World {
 	public leftGamepad?: Gamepad;
 	public tableModel?: THREE.Object3D;
 	public paddleModel?: THREE.Object3D;
+	public hallModel?: THREE.Object3D;
 	public member?: GameRoomMember;
 	public state?: State;
 	public tableSounds?: THREE.PositionalAudio[];
@@ -398,7 +406,9 @@ export class Pong extends World {
 					buttons: source.gamepad.buttons.map((b) => b.value),
 					axes: source.gamepad.axes.slice(0)
 				};
+				
 				if (handedness === "right") {
+					// console.log(data.axes);
 					if (Math.abs(data.axes[2]) > 0.1)
 						this.cameraGroup.position.add(cross.multiplyScalar(-data.axes[2] / TICKS_PER_SECOND));
 					if (Math.abs(data.axes[3]) > 0.1)
@@ -448,18 +458,21 @@ export class Pong extends World {
 		this.state = new State(options.room.teams);
 		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
 		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
+		this.hallModel = await loadModel("/Assets/gltf/PGP_HALL/PGP_HALL.gltf");
+		this.scene.add(this.hallModel);
 
 		this.tableSounds = await Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`)));
 		this.paddleSounds = await Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)));
 		this.paddleSounds.forEach(sound => sound.setVolume(3.0));
 
 		await createLights(this);
-		await createFloor(this);
+		// await createFloor(this);
 		await createScoreboard(this);
 
 		const table = new Table(this, Table.UUID);
 		this.tableSounds.forEach(sound => table.renderObject.add(sound));
 		this.add(table);
+		this.scene.remove(table.renderObject);
 
 		this.leftController.addEventListener("selectstart", () => {
 			this.send("ball", {

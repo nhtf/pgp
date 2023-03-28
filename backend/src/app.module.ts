@@ -36,6 +36,7 @@ import { TREE_KEY } from "src/util";//TODO delete
 import { BotController } from "src/controllers/bot.controller";
 import { AchievementService } from "src/services/achievement.service";
 import { UserService } from "src/services/user.service";
+import { MatchController } from "src/controllers/match.controller";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -180,6 +181,7 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		ChatRoomController,
 		MediaController,
 		BotController,
+		MatchController,
 	],
 	providers: [
 		GameGateway,

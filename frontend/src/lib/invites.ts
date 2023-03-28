@@ -15,7 +15,7 @@ export async function respond(invite: Invite, action: "accept" | "deny") {
 			break;
 		case "FriendRequest":
 			if (action === "accept") {
-				await post(`/user/me/friends/requests/`, { username: invite.from.username });
+				await post(`/user/me/friends`, { username: invite.from.username });
 			} else {
 				await remove(`/user/me/friends/requests/${invite.id}`);
 			}

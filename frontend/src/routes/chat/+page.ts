@@ -11,7 +11,7 @@ export const load: PageLoad = (async ({ fetch }) => {
 	const joinable: ChatRoom[] = await unwrap(get(`/chat/joinable`));
 	const rooms = joined.concat(joinable);
 	const owners = rooms
-		.filter(({ owner }) => owner)
+		.filter(({ owner }) => owner !== undefined)
 		.map(({ owner }) => owner) as User[];
 	
 	updateStore(userStore, owners);

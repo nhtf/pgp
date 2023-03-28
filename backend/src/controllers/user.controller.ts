@@ -1,3 +1,5 @@
+import type { Achievement } from "src/entities/Achievement";
+import type { AchievementView } from "src/entities/AchievementView";
 import {
 	Controller,
 	Get,
@@ -14,7 +16,6 @@ import {
 	Delete,
 	Post,
 	PipeTransform,
-	ParseBoolPipe,
 	ArgumentMetadata,
 	Put,
 	ForbiddenException,
@@ -28,7 +29,7 @@ import { Express, Response } from "express";
 import { User } from "../entities/User";
 import { Invite } from "../entities/Invite";
 import { FriendRequest } from "../entities/FriendRequest";
-import { Repository, Like } from "typeorm";
+import { Repository } from "typeorm";
 import { HttpAuthGuard } from "../auth/auth.guard";
 import { Me, ParseIDPipe, ParseUsernamePipe, UsernameDTO } from "../util";
 import { randomBytes } from "node:crypto";
@@ -38,14 +39,12 @@ import { AVATAR_DIR, DEFAULT_AVATAR, AVATAR_EXT, FUZZY_THRESHOLD } from "../vars
 import { SetupGuard } from "src/guards/setup.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { Action, Subject } from "src/enums";
-import * as gm from "gm";
-import type { Achievement } from "src/entities/Achievement";
-import type { AchievementView } from "src/entities/AchievementView";
 import { AchievementProgress } from "src/entities/AchievementProgress";
 import { instanceToPlain } from "class-transformer";
 import { AchievementService } from "src/services/achievement.service";
 import { FRIEND_COUNT_ACHIEVEMENT, AVATAR_ACHIEVEMENT } from "src/achievements";
 import { IsBooleanString, IsOptional, IsString } from "class-validator";
+import * as gm from "gm";
 
 declare module "express" {
 	export interface Request {
@@ -250,8 +249,7 @@ export function GenericUserController(
 		) {
 			user = user || me;
 
-			return await this.view_repo.findBy({ user_id: user.id });
-			//return await this.get_achievements(user);
+			return this.view_repo.findBy({ user_id: user.id });
 		}
 
 		@Get(options.cparam + "/friend(s)?")
@@ -327,7 +325,7 @@ export function GenericUserController(
 			});
 		}
 
-		@Post(options.cparam + "/friend(s)?/request(s)?")
+		@Post(options.cparam + "/friend(s)?")
 		@UseGuards(SetupGuard)
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async create_request(
@@ -337,7 +335,7 @@ export function GenericUserController(
 		) {
 			user = user || me;
 			if (user.id !== me.id) {
-				throw new ForbiddenException()
+				throw new ForbiddenException();
 			};
 
 			if (user.id === target.id) {
@@ -423,19 +421,17 @@ export function GenericUserController(
 		@Post(`${options.cparam}/blocked`)
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async block(@Me() me: User, @Body("id", ParseIDPipe(User)) target: User) {
-			me = await this.user_repo.findOne({
-				where: { id: me.id },
-				relations: { blocked: true },
-			});
+			if (me.id === target.id) {
+				throw new ForbiddenException("Can't block yourself");
+			}
+		
+			me = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
 
-			if (me.blocked.map((user) => user.id).includes(target.id)) {
+			if (me.blocked.some(({ id }) => id === target.id)) {
 				throw new ForbiddenException("Already blocked");
 			}
 
-			await this.user_repo.save({
-				id: me.id,
-				blocked: [...me.blocked, target],
-			});
+			await this.user_repo.save({	id: me.id, blocked: [...me.blocked, target] });
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
@@ -447,21 +443,14 @@ export function GenericUserController(
 
 		@Delete(`${options.cparam}/blocked`)
 		@HttpCode(HttpStatus.NO_CONTENT)
-		async unblock(
-			@Me() me: User,
-			@Body("id", ParseIDPipe(User)) target: User
-		) {
-			me = await this.user_repo.findOne({
-				where: { id: me.id },
-				relations: { blocked: true },
-			});
+		async unblock(@Me() me: User, @Body("id", ParseIDPipe(User)) target: User) {
+			me = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
 
-			if (!me.blocked.map((user) => user.id).includes(target.id)) {
+			if (!me.blocked.some(({ id }) => id === target.id)) {
 				throw new ForbiddenException("Not blocked");
 			}
 
-			await this.user_repo.save({
-				id: me.id,
+			await this.user_repo.save({	id: me.id,
 				blocked: me.blocked.filter((user) => user.id !== target.id),
 			});
 

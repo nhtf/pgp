@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChatRoom, GameRoom, GameState } from "$lib/entities";
+	import type { GameRoom, Room, ChatRoom, GameState } from "$lib/entities";
 	import {  Gamemode } from "$lib/enums";
 	import { page } from "$app/stores";
 	import { unwrap } from "$lib/Alert";
@@ -10,9 +10,7 @@
 	import Invite from "./Invite.svelte";
     import Swal from "sweetalert2";
 
-	type T = ChatRoom | GameRoom;
-
-	export let room: T;
+	export let room: Room;
 
 	const crown = `${icon_path}/crown.svg`;
 	const gamemode_icons = [
@@ -28,7 +26,7 @@
 	let state: GameState | null = (room as GameRoom).state ?? null;
 	let icon: string | null = null;
 	
-	if (room.type === "GameRoom") {
+	if (room.type === "GameRoom" && state) {
 		icon = gamemode_icons[state.gamemode];
 
 		if (state.gamemode === Gamemode.MODERN && state.teams?.length === 4) {
@@ -39,10 +37,9 @@
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: owner = room.owner ? $userStore.get(room.owner.id)! : null;
 	$: state = state ? $gameStateStore.get(state.id)! : null;
+	$: team = state?.teams.find((team) => team.players?.some(({ userId }) => userId === user.id));
 
-	$: team = state?.teams.find((team) => team.players?.map((player) => player.userId).includes(user.id));
-
-	function teamSelector(room: T): Promise<number | null> {
+	function teamSelector(room: Room): Promise<number | null> {
 		const inputOptions = state!.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
 		const promise = Swal.fire({
 			input: "radio",
@@ -66,35 +63,36 @@
 		return promise;
 	}
 
-	async function join(room: T) {
-
+	async function join(room: Room) {
 		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
+
+		const state = (room as GameRoom).state;
 	
-		if (room.type === "GameRoom" && !(room as GameRoom).state.teamsLocked) {
+		if (room.type === "GameRoom" && state && !state.teamsLocked) {
 			changeTeam(room);
 		}
 	
 		password = "";
 	}
 
-	async function leave(room: T) {
+	async function leave(room: Room) {
 		await unwrap(remove(`/${route}/id/${room.id}/members/me`, { ban: false }));
 	}
 	
-	async function erase(room: T) {
+	async function erase(room: Room) {
 		await unwrap(remove(`/${route}/id/${room.id}`));
 	}
 	
-	async function changeTeam(room: T) {
+	async function changeTeam(room: Room) {
 		try {
 			const teamId = await teamSelector(room);
 		
-			await unwrap(patch(`/game/id/${room.id}/team/${room.self!.id}`, { team: teamId }));
+			await unwrap(patch(`/game/id/${room.id}/team/${(room as GameRoom).self!.id}`, { team: teamId }));
 			
 		} catch (_) {}
 	}
 
-	async function lock(room: T) {
+	async function lock(room: Room) {
 		await unwrap(post(`/game/id/${room.id}/lock`));
 	}
 

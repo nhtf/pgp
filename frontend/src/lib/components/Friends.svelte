@@ -1,31 +1,55 @@
 <script lang="ts">
-	import { friendStore, userStore } from "$lib/stores";
+    import type { User } from "$lib/entities";
+	import { friendStore, inviteStore, userStore } from "$lib/stores";
     import { byStatusThenName } from "$lib/sorting";
-    import UserDropdown from "./UserDropdown.svelte";
+    import { unwrap } from "$lib/Alert";
+    import { page } from "$app/stores";
+    import { post } from "$lib/Web";
     import UserSearch from "./UserSearch.svelte";
 	import Friend from "./Friend.svelte";
+    import Swal from "sweetalert2";
 
+	let value = "";
+
+	$: invites = [...$inviteStore.values()];
 	$: friends = [...$friendStore.keys()]
 		.map((id) => $userStore.get(id)!)
 		.sort(byStatusThenName);
+
+	async function befriend(username: string) {
+		await unwrap(post(`/user/me/friends`, { username }));
+	
+		Swal.fire({	icon: "success", timer: 1000, showConfirmButton: false });
+	}
+
+	function isBefriendable(user: User) {
+		return (
+			user.id !== $page.data.user?.id &&
+			!friends.some(({ id }) => id === user.id) &&
+			!invites.find((invite) => {
+				invite.type === "FriendRequest" && invite.to.id === user.id
+			})
+		);
+	}
 
 </script>
 
 <div class="block-cell self-flex-start bg-c bordered" id="friend-block">
 	<div class="block-hor">
-		<UserSearch/>
+		<div class="flex flex-row gap-1">
+			<UserSearch bind:value filter={isBefriendable}/>
+			<button
+				class="button border-green"
+				disabled={!value}
+				on:click={() => befriend(value)}>Add</button
+			>
+		</div>
 	</div>
 	<div class="block-vert width-available">
 		{#each friends as user (user.id)}
 			<Friend {user} />
 		{/each}
 	</div>
-</div>
-
-<div class="flex flex-col gap-4">
-	{#each friends as user (user.id)}
-		<UserDropdown {user}/>
-	{/each}
 </div>
 
 <style>

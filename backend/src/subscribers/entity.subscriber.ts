@@ -1,9 +1,7 @@
 import type { User } from "src/entities/User"
 import type { Room } from "src/entities/Room"
-import type { Team } from "src/entities/Team"
 import type { Invite } from "src/entities/Invite"
 import type { Member } from "src/entities/Member"
-import type { Player } from "src/entities/Player"
 import type { Message } from "src/entities/Message"
 import type { GameState } from "src/entities/GameState"
 import type { AchievementProgress } from "src/entities/AchievementProgress"
@@ -13,12 +11,12 @@ import { ReceiverFinder } from "src/ReceiverFinder"
 import { instanceToPlain } from "class-transformer"
 import { Action, Subject } from "src/enums"
 
-type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User | User[], relations?: FindOptionsRelations<any> };
+type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User[] | null, relations?: FindOptionsRelations<any> };
 
 const subjects: SubjectInfo[] = [
 	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [] },
 	{ subject: Subject.ACHIEVEMENT, names: [ "Achievement" ], fun: (ach: AchievementProgress) => [] },
-	{ subject: Subject.ROOM, names: [ "Room", "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room?.users : [] },
+	{ subject: Subject.ROOM, names: [ "Room", "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room.users?.length ? room.users : null : [] },
 	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to] },
 	{ subject: Subject.MEMBER, names: [ "Member", "ChatRoomMember", "GameRoomMember" ],
 		fun: (member: Member) => member.room?.users,
@@ -81,7 +79,11 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 	async receivers(entity: any, info: SubjectInfo): Promise<User[]> {
 		let receivers = info.fun(entity);
 
-		if (!receivers) {
+		if (receivers === null) {
+			throw new Error("No receivers");
+		}
+
+		if (receivers === undefined) {
 			const entityWithRelations = await ReceiverFinder.instance.get(info.subject, entity.id, info.relations);
 
 			receivers = info.fun(entityWithRelations);

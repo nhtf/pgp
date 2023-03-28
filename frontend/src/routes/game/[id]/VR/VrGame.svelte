@@ -3,8 +3,8 @@
 	import { Ammo, ammoInit } from "./Ammo";
 	import { Pong } from "./VRPong";
 	import { page } from "$app/stores";
-	import type { PageData } from '../$types';
     import type { GameRoom } from "$lib/entities";
+	import {VRButton} from "three/examples/jsm/webxr/VRButton";
 
 	export let room: GameRoom;
 
@@ -15,7 +15,6 @@
 		console.log($page.data);
 
 		await ammoInit();
-		const VRButton = (await import("three/examples/jsm/webxr/VRButton.js")).VRButton;
 		
 		world = new Pong();
 		console.log(world);
@@ -54,8 +53,14 @@
 <style global>
 	.game-container {
 		position: fixed;
-		inset: 77px 5px 5px 5px;
+		inset: 177px 5px 5px 5px;
 		z-index: 10000;
+	}
+
+	.canvas {
+		position: fixed;
+		inset: 77px 5px 5px 5px;
+		border-radius: 6px;
 	}
 
 	#threejs-unfucker {

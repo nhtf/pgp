@@ -1,10 +1,14 @@
 import { Vector, intersection } from "../lib2D/Math2D";
 import type { VectorObject, Line } from "../lib2D/Math2D";
 import { FIELDWIDTH, FIELDHEIGHT } from "./Constants";
-import type { BallObject } from "../lib2D/interfaces";
+import { serialize, deserialize } from "../Math";
 
 //for making the trailing effect
 let positions: VectorObject[] = [];
+
+export interface BallObject {
+	transform: string,
+}
 
 export class Ball {
 	public position: Vector;
@@ -36,15 +40,22 @@ export class Ball {
 	}
 
 	public save(): BallObject {
+		const buffer = new Float64Array(4);
+		buffer[0] = this.position.x;
+		buffer[1] = this.position.y;
+		buffer[2] = this.velocity.x;
+		buffer[3] = this.velocity.y;
+
 		return {
-			position: this.position.save(),
-			velocity: this.velocity.save(),
+			transform: serialize(buffer.buffer),
 		};
 		
 	}
 
 	public load(object: BallObject) {
-		this.position = Vector.load(object.position);
-		this.velocity = Vector.load(object.velocity);
+		const buffer = new Float64Array(deserialize(object.transform));
+
+		this.position = new Vector(buffer[0], buffer[1]);
+		this.velocity = new Vector(buffer[2], buffer[3]);
 	}
 }

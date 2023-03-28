@@ -1,5 +1,4 @@
 import { Vector, isInConvexHull } from "../lib2D/Math2D";
-import type { PaddleObject } from "../lib2D/interfaces";
 import {
 	HEIGHT,
     paddleHeight, 
@@ -9,6 +8,15 @@ import {
 import type { Line } from "../lib2D/Math2D";
 import type { Team } from "../lib2D/Team";
 import type { VectorObject } from "../lib2D/Math2D";
+import { serialize, deserialize } from "../Math";
+
+export interface PaddleObject {
+	transform: string;
+	height: number;
+    width: number;
+	userID?: number;
+	ping: number;
+}
 
 export class Paddle {
 	public position: Vector;
@@ -23,7 +31,6 @@ export class Paddle {
 	private collisionLines: Line[] = [];
 
 	public constructor(position: Vector, angle: number, owner: number, team: Team, paddleContour: number[]) {
-		
 		this.position = new Vector(position.x, position.y);
 		this.height = paddleHeight;
         this.width = paddleWidth;
@@ -43,23 +50,29 @@ export class Paddle {
 	}
 
 	public save(): PaddleObject {
+		const buffer = new Float64Array(3);
+		buffer[0] = this.position.x;
+		buffer[1] = this.position.y;
+		buffer[2] = this.rotation;
+
 		return {
-			position: this.position.save(),
+			transform: serialize(buffer.buffer),
 			height: this.height,
             width: this.width,
 			userID: this.userID,
 			ping: this.ping,
-			rotation: this.rotation,
 		};
 	}
 
 	public load(object: PaddleObject) {
-		this.position = Vector.load(object.position);
+		const buffer = new Float64Array(deserialize(object.transform));
+
+		this.position = new Vector(buffer[0], buffer[1]);
 		this.height = object.height;
         this.width = object.width;
 		this.userID = object.userID;
 		this.ping = object.ping;
-		this.rotation = object.rotation;
+		this.rotation = buffer[2];
 	}
 
 	public getCollisionLines(): Line[] {

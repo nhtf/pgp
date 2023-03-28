@@ -18,6 +18,21 @@ export interface UpdatePacket {
 	value?: any;
 }
 
+export interface RedirectPacket {
+	url: string;
+	message: string;
+	can_cancel: boolean;
+}
+
+export function create_packet(subject: Subject, action: Action, id: number, value?: any): UpdatePacket {
+	return {
+		subject,
+		action,
+		id,
+		value,
+	};
+}
+
 declare module "http" {
 	export interface IncomingMessage {
 		session: SessionObject;
@@ -116,6 +131,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 	update(user: User) {
 		const last_status = this.status.get(user.id) ?? Status.OFFLINE;
 
+		// console.log(user.username, Status[this.status.get(user.id)], Status[user.status]);
 		if (user.status !== last_status) {
 			this.status.set(user.id, user.status);
 		

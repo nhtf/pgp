@@ -6,6 +6,7 @@
 
 	export let data: PageData;
 
+	$: users = [...$userStore.values()];
 	$: friends = [...$friendStore.keys()].map((id) => $userStore.get(id)!);
 
 </script>

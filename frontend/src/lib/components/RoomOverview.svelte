@@ -8,7 +8,7 @@
 
 	$: rooms = [...$roomStore.values()]
 		.filter((room) => room.type === type)
-		.sort(byJoined) as (ChatRoom & GameRoom)[];
+		.sort(byJoined);
 
 </script>
 

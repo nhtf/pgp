@@ -46,13 +46,13 @@
 			.addEventListener("change", applyTheme);
 	});
 
-	updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
-		if (update.action === Action.REMOVE && update.id === Number($page.params.id)) {
-			const route = $page.url.toString().includes("chat") ? "chat" : "game";
+	// updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
+	// 	if (update.action === Action.REMOVE && update.id === Number($page.params.id)) {
+	// 		const route = $page.url.toString().includes("chat") ? "chat" : "game";
 	
-			await goto(`/${route}`);
-		}
-	});
+	// 		await goto(`/${route}`);
+	// 	}
+	// });
 
 	addEventListener("mousemove", heartBeat);
 	addEventListener("keypress", heartBeat);

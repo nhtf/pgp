@@ -5,7 +5,7 @@ import { Role } from "$lib/enums"
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
 
-export const load: PageLoad = (async ({ parent, fetch, params }) => {
+export const load: PageLoad = (async ({ fetch, params }) => {
 	window.fetch = fetch;
 
 	const room: ChatRoom = await unwrap(get(`/chat/id/${params.id}`));

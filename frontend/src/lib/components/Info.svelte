@@ -111,13 +111,6 @@
 		</div>
 	</div> -->
 	<div>
-		{#if !$page.data.user?.in_game}
-			<div class="block-hor">
-				<div class="block-cell">
-					<p>Current game stats</p>
-				</div>
-			</div>
-		{/if}
 		{#each $page.data.games as game}
 			<Match user={profile} {game}/>
 		{/each}
