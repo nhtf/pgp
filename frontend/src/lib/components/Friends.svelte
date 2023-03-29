@@ -8,6 +8,7 @@
     import UserSearch from "./UserSearch.svelte";
 	import Friend from "./Friend.svelte";
     import Swal from "sweetalert2";
+    import UserDropdown from "./UserDropdown.svelte";
 
 	let value = "";
 
@@ -26,8 +27,8 @@
 		return (
 			user.id !== $page.data.user?.id &&
 			!friends.some(({ id }) => id === user.id) &&
-			!invites.find((invite) => {
-				invite.type === "FriendRequest" && invite.to.id === user.id
+			!invites.some((invite) => {
+				return invite.type === "FriendRequest" && invite.to.id === user.id
 			})
 		);
 	}
@@ -47,7 +48,7 @@
 	</div>
 	<div class="block-vert width-available">
 		{#each friends as user (user.id)}
-			<Friend {user} />
+			<Friend {user}/>
 		{/each}
 	</div>
 </div>

@@ -1,5 +1,4 @@
 <script lang="ts">
-	import type { ChatRoom, GameRoom } from "$lib/entities";
 	import { roomStore } from "$lib/stores";
     import { byJoined } from "$lib/sorting";
 	import RoomBox from "./RoomBox.svelte";

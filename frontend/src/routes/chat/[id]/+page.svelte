@@ -6,14 +6,14 @@
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
 	import { Action, CoalitionColors, roles, Subject } from "$lib/enums";
-	import { blockStore, memberStore, roomStore, userStore } from "$lib/stores";
+	import { blockStore, memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { byDate } from "$lib/sorting";
+    import { goto } from "$app/navigation";
 	import MessageBox from "$lib/components/MessageBox.svelte"
-	import MemberBox from "$lib/components/MemberBox.svelte";
 	import ScratchPad from "$lib/components/ScratchPad.svelte";
     import RoomHeader from "$lib/components/RoomHeader.svelte";
-    import { goto } from "$app/navigation";
+    import UserDropdown from "$lib/components/UserDropdown.svelte";
 
 	export let data: PageData;
 
@@ -28,9 +28,8 @@
 	$: room = $roomStore.get(data.room.id) as ChatRoom;
 	$: { !room && goto(`/chat`) }
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id) as ChatRoomMember[];
-	$: self = $memberStore.get(room?.self!.id)! as ChatRoomMember;
+	$: self = room?.self ? $memberStore.get(room?.self.id)! as ChatRoomMember : undefined;
 	$: blockedIds = [...$blockStore.values()].map((user) => user.id);
-	$: users = members.map((member) => $userStore.get(member.userId)!);
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
@@ -87,11 +86,11 @@
 
 </script>
 
-{#if room}
+{#if room && self}
+	<RoomHeader {room}/>
 	<div class="room-page">
 		<div class="room-container">
-			<RoomHeader {room}/>
-			<div id="messages" class="messages" use:scrollToBottom={messages}>
+			<div class="messages" id="messages" use:scrollToBottom={messages}>
 				{#each messages as message, index (message.id)}
 					{#if index >= min && !blockedIds.includes(message.userId)}
 						<MessageBox on:load|once={scroll} {message} {self} />
@@ -104,18 +103,14 @@
 			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
 		</div>
 		<div class="member-container">
-			<!-- {#each users as user}
-				<UserDropdown {user} {room}/>
-			{/each} -->
 			{#each roles.slice().reverse() as role}
 				{#if members.some((member) => member.role === role)}
 					<div class="member-group">
 						<h1 style={`color: #${role_colors[role]}`}>{role_names[role]}</h1>
 						{#each members.filter((member) => member.role === role) as member (member.id)}
-							<MemberBox {member} {self} memberGroup={true}/>
+							<UserDropdown {member}/>
 						{/each}
 					</div>
-					<div class="my-2"/>
 				{/if}
 			{/each}
 		</div>
@@ -129,48 +124,45 @@
 		left: 40vw;
 		bottom: 10vh;
 	}
+
 	.room-page {
 		display: flex;
 		flex-direction: row;
 		margin: 0.25rem;
 		align-items: stretch;
-		/* TODO */
-		height: 90vh;
+	
+		height: 80vh;
 	}
 
 	.room-container {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
-		align-items: stretch;
-		/* TODO */
-		width: 80vw;
-	}
-
-	.member-container {
-		display: flex;
-		flex-direction: column;
-		padding: 0.5rem;
-		margin: 0 0.25rem;
-		background-color: var(--box-color);
-		border-radius: 0.375rem;
-		gap: 0.5em;
-		align-items: center;
-	}
-
-	.member-group {
-		display: flex;
-		flex-direction: column;
-		gap: 0.5rem;
-		align-items: center;
 	}
 
 	.messages {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
-		overflow-y: auto;
-		margin: 0.25rem;
+
+		height: 70vh;
+	}
+
+	.member-container {
+		align-items: center;
+		background-color: var(--box-color);
+		border-radius: 1rem;
+		display: flex;
+		flex-direction: column;
+		gap: 2rem;
+		padding: 0.5rem;
+	}
+
+	.member-group {
+		display: flex;
+		flex-direction: column;
+		align-items: center;
+		gap: 0.5rem;
 	}
 
 </style>

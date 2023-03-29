@@ -373,16 +373,17 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				throw new ForbiddenException("You have been banned from this channel");
 			}
 
-			const member = await this.service.add_member(room, me);
-		
-			await this.onJoin(room, member)
 
+			const member = await this.service.add_member(room, me);
+
+			await this.member_repo.save(member);
+			await this.onJoin(room, member)
 			await this.service.save(room);
 
 			if (invite) {
 				await this.invite_repo.remove(invite);
 			}
-
+		
 			this.update_service.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
@@ -390,7 +391,7 @@ export function GenericRoomController<T extends Room, U extends Member, C extend
 				value: {
 					...instanceToPlain(room),
 					joined: true,
-					self: instanceToPlain(room.self(me)),
+					self: room.self(me),
 				},
 			}, me);
 		}

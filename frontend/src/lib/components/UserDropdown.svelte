@@ -1,32 +1,26 @@
 <script lang="ts">
     import type { Member, Room, User } from "$lib/entities";
-    import type { Role } from "$lib/enums";
-    import { status_colors } from "$lib/constants";
-    import { blockStore, friendStore, memberStore, userStore } from "$lib/stores";
     import { Avatar, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
-    import { get, patch, post, remove } from "$lib/Web";
-    import { unwrap } from "$lib/Alert";
-	import { page } from "$app/stores";
-    import { goto } from "$app/navigation";
-    import Swal from "sweetalert2";
+    import { blockStore, friendStore, memberStore, userStore } from "$lib/stores";
+    import { status_colors } from "$lib/constants";
     import { actions } from "$lib/action";
+	import { page } from "$app/stores";
 
-	export let user: User;
-	export let room: Room | null = null;
-
-	let member: Member | undefined;
+	export let member: Member | undefined = undefined;
+	export let user: User = { id: member!.userId } as User;
+	export let extend: boolean = false;
 
 	$: me = $userStore.get($page.data.user?.id)!;
 	$: user = $userStore.get(user.id)!;
 
-	$: member = room ? findMember(user, room) : undefined;
-	$: my_role = room ? findMember(me, room).role : undefined;
+	$: member = member ? $memberStore.get(member.id)! : undefined;
+	$: my_role = member ? findMember(me, { id: member.roomId } as Room)?.role : undefined;
 
 	$: friendIds = [...$friendStore.keys()];
 	$: blockedIds = [...$blockStore.keys()];
 
 	function findMember(user: User, room: Room) {
-		return [...$memberStore.values()].find(isMember.bind({}, user, room))!;
+		return [...$memberStore.values()].find(isMember.bind({}, user, room));
 	}
 
 	function isMember(user: User, room: Room, member: Member) {
@@ -39,24 +33,41 @@
 
 </script>
 
-<Avatar
-	src={user?.avatar}
-	id="avatar-{user.id}"
-	dot={{
-		placement: "bottom-right",
-		color: status_colors[user.status],
-	}}
-/>
-<Tooltip>{user.username}</Tooltip>
-<Dropdown triggeredBy="#avatar-{user.id}" class="dropdown">
-	<DropdownItem class="dropdown-item">
-		<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
-	</DropdownItem>
-	<DropdownDivider/>
-	{#each actions as { condition, fun }}
-		{#if !condition || condition({ user, member, friendIds, blockedIds, my_role })}
-			<DropdownItem class="dropdown-item" on:click={() => fun({ user, member })}>{capitalize(fun.name)}</DropdownItem>
+<div class="user">
+	<Avatar
+		src={user?.avatar}
+		id="avatar-{user.id}"
+		dot={{
+			placement: "bottom-right",
+			color: status_colors[user.status],
+		}}
+	/>
+	<Tooltip>{user.username}</Tooltip>
+	<Dropdown triggeredBy="#avatar-{user.id}" class="dropdown">
+		<DropdownItem class="dropdown-item">
+			<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
+		</DropdownItem>
+		{#if user.id !== me.id}
+			<DropdownDivider/>
+			{#each actions as { condition, fun }}
+				{#if !condition || condition({ user, member, friendIds, blockedIds, my_role }) }
+					<DropdownItem class="dropdown-item" on:click={() => fun({ user, member })}>{capitalize(fun.name)}</DropdownItem>
+				{/if}
+			{/each}
 		{/if}
-	{/each}
+	</Dropdown>
+	{#if extend}
+		<div>{user.username}</div>
+	{/if}
+</div>
 
-</Dropdown>
+<style>
+
+	.user {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 1rem;
+	}
+
+</style>

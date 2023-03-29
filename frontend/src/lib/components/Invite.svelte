@@ -23,7 +23,7 @@
 	}
 
 	function isInvitable(user: User) {
-		return (user.id !== $page.data.user.id	&& !members.some(({ userId }) => userId === user.id));
+		return (user.id !== $page.data.user.id && !members.some(({ userId }) => userId === user.id));
 	}
 
 	async function fetchMembers() {

@@ -6,9 +6,9 @@
 	import { memberStore, userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { remove } from "$lib/Web";
-	import MemberBox from "./MemberBox.svelte";
 	import EmbedBox from "$lib/components/EmbedBox.svelte";
 	import linkifyStr from "linkify-string";
+    import UserDropdown from "./UserDropdown.svelte";
 	import "linkify-plugin-mention";
 
 	export let message: Message;
@@ -24,7 +24,7 @@
 	const text_align = from_self ? "right" : "left";
 
 	$: user = $userStore.get(message.userId)!;
-	$: member = message.memberId ? $memberStore.get(message.memberId)! as ChatRoomMember : null;
+	$: member = message.memberId ? $memberStore.get(message.memberId)! as ChatRoomMember : undefined;
 
 	async function censor() {
 		await unwrap(remove(`/chat/id/${self.roomId}/messages/${message.id}`));
@@ -35,9 +35,9 @@
 	class="message"
 	style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}
 >
-	<MemberBox {user} {member} {self} memberGroup={false} />
-	<div class="message-box">
-		<div class="flex">
+	<UserDropdown {user} {member} />
+	<div class="flex flex-col gap-1">
+		<div class="flex gap-1">
 			<div
 				class="text-sm underline"
 				style={`text-align: ${text_align}; color: ${
@@ -46,8 +46,8 @@
 			>
 				{user.username}
 			</div>
+			<div class="grow" />
 			{#if !member || member.id === self.id || member.role < self.role}
-				<div class="grow" />
 				<button on:click={censor}
 					><img class="w-5 h-5" src={trash} alt="delete" /></button
 				>
@@ -77,27 +77,19 @@
 
 <style>
 	.message {
-		display: flex;
-		font-size: 1.5rem;
-		gap: 1em;
 		background-color: var(--box-color);
-		width: max-content;
-		color: var(--text-color);
-		border-radius: 6px;
-		padding: 0.5rem;
-		margin-top: 0.125rem;
+		border-radius: 1rem;
+		display: flex;
+		gap: 1rem;
+		margin: 0.25rem;
 		max-width: 100%;
-		overflow-wrap: break-word;
-	}
-
-	.message-box {
-		max-width: calc(100vw - 150px);
-		gap: 1em;
+		padding: 0.5rem;
+		align-items: start;
 	}
 
 	.message-content {
+		overflow-wrap: break-word;
 		white-space: pre-wrap;
-		font-size: 1.125rem;
 	}
 
 	.message-image {

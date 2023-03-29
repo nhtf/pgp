@@ -13,7 +13,7 @@
 
 <div class="users">
 	{#each friends as user}
-		<UserDropdown {user}/>
+		<UserDropdown {user} extend={true}/>
 	{/each}
 </div>
 

@@ -1,5 +1,5 @@
-import type { User, Member, ChatRoomMember } from "$lib/entities";
-import { Role } from "$lib/enums"
+import type { Member, ChatRoomMember, Room, User } from "$lib/entities";
+import { Gamemode, Role, Status } from "$lib/enums"
 import { unwrap } from "$lib/Alert"
 import { get, post, patch, remove } from "$lib/Web"
 import { goto } from "$app/navigation";
@@ -18,7 +18,8 @@ export const actions: Action[] = [
 	{ fun: unfriend, condition: ({ user, friendIds }) => friendIds.includes(user.id) },
 	{ fun: block, condition: ({ user, blockedIds }) => !blockedIds.includes(user.id) },
 	{ fun: unblock, condition: ({ user, blockedIds }) => blockedIds.includes(user.id) },
-	{ fun: spectate, condition: ({ user}) => user.activeRoomId !== null },
+	{ fun: invite, condition: ({ user}) => user.status !== Status.INGAME && user.status !== Status.OFFLINE },
+	{ fun: spectate, condition: ({ user}) => user.status === Status.INGAME },
 
 	{ fun: promote, condition: ({ member, my_role }) => member && my_role ? my_role === Role.OWNER : false },
 	{ fun: demote, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && member.role > 0 : false },
@@ -27,6 +28,8 @@ export const actions: Action[] = [
 	{ fun: mute, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && !(member as ChatRoomMember).is_muted : false },
 	{ fun: unmute, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && (member as ChatRoomMember).is_muted : false },
 ];
+
+// User
 
 async function befriend({ user }: Args) {
 	await unwrap(post(`/user/me/friends`, { username: user.username }));
@@ -57,12 +60,40 @@ async function spectate({ user }: Args) {
 	await goto(`/game/${id}`);
 }
 
+async function invite({ user }: Args) {
+	const { isConfirmed, value } = await gamemodeSelector();
+
+	if (!isConfirmed) {
+		return ;
+	}
+
+	const gamemode = value ? Number(value) : Gamemode.CLASSIC;
+
+	const roomDto = {
+		name: null,
+		password: null,
+		is_private: true,
+		gamemode,
+		players: 2,
+	};
+
+	const room = await unwrap(post(`/game`, roomDto));
+	const self = await unwrap(get(`/game/id/${room.id}/self`));
+	const team = room.state.teams[0];
+
+	await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
+	await unwrap(post(`/game/id/${room.id}/invite`, { username: user.username }));
+	await roomPrompt(room);
+}
+
+// Member
+
 async function promote({ member }: Args) {
 	await unwrap(patch(`/chat/id/${member!.roomId}/members/${member!.id}`, { role: member!.role + 1 }));
 }
 
 async function demote({ member }: Args) {
-	await unwrap(patch(`/chat/id/${member!.roomId}/members/${member!.id}`, { role: member!.role + 1 }));
+	await unwrap(patch(`/chat/id/${member!.roomId}/members/${member!.id}`, { role: member!.role - 1 }));
 }
 
 async function kick({ member }: Args) {
@@ -88,12 +119,44 @@ async function mute({ member }: Args) {
 	if (isConfirmed) {
 		const duration = Number(value) * 60 * 1000;
 
-		console.log(duration);
-	
 		await unwrap(post(`/chat/id/${member!.roomId}/mute/${member!.id}`, { duration }));
 	}
 }
 
 async function unmute({ member }: Args) {
 	await unwrap(post(`/chat/id/${member!.roomId}/mute/${member!.id}`, { duration: 0 }));
+}
+
+// Util
+
+async function gamemodeSelector() {
+	const promise = Swal.fire({
+		title: "Invite to match",
+		input: "radio",
+		inputOptions: [ "Classic", "Modern", "VR" ],
+		confirmButtonText: "Invite",
+		showCancelButton: true,
+	});
+	
+	const elements = document.getElementsByName("swal2-radio") as NodeListOf<HTMLInputElement>;
+	const element = [...elements].find((element) => Number(element.value) === 0)!;
+
+	element.checked = true;
+
+	return promise;
+}
+
+async function roomPrompt(room: Room) {
+	const route = room.type.replace("Room", "").toLowerCase();
+
+	Swal.fire({
+		title: "Go to game?",
+		showConfirmButton: true,
+		showCancelButton: true,
+		confirmButtonText: "Go",
+	}).then(async (result) => {
+		if (result.isConfirmed) {
+			await goto(`/${route}/${room.id}`);
+		}
+	});
 }

@@ -56,7 +56,7 @@ export class Room {
 	}
 
 	self(user: User): any {
-		return this.members?.find((member) => member.userId === user.id);
+		return instanceToPlain(this.members.find((member) => member.userId === user.id)!);
 	}
 
 	send_update(packet: UpdatePacket) {

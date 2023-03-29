@@ -6,7 +6,6 @@ import { GameState } from "src/entities/GameState";
 import { Team } from "src/entities/Team";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { GenericRoomService, CreateRoomOptions } from "src/services/new.room.service";
-import type { RoomInvite } from "src/entities/RoomInvite";
 
 interface CreateGameRoomOptions extends CreateRoomOptions {
 	gamemode: Gamemode;
@@ -30,10 +29,8 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			room_repo: Repository<GameRoom>,
 			@Inject("GAMEROOMMEMBER_REPO")
 			member_repo: Repository<GameRoomMember>,
-			@Inject("ROOMINVITE_REPO")
-			invite_repo: Repository<RoomInvite>,
 		) {
-			super(room_repo, member_repo, invite_repo);
+			super(room_repo, member_repo);
 		}
 
 		async create(options: CreateGameRoomOptions) {

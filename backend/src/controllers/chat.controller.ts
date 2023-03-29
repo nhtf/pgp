@@ -34,7 +34,7 @@ class MessageDTO {
 	content: string;
 }
 
-export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
+export class ChatController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
 
 	constructor(
 		@Inject("CHATROOM_REPO")
@@ -54,6 +54,7 @@ export class ChatRoomController extends GenericRoomController(ChatRoom, ChatRoom
 	}
 
 	async onJoin(room: ChatRoom, member: ChatRoomMember) {
+		console.log(member);
 		const messages = await this.message_repo.find({
 			where: {
 				room: {

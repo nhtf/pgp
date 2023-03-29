@@ -18,6 +18,11 @@ export class RolesGuard implements CanActivate {
 		if (!room || (!member && room.is_private)) {
 			throw new NotFoundException(ERR_ROOM_NOT_FOUND);
 		}
+		if (role === null) {
+			if (member)
+				throw new ForbiddenException("Already a member");
+			return true;
+		}
 		if (!member || member?.role < role) {
 			throw new ForbiddenException(ERR_PERM);
 		}

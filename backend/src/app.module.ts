@@ -13,7 +13,7 @@ import * as session from "express-session";
 import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
-import { ChatRoomController } from "./controllers/chat.controller";
+import { ChatController } from "./controllers/chat.controller";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
@@ -32,11 +32,18 @@ import { MediaController } from "src/controllers/media.controller";
 import { EntitySubscriber } from "src/subscribers/entity.subscriber"
 import { ReceiverFinder } from "src/ReceiverFinder"
 import { RateLimitMiddleware } from "src/middleware/ratelimit.middleware";
-import { TREE_KEY } from "src/util";//TODO delete
 import { BotController } from "src/controllers/bot.controller";
 import { AchievementService } from "src/services/achievement.service";
 import { UserService } from "src/services/user.service";
 import { MatchController } from "src/controllers/match.controller";
+import { ChatRoom } from "src/entities/ChatRoom";
+import { ChatRoomMember } from "src/entities/ChatRoomMember";
+import { GenericRoomService } from "src/services/new.room.service";
+import { GameRoomService } from "src/services/gameroom.service";
+import { NewGameController } from "src/controllers/new.game.controller";
+import { GameRoom } from "src/entities/GameRoom";
+import { GameRoomMember } from "src/entities/GameRoomMember";
+import { RoomInviteService } from "src/services/roominvite.service";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -138,17 +145,14 @@ const entityProviders = entityFiles.map<{
 	const name = Object.keys(entity)[0].toUpperCase() + "_REPO";
 	return {
 		provide: name,
-		useFactory: (reflector: Reflector, dataSource: DataSource) => {
-			const tree = reflector.get<boolean>(TREE_KEY, clazz);
-			if (tree == true)
-				return dataSource.getTreeRepository(clazz);
+		useFactory: (dataSource: DataSource) => {
 			return dataSource.getRepository(clazz)
 		},
-		inject: [Reflector, "DATA_SOURCE"],
+		inject: ["DATA_SOURCE"],
 	};
 });
 
-const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room || value.name == "Room").map(value => {
+const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room || value.name == "Room").map(value => {//TODO remove
 	const name = value.name.toUpperCase();
 	return {
 		provide: name + "_PGPSERVICE",
@@ -159,6 +163,24 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 		inject: [name + "_REPO", (name == "ROOM" ? "" : name) + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
 	};
 });
+
+const services = [
+	{
+		provide: "CHATROOM_SERVICE",
+		useFactory: () => {
+		// useFactory: (room_repo: Repository<ChatRoom>, member_repo: Repository<ChatRoomMember>) => {
+			return GenericRoomService(ChatRoom, ChatRoomMember);
+		},
+		inject: ["CHATROOM_REPO", "CHATROOMMEMBER_REPO"],
+	},
+	{
+		provide: "GAMEROOM_SERVICE",
+		useFactory: (room_repo: Repository<GameRoom>, member_repo: Repository<GameRoomMember>) => {
+			return new GameRoomService(room_repo, member_repo);
+		},
+		inject: ["GAMEROOM_REPO", "GAMEROOMMEMBER_REPO"],
+	},
+];
 
 @Module({
 	imports: [
@@ -172,29 +194,33 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 	controllers: [
 		AppController,
 		AuthController,
-		TotpController,
+		BotController,
+		ChatController,
 		DebugController,
 		GameController,
+		TotpController,
+		MediaController,
+		NewGameController,
 		UserMeController,
 		UserIDController,
 		UserUsernameController,
-		ChatRoomController,
-		MediaController,
-		BotController,
 		MatchController,
 	],
 	providers: [
 		GameGateway,
-		UpdateGateway,
 		HttpAuthGuard,
+		UpdateGateway,
 		SessionService,
 		SetupGuard,
 		ReceiverFinder,
 		AchievementService,
 		UserService,
+		GameRoomService,
+		RoomInviteService,
 		...databaseProviders,
 		...entityProviders,
 		...roomServices,
+		...services,
 	],
 	exports: [
 		...databaseProviders,
@@ -210,7 +236,7 @@ export class AppModule implements NestModule {
 		consumer.apply(SessionExpiryMiddleware).exclude(
 			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
-		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatRoomController);
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatController);
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
 		consumer.apply(ActivityMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
