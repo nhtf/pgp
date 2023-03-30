@@ -1,5 +1,5 @@
 import type { Room } from "src/entities/Room";
-import type { Member } from "src/entities/Member";
+import { Member } from "src/entities/Member";
 import { User } from "src/entities/User";
 import { RoomInvite } from "src/entities/RoomInvite";
 import { Controller, Inject, Get, Post, Delete, UseGuards, HttpCode, HttpStatus, UsePipes, ValidationPipe, Query, Body, createParamDecorator, ExecutionContext, NotFoundException, UseInterceptors, ClassSerializerInterceptor, Patch, ForbiddenException, ParseBoolPipe, BadRequestException, Param, Res, ParseEnumPipe } from "@nestjs/common";
@@ -21,15 +21,9 @@ import { SelectQueryBuilder, Not } from "typeorm"
 
 class PasswordDTO {
 	@IsString()
-	@Length(1, 500)
+	@Length(0, 500)
 	@IsOptional()
 	password?: string;
-}
-
-export enum Filter {
-	"joined",
-	"joinable",
-	"visible",
 }
 
 export const GetRoom = createParamDecorator(
@@ -70,6 +64,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 	MemberType: (new () => U),
 	CreateRoomDTO: (new () => S),
 	EditRoomDTO: (new () => Partial<S>),
+	EditMemberDTO: (new () => Partial<U>),
 	route: string,
 ) {
 	@UseGuards(HttpAuthGuard, SetupGuard, RolesGuard)
@@ -84,24 +79,16 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		) {
 		}
 
-		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
-			return qb
-				.subQuery()
-				.from(MemberType, "member")
-				.select("member.roomId")
-				.select("member.userId")
-				.where(`"roomId" = room.id`)
-				.andWhere(`"userId" = :userId`, { userId: user.id })
-				.getQuery();
-		}
-
-		// Room
-	
-		@Get()
-		async list_rooms(@Me() me: User, @Query("filter") filter: string) {
+		async get_rooms(me: User, filter: string) {
 			switch (filter) {
 				case "joined":
-					return this.room_service.joined_rooms(me);
+					return this.room_service.query()
+						.where((qb) => `EXISTS (${this.isMemberQuery(qb, me)})`)
+						.leftJoinAndSelect("room.members", "member")
+						.leftJoinAndSelect("member.user", "self")
+						.leftJoinAndSelect("member.player", "selfPlayer")
+						.leftJoinAndSelect("selfPlayer.team", "selfTeam")
+						.getMany();
 				case "joinable":
 					return this.room_service.query()
 						.where((qb) => `NOT EXISTS (${this.isMemberQuery(qb, me)})`)
@@ -120,6 +107,34 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			}
 		}
 
+		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
+			return qb
+				.subQuery()
+				.from(Member, "member")
+				.select("member.roomId")
+				.select("member.userId")
+				.where(`"roomId" = room.id`)
+				.andWhere(`"userId" = :userId`, { userId: user.id })
+				.getQuery();
+		}
+
+		// Room
+	
+		@Get()
+		async list_rooms(@Me() me: User, @Query("filter") filter: string) {
+			const rooms = await this.get_rooms(me, filter);
+		
+			return rooms.map((room) => {
+				const self = room.self(me);
+			
+				return {
+					...instanceToPlain(room),
+					joined: Boolean(self),
+					self,
+				}
+			});
+		}
+
 		@Post()
 		@HttpCode(HttpStatus.NO_CONTENT)
 		@UsePipes(new ValidationPipe({ expectedType: CreateRoomDTO }))
@@ -129,14 +144,14 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		) {
 			const room = await this.room_service.create(dto);
 		
-			await this.room_service.add_members(room, { user, role: Role.OWNER });
-			await this.room_service.save(room);
+			room.members = await this.room_service.add_members(room, { user, role: Role.OWNER });
 		
 			UpdateGateway.instance.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.UPDATE,
 				value: {
+					owner: room.owner,
 					joined: true,
 					self: room.self(user),
 				}
@@ -145,8 +160,8 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 
 		@Get(":id")
 		@RequiredRole(Role.MEMBER)
-		async get_room(@GetRoom() room: T) {
-			return room;
+		async get_room(@Me() me: User, @GetRoom() room: T) {
+			return { ...instanceToPlain(room), joined: true, self: room.self(me) };
 		}
 
 		@Patch(":id")
@@ -184,6 +199,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			@Me() me: User,
 			@Body() dto: PasswordDTO,
 		) {
+			console.log(me.username);
 			if (all_of(await this.room_service.is_banned(room, me)))
 				throw new ForbiddenException("You have been banned from this room");
 
@@ -203,7 +219,25 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 
 			await this.room_service.add_members(room, { user: me });
 			await this.invite_service.remove(...invites);
-			await this.room_service.save(room);
+
+			if (room.is_private) {
+				UpdateGateway.instance.send_update({
+					subject: Subject.ROOM,
+					action: Action.UPDATE,
+					id: room.id,
+					value: { ...instanceToPlain(room) }
+				}, me);
+			}
+		
+			UpdateGateway.instance.send_update({
+				subject: Subject.ROOM,
+				action: Action.UPDATE,
+				id: room.id,
+				value: {
+					joined: true,
+					self: room.self(me),
+				}
+			}, me);
 		}
 
 		@Get(":id/member(s)?/me")
@@ -223,24 +257,25 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			return member;
 		}
 
-		@Patch(":id/member(s)?/:member")
+		@Patch(":id/member(s)?/:target")
 		@RequiredRole(Role.MEMBER)
+		@UsePipes(new ValidationPipe({ expectedType: EditMemberDTO }))
 		async edit_member(
 			@GetRoom() room: T,
 			@GetMember() member: U,
 			@Param("target", ParseIDPipe(MemberType)) target: U,
-			@Body("role", new ParseEnumPipe(Role)) role: Role
+			@Body() dto: Partial<U>,
 		) {
 			if (target.roomId !== room.id)
 				throw new NotFoundException(); 
 
-			if (target.role >= member.role || (role !== Role.OWNER && role >= member.role))
+			if (target.role >= member.role || (dto.role !== Role.OWNER && dto.role >= member.role))
 				throw new ForbiddenException(ERR_PERM);
 
-			const changes = [{ member: target, role }];
+			const changes = [{ member: target, changes: dto }];
 			
-			if (role === Role.OWNER)
-				changes.push({ member: member, role: Role.ADMIN });
+			if (dto.role === Role.OWNER)
+				changes.push({ member: member, changes: { role: Role.ADMIN } as Partial<U> });
 			await this.room_service.edit_members(room, ...(changes as any));
 		}
 
@@ -267,12 +302,11 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				throw new ForbiddenException(ERR_NOT_MEMBER);
 			}
 
-			if (self.role <= target.role) {
+			if (self.role <= target.role && target.userId != self.userId) {
 				throw new ForbiddenException(ERR_PERM);
 			}
 
 			await this.room_service.remove_members(room, { member: target, ban });
-			await this.room_service.save(room);
 		}
 
 		@Get(":id/invite(s)?")

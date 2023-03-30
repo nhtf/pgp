@@ -341,7 +341,7 @@ export class DebugController {
 		await this.gamestateRepo.save({ id: room.state.id, teamsLocked: false });
 	}
 
-	@Get("wipe")
+	@Get("room(s)?/wipe")
 	async clearRooms() {
 		return this.roomRepo.remove(await this.roomRepo.find());
 	}
@@ -366,5 +366,14 @@ export class DebugController {
 
 		await this.progressRepo.save(all);
 		
+	}
+
+	@Get("room(s)?/newest")
+	async newestRoom() {
+		const all = await this.roomRepo.find();
+
+		all.sort((first, second) => first.id - second.id);
+	
+		return all[all.length - 1];
 	}
 }

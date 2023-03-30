@@ -27,7 +27,7 @@
 	$: member = message.memberId ? $memberStore.get(message.memberId)! as ChatRoomMember : undefined;
 
 	async function censor() {
-		await unwrap(remove(`/chat/id/${self.roomId}/messages/${message.id}`));
+		await unwrap(remove(`/chat/${self.roomId}/messages/${message.id}`));
 	}
 </script>
 

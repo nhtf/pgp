@@ -394,7 +394,6 @@ export class World extends Net {
 			if (this.debug !== undefined) {
 				this.debug.update();
 			}
-
 			this.renderer.render(this.scene, this.camera);
 		});
 	}

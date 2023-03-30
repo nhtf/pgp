@@ -5,8 +5,8 @@
 	import RoomOverview from "$lib/components/RoomOverview.svelte";
 
 	async function create(room: any) {
-		room.name = room.name.length ? room.name : null;
-		room.password = room.password.length ? room.password : null;
+		room.name = room.name.length ? room.name : undefined;
+		room.password = room.password.length ? room.password : undefined;
 
 		await unwrap(post(`/chat`, room));
 	}

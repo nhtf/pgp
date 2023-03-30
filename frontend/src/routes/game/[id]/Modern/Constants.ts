@@ -103,6 +103,7 @@ export type level = {
     goalGradient: triangles;
     goalBorderColors: number[][];
     goalGradientColors: number[][];
+    goalRot: number[][];
 
     circleBorder: triangles;
     circleGradient: triangles;

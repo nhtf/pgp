@@ -41,7 +41,7 @@
 <Search
 	size="lg"
 	id="search"
-	class="input search"
+	class="input"
 	placeholder="username"
 	bind:value
 	on:input={onInput}
@@ -64,11 +64,11 @@
 
 <style>
 	.user {
+		align-items: center;
 		display: flex;
 		flex-direction: row;
-		gap: 1rem;
-		align-items: center;
 		font-size: larger;
+		gap: 1rem;
 	}
 
 </style>

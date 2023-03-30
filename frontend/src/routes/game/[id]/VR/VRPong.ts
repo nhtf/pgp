@@ -37,7 +37,7 @@ export type PaddleUpdate = Partial<PaddleObject>;
 
 const textureLoader = new THREE.TextureLoader();
 
-async function createLights(world: Pong) {
+function createLights(world: Pong) {
     const ambient = new THREE.AmbientLight("white", 0.9);
 	const light = new THREE.PointLight("white", 25);
 	light.position.y = 4;
@@ -62,50 +62,7 @@ async function createLights(world: Pong) {
 	world.scene.add(ambient);
 }
 
-async function createTexture(world: Pong, path: string) {
-	const texture = await textureLoader.loadAsync(path);
-	texture.anisotropy = 16;
-	texture.wrapT = THREE.RepeatWrapping;
-	texture.wrapS = THREE.RepeatWrapping;
-	texture.repeat = new THREE.Vector2(10, 10);
-	return world.addThreeObject(texture);
-}
-
-async function createMaterial(world: Pong) {
-	const path = "/Assets/textures/";
-	const texture = "patchy_cement1_Unreal-Engine";
-	const extension = ".png";
-	const textureMap = await createTexture(world, path + texture + "/albedo2" + extension);
-	const textureAoMap = await createTexture(world, path + texture + "/ao" + extension);
-	const textureRoughnessMap = await createTexture(world, path + texture + "/roughness" + extension);
-	// const textureDisplacementMap = await createTexture(world, path + texture + "/height" + extension);
-	const textureMetalnessMap = await createTexture(world, path + texture + "/metalness" + extension);
-	const textureNormalMap = await createTexture(world, path + texture + "/normal" + extension);
-
-	return world.addThreeObject(new THREE.MeshStandardMaterial({
-		map: textureMap,
-		side: THREE.FrontSide,
-		aoMap: textureAoMap,
-		roughnessMap: textureRoughnessMap,
-		metalnessMap: textureMetalnessMap,
-		normalMap: textureNormalMap,
-		normalScale: new THREE.Vector2(1, 1),
-		// displacementMap: textureDisplacementMap,
-		// displacementScale: 0.04,
-	}));
-}
-
-//TODO make a simple room enviroment
-async function createFloor(world: Pong) {
-	const geometry = world.addThreeObject(new THREE.PlaneGeometry(10, 10));
-	const material = await createMaterial(world);
-	const mesh = new THREE.Mesh(geometry, material);
-	mesh.receiveShadow = true;
-	mesh.rotation.set(-Math.PI / 2, 0, 0);
-	world.scene.add(mesh);
-}
-
-async function createScoreboard(world: Pong) {
+function createScoreboard(world: Pong) {
 	const material = world.addThreeObject(new THREE.MeshBasicMaterial({ color: 0xff0000 }));
 
 	{
@@ -455,19 +412,20 @@ export class Pong extends World {
 		};
 
 		this.member = options.member;
-		this.state = new State(options.room.teams);
-		this.tableModel = await loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf");
-		this.paddleModel = await loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform);
-		this.hallModel = await loadModel("/Assets/gltf/PGP_HALL/PGP_HALL.gltf");
+		this.state = new State(options.room.state!.teams);
+		const load = await Promise.all([Promise.all([loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf"), loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform), loadModel("/Assets/gltf/PGP_HALL/PGP_HALL.gltf")]), Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`))), Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)))]);
+		let modelArray = load[0];
+		this.tableModel =  modelArray[0];
+		this.paddleModel =  modelArray[1];
+		this.hallModel =  modelArray[2];
 		this.scene.add(this.hallModel);
 
-		this.tableSounds = await Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`)));
-		this.paddleSounds = await Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)));
+		this.tableSounds = load[1];
+		this.paddleSounds = load[2];
 		this.paddleSounds.forEach(sound => sound.setVolume(3.0));
 
-		await createLights(this);
-		// await createFloor(this);
-		await createScoreboard(this);
+		createLights(this);
+		createScoreboard(this);
 
 		const table = new Table(this, Table.UUID);
 		this.tableSounds.forEach(sound => table.renderObject.add(sound));

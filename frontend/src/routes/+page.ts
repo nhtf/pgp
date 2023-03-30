@@ -8,7 +8,7 @@ export const load: PageLoad = (async ({ fetch, parent }) => {
 
 	const { user } = await parent();
 
-	let games: GameState[] | null = null;
+	let games: GameState[] = [];
 
 	try {
 		games = await get(`/game/history/${user?.id}`) as GameState[];

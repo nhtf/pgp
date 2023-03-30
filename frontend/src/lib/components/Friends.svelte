@@ -5,10 +5,9 @@
     import { unwrap } from "$lib/Alert";
     import { page } from "$app/stores";
     import { post } from "$lib/Web";
-    import UserSearch from "./UserSearch.svelte";
-	import Friend from "./Friend.svelte";
-    import Swal from "sweetalert2";
     import UserDropdown from "./UserDropdown.svelte";
+    import UserSearch from "./UserSearch.svelte";
+    import Swal from "sweetalert2";
 
 	let value = "";
 
@@ -35,9 +34,9 @@
 
 </script>
 
-<div class="block-cell self-flex-start bg-c bordered" id="friend-block">
+<div class="block-cell self-start bg-c bordered h-full">
 	<div class="block-hor">
-		<div class="flex flex-row gap-1">
+		<div class="flex gap-1">
 			<UserSearch bind:value filter={isBefriendable}/>
 			<button
 				class="button border-green"
@@ -46,43 +45,28 @@
 			>
 		</div>
 	</div>
-	<div class="block-vert width-available">
+	<div class="block-vert">
 		{#each friends as user (user.id)}
-			<Friend {user}/>
+			<UserDropdown {user} extend={true}/>
 		{/each}
 	</div>
 </div>
 
 <style>
-	.width-available {
-		width: -moz-available;
-		width: -webkit-fill-available;
-	}
-
-	#friend-block {
-		height: 100%;
-	}
 
 	.block-vert {
-		flex-grow: 0.1;
-		padding: 0;
-		border: 0;
+		border: none;
 		height: 100%;
+		align-items: flex-start;
+		width: 100%;
+		padding: 0;
 	}
 
 	.block-cell {
+		align-items: flex-start;
 		flex-direction: column;
-		min-width: 100px;
 		min-height: 40px;
-		padding: 5px;
+		padding: 1rem;
 	}
 
-	.block-cell:first-child {
-		flex-grow: 1;
-		text-align: center;
-	}
-
-	.self-flex-start {
-		align-self: flex-start;
-	}
 </style>

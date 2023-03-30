@@ -10,9 +10,9 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	window.fetch = fetch;
 
 	const { user } = await unwrap(parent());
-	const room: ChatRoom = await unwrap(get(`/chat/id/${params.id}`));
-	const members: Member[] = await unwrap(get(`/chat/id/${params.id}/members`));
-	const banned: User[] = await unwrap(get(`/chat/id/${params.id}/bans`));
+	const room: ChatRoom = await unwrap(get(`/chat/${params.id}`));
+	const members: Member[] = await unwrap(get(`/chat/${params.id}/members`));
+	const banned: User[] = await unwrap(get(`/chat/${params.id}/bans`));
 
 	const member: Member = members.find((member) => member.userId === user!.id)!;
 

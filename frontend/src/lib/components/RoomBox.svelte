@@ -64,7 +64,11 @@
 	}
 
 	async function join(room: Room) {
-		await unwrap(post(`/${route}/id/${room.id}/members`, { password }));
+		// TODO
+		if (room.type === "ChatRoom")
+			await unwrap(post(`/${route}/${room.id}/members`, { password }));
+		else
+			await unwrap(post(`/${route}/${room.id}/members`, { password }));
 
 		const state = (room as GameRoom).state;
 	
@@ -76,24 +80,31 @@
 	}
 
 	async function leave(room: Room) {
-		await unwrap(remove(`/${route}/id/${room.id}/members/me`, { ban: false }));
+		// TODO
+		if (room.type === "ChatRoom")
+			await unwrap(remove(`/${route}/${room.id}/members/me`, { ban: false }));
+		else
+			await unwrap(remove(`/${route}/${room.id}/members/me`, { ban: false }));
 	}
 	
 	async function erase(room: Room) {
-		await unwrap(remove(`/${route}/id/${room.id}`));
+		if (room.type === "ChatRoom")
+			await unwrap(remove(`/${route}/${room.id}`));
+		else
+			await unwrap(remove(`/${route}/${room.id}`));
 	}
 	
 	async function changeTeam(room: Room) {
 		try {
 			const teamId = await teamSelector(room);
 		
-			await unwrap(patch(`/game/id/${room.id}/team/${(room as GameRoom).self!.id}`, { team: teamId }));
+			await unwrap(patch(`/game/${room.id}/team/${(room as GameRoom).self!.id}`, { team: teamId }));
 			
 		} catch (_) {}
 	}
 
 	async function lock(room: Room) {
-		await unwrap(post(`/game/id/${room.id}/lock`));
+		await unwrap(post(`/game/${room.id}/lock`));
 	}
 
 </script>

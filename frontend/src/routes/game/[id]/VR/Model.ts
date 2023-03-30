@@ -1,5 +1,4 @@
 import { GLTFLoader } from "three/examples/jsm/loaders/GLTFLoader";
-import { DRACOLoader } from "three/examples/jsm/loaders/DRACOLoader";
 import { Ammo } from "./Ammo";
 import { Vector } from "../Math";
 import * as THREE from "three";
@@ -11,9 +10,6 @@ export interface ModelOptions {
 }
 
 const loader = new GLTFLoader();
-const dracoLoader = new DRACOLoader();
-dracoLoader.setDecoderPath("/examples/jsm/libs/draco");
-loader.setDRACOLoader(dracoLoader);
 
 function patch(scene: THREE.Group) {
 	scene.traverse(obj => {
@@ -29,7 +25,6 @@ function patch(scene: THREE.Group) {
 export async function loadModel(path: string, options: ModelOptions | null = null): Promise<THREE.Group> {
 	const gltf = await loader.loadAsync(path);
 	patch(gltf.scene);
-
 	if (options !== null) {
 		const matrix = new THREE.Matrix4();
 		const scale = options.scale ?? new Vector(1, 1, 1);
@@ -42,7 +37,6 @@ export async function loadModel(path: string, options: ModelOptions | null = nul
 		matrix.makeTranslation(translate.x, translate.y, translate.z);
 		gltf.scene.applyMatrix4(matrix);
 	}
-	console.log("gltf: ", gltf.scene);
 	const root = new THREE.Group();
 	root.add(gltf.scene);
 	return root;
@@ -54,7 +48,8 @@ function addTriangles(mesh: Ammo.btTriangleMesh, obj: THREE.Object3D, transform:
 
 	if (obj instanceof THREE.Mesh && obj.geometry instanceof THREE.BufferGeometry) {
 		const geometry = obj.geometry.toNonIndexed();
-		const vertices = geometry.getAttribute("position").array;
+		const buffer = geometry.getAttribute("position") as THREE.BufferAttribute;
+		const vertices = buffer.array;
 
 		for (let i = 0; i < vertices.length; i += 9) {
 			const a = Vector.fromThree(new THREE.Vector3(vertices[i + 0], vertices[i + 1], vertices[i + 2]).applyMatrix4(transform));

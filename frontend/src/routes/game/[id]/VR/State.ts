@@ -118,7 +118,8 @@ export class State {
 	}
 
 	public onPaddleHit(user: number): boolean {
-		const player = this.players.find(player => player.user == user)!;
+		console.log("users", this.players.map(({ user }) => user));
+		const player = this.players.find(player => player.user === user)!;
 		
 		if (this.state == "serve-ball" && player.team == this.current) {
 			this.state = "serve-paddle";

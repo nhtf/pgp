@@ -2,14 +2,16 @@ import { FontLoader, Font } from "three/examples/jsm/loaders/FontLoader";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 import * as THREE from "three";
 import type { World } from "./World";
+import type { BufferAttribute, GLBufferAttribute } from "three";
 
 const loader = new FontLoader();
 
-export async function loadFont(): Promise<Font> {
-	return await loader.loadAsync("/Assets/fonts/helvetiker_regular.typeface.json");
+export async function loadFont(path: string): Promise<Font> {
+	return await loader.loadAsync(path);
 }
 
-export const HELVETIKER_CLASSIC = await loadFont();
+export const HELVETIKER_CLASSIC = await loadFont("/Assets/fonts/helvetiker_regular.typeface.json");
+export const PIXELED = await loadFont("/Assets/fonts/Pixeled_Regular.json");
 
 export function createText(text: string, font: Font): TextGeometry {
 	return new TextGeometry(text, {
@@ -29,6 +31,25 @@ export class DynamicText {
 		this.world = world;
 
 		const geometry = this.world.addThreeObject(createText(text, HELVETIKER_CLASSIC));
+
+		//This is for making the vertices needed to draw text in webgl for modern, temp function
+		const numbersVertices = [];
+		for (let i = 0; i < 10; i+=1) {
+			const test = new TextGeometry(i.toString(), {
+				font: PIXELED,
+				size: 12
+			});
+			const pos = test.attributes.position as BufferAttribute;
+			const vertices = [];
+			for (let i = 0; i < pos.array.length;) {
+				vertices.push(pos.array[i]);
+				vertices.push(pos.array[i + 1]);
+				i+=3;
+			}
+			numbersVertices.push(vertices);
+		}
+		console.log("numbers: ", ": ", numbersVertices);
+		
 
 		this.lastText = text;
 		this.mesh = new THREE.Mesh(geometry, material);

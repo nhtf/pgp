@@ -2,14 +2,15 @@
     import type { GameState, User } from "$lib/entities";
     import { gameStateStore } from "$lib/stores";
     import { page } from "$app/stores";
+    import { byId } from "$lib/sorting";
 
 	export let game: GameState;
 	export let user: User = $page.data.user;
 
 	$: game = $gameStateStore.get(game.id)!;
-	$: team = game.teams.find((team) => team.players.map((player) => player.userId).includes(user.id))!;
-	$: result = team.score - Math.max(...game.teams
-		.filter((x) => x.id !== team.id)
+	$: team = game.teams.find((team) => team.players.some(({ userId }) => userId === user.id))!;
+	$: result = team?.score - Math.max(...game.teams
+		.filter((x) => x.id !== team?.id)
 		.map(({ score }) => score));
 	
 </script>
@@ -17,7 +18,7 @@
 <div class="match match-{result < 0 ? "loss" : result == 0 ? "draw" : "win"}">
 	<div class="match-mode">{["Classic", "VR", "Modern"][game.gamemode]}</div>
 	<div class="match-teams">
-		{#each game.teams as team (team.id)}
+		{#each game.teams.sort(byId) as team (team.id)}
 			<div class="match-team-wrapper">
 				<div class="match-team">
 					<div class="match-team-score">{Math.abs(team.score)}</div>

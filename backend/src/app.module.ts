@@ -1,4 +1,6 @@
 import { AppController } from "./controllers/app.controller";
+import { Player } from "src/entities/Player";
+import { GameState } from "src/entities/GameState";
 import { Reflector } from "@nestjs/core";
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { GameGateway } from "./gateways/game.gateway";
@@ -44,6 +46,9 @@ import { NewGameController } from "src/controllers/new.game.controller";
 import { GameRoom } from "src/entities/GameRoom";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { RoomInviteService } from "src/services/roominvite.service";
+import { NewChatRoomController } from "src/controllers/chatroom.controller";
+import { ChatRoomService } from "src/services/chatroom.service";
+import type { Message } from "src/entities/Message";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
@@ -167,18 +172,26 @@ const roomServices = entityClasses.filter((value: any) => value.__proto__ === Ro
 const services = [
 	{
 		provide: "CHATROOM_SERVICE",
-		useFactory: () => {
-		// useFactory: (room_repo: Repository<ChatRoom>, member_repo: Repository<ChatRoomMember>) => {
-			return GenericRoomService(ChatRoom, ChatRoomMember);
+		useFactory: (
+			room_repo: Repository<ChatRoom>,
+			member_repo: Repository<ChatRoomMember>,
+			message_repo: Repository<Message>,
+		) => {
+			return new ChatRoomService(room_repo, member_repo, message_repo);
 		},
-		inject: ["CHATROOM_REPO", "CHATROOMMEMBER_REPO"],
+		inject: ["CHATROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
 	},
 	{
 		provide: "GAMEROOM_SERVICE",
-		useFactory: (room_repo: Repository<GameRoom>, member_repo: Repository<GameRoomMember>) => {
-			return new GameRoomService(room_repo, member_repo);
+		useFactory: (
+			room_repo: Repository<GameRoom>,
+			member_repo: Repository<GameRoomMember>,
+			state_repo: Repository<GameState>,
+			player_repo: Repository<Player>,
+		) => {
+			return new GameRoomService(room_repo, member_repo, state_repo, player_repo);
 		},
-		inject: ["GAMEROOM_REPO", "GAMEROOMMEMBER_REPO"],
+		inject: ["GAMEROOM_REPO", "GAMEROOMMEMBER_REPO", "GAMESTATE_REPO", "PLAYER_REPO"],
 	},
 ];
 
@@ -195,9 +208,9 @@ const services = [
 		AppController,
 		AuthController,
 		BotController,
-		ChatController,
+		//ChatController,
 		DebugController,
-		GameController,
+		//GameController,
 		TotpController,
 		MediaController,
 		NewGameController,
@@ -205,6 +218,7 @@ const services = [
 		UserIDController,
 		UserUsernameController,
 		MatchController,
+		NewChatRoomController,
 	],
 	providers: [
 		GameGateway,
@@ -236,7 +250,7 @@ export class AppModule implements NestModule {
 		consumer.apply(SessionExpiryMiddleware).exclude(
 			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
-		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatController);
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatController, NewChatRoomController);
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
 		consumer.apply(ActivityMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },

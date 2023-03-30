@@ -166,15 +166,14 @@
 				class="suggestion"
 				on:click={() => apply(url)}
 				on:keypress={() => apply(url)}
-				src={src}
 				alt={desc}
+				src={src}
 			/>
 		{/each}
 	</div>
 {/if}
 
 <div class="text-container">
-	<!--<textarea class="inline input" bind:value={content} style={`height: ${lines}em`}/>-->
 	<div class="input-container">
 		<pre aria-hidden="true">{`${content}\n`}</pre>
 		<textarea
@@ -197,8 +196,8 @@
 		display: flex;
 		justify-content: flex-start;
 		background-color: var(--box-color);
-		border-radius: 1em;
-		margin: 0.5em;
+		border-radius: 1rem;
+		margin: 0.5rem;
 		width: 90vw;
 		overflow-x: auto;
 		overflow-y: hidden;

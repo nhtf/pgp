@@ -29,16 +29,16 @@
 		edit.name = edit.name.length ? edit.name : null;
 		edit.password = edit.password.length ? edit.password : null;
 
-		await unwrap(patch(`/chat/id/${room.id}`, edit));
+		await unwrap(patch(`/chat/${room.id}`, edit));
 	}
 
 	async function erase(room: Room) {
-		await unwrap(remove(`/chat/id/${room.id}`));
+		await unwrap(remove(`/chat/${room.id}`));
 		await goto(`/chat`);
 	}
 
 	async function unban(user: User) {
-		await unwrap(remove(`/chat/id/${room!.id}/bans/${user.id}`));
+		await unwrap(remove(`/chat/${room!.id}/bans/${user.id}`));
 
 		Swal.fire({ icon: "success", timer: 3000 });
 	

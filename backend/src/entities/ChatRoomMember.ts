@@ -11,7 +11,7 @@ export class ChatRoomMember extends Member {
 	messages: Message[];
 
 	@Exclude()
-	@CreateDateColumn()
+	@CreateDateColumn({ type: "timestamptz" })
 	mute: Date;
 
 	@Expose()

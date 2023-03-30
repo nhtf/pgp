@@ -14,12 +14,12 @@
 	$: self = $memberStore.get(room.self!.id)!;
 
 	async function leave(room: Room) {
-		await unwrap(remove(`/${route}/id/${room.id}/members/${self.id}`));
+		await unwrap(remove(`/${route}/${room.id}/members/${self.id}`));
 		await goto(`/${route}`);
 	}
 
 	async function erase(room: Room) {
-		await unwrap(remove(`/${route}/id/${room.id}`));
+		await unwrap(remove(`/${route}/${room.id}`));
 	}
 	
 </script>

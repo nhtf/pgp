@@ -21,6 +21,8 @@ function get_object<T extends IDObject>(obj: T | number): T {
 }
 
 function get_id<T extends IDObject>(obj: T | number): number {
+	if (obj == undefined)
+		return undefined;
 	if (typeof obj === "number")
 		return obj;
 	return obj.id;

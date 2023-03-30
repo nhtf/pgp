@@ -51,12 +51,12 @@ async function spectate({ user }: Args) {
 	const id = user.activeRoomId;
 
 	try {
-		await get(`/game/id/${id}/self`);
+		await get(`/game/${id}/self`);
 	} catch (_) {
-		await unwrap(post(`/game/id/${id}/members`));
+		await unwrap(post(`/game/${id}/members`));
 	}
 
-	await patch(`/game/id/${id}/team/me`, { team: null });
+	await patch(`/game/${id}/team/me`, { team: null });
 	await goto(`/game/${id}`);
 }
 
@@ -78,30 +78,30 @@ async function invite({ user }: Args) {
 	};
 
 	const room = await unwrap(post(`/game`, roomDto));
-	const self = await unwrap(get(`/game/id/${room.id}/self`));
+	const self = await unwrap(get(`/game/${room.id}/self`));
 	const team = room.state.teams[0];
 
-	await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
-	await unwrap(post(`/game/id/${room.id}/invite`, { username: user.username }));
+	await unwrap(patch(`/game/${room.id}/team/${self.id}`, { team: team.id }));
+	await unwrap(post(`/game/${room.id}/invite`, { username: user.username }));
 	await roomPrompt(room);
 }
 
 // Member
 
 async function promote({ member }: Args) {
-	await unwrap(patch(`/chat/id/${member!.roomId}/members/${member!.id}`, { role: member!.role + 1 }));
+	await unwrap(patch(`/chat/${member!.roomId}/members/${member!.id}`, { role: member!.role + 1 }));
 }
 
 async function demote({ member }: Args) {
-	await unwrap(patch(`/chat/id/${member!.roomId}/members/${member!.id}`, { role: member!.role - 1 }));
+	await unwrap(patch(`/chat/${member!.roomId}/members/${member!.id}`, { role: member!.role - 1 }));
 }
 
 async function kick({ member }: Args) {
-	await unwrap(remove(`/chat/id/${member!.roomId}/members/${member!.id}`));
+	await unwrap(remove(`/chat/${member!.roomId}/members/${member!.id}`));
 }
 
 async function ban({ member }: Args) {
-	await unwrap(remove(`/chat/id/${member!.roomId}/members/${member!.id}`, { ban: true }));
+	await unwrap(remove(`/chat/${member!.roomId}/members/${member!.id}`, { ban: true }));
 }
 
 async function mute({ member }: Args) {
@@ -119,12 +119,12 @@ async function mute({ member }: Args) {
 	if (isConfirmed) {
 		const duration = Number(value) * 60 * 1000;
 
-		await unwrap(post(`/chat/id/${member!.roomId}/mute/${member!.id}`, { duration }));
+		await unwrap(post(`/chat/${member!.roomId}/mute/${member!.id}`, { duration }));
 	}
 }
 
 async function unmute({ member }: Args) {
-	await unwrap(post(`/chat/id/${member!.roomId}/mute/${member!.id}`, { duration: 0 }));
+	await unwrap(post(`/chat/${member!.roomId}/mute/${member!.id}`, { duration: 0 }));
 }
 
 // Util

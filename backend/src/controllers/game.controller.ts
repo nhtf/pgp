@@ -35,8 +35,11 @@ const playerNumbers = new Map([
 	[Gamemode.MODERN, [2, 4]],
 ])
 
-// TODO...
-const numbers = ["one", "two", "three", "four"];
+const teamNames = new Map([
+	[Gamemode.CLASSIC, [ "east", "west" ]],
+	[Gamemode.VR, [ "east", "west" ]],
+	[Gamemode.MODERN, [ "yellow", "green", "blue", "red" ]],
+]);
 
 export class GameController extends GenericRoomController<GameRoom, GameRoomMember>(GameRoom, GameRoomMember, "game", CreateGameRoomDTO) {
 	// ODOT: copied from room.service.ts (what is even the point)
@@ -71,10 +74,12 @@ export class GameController extends GenericRoomController<GameRoom, GameRoomMemb
 			throw new BadRequestException("Invalid amount of players");
 		}
 
+		const names = teamNames.get(state.gamemode);
+
 		for (let i = 0; i < dto.players; i++) {
 			const team = new Team;
 
-			team.name = `team ${numbers[i]}`;
+			team.name = `team ${names[i]}`;
 			team.players = [];
 			state.teams.push(team);
 		}

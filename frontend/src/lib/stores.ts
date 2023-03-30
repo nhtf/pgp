@@ -30,7 +30,7 @@ function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: S
 					break;
 				case Action.UPDATE:
 					if (!entities.has(update.id)) {
-						entities.set(update.id, update.value);
+						entities.set(update.id, { id: update.id, ...update.value });
 						break ;
 					}
 

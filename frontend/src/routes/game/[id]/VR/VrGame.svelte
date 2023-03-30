@@ -13,15 +13,16 @@
 
 	onMount(async() => {
 		console.log($page.data);
-
+		const startTime = Date.now();
+		console.log("starting ammo init");
 		await ammoInit();
 		
 		world = new Pong();
-		console.log(world);
+		console.log("created world");
 		container.append(world.renderer.domElement);
 		const vrButton = VRButton.createButton(world.renderer);
 		container.append(vrButton);
-
+		console.log("starting world");
 		await world.start({
 			container,
 			room,
@@ -30,7 +31,7 @@
 				...$page.data.member,
 			}
 		});
-
+		console.log("world has started", Date.now() - startTime);
 		vrButton.addEventListener("click", function(ev) {
 			requestAnimationFrame(function() {
 				const canvas = document.getElementsByTagName("canvas")[0];

@@ -122,6 +122,7 @@
 		{ url: "/game", name: "Game Rooms" },
 		{ url: "/leaderboard", name: "Leaderboard" },
 		{ url: "/invite", name: "Invites" },
+		{ url: "/stores", name: "Stores" }, // TODO: remove
 	];
 </script>
 

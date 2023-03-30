@@ -13,6 +13,7 @@
 	import "@sweetalert2/theme-dark/dark.scss";
 	import * as validator from "validator";
     import Match from "./Match.svelte";
+    import { byId } from "$lib/sorting";
 
 	const edit_icon = "/Assets/icons/pen.png";
 
@@ -111,7 +112,7 @@
 		</div>
 	</div> -->
 	<div>
-		{#each $page.data.games as game}
+		{#each $page.data.games.sort(byId).reverse() as game (game.id)}
 			<Match user={profile} {game}/>
 		{/each}
 	</div>
@@ -164,10 +165,6 @@
 		margin-bottom: 5px;
 		max-width: 250px;
     }
-
-	#no-grow {
-		flex-grow: 0;
-	}
 
 	#user-block {
 		width: -moz-available;

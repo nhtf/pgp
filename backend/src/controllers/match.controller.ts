@@ -72,8 +72,7 @@ export class MatchController {
 					const url = `${FRONTEND_ADDRESS}/game/${room.id}`;
 					const message = "Found game";
 					const can_cancel = true;
-					this.update_service.send_update(create_packet(Subject.REDIRECT, Action.INSERT, user.id, { url, message, can_cancel }), user);
-					this.update_service.send_update(create_packet(Subject.REDIRECT, Action.INSERT, user.id, { url, message, can_cancel }), other);
+					this.update_service.send_update(create_packet(Subject.REDIRECT, Action.INSERT, user.id, { url, message, can_cancel }), user, other);
 					return;
 				}
 			}

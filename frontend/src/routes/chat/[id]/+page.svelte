@@ -68,7 +68,7 @@
 	
 	async function sendMessage(content: string) {
 		if (content.length) {
-			await unwrap(post(`/chat/id/${room.id}/messages`, { content }));
+			await unwrap(post(`/chat/${room.id}/messages`, { content }));
 		}
 	}
 

@@ -15,6 +15,7 @@ export interface PaddleObject {
 	userID?: number;
 	ping: number;
 	rotation: number;
+	transform?: string;
 }
 
 export interface Snapshot extends NetSnapshot {

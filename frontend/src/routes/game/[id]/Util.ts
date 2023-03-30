@@ -94,3 +94,14 @@ export class Map2<K1, K2, V> {
 		return this;
 	}
 }
+
+export function hashCode(str: string): number {
+	let hash = 0;
+
+	for (let i = 0; i < str.length; i++) {
+		let chr = str.charCodeAt(i);
+		hash = (hash * 31 + chr) | 0;
+	}
+
+	return hash;
+}

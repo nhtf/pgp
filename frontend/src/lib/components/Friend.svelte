@@ -64,11 +64,11 @@
 		};
 
 		const room = await unwrap(post(`/game`, roomDto));
-		const self = await unwrap(get(`/game/id/${room.id}/self`));
+		const self = await unwrap(get(`/game/${room.id}/self`));
 		const team = room.state.teams[0];
 	
-		await unwrap(post(`/game/id/${room.id}/invite`, { username: user.username }));
-		await unwrap(patch(`/game/id/${room.id}/team/${self.id}`, { team: team.id }));
+		await unwrap(post(`/game/${room.id}/invite`, { username: user.username }));
+		await unwrap(patch(`/game/${room.id}/team/${self.id}`, { team: team.id }));
 		await roomPrompt(room);
 	}
 
@@ -93,12 +93,12 @@
 		let member: GameRoomMember;
 
 		try {
-			member = await get(`/game/id/${id}/self`);
+			member = await get(`/game/${id}/self`);
 		} catch (_) {
-			member = await unwrap(post(`/game/id/${id}/members`));
+			member = await unwrap(post(`/game/${id}/members`));
 		}
 
-		await patch(`/game/id/${id}/team/${member.id}`, { team: null });
+		await patch(`/game/${id}/team/${member.id}`, { team: null });
 		await goto(`/game/${id}`);
 	}
 

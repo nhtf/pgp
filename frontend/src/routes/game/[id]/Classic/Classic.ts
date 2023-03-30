@@ -244,7 +244,7 @@ export class Game extends Net {
 	}
 
 	public async start(options: Options) {
-		const teams = options.room.teams;
+		const teams = options.room.state!.teams;
 
 		this.teams = [
 			new Team(teams[0].id, teams[0].score),

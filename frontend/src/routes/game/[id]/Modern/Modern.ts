@@ -7,11 +7,14 @@ import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PIN
 import { GAME} from "./Constants";
 import type { level } from "./Constants";
 import { Ball } from "./Ball";
-import type { Snapshot, Options, PingEvent } from "../lib2D/interfaces";
+import type {  Options, PingEvent, TeamObject } from "../lib2D/interfaces";
 import { Field } from "./Field";
 import { Score } from "./Score";
 import { Team } from "../lib2D/Team";
 import { FullShader } from "./fullShader";
+import type {Snapshot as NetSnapshot } from "../Net";
+import type { BallObject } from "./Ball";
+import type { PaddleObject } from "./Paddle";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
@@ -34,6 +37,14 @@ export interface ScoreEvent extends NetEvent {
 	t: number; //teamId of team that is being updated
 	s: number; //scorechange
 }
+
+interface Snapshot extends NetSnapshot {
+	ball: BallObject;
+	paddles: PaddleObject[];
+	state: {
+		teams: TeamObject[];
+	};
+};
 
 function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 
@@ -191,7 +202,11 @@ export class Game extends Net {
 
 	protected load(snapshot: Snapshot) {
 		this.ball.load(snapshot.ball);
-		this.paddles.forEach((paddle, i) => paddle.load(snapshot.paddles[i]));
+		this.paddles.forEach((paddle, i) => { 
+			paddle.load(snapshot.paddles[i]);
+			this.shader.movePaddle(paddle.position, paddle.owner);
+			this.shader.rotatePaddle(paddle.rotation, paddle.owner);
+		});
 		this.teams.forEach((team, i) => team.load(snapshot.state.teams[i]));
 		super.load(snapshot);
 	}
@@ -282,7 +297,7 @@ export class Game extends Net {
 		if (this.players === GAME.FOURPLAYERS)
 			startScore = 10;
 		for (let i = 0; i < this.level.players; i++) {
-			this.teams.push(new Team(options.room.teams[i].id, startScore));
+			this.teams.push(new Team(options.room.state!.teams[i].id, startScore));
 		}
 
 		let index = 0;
@@ -313,17 +328,18 @@ export class Modern {
 	public async init(canvas: HTMLCanvasElement) {
 		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
 			this.field = data;
+			console.log("canvas", canvas);
 			this.shader = new FullShader(canvas, data);
 			this.game = new Game(this.players, this.field!, this.shader);
 			this.shader?.addEventListener(this);
 		});
+		
 	}
 
 	public constructor(players: number) {
 		this.players = players;
 		this.field = null;
 		this.game = null;
-		
 	}
 
 	public update(time: number) {
@@ -332,7 +348,7 @@ export class Modern {
 			this.game?.tick();
 			this.lastTime += 1000 / UPS;
 		}
-		this.shader?.render(time);		
+		this.shader?.render(time);
 	}
 
 	public async start(options: Options) {

@@ -55,8 +55,10 @@ export class Room {
 		return this.members?.map(member => member.user);
 	}
 
-	self(user: User): any {
-		return instanceToPlain(this.members.find((member) => member.userId === user.id)!);
+	self(user: User): any | undefined {
+		const member = this.members.find((member) => member.userId === user.id);
+	
+		return member ? instanceToPlain(member) : undefined;
 	}
 
 	send_update(packet: UpdatePacket) {

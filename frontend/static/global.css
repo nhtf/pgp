@@ -428,14 +428,6 @@ table {
 	line-height: 1.5rem !important;
 }
 
-.friend-button {
-	border-color: transparent !important;
-	border-bottom-left-radius: 0 !important;
-	border-bottom-right-radius: 0 !important;
-	border-bottom-color: var(--border-color) !important;
-	border-bottom-width: 2px !important;
-}
-
 @font-face {
 	font-family: "pong";
 	src: url("/Assets/fonts/Pixeled.ttf");
@@ -496,8 +488,8 @@ table {
 	border-radius: 1rem !important;
 	padding: 0.25rem 1rem !important;
 	margin: 0.25rem !important;
+	max-width: 20ch;
 	text-align: center !important;
-	opacity: 100%;
 }
 
 canvas {
@@ -520,7 +512,6 @@ canvas {
 
 .dropdown {
 	background-color: var(--box-color) !important;
-	display: inline-block;
 }
 
 .dropdown-item {
@@ -531,6 +522,14 @@ canvas {
 
 .dropdown-item:hover {
 	background-color: var(--box-hover-color) !important;
+}
+
+.friend-button {
+	border: none !important;
+	display: flex;
+	gap: 1rem;
+	justify-content: flex-start !important;
+	width: 100%;
 }
 
 .link:link {
@@ -559,10 +558,6 @@ canvas {
 	justify-content: flex-end;
 	margin: 0.25rem;
 	padding: 1rem;
-}
-
-.search {
-	max-width: 20ch !important;
 }
 
 .swal2-popup {

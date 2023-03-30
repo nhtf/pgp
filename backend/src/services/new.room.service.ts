@@ -5,9 +5,10 @@ import { RoomInvite } from "src/entities/RoomInvite";
 import { Repository, FindOneOptions, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder } from "typeorm";
 import { Role } from "src/enums";
 import * as argon2 from "argon2";
+import { genName } from "src/namegen"
 
 export interface CreateRoomOptions {
-	name: string;
+	name?: string;
 	is_private?: boolean;
 	password?: string;
 }
@@ -17,10 +18,9 @@ export interface AddMemberType {
 	role?: Role;
 }
 
-export interface EditMemberType {
-	member: Member;
-	role: Role;
-
+export interface EditMemberType<U extends Member> {
+	member: U;
+	changes: Partial<U>;
 }
 
 export interface IRoomService<T extends Room, U extends Member, S extends CreateRoomOptions> {
@@ -34,8 +34,9 @@ export interface IRoomService<T extends Room, U extends Member, S extends Create
 	get_members(room: T): Promise<Member[]>;
 	get_member(room: T, user: User): Promise<Member | undefined>;
 	add_members(room: T, ...members: AddMemberType[]): Promise<Member[]>;
-	edit_members(room: T, ...members: EditMemberType[]): Promise<Member[]>;
+	edit_members(room: T, ...members: EditMemberType<U>[]): Promise<Member[]>;
 	remove_members(room: T, ...members: { member: U, ban?: boolean }[]): Promise<void>;
+	save_members(...members: U[]): Promise<U[]>;
 
 	get_bans(room: T): Promise<User[]>;
 	is_banned(room: T, ...users: User[]): Promise<boolean[]>;
@@ -48,11 +49,15 @@ export interface IRoomService<T extends Room, U extends Member, S extends Create
 	joined_rooms(user: User): Promise<T[]>;
 	owned_rooms(user: User): Promise<T[]>;
 
+	find(room: T, relations: any): Promise<T>;
 	query(): SelectQueryBuilder<T>;
 }
 
-export function GenericRoomService<T extends Room, U extends Member, S extends CreateRoomOptions = CreateRoomOptions>(RoomType: (new () => T), MemberType: (new () => U)) {
-	abstract class RoomService<T extends Room, U extends Member> implements IRoomService<T, U, S> {
+export function GenericRoomService<T extends Room, U extends Member, S extends CreateRoomOptions = CreateRoomOptions>(
+	RoomType: (new () => T),
+	MemberType: (new () => U),
+) {
+	class RoomService<T extends Room, U extends Member> implements IRoomService<T, U, S> {
 
 		constructor(
 			readonly room_repo: Repository<T>,
@@ -78,7 +83,7 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 		async create({ name, is_private, password }: S) {
 			const room = new RoomType();
 		
-			room.name = name;
+			room.name = name ?? genName();
 			room.is_private = is_private ?? false;
 			room.members = [];
 			room.banned_users = [];
@@ -87,7 +92,7 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 				room.password = await argon2.hash(password);
 			}
 			
-			return room as unknown as T;
+			return this.room_repo.save(room as unknown as T);
 		}
 
 		async edit(room: T, { name, is_private, password }: Partial<S>): Promise<T> {
@@ -95,7 +100,7 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 			room.is_private = is_private ?? room.is_private;
 			if (password)
 				room.password = await argon2.hash(password);
-			return room as unknown as T;
+			return this.room_repo.save(room as unknown as T);
 		}
 
 		// Members
@@ -108,9 +113,13 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 			return room.members.find(({ userId }) => userId === user.id);
 		}
 
+		async save_members(...members: U[]): Promise<U[]> {
+			return this.member_repo.save(members);
+		}
+
 		async add_members(room: T, ...members: AddMemberType[]) {
 			const adding = members
-				.filter(({ user }) => room.users.some(({ id }) => id === user.id))
+				.filter(({ user }) => !room.users.some(({ id }) => id === user.id))
 				.map(({ user, role }) => {
 					const member = new MemberType();
 				
@@ -120,18 +129,23 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 				
 					return member;
 			});
-		
-			room.members.push(...adding);
 
-			return adding;
+			return this.save_members(...adding as any);
 		}
 
-		async edit_members(room: T, ...members: EditMemberType[]): Promise<U[]> {
-			const list = members.map(({ member, role }) => {
-				member.role = role;
-				return member;
+		edit_member(change: EditMemberType<U>): U {
+			for (const key in change.changes) {
+				change.member[key] = change.changes[key];
+			}
+			return change.member;
+		}
+
+		async edit_members(room: T, ...members: EditMemberType<U>[]): Promise<U[]> {
+			const list = members.map((change) => {
+				//member.role = changes.role ?? member.role;
+				return this.edit_member(change);
 			});
-			return this.member_repo.save(list as unknown as U[]);
+			return this.save_members(list as any);
 		}
 
 		async remove_members(room: T, ...members: { member: U, ban?: boolean }[]) {
@@ -157,13 +171,15 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 
 			room.banned_users.push(...users);
 
-			return room;
+			return this.room_repo.save(room);
 		}
 
 		async unban(room: T, ...users: User[]) {
 			room = await this.find(room, { banned_users: true });
 
-			room.banned_users = room.banned_users.filter((user) => !users.some(({ id }) => id === user.id))
+			room.banned_users = room.banned_users.filter((user) => !users.some(({ id }) => id === user.id));
+
+			await this.room_repo.save(room);
 		}
 
 		// Util

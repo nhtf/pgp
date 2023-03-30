@@ -204,8 +204,8 @@ export class FullShader {
 	private renderPlayerFields(time: number, viewport: viewPort, res: VectorObject, ballRadius: number) {
 		this.field.setUniform(this.gl, time, viewport, this.ballPos, res, {gradientRadius: {x: this.level.fieldGradientRadius.x * this.minScale, y: this.level.fieldGradientRadius.y * this.minScale}, ballRadius: ballRadius});
 		for (let i = 0; i < this.level.players; i++) {
-			this.field.renderNamed(this.gl, "fieldGradient", {transform: this.level.playerFieldMatrices[i]}, i);	
-			this.field.renderNamed(this.gl, "goalBorder", {}, i);	
+			this.field.renderNamed(this.gl, "fieldGradient", {transform: this.level.playerFieldMatrices[i]}, i);
+			this.field.renderNamed(this.gl, "goalBorder", {transform: this.level.goalRot[i]},  i);	
 			this.field.renderNamed(this.gl, "goalGradient", {}, i);
 		}
 		this.renderMiddleLine();
@@ -226,6 +226,9 @@ export class FullShader {
 
 		this.field.setUniform(this.gl, time, viewport, this.ballPos, res);
 		this.field.renderNamed(this.gl, "fieldBorder", {transform: this.level.normalMatrix});
+
+		// this.field.renderPoints(this.gl, , this.level.normalMatrix, [0, 0,1,1]);
+		//TODO make a renderfunction for the scoreText
 	}
 
 	private debugRenderer(viewport: viewPort, res: VectorObject) {

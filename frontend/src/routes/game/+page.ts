@@ -9,15 +9,13 @@ export const ssr = false;
 export const load: PageLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	const joined: GameRoom[] = await unwrap(get(`/game/joined`));
-	const joinable: GameRoom[] = await unwrap(get(`/game/joinable`));
+	const joined: GameRoom[] = await unwrap(get(`/game?filter=joined`));
+	const joinable: GameRoom[] = await unwrap(get(`/game?filter=joinable`));
 	const rooms = joined.concat(joinable);
 
-	const gameStates = rooms.map((room) => room.state);
-
     updateStore(roomStore, rooms);
-	updateStore(userStore, (rooms.filter(({ owner }) => owner).map(({ owner }) => owner)) as User[]);
-	updateStore(gameStateStore, gameStates);
+	updateStore(userStore, (rooms.map(({ owner }) => owner)) as User[]);
+	updateStore(gameStateStore, rooms.map(({ state }) => state!));
 	
 	return { rooms };
 }) satisfies PageLoad;
