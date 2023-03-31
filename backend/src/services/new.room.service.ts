@@ -39,7 +39,7 @@ export interface IRoomService<T extends Room, U extends Member, S extends Create
 	save_members(...members: U[]): Promise<U[]>;
 
 	get_bans(room: T): Promise<User[]>;
-	is_banned(room: T, ...users: User[]): Promise<boolean[]>;
+	areBanned(room: T, ...users: User[]): Promise<boolean>;
 	unban(room: T, ...users: User[]): Promise<void>;
 
 	is_member(room: T, ...users: User[]): Promise<boolean[]>;
@@ -207,11 +207,10 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 			return room.banned_users;
 		}
 
-		async is_banned(room: T, ...users: User[]): Promise<boolean[]> {
+		async areBanned(room: T, ...users: User[]): Promise<boolean> {
 			room = await this.find(room, { banned_users: true });
 		
-			return users.map(({ id }) => room.banned_users.some((user) => user.id === id));
-			//return room.banned_users.every(({ id }) => users.some((user) => user.id === id));
+			return users.every(({ id }) => room.banned_users.some((user) => user.id === id));
 		}
 
 		async is_member(room: T, ...users: User[]): Promise<boolean[]> {
@@ -247,8 +246,6 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 		query() {
 			return this.room_repo.createQueryBuilder("room");
 		}
-
-
 	}
 
 	return RoomService<T, U>;

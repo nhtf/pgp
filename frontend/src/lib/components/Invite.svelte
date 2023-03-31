@@ -1,5 +1,6 @@
 <script lang="ts">
-	import type { Member, Room, User } from "$lib/entities";
+	import type { Room, User } from "$lib/entities";
+	import { Member } from "$lib/entities";
     import { memberStore, updateStore } from "$lib/stores";
 	import { get, post } from "$lib/Web";
 	import { unwrap } from "$lib/Alert";
@@ -8,8 +9,6 @@
     import Swal from "sweetalert2";
 
 	export let room: Room;
-
-	const route = room.type.replace("Room", "").toLowerCase();
 
 	let members: Member[] = [];
 	let value = "";
@@ -21,13 +20,13 @@
 	}
 
 	async function invite(room: Room, username: string) {
-		await unwrap(post(`/${route}/${room.id}/invite`, { username }));
+		await unwrap(post(`${room.route}/invite`, { username }));
 
 		Swal.fire({ icon: "success", timer: 1000 });
 	}
 
 	async function fetchMembers() {
-		updateStore(memberStore, await unwrap(get(`/${route}/${room.id}/members`)));
+		updateStore(memberStore, await unwrap(get(`${room.route}/members`)), Member);
 	}
 
 </script>

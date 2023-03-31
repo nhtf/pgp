@@ -29,7 +29,7 @@ export class Room {
 
 	@Exclude()
 	@ManyToMany(() => User, (user) => user.banned_rooms)
-	@JoinTable()
+	@JoinTable({ name: "banned" })
 	banned_users: User[];
 
 	@Exclude()

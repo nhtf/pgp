@@ -15,15 +15,20 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { ParseIDPipe, ParseUsernamePipe } from "src/util"
 import { RoomInviteService } from "src/services/roominvite.service";
 import { instanceToPlain } from "class-transformer";
-import { IsString, Length, IsOptional } from "class-validator";
-import * as argon2 from "argon2";
-import { SelectQueryBuilder, Not } from "typeorm"
+import { IsString, Length, IsOptional, IsBoolean } from "class-validator";
+import { SelectQueryBuilder } from "typeorm"
 
 class PasswordDTO {
 	@IsString()
 	@Length(0, 500)
 	@IsOptional()
 	password?: string;
+}
+
+class RemoveMemberDTO {
+	@IsBoolean()
+	@IsOptional()
+	ban?: boolean;
 }
 
 export const GetRoom = createParamDecorator(
@@ -79,6 +84,15 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		) {
 		}
 
+		update(room: T, value: any, ...receivers: User[]) {
+			UpdateGateway.instance.send_update({
+				subject: Subject.ROOM,
+				id: room.id,
+				action: Action.UPDATE,
+				value,
+			}, ...(receivers ?? room.is_private ? room.users : []));
+		}
+
 		async get_rooms(me: User, filter: string) {
 			switch (filter) {
 				case "joined":
@@ -88,6 +102,12 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 						.leftJoinAndSelect("member.user", "self")
 						.leftJoinAndSelect("member.player", "selfPlayer")
 						.leftJoinAndSelect("selfPlayer.team", "selfTeam")
+					
+						.leftJoinAndSelect("room.state", "state")
+						.leftJoinAndSelect("state.teams", "team")
+						.leftJoinAndSelect("team.players", "player")
+						.leftJoinAndSelect("player.user", "user")
+
 						.getMany();
 				case "joinable":
 					return this.room_service.query()
@@ -97,6 +117,12 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 						.leftJoinAndSelect("member.user", "self")
 						.leftJoinAndSelect("member.player", "selfPlayer")
 						.leftJoinAndSelect("selfPlayer.team", "selfTeam")
+
+						.leftJoinAndSelect("room.state", "state")
+						.leftJoinAndSelect("state.teams", "team")
+						.leftJoinAndSelect("team.players", "player")
+						.leftJoinAndSelect("player.user", "user")
+
 						.getMany();
 				case "visible":
 					return this.room_service.get([{ is_private: false }, { members: { user: { id: me.id } } }]);
@@ -156,6 +182,8 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 					self: room.self(user),
 				}
 			}, user)
+			
+			return room;
 		}
 
 		@Get(":id")
@@ -199,8 +227,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			@Me() me: User,
 			@Body() dto: PasswordDTO,
 		) {
-			console.log(me.username);
-			if (all_of(await this.room_service.is_banned(room, me)))
+			if (await this.room_service.areBanned(room, me))
 				throw new ForbiddenException("You have been banned from this room");
 
 			const invites = await this.invite_service.get({ to: me, room });
@@ -217,6 +244,13 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 						throw new ForbiddenException("Incorrect password");
 			}
 
+			room.send_update({
+				subject: Subject.USER,
+				action: Action.UPDATE,
+				id: room.id,
+				value: { ...instanceToPlain(me)	}
+			});
+		
 			await this.room_service.add_members(room, { user: me });
 			await this.invite_service.remove(...invites);
 
@@ -238,6 +272,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 					self: room.self(me),
 				}
 			}, me);
+
 		}
 
 		@Get(":id/member(s)?/me")
@@ -296,7 +331,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			@GetRoom() room: T,
 			@GetMember() self: U,
 			@Param("member", ParseIDPipe(MemberType)) target: U,
-			@Body("ban", ParseBoolPipe) ban?: boolean,
+			@Body() dto?: RemoveMemberDTO,
 		) {
 			if (!this.room_service.areMember(room, target)) {
 				throw new ForbiddenException(ERR_NOT_MEMBER);
@@ -306,7 +341,14 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				throw new ForbiddenException(ERR_PERM);
 			}
 
-			await this.room_service.remove_members(room, { member: target, ban });
+			await this.room_service.remove_members(room, { member: target, ban: dto.ban });
+
+			UpdateGateway.instance.send_update({
+				subject: Subject.ROOM,
+				action: Action.UPDATE,
+				id: room.id,
+				value: { joined: false },
+			}, target.user);
 		}
 
 		@Get(":id/invite(s)?")
@@ -327,7 +369,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				throw new ForbiddenException("User already member of this room");
 			if ((await this.invite_service.get({ from: me, to: target, room })).length !== 0)
 				throw new ForbiddenException("Already invited this user");
-			if (all_of(await this.room_service.is_banned(room, target)))
+			if (await this.room_service.areBanned(room, target))
 				throw new ForbiddenException("Cannot invite banned user");
 			await this.invite_service.save(...await this.invite_service.create({ from: me, to: target, room }));
 		}
@@ -366,7 +408,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			@GetRoom() room: T,
 			@Param("user_id", ParseIDPipe(User)) target: User,
 		) {
-			if (!all_of(await this.room_service.is_banned(room, target)))
+			if (!await this.room_service.areBanned(room, target))
 				throw new NotFoundException("User not banned");
 			await this.room_service.unban(room, target);
 		}

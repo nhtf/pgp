@@ -2,7 +2,7 @@ import { FontLoader, Font } from "three/examples/jsm/loaders/FontLoader";
 import { TextGeometry } from "three/examples/jsm/geometries/TextGeometry";
 import * as THREE from "three";
 import type { World } from "./World";
-import type { BufferAttribute, GLBufferAttribute } from "three";
+import type { BufferAttribute } from "three";
 
 const loader = new FontLoader();
 
@@ -33,22 +33,33 @@ export class DynamicText {
 		const geometry = this.world.addThreeObject(createText(text, HELVETIKER_CLASSIC));
 
 		//This is for making the vertices needed to draw text in webgl for modern, temp function
-		const numbersVertices = [];
-		for (let i = 0; i < 10; i+=1) {
-			const test = new TextGeometry(i.toString(), {
-				font: PIXELED,
-				size: 12
-			});
-			const pos = test.attributes.position as BufferAttribute;
-			const vertices = [];
-			for (let i = 0; i < pos.array.length;) {
-				vertices.push(pos.array[i]);
-				vertices.push(pos.array[i + 1]);
-				i+=3;
-			}
-			numbersVertices.push(vertices);
-		}
-		console.log("numbers: ", ": ", numbersVertices);
+		// const numbersVertices = [];
+		// const edgeVertices = [];
+		// for (let i = 0; i < 10; i+=1) {
+		// 	const test = new TextGeometry(i.toString(), {
+		// 		font: PIXELED,
+		// 		size: 12
+		// 	});
+		// 	const edge = new THREE.EdgesGeometry(test);
+		// 	const posEdge = edge.attributes.position as BufferAttribute;
+		// 	const pos = test.attributes.position as BufferAttribute;
+		// 	const vertices = [];
+		// 	const vertEdge = [];
+		// 	for (let i = 0; i < pos.array.length;) {
+		// 		vertices.push(pos.array[i]);
+		// 		vertices.push(pos.array[i + 1]);
+		// 		i+=3;
+		// 	}
+		// 	for (let i = 0; i < posEdge.array.length;) {
+		// 		vertEdge.push(posEdge.array[i]);
+		// 		vertEdge.push(posEdge.array[i + 1]);
+		// 		i+=3;
+		// 	}
+		// 	numbersVertices.push(vertices);
+		// 	edgeVertices.push(vertEdge);
+		// }
+		// console.log("numbers: ", ": ", numbersVertices);
+		// console.log("edges: ", edgeVertices);
 		
 
 		this.lastText = text;

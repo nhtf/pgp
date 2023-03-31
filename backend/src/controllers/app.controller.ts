@@ -3,7 +3,6 @@ import {
 	Controller,
 	UseGuards,
 } from "@nestjs/common";
-
 import { genName, genTeamName } from "../namegen";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";

@@ -1,5 +1,5 @@
-import type { User, ChatRoom, Member} from "$lib/entities";
 import type { PageLoad } from "./$types"
+import { User, ChatRoom, Member, Entity} from "$lib/entities";
 import { userStore, roomStore, memberStore, updateStore  } from "$lib/stores";
 import { Role } from "$lib/enums"
 import { unwrap } from "$lib/Alert";
@@ -20,9 +20,9 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 		throw error(401, "Must be admin or owner");
 	}
 
-	updateStore(roomStore, room);
-	updateStore(memberStore, members);
-	updateStore(userStore, banned);
+	updateStore(roomStore, room, ChatRoom);
+	updateStore(userStore, banned, Entity);
+	updateStore(memberStore, members, Member);
 
     return { room, member, members, banned };
 }) satisfies PageLoad;

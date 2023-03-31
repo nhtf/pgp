@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { UpdatePacket } from "$lib/types";
 	import type { LayoutData } from "./$types";
-	import type { Entity } from "$lib/entities";
 	import {
 		Dropdown,
 		DropdownItem,
@@ -39,6 +38,7 @@
 
 	$: user = data.user ? $userStore.get(data.user.id) : null;
 	$: twofa_enabled = user?.auth_req === 2;
+	$: route = $page.url.toString().includes("chat") ? "/chat" : "/game";
 
 	onMount(() => {
 		applyTheme();
@@ -49,23 +49,18 @@
 
 	updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
 		if (update.action === Action.REMOVE && update.id === Number($page.params.id)) {
-			const route = $page.url.toString().includes("chat") ? "chat" : "game";
-	
-			await goto(`/${route}`);
+			await goto(route);
 		}
 	});
 
 	updateManager.set(Subject.MEMBER, async (update: UpdatePacket) => {
-		const id = Number($page.params.id);
 		const member = $memberStore.get(update.id);
 
 		if (update.action === Action.REMOVE
 			&& member?.userId === $page.data.user.id
 			&& Number($page.params.id) === member?.roomId
 		) {
-			const route = $page.url.toString().includes("chat") ? "chat" : "game";
-	
-			await goto(`/${route}`);
+			await goto(route);
 		}
 	});
 

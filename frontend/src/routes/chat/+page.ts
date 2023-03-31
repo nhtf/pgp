@@ -1,5 +1,5 @@
 import type { PageLoad } from "./$types"
-import type { ChatRoom, User } from "$lib/entities";
+import { ChatRoom, User } from "$lib/entities";
 import { userStore, roomStore, updateStore } from "$lib/stores";
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
@@ -21,8 +21,8 @@ export const load: PageLoad = (async ({ fetch }) => {
 		.filter(({ owner }) => owner !== undefined)
 		.map(({ owner }) => owner) as User[];
 	
-	updateStore(userStore, owners);
-	updateStore(roomStore, rooms);
+	updateStore(userStore, owners, User);
+	updateStore(roomStore, rooms, ChatRoom);
 
 	return { rooms };
 }) satisfies PageLoad;

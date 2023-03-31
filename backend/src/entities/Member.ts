@@ -10,7 +10,7 @@ export class Member {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	// @Exclude()
+	@Exclude()
 	@ManyToOne(() => User, (user) => user.members, { eager: true, onDelete: "CASCADE" })
 	user: User;
 

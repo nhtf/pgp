@@ -1,15 +1,14 @@
 import { GenericRoomController, GetRoom, GetMember } from "src/controllers/new.room.controller"
 import { Response } from "express";
 import { GameRoom } from "src/entities/GameRoom";
-import { GameState } from "src/entities/GameState";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { CreateRoomOptions } from "src/services/new.room.service";
 import { Gamemode } from "src/enums";
-import { Get, Controller } from "@nestjs/common";
+import { Get } from "@nestjs/common";
 import { GameRoomService } from "src/services/gameroom.service";
 import { RoomInviteService } from "src/services/roominvite.service";
 import { IsString, Length, IsOptional, IsBoolean, IsEnum, IsNumber } from "class-validator";
-import { Post, Patch, Param, Body, ForbiddenException, Res, HttpCode, HttpStatus } from "@nestjs/common";
+import { Post, Patch, Param, Body, ForbiddenException, Res, HttpCode, HttpStatus, UsePipes, ValidationPipe } from "@nestjs/common";
 import { Me, ParseOptionalIDPipe, ParseIDPipe } from "src/util";
 import { Player } from "src/entities/Player";
 import { ERR_PERM } from "src/errors";
@@ -73,6 +72,16 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 		invite_service: RoomInviteService,
 	) {
 		super(game_service, invite_service);
+	}
+
+	@Post()
+	@UsePipes(new ValidationPipe({ expectedType: CreateGameRoomOptions }))
+	async create_room(@Me() me: User, @Body() dto: CreateGameRoomOptions) {
+		const room = await super.create_room(me, dto);
+
+		// this.update(room, { state: { ...room.state } });
+
+		return room;
 	}
 
 	@Patch(":id/team/me")

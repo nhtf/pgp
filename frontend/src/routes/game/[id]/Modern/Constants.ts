@@ -78,6 +78,8 @@ type rot = {
 
 export type level = {
     players: number;
+    scorePositions: VectorObject[];
+    scoreColors: number[][];
     paddles: paddle[];
     collisions: Line[];
     convexFieldBoxLines: Line[];
@@ -126,7 +128,7 @@ export type level = {
 export const levels = ["/Assets/game/twoplayerLevel.json", "/Assets/game/fourPlayerLevel.json"];
 
 export const scorePositions = [
-    [{x: FIELDWIDTH / 4, y: -15}, {x: 3 * FIELDWIDTH / 4, y: -15}],
+    [{x: WIDTH / 4 + 20, y: 225}, {x: 3 * WIDTH / 4 - 20, y: 225}],
     [{x: FIELDWIDTH / 4, y: -15}, {x: FIELDWIDTH / 4, y: 195}, {x: 3 * FIELDWIDTH / 4, y: 195}, {x: 3 * FIELDWIDTH / 4, y: -15}]
 ];
 

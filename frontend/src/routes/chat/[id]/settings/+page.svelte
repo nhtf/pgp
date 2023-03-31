@@ -17,6 +17,7 @@
 	import Invite from "$lib/components/Invite.svelte";
     import Swal from "sweetalert2";
     import RoomHeader from "$lib/components/RoomHeader.svelte";
+    import UserDropdown from "$lib/components/UserDropdown.svelte";
 
 	export let data: PageData;
 
@@ -29,21 +30,14 @@
 		edit.name = edit.name.length ? edit.name : null;
 		edit.password = edit.password.length ? edit.password : null;
 
-		await unwrap(patch(`/chat/${room.id}`, edit));
+		await unwrap(patch(room.route, edit));
 	}
 
 	async function erase(room: Room) {
-		await unwrap(remove(`/chat/${room.id}`));
+		await unwrap(remove(room.route));
 		await goto(`/chat`);
 	}
 
-	async function unban(user: User) {
-		await unwrap(remove(`/chat/${room!.id}/bans/${user.id}`));
-
-		Swal.fire({ icon: "success", timer: 3000 });
-	
-		banned = banned.filter((x) => x.id !== user.id);
-	}
 </script>
 
 {#if room}
@@ -61,25 +55,7 @@
 			<h1>Banned Users</h1>
 			<div class="banned">
 				{#each banned as user}
-					<Avatar
-						src={user.avatar}
-						id="avatar-{user.id}"
-						class="bg-c"
-					/>
-					<Tooltip triggeredBy="#avatar-{user.id}"
-						>{user.username}</Tooltip
-					>
-					<Dropdown
-						triggeredBy="#avatar-{user.id}"
-						class="bor-c bg-c shadow rounded max-w-sm"
-					>
-						<DropdownHeader>
-							{user.username}
-						</DropdownHeader>
-						<DropdownItem on:click={() => unban(user)}
-							>Unban
-						</DropdownItem>
-					</Dropdown>
+					<UserDropdown {user}/>
 				{/each}
 			</div>
 		</div>

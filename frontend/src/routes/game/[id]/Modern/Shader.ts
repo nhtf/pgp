@@ -126,4 +126,14 @@ export class Shader {
         this.program.setUniform(gl, "color", color);
         gl.drawArrays(gl.LINES, 0, vertices.length / 2);
     }
+
+    public renderTriangles(gl: WebGL2RenderingContext, vertices: number[], transform: number[], color: number[]) {
+        const buffer = this.createVerticeBuffer(gl, vertices);
+        gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
+		gl.enableVertexAttribArray(0);
+        this.program.setUniform(gl, "transform", transform);
+        this.program.setUniform(gl, "color", color);
+        gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 2);
+    }
 }

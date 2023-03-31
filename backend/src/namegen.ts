@@ -106,8 +106,8 @@ export const genAdjectiveSequence = () => choice([
 ])();
 
 export const genNameUnlimited = () => choice([
-	() => `The ${genAdjectiveSequence()} ${genRoomSynonym()}`,
 	() => `My ${genAdjectiveSequence()} ${genRoomSynonym()}`,
+	() => `The ${genAdjectiveSequence()} ${genRoomSynonym()}`,
 	() => `The ${genRoomSynonym()} of the ${genAdjectiveSequence()} ${genCreature()}`,
 	() => `The ${genAdjectiveSequence()} ${genRoomSynonym()} of the ${genCreature()}`,
 ])();

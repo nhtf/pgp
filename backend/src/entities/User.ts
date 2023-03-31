@@ -68,12 +68,12 @@ export class User {
 
 	@Exclude()
 	@ManyToMany(() => User, (friend) => friend.friends, { onDelete: "NO ACTION" })
-	@JoinTable({ name: "Friend" }) //TODO make table name lowercase to be consistent
+	@JoinTable({ name: "friend" })
 	friends: User[];
 
 	@Exclude()
 	@ManyToMany(() => User, (user) => user.blocked)
-	@JoinTable({ name: "Block" }) //TODO make table name lowercase to be consistent
+	@JoinTable({ name: "block" })
 	blocked: User[];
 
 	@Exclude()

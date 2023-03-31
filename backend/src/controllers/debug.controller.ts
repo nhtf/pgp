@@ -277,7 +277,7 @@ export class DebugController {
 		return await this.messageRepo.delete(Number(id));
 	}
 
-	@Get("room/liberate")
+	@Get("room(s)?/liberate")
 	async liberate(@Query("id") id: string) {
 		return this.roomRepo.save({ id: Number(id), banned_users: [] });
 	}

@@ -75,7 +75,7 @@
         {
             "bufferView" : 0,
             "componentType" : 5126,
-            "count" : 486,
+            "count" : 432,
             "max" : [
                 2.5999984741210938,
                 1.4638159275054932,
@@ -91,13 +91,13 @@
         {
             "bufferView" : 1,
             "componentType" : 5126,
-            "count" : 486,
+            "count" : 432,
             "type" : "VEC2"
         },
         {
             "bufferView" : 2,
             "componentType" : 5126,
-            "count" : 486,
+            "count" : 432,
             "type" : "VEC3"
         },
         {
@@ -110,26 +110,26 @@
     "bufferViews" : [
         {
             "buffer" : 0,
-            "byteLength" : 5832,
+            "byteLength" : 5184,
             "byteOffset" : 0,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 3888,
-            "byteOffset" : 5832,
+            "byteLength" : 3456,
+            "byteOffset" : 5184,
             "target" : 34962
         },
         {
             "buffer" : 0,
-            "byteLength" : 5832,
-            "byteOffset" : 9720,
+            "byteLength" : 5184,
+            "byteOffset" : 8640,
             "target" : 34962
         },
         {
             "buffer" : 0,
             "byteLength" : 1296,
-            "byteOffset" : 15552,
+            "byteOffset" : 13824,
             "target" : 34963
         }
     ],
@@ -141,7 +141,7 @@
     ],
     "buffers" : [
         {
-            "byteLength" : 16848,
+            "byteLength" : 15120,
             "uri" : "pingPongTable.bin"
         }
     ]

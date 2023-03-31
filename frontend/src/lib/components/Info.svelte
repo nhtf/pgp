@@ -111,11 +111,11 @@
 			</div>
 		</div>
 	</div> -->
-	<div>
+	<!-- <div>
 		{#each $page.data.games.sort(byId).reverse() as game (game.id)}
 			<Match user={profile} {game}/>
 		{/each}
-	</div>
+	</div> -->
 </div>
 
 <style>

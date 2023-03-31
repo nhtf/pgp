@@ -9,3 +9,9 @@ export const asset_path = "/Assets";
 export const icon_path = `${asset_path}/icons`;
 
 export const status_colors = ["gray", "yellow", "green", "blue"];
+
+export const gamemode_icons: Map<number, string>[] = [
+	new Map([ [ 2, "pong-classic.svg" ] ]),
+	new Map([ [ 2, "vr.svg" ] ]),
+	new Map([ [ 2, "hexagon.svg" ], [ 4, "hexagon4p.svg" ] ]),
+];

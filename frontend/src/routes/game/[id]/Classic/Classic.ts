@@ -61,7 +61,7 @@ export class Ball {
 export class Paddle {
 	public position: Vector;
 	public height: number;
-	public userID?: number;
+	public userId?: number;
 	public ping: number;
 	public team: Team;
 
@@ -86,7 +86,7 @@ export class Paddle {
 		return {
 			position: this.position.save(),
 			height: this.height,
-			userID: this.userID,
+			userId: this.userId,
 			width: 0, //width only needed for the modern pong
 			ping: this.ping,
 			rotation: 0
@@ -96,7 +96,7 @@ export class Paddle {
 	public load(object: PaddleObject) {
 		this.position = Vector.load(object.position);
 		this.height = object.height;
-		this.userID = object.userID;
+		this.userId = object.userId;
 		this.ping = object.ping;
 	}
 }
@@ -120,13 +120,13 @@ export class Game extends Net {
 			if (paddle === null) {
 				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
 
-				if (paddle?.userID !== undefined) {
+				if (paddle?.userId !== undefined) {
 					paddle = null;
 				}
 			}
 
 			if (paddle !== null) {
-				paddle.userID = event.u;
+				paddle.userId = event.u;
 				paddle.ping = this.time;
 				paddle.position.y = event.y;
 			}
@@ -160,14 +160,8 @@ export class Game extends Net {
 		super.load(snapshot);
 	}
 
-	public getPaddle(userID?: number): Paddle | null {
-		for (let paddle of this.paddles) {
-			if (paddle.userID === userID) {
-				return paddle;
-			}
-		}
-
-		return null;
+	public getPaddle(userId?: number): Paddle | null {
+		return this.paddles.find((paddle) => paddle.userId === userId) ?? null;
 	}
 
 	public render(context: CanvasRenderingContext2D) {
@@ -237,7 +231,7 @@ export class Game extends Net {
 		
 		for (let paddle of this.paddles) {
 			if (paddle.ping + PADDLE_PING_TIMEOUT < this.time) {
-				paddle.userID = undefined;
+				paddle.userId = undefined;
 			}
 		}
 		super.lateTick();

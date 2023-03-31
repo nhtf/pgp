@@ -69,7 +69,7 @@ export class MatchController {
 					await this.room_service.add_member(room, other);
 					await this.room_service.save(room);
 
-					const url = `${FRONTEND_ADDRESS}/game/${room.id}`;
+					const url = `${FRONTEND_ADDRESS}/game`;
 					const message = "Found game";
 					const can_cancel = true;
 					this.update_service.send_update(create_packet(Subject.REDIRECT, Action.INSERT, user.id, { url, message, can_cancel }), user, other);

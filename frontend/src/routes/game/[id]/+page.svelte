@@ -9,8 +9,9 @@
 	export let data: PageData;
 
 	const room = data.room;
-	const gamemode = room.state.gamemode;
+	const gamemode = room.state!.gamemode;
 	const components = [ClassicGame, VrGame, ModernGameShader];
+
 </script>
 
 {#if gamemode !== Gamemode.VR}

@@ -21,7 +21,7 @@ export interface Snapshot extends WorldSnapshot {
 }
 
 export interface PaddleObject extends EntityObject {
-	userID: number;
+	userId: number;
 	teamID: number;
 }
 
@@ -170,7 +170,7 @@ export class Ball extends Entity {
 				}, 500);
 			});
 
-			this.removed ||= !world.state!.onPaddleHit((other as Paddle).userID);
+			this.removed ||= !world.state!.onPaddleHit((other as Paddle).userId);
 		}
 	}
 }
@@ -182,16 +182,16 @@ export class Paddle extends Entity {
 
 	public name = "paddle";
 	public dynamic = true;
-	public userID: number;
+	public userId: number;
 	public teamID: number;
 
-	public constructor(world: Pong, uuid: string, userID: number, teamID: number) {
+	public constructor(world: Pong, uuid: string, userId: number, teamID: number) {
 		const shape = createShape(world.paddleModel!);
 		const physicsObject = createPhysicsObject(shape, Paddle.MASS);
 
 		physicsObject.setRestitution(Paddle.RESTITUTION);
 		super(world, uuid, world.paddleModel!.clone(), physicsObject);
-		this.userID = userID;
+		this.userId = userId;
 		this.teamID = teamID;
 
 		if (uuid != world.paddleUUID) {
@@ -211,14 +211,14 @@ export class Paddle extends Entity {
 	public save(): PaddleObject {
 		return {
 			...super.save(),
-			userID: this.userID,
+			userId: this.userId,
 			teamID: this.teamID,
 		};
 	}
 
 	public load(entity: PaddleUpdate) {
-		if (entity.userID !== undefined)
-			this.userID = entity.userID;
+		if (entity.userId !== undefined)
+			this.userId = entity.userId;
 
 		if (entity.teamID !== undefined)
 			this.teamID = entity.teamID;
@@ -260,10 +260,10 @@ export class Pong extends World {
 			if (event.entity.name == "paddle") {
 				const entity = event.entity as PaddleObject;
 				const team = this.state!.teams.find(team => team.id == entity.teamID)!;
-				const player = this.state!.players.find(p => p.user == entity.userID);
+				const player = this.state!.players.find(p => p.user == entity.userId);
 
 				if (player === undefined) {
-					this.state!.players.push(new Player(this.state!, entity.userID, team));
+					this.state!.players.push(new Player(this.state!, entity.userId, team));
 				}
 			}
 		});
@@ -274,7 +274,7 @@ export class Pong extends World {
 			const paddle = this.get(event.paddle);
 
 			if (ball === null && paddle !== null && paddle instanceof Paddle) {
-				const team = this.state!.players.find(player => player.user == paddle.userID)!.team;
+				const team = this.state!.players.find(player => player.user == paddle.userId)!.team;
 
 				console.log(this.state!.current?.id, team?.id);
 
@@ -297,7 +297,7 @@ export class Pong extends World {
 		this.register("ball", object => new Ball(this, object.uuid));
 		this.register("paddle", obj => {
 			const object = obj as PaddleObject;
-			return new Paddle(this, object.uuid, object.userID, object.teamID);
+			return new Paddle(this, object.uuid, object.userId, object.teamID);
 		});
 	}
 
@@ -332,8 +332,8 @@ export class Pong extends World {
 		if (this.time >= this.maxTime && this.member!.player != null) {
 			this.sendCreateOrUpdate({
 				name: "paddle",
-				userID: this.member!.userId,
-				teamID: this.member!.player?.team?.id,
+				userId: this.member!.userId,
+				teamID: this.member!.player?.teamId,
 			}, {
 				uuid: this.paddleUUID,
 				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),

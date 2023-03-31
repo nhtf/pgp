@@ -5,12 +5,12 @@ export async function respond(invite: Invite, action: "accept" | "deny") {
 	switch (invite.type) {
 		case "ChatRoom":
 		case "GameRoom":
-			const route = invite.type.replace("Room", "").toLowerCase();
+			const room = invite.room!;
 		
 			if (action === "accept") {
-				await post(`/${route}/${invite.room?.id}/members`, { id: null });
+				await post(`${room.route}/members`, { id: null });
 			} else {
-				await remove(`/${route}/${invite.room?.id}/invite/${invite.id}`);
+				await remove(`${room.route}/invite/${invite.id}`);
 			}
 			break;
 		case "FriendRequest":

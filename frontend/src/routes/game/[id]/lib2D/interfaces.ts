@@ -12,7 +12,7 @@ export interface PaddleObject {
 	position: VectorObject;
 	height: number;
     width: number;
-	userID?: number;
+	userId?: number;
 	ping: number;
 	rotation: number;
 	transform?: string;

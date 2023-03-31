@@ -1,4 +1,4 @@
-import type { Entity, User, Member, Invite, Room, GameState } from "$lib/entities"
+import { Entity, User, Member, Room, Invite, GameState } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
@@ -6,6 +6,14 @@ import { writable, type Writable } from "svelte/store";
 import { Access } from "$lib/enums"
 
 type ObjectLiteral = { [key: string]: any; }
+
+function create<T extends Entity>(value: ObjectLiteral, entityType: (new () => T)): T {
+	const entity = new entityType;
+
+	updateDeepPartial(entity, value);
+
+	return entity;
+}
 
 function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 	Object.keys(update).forEach((key) => {
@@ -21,16 +29,21 @@ function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 	});	
 }
 
-function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: Subject) {
+function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: Subject, entityType: (new () => T)) {
 	updateManager.set(subject, (update: UpdatePacket) => {
 		store.update((entities) => {
 			switch (update.action) {
 				case Action.INSERT:
-					entities.set(update.id, update.value);
+					const entity = new entityType!;
+
+					updateDeepPartial(entity, update.value);
+				
+					entities.set(update.id, entity);
+	
 					break;
 				case Action.UPDATE:
 					if (!entities.has(update.id)) {
-						entities.set(update.id, { id: update.id, ...update.value });
+						entities.set(update.id, update.value);
 						break ;
 					}
 
@@ -46,35 +59,35 @@ function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: S
 	});
 }
 
-function storeFactory<T extends Entity>(subject: Subject): Writable<Map<number, T>> {
+function storeFactory<T extends Entity>(subject: Subject, entityType: (new () => T)): Writable<Map<number, T>> {
 	const store = writable(new Map<number, T>);
 
-	setUpdate(store, subject);
+	setUpdate(store, subject, entityType);
 
 	return store;
 }
 
-export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T[] | T) {
+export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T | T[], entityType: (new () => T)) {
 	if (!Array.isArray(entities)) {
 		entities = [entities];
 	}
 
 	store.update((stored) => {
 		(entities as T[]).forEach((entity) => {
-			stored.set(entity.id, entity)
+			stored.set(entity.id, create(entity, entityType))
 		});
 
 		return stored;
 	});
 }
 
-export const userStore = storeFactory<User>(Subject.USER);
-export const roomStore = storeFactory<Room>(Subject.ROOM);
-export const blockStore = storeFactory<Entity>(Subject.BLOCK);
-export const memberStore = storeFactory<Member>(Subject.MEMBER);
-export const inviteStore = storeFactory<Invite>(Subject.INVITE);
-export const friendStore = storeFactory<Entity>(Subject.FRIEND);
-export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE);
+export const userStore = storeFactory(Subject.USER, User);
+export const roomStore = storeFactory(Subject.ROOM, Room);
+export const blockStore = storeFactory<Entity>(Subject.BLOCK, Entity);
+export const memberStore = storeFactory<Member>(Subject.MEMBER, Member);
+export const inviteStore = storeFactory<Invite>(Subject.INVITE, Invite);
+export const friendStore = storeFactory<Entity>(Subject.FRIEND, Entity);
+export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE, GameState);
 
 // Removed from private room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
@@ -94,14 +107,14 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 // Add new friend to userStore
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	if (update.action === Action.INSERT) {
-		updateStore(userStore, update.value);
+		updateStore(userStore, update.value, Entity);
 	}
 });
 
 // Add state from new room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
-	if (update.action === Action.INSERT && update.value.type === "GameRoom") {
-		updateStore(gameStateStore, update.value.state);
+	if (update.action === Action.UPDATE && update.value.type === "GameRoom" && update.value.state) {
+		updateStore(gameStateStore, update.value.state, Room);
 	}
 });
 

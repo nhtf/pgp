@@ -43,8 +43,8 @@
 
 		if (invite.type === "GameRoom") {
 			const room = invite.room as GameRoom;
-			const self = await unwrap(get(`/game/${room.id}/self`));
-			const team = room.state.teams[1];
+			const self = await unwrap(get(`/game/self`));
+			const team = room.state!.teams[1];
 		
 			await unwrap(patch(`/game/${room.id}/team/${self.id}`, { team: team.id }));
 

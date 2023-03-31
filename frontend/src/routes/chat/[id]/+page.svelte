@@ -68,7 +68,7 @@
 	
 	async function sendMessage(content: string) {
 		if (content.length) {
-			await unwrap(post(`/chat/${room.id}/messages`, { content }));
+			await unwrap(post(`/chat/messages`, { content }));
 		}
 	}
 
@@ -108,7 +108,7 @@
 					<div class="member-group">
 						<h1 style={`color: #${role_colors[role]}`}>{role_names[role]}</h1>
 						{#each members.filter((member) => member.role === role) as member (member.id)}
-							<UserDropdown {member}/>
+							<UserDropdown {member} {room}/>
 						{/each}
 					</div>
 				{/if}

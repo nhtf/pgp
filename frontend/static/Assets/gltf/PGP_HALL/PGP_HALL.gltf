@@ -229,7 +229,7 @@
             ],
             "translation" : [
                 -17.989999771118164,
-                3.817634105682373,
+                5,
                 0
             ]
         },
@@ -249,7 +249,7 @@
             ],
             "translation" : [
                 17.989999771118164,
-                3.817634105682373,
+                5,
                 0
             ]
         },
@@ -2333,7 +2333,7 @@
         {
             "alphaCutoff" : 0.6322067379951477,
             "alphaMode" : "MASK",
-            "name" : "Texture",
+            "name" : "pingPongTableMaterial",
             "pbrMetallicRoughness" : {
                 "baseColorTexture" : {
                     "index" : 6
@@ -2574,7 +2574,7 @@
             ]
         },
         {
-            "name" : "Table",
+            "name" : "pingPongTableMesh",
             "primitives" : [
                 {
                     "attributes" : {

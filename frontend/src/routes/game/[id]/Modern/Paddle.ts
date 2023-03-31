@@ -14,7 +14,7 @@ export interface PaddleObject {
 	transform: string;
 	height: number;
     width: number;
-	userID?: number;
+	userId?: number;
 	ping: number;
 }
 
@@ -22,7 +22,7 @@ export class Paddle {
 	public position: Vector;
 	public height: number;
     public width: number;
-	public userID?: number;
+	public userId?: number;
 	public rotation: number;
 	public owner: number;
 	public ping: number;
@@ -59,7 +59,7 @@ export class Paddle {
 			transform: serialize(buffer.buffer),
 			height: this.height,
             width: this.width,
-			userID: this.userID,
+			userId: this.userId,
 			ping: this.ping,
 		};
 	}
@@ -70,7 +70,7 @@ export class Paddle {
 		this.position = new Vector(buffer[0], buffer[1]);
 		this.height = object.height;
         this.width = object.width;
-		this.userID = object.userID;
+		this.userId = object.userId;
 		this.ping = object.ping;
 		this.rotation = buffer[2];
 	}

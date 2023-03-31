@@ -1,5 +1,5 @@
-import type { Invite, User } from "$lib/entities";
 import type { LayoutLoad } from "./$types";
+import { Invite, User, Entity } from "$lib/entities";
 import { updateStore, userStore, inviteStore, blockStore, friendStore } from "$lib/stores";
 import { get } from "$lib/Web";
 
@@ -16,15 +16,9 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 		const blocked: User[] = await get(`/user/me/blocked`);
 		const invites: Invite[] = await get(`/user/me/invites`);
 	
-		updateStore(userStore, user);
-		updateStore(inviteStore, invites);
-		updateStore(blockStore, blocked.map(({ id }) => { return { id } }));
-
-		// TODO: remove
-		const friends: User[] = await get(`/user/me/friends`);
-
-		updateStore(friendStore, friends);
-		updateStore(userStore, friends);
+		updateStore(userStore, user, User);
+		updateStore(inviteStore, invites, Invite);
+		updateStore(blockStore, blocked.map(({ id }) => { return { id } }), Entity);
 
 	} catch (err) { }
 

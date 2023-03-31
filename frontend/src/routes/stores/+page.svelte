@@ -1,14 +1,15 @@
 <script lang="ts">
-	import { gameStateStore, inviteStore, roomStore, userStore } from "$lib/stores";
+    import type { GameRoom } from "$lib/entities";
+	import { gameStateStore, inviteStore, memberStore, roomStore, userStore } from "$lib/stores";
     import { status_colors } from "$lib/constants";
 	import { byId } from "$lib/sorting";
     import { Gamemode, Status } from "$lib/enums";
-    import type { GameRoom } from "$lib/entities";
 
 	$: users = [...$userStore.values()];
 	$: rooms = [...$roomStore.values()] as GameRoom[];
 	$: games = [...$gameStateStore.values()];
 	$: invites = [...$inviteStore.values()];
+	$: members = [...$memberStore.values()];
 </script>
 
 <div class="flex flew-row flex-wrap">
@@ -25,7 +26,7 @@
 				<td>{user.id}</td>
 				<td>{user.username}</td>
 				<td style="background-color: {status_colors[user.status]}">{Status[user.status]}</td>
-				<td>{user.activeRoomId !== null ? user.activeRoomId : ""}</td>
+				<td>{user.activeRoomId ?? ""}</td>
 			</tr>
 		{/each}
 	</table>
@@ -44,8 +45,8 @@
 				<td>{room.id}</td>
 				<td>{room.name}</td>
 				<td>{room.type}</td>
-				<td>{room.owner?.username}</td>
-				<td>{room.state?.id}</td>
+				<td>{room.owner?.username ?? ""}</td>
+				<td>{room.state?.id ?? ""}</td>
 			</tr>
 		{/each}
 	</table>
@@ -75,22 +76,26 @@
 							<tr>
 								<td>{team.id}</td>
 								<td>{team.name}</td>
-								<td class="nested-table">
-									<table class="nested-table">
-										<tr>
-											<th>id</th>
-											<th>userId</th>
-											<th>name</th>
-										</tr>
-										{#each team.players as player (player.id)}
+								{#if team.players}
+									<td class="nested-table">
+										<table class="nested-table">
 											<tr>
-												<td>{player.id}</td>
-												<td>{player.userId}</td>
-												<td>{player.user?.username}</td>
+												<th>id</th>
+												<th>userId</th>
+												<th>name</th>
 											</tr>
-										{/each}
-									</table>
-								</td>
+											{#each team.players as player (player.id)}
+												<tr>
+													<td>{player.id}</td>
+													<td>{player.userId}</td>
+													<td>{player.user?.username}</td>
+												</tr>
+											{/each}
+										</table>
+									</td>
+								{:else}
+									<td></td>
+								{/if}
 							</tr>
 						{/each}
 					</table>
@@ -108,6 +113,7 @@
 			<th>type</th>
 			<th>to</th>
 			<th>from</th>
+			<th>room</th>
 		</tr>
 		{#each invites.sort(byId) as invite (invite.id)}
 			<tr>
@@ -115,6 +121,25 @@
 				<td>{invite.type}</td>
 				<td>{invite.to.username}</td>
 				<td>{invite.from.username}</td>
+				<td>{invite.room?.id ?? ""}</td>
+			</tr>
+		{/each}
+	</table>
+
+	<table>
+		<caption>Members</caption>
+		<tr>
+			<th>id</th>
+			<th>type</th>
+			<th>user</th>
+			<th>room</th>
+		</tr>
+		{#each members.sort(byId) as member (member.id)}
+			<tr>
+				<td>{member.id}</td>
+				<td>{member.type}</td>
+				<td>{member.userId}</td>
+				<td>{member.roomId}</td>
 			</tr>
 		{/each}
 	</table>
@@ -130,7 +155,6 @@
 	}
 
 	.nested-table {
-		/* width: inherit; */
 		margin: unset;
 		padding: unset;
 		border: none;

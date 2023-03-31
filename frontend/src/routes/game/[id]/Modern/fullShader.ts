@@ -1,5 +1,5 @@
 import type { VectorObject } from "../lib2D/Math2D";
-import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT } from "./Constants";
+import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, scorePositions } from "./Constants";
 import { m3 } from "../lib2D/Matrix";
 import { Shader} from "./Shader";
 import type { viewPort } from "./Shader";
@@ -37,6 +37,7 @@ import { fieldVert } from "./Shaders/field.vert";
 import { fieldFrag } from "./Shaders/field.frag";
 import { gridVert } from "./Shaders/grid.vert";
 import { gridFrag } from "./Shaders/grid.frag";
+import { font, fontEdges } from "./Shaders/fonts";
 
 export class FullShader {
 	private gl: WebGL2RenderingContext;
@@ -54,6 +55,7 @@ export class FullShader {
 	private ball: Shader;
 	private minScale: number;
 	private debugVertices: number[][];
+	private scores: number[] = [];
 
 	public constructor(canvas: HTMLCanvasElement, level: level) {
 		this.canvas = canvas;
@@ -76,6 +78,7 @@ export class FullShader {
 		for (let i = 0; i < level.players; i++) {
 			this.paddlePos.push(level.paddleStartPos[i]);
 			this.paddlePosCanvas.push({x: 0, y: 0});
+			this.scores.push(0);
 		}
 		this.paddleShader.addMesh(this.gl, level.paddleBorder, "paddleBorder", {color: level.paddleBorderColors});
 		this.paddleShader.addMesh(this.gl, level.paddleGradient, "paddleGradient", {color: level.paddleGradientColors});
@@ -178,6 +181,10 @@ export class FullShader {
 		this.ballPos.y = (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.minScale + yOffset;
 	}
 
+	public updateScore(score: number, team: number) {
+		this.scores[team] = score;
+	}
+
 	private renderMiddleLine() {
 		this.field.renderNamed(this.gl, "circleBorder", {transform: this.level.normalMatrix});
 		this.field.renderNamed(this.gl, "circleGradient");
@@ -227,8 +234,37 @@ export class FullShader {
 		this.field.setUniform(this.gl, time, viewport, this.ballPos, res);
 		this.field.renderNamed(this.gl, "fieldBorder", {transform: this.level.normalMatrix});
 
-		// this.field.renderPoints(this.gl, , this.level.normalMatrix, [0, 0,1,1]);
-		//TODO make a renderfunction for the scoreText
+		this.renderScore();
+	}
+
+	//TODO make the outline of the text better
+	private renderScore() {
+		for (let i = 0; i < this.level.players; i+=1) {
+			const nIndex = Math.abs(this.scores[i] % 10);
+			const matrix = new m3();
+			matrix.translation(this.level.scorePositions[i].x - WIDTH / 2, (this.level.scorePositions[i].y) - HEIGHT / 2);
+			matrix.scaling(2 / WIDTH, 2 / HEIGHT);
+			
+			if (Math.abs(this.scores[i]) < 10) {
+				this.field.renderTriangles(this.gl, font[nIndex], matrix.matrix, this.level.scoreColors[i]);
+				this.field.renderPoints(this.gl, fontEdges[nIndex], matrix.matrix, [1,1,1,1]);
+			}
+			else if (Math.abs(this.scores[i]) < 100) {	
+				const tensIndex = Math.floor(Math.abs(this.scores[i] / 10));
+				matrix.translation(-0.07, 0);
+				this.field.renderTriangles(this.gl, font[tensIndex], matrix.matrix, this.level.scoreColors[i]);
+				this.field.renderPoints(this.gl, fontEdges[tensIndex], matrix.matrix, [1,1,1,1]);
+			}
+			else {
+				const tensIndex = Math.floor(Math.abs((this.scores[i] % 100) / 10));
+				const hunIndex = Math.floor(Math.abs(this.scores[i] / 100));
+				matrix.translation(-0.07, 0);
+				this.field.renderTriangles(this.gl, font[tensIndex], matrix.matrix, this.level.scoreColors[i]);
+				matrix.translation(-0.07, 0);
+				this.field.renderTriangles(this.gl, font[hunIndex], matrix.matrix, this.level.scoreColors[i]);
+				this.field.renderPoints(this.gl, fontEdges[hunIndex], matrix.matrix, [1,1,1,1]);
+			}
+		}
 	}
 
 	private debugRenderer(viewport: viewPort, res: VectorObject) {
@@ -289,7 +325,7 @@ export class FullShader {
 			}
 		}
 		const fps = 1/ (time -this.lastTime) * 1000;
-		// console.log("fps: ", fps);
+		console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

@@ -1,3 +1,5 @@
+import type { User } from "src/entities/User";
+import type { Player } from "src/entities/Player";
 import { Injectable, Inject } from "@nestjs/common";
 import { Repository, DeepPartial } from "typeorm";
 import { GameRoom } from "src/entities/GameRoom";
@@ -6,8 +8,7 @@ import { GameState } from "src/entities/GameState";
 import { Team } from "src/entities/Team";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { GenericRoomService, CreateRoomOptions } from "src/services/new.room.service";
-import type { User } from "src/entities/User";
-import type { Player } from "src/entities/Player";
+import { genTeamName } from "src/namegen"
 
 interface CreateGameRoomOptions extends CreateRoomOptions {
 	gamemode: Gamemode;
@@ -53,8 +54,9 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			for (let idx = 0; idx < options.players; ++idx) {
 				const team = new Team();
 
-				team.name = `team ${TEAM_NAMES[idx]}`;
+				team.name = genTeamName(20);
 				team.players = [];
+			
 				state.teams.push(team);
 			}
 

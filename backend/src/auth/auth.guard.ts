@@ -15,13 +15,13 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 		constructor(
 			@Inject("USER_REPO")
 			readonly user_repo: Repository<User>,
-		) {}
+		) { }
 
 		async canActivate(context: ExecutionContext): Promise<boolean> {
 			const request = get_request(context);
 			const user = request?.user;
 			const session = request?.session;
-			
+
 			if (!user)
 				return false;
 			if (request.headers.authorization) {
@@ -29,7 +29,7 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 				if (await argon2.verify(
 					user.api_secret,
 					Buffer.from(plainToClass(AuthDTO,
-											 JSON.parse(Buffer.from(request.headers.authorization, "base64").toString())).secret, "base64")))
+						JSON.parse(Buffer.from(request.headers.authorization, "base64").toString())).secret, "base64")))
 					return true;
 				return false;
 			}
@@ -39,4 +39,4 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 	return GenericAuthGuardFactory;
 }
 
-export class HttpAuthGuard extends GenericAuthGuard(context => context.switchToHttp().getRequest()) {}
+export class HttpAuthGuard extends GenericAuthGuard(context => context.switchToHttp().getRequest()) { }

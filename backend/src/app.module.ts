@@ -251,7 +251,7 @@ export class AppModule implements NestModule {
 			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatController, NewChatRoomController);
-		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController);
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController, NewGameController);
 		consumer.apply(ActivityMiddleware).exclude(
 			{ path: "oauth(.*)", method: RequestMethod.ALL },
 			{ path: "debug(.*)", method: RequestMethod.ALL })

@@ -15,6 +15,7 @@ import { FullShader } from "./fullShader";
 import type {Snapshot as NetSnapshot } from "../Net";
 import type { BallObject } from "./Ball";
 import type { PaddleObject } from "./Paddle";
+import { fontEdges } from "./Shaders/fonts";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
@@ -90,12 +91,12 @@ export class Game extends Net {
 
 			if (paddle === null) {
 				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
-				if (paddle?.userID !== undefined) {
+				if (paddle?.userId !== undefined) {
 					paddle = null;
 				}
 			}
 			if (paddle !== null) {
-				paddle.userID = event.u;
+				paddle.userId = event.u;
 				paddle.ping = this.time;
 
 				const oldPos = new Vector(paddle.position.x, paddle.position.y);
@@ -132,12 +133,12 @@ export class Game extends Net {
 
 			if (paddle === null) {
 				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
-				if (paddle?.userID !== undefined) {
+				if (paddle?.userId !== undefined) {
 					paddle = null;
 				}
 			}
 			if (paddle !== null) {
-				paddle.userID = event.u;
+				paddle.userId = event.u;
 				paddle.ping = this.time;
 
 				paddle.rotation += deserializeNumber(event.r);
@@ -211,14 +212,8 @@ export class Game extends Net {
 		super.load(snapshot);
 	}
 
-	public getPaddle(userID?: number): Paddle | null {
-		for (let paddle of this.paddles) {
-			if (paddle.userID === userID) {
-				return paddle;
-			}
-		}
-
-		return null;
+	public getPaddle(userId?: number): Paddle | null {
+		return this.paddles.find((paddle) => paddle.userId === userId) ?? null;
 	}
 
 	public lateTick() {
@@ -248,6 +243,7 @@ export class Game extends Net {
 					goal = 1;
 					this.teams[goal].score += 1;
 				}
+				this.shader.updateScore(this.teams[goal].score, goal);
 				//TODO reimplement the ripples again
 				// setOriginRipple(this.ball.position.x, this.ball.position.y);
 				// activateRipple();
@@ -275,7 +271,7 @@ export class Game extends Net {
 
 		for (let paddle of this.paddles) {
 			if (paddle.ping + PADDLE_PING_TIMEOUT < this.time) {
-				paddle.userID = undefined;
+				paddle.userId = undefined;
 			}
 		}
 
@@ -296,8 +292,11 @@ export class Game extends Net {
 		let startScore = 0;
 		if (this.players === GAME.FOURPLAYERS)
 			startScore = 10;
+		const teams = options.room.state!.teams;
+		console.log(teams);
 		for (let i = 0; i < this.level.players; i++) {
-			this.teams.push(new Team(options.room.state!.teams[i].id, startScore));
+			this.teams.push(new Team(teams[i].id, teams[i].score));
+			this.shader.updateScore(teams[i].score, i);
 		}
 
 		let index = 0;
@@ -328,7 +327,6 @@ export class Modern {
 	public async init(canvas: HTMLCanvasElement) {
 		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
 			this.field = data;
-			console.log("canvas", canvas);
 			this.shader = new FullShader(canvas, data);
 			this.game = new Game(this.players, this.field!, this.shader);
 			this.shader?.addEventListener(this);
@@ -380,7 +378,7 @@ export class Modern {
 						u: this.options.member.userId,
 						x: serializeNumber(movement.x),
 						y: serializeNumber(movement.y),
-						t: this.options.member.player?.team?.id,
+						t: this.options.member.player?.teamId,
 					});
 				}
 			
