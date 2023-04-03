@@ -122,6 +122,7 @@ export class NewChatRoomController extends GenericRoomController(
 		message.embeds = embeds;
 		message.member = member;
 		message.room = room;
+
 		await this.chat_service.add_messages(room, message);
 	}
 

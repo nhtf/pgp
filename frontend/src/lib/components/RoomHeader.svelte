@@ -29,7 +29,7 @@
 	<div class="grow"/>
 	<div class="text-4xl">{room.name}</div>
 	<div class="grow"/>
-	{#if room.owner?.id === $page.data.user.id}
+	{#if room.ownerId === $page.data.user.id}
 		<button class="button border-red" on:click={() => erase(room)}>Erase</button>
 	{:else}
 		<button class="button border-red" on:click={() => leave(room)}>Leave</button>

@@ -33,7 +33,8 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 
 		room.messages.push(...messages);
 	
-		return room;
+		await this.message_repo.save(messages);
+		// return this.room_repo.save(room);
 	}
 
 	async remove_messages(...messages: Message[]) {

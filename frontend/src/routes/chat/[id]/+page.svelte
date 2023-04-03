@@ -68,7 +68,7 @@
 	
 	async function sendMessage(content: string) {
 		if (content.length) {
-			await unwrap(post(`/chat/messages`, { content }));
+			await unwrap(post(`${room.route}/messages`, { content }));
 		}
 	}
 
@@ -131,6 +131,7 @@
 		margin: 0.25rem;
 		align-items: stretch;
 	
+		/* TODO */
 		height: 80vh;
 	}
 
@@ -144,7 +145,9 @@
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
+		overflow: auto;
 
+		/* TODO */
 		height: 70vh;
 	}
 

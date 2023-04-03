@@ -13,7 +13,7 @@ export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
 export const DESYNC_CHECK_INTERVAL = 300;
 export const DESYNC_CHECK_DELTA = 240;
-export const SAVE_ALL_SNAPSHOTS = false;
+export const SAVE_ALL_SNAPSHOTS = true;
 
 export interface Snapshot {
 	time: number;
@@ -176,6 +176,8 @@ export class Net {
 				const latest = this.getLatest(this.time - DESYNC_CHECK_DELTA);
 
 				if (latest !== null) {
+					console.log(`sending desync check for ${latest[0].time} (real time is ${this.time}, outgoing hash is ${hashCode(JSON.stringify(latest[0]))})`);
+
 					this.broadcast({
 						name: "desync-check",
 						snapshot: latest[0],

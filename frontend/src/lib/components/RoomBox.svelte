@@ -1,11 +1,11 @@
 <script lang="ts">
-	import type { GameRoom, Room, GameState } from "$lib/entities";
-	import { page } from "$app/stores";
-	import { unwrap } from "$lib/Alert";
-	import { icon_path } from "$lib/constants";
-	import { Access } from "$lib/enums";
+	import type { GameRoom, Room } from "$lib/entities";
+	import { gameStateStore, roomStore, userStore } from "$lib/stores";
 	import { post, remove, patch, get } from "$lib/Web";
-	import { gameStateStore, userStore } from "$lib/stores";
+	import { icon_path } from "$lib/constants";
+	import { unwrap } from "$lib/Alert";
+	import { Access } from "$lib/enums";
+	import { page } from "$app/stores";
 	import Invite from "./Invite.svelte";
     import Swal from "sweetalert2";
 
@@ -14,11 +14,11 @@
 	const crown = `${icon_path}/crown.svg`;
 
 	let password = "";
-	let state: GameState | null = (room as GameRoom).state ?? null;
 
+	$: room = $roomStore.get(room.id)!;
+	$: state = (room as GameRoom).state ? $gameStateStore.get((room as GameRoom).state!.id)! : undefined;
 	$: user = $userStore.get($page.data.user?.id)!;
-	$: owner = room.owner ? $userStore.get(room.owner.id)! : null;
-	$: state = state ? $gameStateStore.get(state.id)! : null;
+	$: owner = room.ownerId ? $userStore.get(room.ownerId)! : undefined;
 	$: team = state?.teams.find((team) => team.players?.some(({ userId }) => userId === user.id));
 
 	function teamSelector(room: Room): Promise<number | null> {
@@ -48,9 +48,7 @@
 	async function join(room: Room) {
 		await unwrap(post(`${room.route}/members`, { password }));
 
-		const state = (room as GameRoom).state;
-	
-		if (room.type === "GameRoom" && state && !state.teamsLocked) {
+		if (room.type === "GameRoom" && !state?.teamsLocked) {
 			changeTeam(room);
 		}
 	

@@ -1,3 +1,4 @@
+import type { UpdatePacket } from "src/gateways/update.gateway"
 import { Member } from "./Member";
 import { Action, AuthLevel, Status, Subject } from "src/enums";
 import {
@@ -13,7 +14,7 @@ import {
 	ManyToOne,
 	RelationId,
 } from "typeorm";
-import { Exclude, Expose, instanceToPlain, Transform } from "class-transformer";
+import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { AVATAR_DIR, DEFAULT_AVATAR, BACKEND_ADDRESS, AVATAR_EXT } from "../vars";
 import { Room } from "./Room";
 import { GameRoom } from "./GameRoom";
@@ -23,7 +24,6 @@ import { UpdateGateway } from "src/gateways/update.gateway";
 import { Player } from "./Player";
 import { Message } from "./Message";
 import { MatchHistory } from "./MatchHistory"
-import { Team } from "./Team"
 import { AchievementProgress } from "./AchievementProgress";
 
 @Entity()
@@ -32,9 +32,7 @@ export class User {
 	id: number;
 
 	@Exclude()
-	@Column({
-		nullable: true	
-	})
+	@Column({ nullable: true })
 	oauth_id: number | null;
 
 	@Exclude()
@@ -111,9 +109,7 @@ export class User {
 	@ManyToOne(() => User, (user) => user.bots, { cascade: ["insert", "remove"] }) //TODO set nullable: false
 	owner: User;
 
-	@Column({
-		nullable: true
-	})
+	@Column({ nullable: true })
 	@Exclude()
 	api_secret: string | null;
 
@@ -169,7 +165,7 @@ export class User {
 	}
 
 	send_friend_update(action: Action, friend: User) {
-		const packet: any = {
+		const packet: UpdatePacket = {
 			subject: Subject.FRIEND,
 			id: friend.id,
 			action,

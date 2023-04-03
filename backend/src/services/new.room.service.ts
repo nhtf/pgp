@@ -1,11 +1,10 @@
-import type { Room } from "src/entities/Room";
 import type { Member } from "src/entities/Member";
+import type { Room } from "src/entities/Room";
 import type { User } from "src/entities/User";
-import { RoomInvite } from "src/entities/RoomInvite";
 import { Repository, FindOneOptions, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder } from "typeorm";
+import { genName } from "src/namegen"
 import { Role } from "src/enums";
 import * as argon2 from "argon2";
-import { genName } from "src/namegen"
 
 export interface CreateRoomOptions {
 	name?: string;

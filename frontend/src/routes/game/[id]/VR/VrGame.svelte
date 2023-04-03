@@ -18,6 +18,7 @@
 		await ammoInit();
 		
 		world = new Pong();
+		console.log(world);
 		console.log("created world");
 		container.append(world.renderer.domElement);
 		const vrButton = VRButton.createButton(world.renderer);

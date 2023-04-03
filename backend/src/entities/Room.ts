@@ -47,7 +47,12 @@ export class Room {
 	}
 
 	@Expose()
-	get owner(): any {
+	get ownerId(): number | undefined {
+		return this.owner?.id;
+	}
+
+	@Expose()
+	get owner(): any | undefined {
 		return instanceToPlain(this.members?.find((member) => member.role === Role.OWNER)?.user);
 	}
 

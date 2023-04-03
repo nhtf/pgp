@@ -12,7 +12,7 @@
 	$: members = [...$memberStore.values()];
 </script>
 
-<div class="flex flew-row flex-wrap">
+<div class="flex flew-row flex-wrap gap-4 m-4">
 	<table>
 		<caption>Users</caption>
 		<tr>
@@ -45,7 +45,7 @@
 				<td>{room.id}</td>
 				<td>{room.name}</td>
 				<td>{room.type}</td>
-				<td>{room.owner?.username ?? ""}</td>
+				<td>{room.owner?.id ?? ""}</td>
 				<td>{room.state?.id ?? ""}</td>
 			</tr>
 		{/each}
@@ -56,17 +56,18 @@
 		<tr>
 			<th>id</th>
 			<th>gamemode</th>
-			<th>room</th>
-			<th>teams</th>
+			<th>roomId</th>
 			<th>locked</th>
+			<th>teams</th>
 		</tr>
 		{#each games.sort(byId) as game (game.id)}
 			<tr>
 				<td>{game.id}</td>
 				<td>{Gamemode[game.gamemode]}</td>
 				<td>{game.roomId}</td>
-				<td class="nested-table">
-					<table class="nested-table">
+				<td>{game.teamsLocked}</td>
+				<td>
+					<table>
 						<tr>
 							<th>id</th>
 							<th>name</th>
@@ -77,8 +78,8 @@
 								<td>{team.id}</td>
 								<td>{team.name}</td>
 								{#if team.players}
-									<td class="nested-table">
-										<table class="nested-table">
+									<td>
+										<table>
 											<tr>
 												<th>id</th>
 												<th>userId</th>
@@ -101,7 +102,6 @@
 					</table>
 
 				</td>
-				<td>{game.teamsLocked}</td>
 			</tr>
 		{/each}
 	</table>
@@ -151,20 +151,13 @@
 		border-collapse: collapse;
 		height: min-content;
 		table-layout: fixed;
-		margin: 2rem;
-	}
-
-	.nested-table {
-		margin: unset;
-		padding: unset;
-		border: none;
 	}
 
 	td,
 	th,
 	tr {
-		padding: 0.5rem;
 		border: 1px solid;
 		border-collapse: collapse;
+		padding: 0.5rem;
 	}
 </style>

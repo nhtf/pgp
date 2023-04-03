@@ -243,18 +243,16 @@ const services = [
 export class AppModule implements NestModule {
 	// TODO: remove debug exeption
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(UserMiddleware).exclude(
-			{ path: "oauth(.*)", method: RequestMethod.ALL },
-			{ path: "debug(.*)", method: RequestMethod.ALL })
+		consumer.apply(UserMiddleware, ActivityMiddleware)
+			.exclude(
+				{ path: "oauth(.*)", method: RequestMethod.ALL },
+				{ path: "debug(.*)", method: RequestMethod.ALL })
 			.forRoutes("*");
-		consumer.apply(SessionExpiryMiddleware).exclude(
-			{ path: "debug(.*)", method: RequestMethod.ALL }).forRoutes("*");
+		consumer.apply(SessionExpiryMiddleware)
+			.exclude(
+				{ path: "debug(.*)", method: RequestMethod.ALL })
+			.forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
-		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(ChatController, NewChatRoomController);
-		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(GameController, NewGameController);
-		consumer.apply(ActivityMiddleware).exclude(
-			{ path: "oauth(.*)", method: RequestMethod.ALL },
-			{ path: "debug(.*)", method: RequestMethod.ALL })
-			.forRoutes("*");
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(NewChatRoomController, NewGameController);
 	}
 }

@@ -177,7 +177,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				id: room.id,
 				action: Action.UPDATE,
 				value: {
-					owner: room.owner,
+					ownerId: room.owner.id,
 					joined: true,
 					self: room.self(user),
 				}
@@ -247,7 +247,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			room.send_update({
 				subject: Subject.USER,
 				action: Action.UPDATE,
-				id: room.id,
+				id: me.id,
 				value: { ...instanceToPlain(me)	}
 			});
 		
@@ -377,10 +377,11 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		@Delete(":id/invite(s)/:invite")
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async delete_invite(
-			@GetRoom() room: T,
 			@Me() me: User,
+			@GetRoom() room: T,
 			@Param("invite", ParseIDPipe(RoomInvite, { room: true })) invite: RoomInvite
 		) {
+			console.log(room, invite);
 			if (invite.room.id !== room.id)
 				throw new NotFoundException();
 

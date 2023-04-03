@@ -38,29 +38,31 @@
 <!-- Manually trigger dropdown -->
 <svelte:window on:click={onWindowClick}/>
 
-<Search
-	size="lg"
-	id="search"
-	class="input"
-	placeholder="username"
-	bind:value
-	on:input={onInput}
-/>
-{#if value}
-	<Dropdown bind:open>
-		{#if !filtered.length}
-			<DropdownHeader>No users found</DropdownHeader>
-		{/if}
-		{#each filtered as user (user.id)}
-			<DropdownItem on:click={() => onDropdownClick(user)}>
-				<div class="user">
-					<img class="avatar" src={user.avatar} alt="" />
-					<div>{user.username}</div>
-				</div>
-			</DropdownItem>
-		{/each}
-	</Dropdown>
-{/if}
+<div>
+	<Search
+		size="lg"
+		id="search"
+		class="input"
+		placeholder="username"
+		bind:value
+		on:input={onInput}
+	/>
+	{#if value}
+		<Dropdown bind:open>
+			{#if !filtered.length}
+				<DropdownHeader>No users found</DropdownHeader>
+			{/if}
+			{#each filtered as user (user.id)}
+				<DropdownItem on:click={() => onDropdownClick(user)}>
+					<div class="user">
+						<img class="avatar" src={user.avatar} alt="" />
+						<div>{user.username}</div>
+					</div>
+				</DropdownItem>
+			{/each}
+		</Dropdown>
+	{/if}
+</div>
 
 <style>
 	.user {

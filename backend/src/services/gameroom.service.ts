@@ -21,9 +21,6 @@ export const PLAYER_NUMBERS = new Map([
 	[Gamemode.MODERN, [2, 4]],
 ]);
 
-//TODO better names
-const TEAM_NAMES = ["one", "two", "three", "four"];
-
 @Injectable()
 export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember, CreateRoomOptions>(GameRoom, GameRoomMember) {
 
@@ -60,9 +57,11 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 				state.teams.push(team);
 			}
 
+			state.room = { id: room.id } as GameRoom;
+
 			room.state = state;
 		
-			return room;
+			return this.room_repo.save(room);
 		}
 
 		async get_history(user: User): Promise<GameState[]> {

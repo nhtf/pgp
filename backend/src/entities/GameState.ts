@@ -1,5 +1,6 @@
 import { Team } from "./Team";
 import { Column, OneToMany, OneToOne, PrimaryGeneratedColumn, Entity, JoinColumn, RelationId } from "typeorm";
+import { Exclude } from "class-transformer"
 import { Gamemode } from "src/enums";
 import { GameRoom } from "./GameRoom";
 
@@ -11,6 +12,7 @@ export class GameState {
 	@Column()
 	gamemode: Gamemode;
 
+	@Exclude()
 	@OneToOne(() => GameRoom, (room) => room.state, { nullable: true, onDelete: "SET NULL" })
 	@JoinColumn()
 	room: GameRoom | null;

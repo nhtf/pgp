@@ -104,7 +104,7 @@ export function GenericUserController(
 		@UseGuards(SetupGuard)
 		async get_user(
 			@Me() me: User,
-			@Param(options.param, options.pipe) user?: User
+			@Param(options.param, options.pipe) user?: User,
 		) {
 			user = user ?? me;
 
@@ -378,7 +378,7 @@ export function GenericUserController(
 				invite.from = user;
 				invite.to = target;
 
-				await this.request_repo.save({ from: user, to: target, type: "FriendRequest" });
+				await this.request_repo.save(invite);
 			}
 		}
 

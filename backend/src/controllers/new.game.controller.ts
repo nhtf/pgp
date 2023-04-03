@@ -17,11 +17,13 @@ import { User } from "src/entities/User";
 import { Role } from "src/enums";
 import { RequiredRole } from "src/guards/role.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
+import { instanceToPlain } from "class-transformer"
 
 class CreateGameRoomOptions implements CreateRoomOptions {
 	@IsString()
 	@Length(3, 20)
-	name: string;
+	@IsOptional()
+	name?: string;
 
 	@IsBoolean()
 	@IsOptional()
@@ -79,7 +81,7 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 	async create_room(@Me() me: User, @Body() dto: CreateGameRoomOptions) {
 		const room = await super.create_room(me, dto);
 
-		// this.update(room, { state: { ...room.state } });
+		this.update(room, { state: { ... instanceToPlain(room.state) } });
 
 		return room;
 	}

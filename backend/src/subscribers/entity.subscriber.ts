@@ -26,6 +26,7 @@ const subjects: SubjectInfo[] = [
 		fun: (message: Message) => message.room?.users,
 		relations: { room: { members: { user: true } } }
 	},
+	// TODO: check if used
 	{ subject: Subject.GAMESTATE, names: [ "GameState" ],
 		fun: (state: GameState) => state.room?.users,
 		relations: { room: { members: { user: true }} }
@@ -64,7 +65,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 
 			const info = this.subjectEntry(event.metadata.targetName);
 			const value = valueFun(entity);		
-			
+
 			UpdateGateway.instance.send_update({
 				subject: info.subject,
 				action,

@@ -7,11 +7,12 @@ export class Entity {
 }
 
 export class User extends Entity {
-	auth_req?: number;
 	username: string;
-	status: Status;
 	avatar: string;
+	status: Status;
 	activeRoomId: number | null;
+	auth_req?: number;
+
 	achievements?: Achievement[];
 };
 
@@ -20,7 +21,8 @@ export class Room<U extends Member = Member> extends Entity {
 	access: Access;
 	type: "ChatRoom" | "GameRoom";
 	joined: boolean;
-	owner?: User;
+	ownerId?: number;
+
 	self?: U;
 
 	get route(): string {
@@ -55,17 +57,18 @@ export class GameRoom extends Room<GameRoomMember> {
 };
 
 export class GameState extends Entity {
-	teamsLocked: boolean;
 	gamemode: Gamemode;
-	teams: Team[];
+	teamsLocked: boolean;
 	roomId: number | null;
+
+	teams: Team[];
 }
 
 export class Member extends Entity {
 	role: Role;
-	userId: number;
-	roomId: number;
 	type: string;
+	roomId: number;
+	userId: number;
 };
 
 export class ChatRoomMember extends Member {
@@ -76,26 +79,32 @@ export class GameRoomMember extends Member {
 	player: Player | null;
 };
 
-export type Player = Entity & {
-	team: Team,
-	teamId: number,
-	user: User,
-	userId: number,
+export class Player extends Entity {
+	teamId: number;
+	userId: number;
+
+	team: Team;
+	user: User;
 };
 
-export type Team = {
-	id: number,
-	name: string,
-	score: number,
-	stateId: number,
-	players: Player[],
+export class Team extends Entity {
+	name: string;
+	score: number;
+	stateId: number;
+	players: Player[];
 };
 
 export class Invite extends Entity {
+	constructor() {
+		super();
+		this.room = new Room;
+	}
+
 	date: Date;
-	from: User;
-	to: User;
 	type: "ChatRoom" | "GameRoom" | "FriendRequest";
+
+	to: User;
+	from: User;
 	room?: Room;
 };
 
@@ -107,9 +116,8 @@ export type Embed = {
 
 export class Message extends Entity {
 	content: string;
-	member: Member | null;
-	memberId: number | null;
 	created: number;
 	embeds: Embed[];
+	memberId: number | null;
 	userId: number;
 };

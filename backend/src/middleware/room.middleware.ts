@@ -9,6 +9,7 @@ export class RoomMiddleware implements NestMiddleware {
 	constructor(@Inject("ROOM_REPO") private readonly repo: Repository<Room>) {}
 
 	async use(req: any, res: Response, next: NextFunction) {
+		console.log(req.params.id);
 		if (req.params.id) {
 			try {
 				const id = validate_id(req.params.id);

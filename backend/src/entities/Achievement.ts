@@ -1,4 +1,4 @@
-import { Entity, Tree, TreeChildren, TreeParent, PrimaryGeneratedColumn, Column, OneToMany, ManyToOne } from "typeorm";
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
 import { Objective } from "./Objective";
 import { AchievementProgress } from "./AchievementProgress";
 
@@ -13,9 +13,7 @@ export class Achievement {
 	@Column()
 	image: string;
 
-	@Column({
-	    nullable: true
-	})
+	@Column({ nullable: true })
 	max: number | null;
 
 	@OneToMany(() => Objective, (objective) => objective.achievement, { eager: true, cascade: true })

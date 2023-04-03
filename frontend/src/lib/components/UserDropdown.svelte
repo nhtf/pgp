@@ -39,35 +39,69 @@
 
 </script>
 
-<Button color="alternative" class="friend-button opacity-{opacity} w-full">
-	<Avatar
-		src={user.avatar}
-		id="avatar-{user.id}"
-		dot={{
-			placement: "bottom-right",
-			color: status_colors[user.status],
-		}}
-	/>
-	<Tooltip>{user.username}</Tooltip>
-	{#if extend}
-		<div>{user.username}</div>
-	{/if}
-</Button>
-<Dropdown class="dropdown">
-	<DropdownItem class="dropdown-item">
-		<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
-	</DropdownItem>
-	{#if user.id !== me.id}
-		<DropdownDivider/>
-		{#each actions as { condition, fun }}
-			{#if !condition || condition({ user, member, friendIds, blockedIds, my_role }) }
-				<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
+<div class="udd">
+	{#if !extend}
+		<Avatar
+			src={user.avatar}
+			id="avatar-{user.id}"
+			dot={{
+				placement: "bottom-right",
+				color: status_colors[user.status],
+			}}
+		/>
+		<Tooltip>{user.username}</Tooltip>
+		<Dropdown class="dropdown" triggeredBy="#avatar-{user.id}">
+			<DropdownItem class="dropdown-item">
+				<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
+			</DropdownItem>
+			{#if user.id !== me.id}
+				<DropdownDivider/>
+				{#each actions as { condition, fun }}
+					{#if !condition || condition({ user, member, friendIds, blockedIds, my_role }) }
+						<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
+					{/if}
+				{/each}
 			{/if}
-		{/each}
+		</Dropdown>
+	{:else}
+		<Button color="alternative" class="friend-button opacity-{opacity} w-full">
+			<Avatar
+				src={user.avatar}
+				id="avatar-{user.id}"
+				dot={{
+					placement: "bottom-right",
+					color: status_colors[user.status],
+				}}
+			/>
+			<Tooltip>{user.username}</Tooltip>
+			{#if extend}
+				<div>{user.username}</div>
+			{/if}
+		</Button>
+		<Dropdown class="dropdown">
+			<DropdownItem class="dropdown-item">
+				<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
+			</DropdownItem>
+			{#if user.id !== me.id}
+				<DropdownDivider/>
+				{#each actions as { condition, fun }}
+					{#if !condition || condition({ user, member, friendIds, blockedIds, my_role }) }
+						<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
+					{/if}
+				{/each}
+			{/if}
+		</Dropdown>
+		{#if extend && user.activeRoomId}
+			{#await get(`/game/${user.activeRoomId}/state`) then game}
+				<Match {game}/>
+			{/await}
+		{/if}
 	{/if}
-</Dropdown>
-{#if extend && user.activeRoomId}
-	{#await get(`/game/${user.activeRoomId}/state`) then game}
-		<Match {game}/>
-	{/await}
-{/if}
+</div>
+
+<style>
+
+	.udd {
+		min-width: 2rem;
+	}
+</style>

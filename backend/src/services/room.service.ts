@@ -25,8 +25,8 @@ export function IsNullable(validationOptions?: ValidationOptions) {
 export class CreateRoomDTO {
 	@IsString()
 	@Length(3, 20)
-	@IsNullable()
-	name: string | null;
+	@IsOptional()
+	name?: string;
 
 	@IsBoolean()
 	@IsNullable()

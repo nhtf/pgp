@@ -1,11 +1,11 @@
-import { Entity, User, Member, Room, Invite, GameState } from "$lib/entities"
 import type { UpdatePacket } from "$lib/types";
-import { Subject, Action } from "$lib/enums";
-import { updateManager } from "$lib/updateSocket";
+import { Entity, User, Member, GameRoom, Room, Invite, GameState } from "$lib/entities"
 import { writable, type Writable } from "svelte/store";
+import { updateManager } from "$lib/updateSocket";
+import { Subject, Action } from "$lib/enums";
 import { Access } from "$lib/enums"
 
-type ObjectLiteral = { [key: string]: any; }
+export type ObjectLiteral = { [key: string]: any; }
 
 function create<T extends Entity>(value: ObjectLiteral, entityType: (new () => T)): T {
 	const entity = new entityType;
@@ -34,16 +34,11 @@ function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: S
 		store.update((entities) => {
 			switch (update.action) {
 				case Action.INSERT:
-					const entity = new entityType!;
-
-					updateDeepPartial(entity, update.value);
-				
-					entities.set(update.id, entity);
-	
+					entities.set(update.id, create(update.value, entityType))
 					break;
 				case Action.UPDATE:
 					if (!entities.has(update.id)) {
-						entities.set(update.id, update.value);
+						entities.set(update.id, create({ id: update.id, ...update.value }, entityType));
 						break ;
 					}
 
@@ -107,14 +102,14 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 // Add new friend to userStore
 updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	if (update.action === Action.INSERT) {
-		updateStore(userStore, update.value, Entity);
+		updateStore(userStore, update.value, User);
 	}
 });
 
 // Add state from new room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
-	if (update.action === Action.UPDATE && update.value.type === "GameRoom" && update.value.state) {
-		updateStore(gameStateStore, update.value.state, Room);
+	if (update.value?.state) {
+		updateStore(gameStateStore, update.value.state, GameState);
 	}
 });
 
