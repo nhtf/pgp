@@ -1,19 +1,18 @@
 import type { CreateRoomOptions } from "src/services/new.room.service";
-import { Role } from "src/enums";
-import { GenericRoomController, GetRoom, GetMember } from "src/controllers/new.room.controller";
-import { IsString, Length, IsOptional, IsBoolean, IsDateString, IsEnum } from "class-validator";
-import { ChatRoom } from "src/entities/ChatRoom";
-import { ChatRoomMember } from "src/entities/ChatRoomMember";
-import { ChatRoomService } from "src/services/chatroom.service";
-import { RoomInviteService } from "src/services/roominvite.service";
 import { Get, Inject, Delete, Param, ForbiddenException, Body, Post, HttpCode, HttpStatus } from "@nestjs/common";
+import { IsString, Length, IsOptional, IsBoolean, IsDateString, IsEnum } from "class-validator";
+import { GenericRoomController, GetRoom, GetMember } from "src/controllers/new.room.controller";
+import { RoomInviteService } from "src/services/roominvite.service";
+import { ChatRoomService } from "src/services/chatroom.service";
+import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { RequiredRole } from "src/guards/role.guard";
-import type { Repository } from "typeorm";
+import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
+import { EMBED_LIMIT } from "src/vars";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
+import { Role } from "src/enums";
 import * as linkify from "linkifyjs";
-import { EMBED_LIMIT } from "src/vars";
 
 interface Link {
 	type: string;
@@ -62,7 +61,7 @@ class EditMemberDTO implements Partial<ChatRoomMember> {
 	role?: Role;
 
 	@IsOptional()
-	@IsDateString()//TODO check if this works (probably not). If not probably need to use @Transform()
+	@IsDateString()//TODO check if this works (probably not). If not probably need to use @Transform() (m: works fine)
 	mute?: Date;
 }
 
@@ -92,7 +91,7 @@ export class NewChatRoomController extends GenericRoomController(
 	@Get(":id/message(s)?")
 	@RequiredRole(Role.MEMBER)
 	async list_messages(@GetRoom() room: ChatRoom) {
-		return await this.chat_service.get_messages(room);
+		return this.chat_service.get_messages(room);
 	}
 
 	@Post(":id/message(s)?")

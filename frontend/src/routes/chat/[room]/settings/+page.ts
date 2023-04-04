@@ -10,13 +10,11 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	window.fetch = fetch;
 
 	const { user } = await unwrap(parent());
-	const room: ChatRoom = await unwrap(get(`/chat/${params.id}`));
-	const members: Member[] = await unwrap(get(`/chat/${params.id}/members`));
-	const banned: User[] = await unwrap(get(`/chat/${params.id}/bans`));
+	const room: ChatRoom = await unwrap(get(`/chat/${params.room}`));
+	const banned: User[] = await unwrap(get(`/chat/${params.room}/bans`));
+	const members: Member[] = await unwrap(get(`/chat/${params.room}/members`));
 
-	const member: Member = members.find((member) => member.userId === user!.id)!;
-
-	if (member.role < Role.ADMIN) {
+	if (room.self!.role < Role.ADMIN) {
 		throw error(401, "Must be admin or owner");
 	}
 
@@ -24,5 +22,5 @@ export const load: PageLoad = (async ({ parent, fetch, params }) => {
 	updateStore(userStore, banned, Entity);
 	updateStore(memberStore, members, Member);
 
-    return { room, member, members, banned };
+    return { room, members, banned };
 }) satisfies PageLoad;

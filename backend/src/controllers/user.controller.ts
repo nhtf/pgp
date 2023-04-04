@@ -267,13 +267,13 @@ export function GenericUserController(
 			});
 		}
 
-		@Delete(options.cparam + "/friend(s)?/:friend")
+		@Delete(options.cparam + "/friend(s)?")
 		@UseGuards(SetupGuard)
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async unfriend(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user: User,
-			@Param("friend", ParseIDPipe(User, { friends: true })) friend: User
+			@Body("friend", ParseIDPipe(User, { friends: true })) friend: User
 		) {
 			user = user || me;
 			if (user.id !== me.id) {

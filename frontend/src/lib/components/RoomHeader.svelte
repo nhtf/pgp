@@ -1,12 +1,12 @@
 <script lang="ts">
     import type { Room } from "$lib/entities";
+    import { Dropdown, DropdownHeader } from "flowbite-svelte";
     import { memberStore, roomStore } from "$lib/stores";
     import { goto } from "$app/navigation";
     import { unwrap } from "$lib/Alert";
 	import { page } from "$app/stores";
-    import { Role } from "$lib/enums";
     import { remove } from "$lib/Web";
-    import { Dropdown, DropdownHeader } from "flowbite-svelte";
+    import { Role } from "$lib/enums";
 
 	export let room: Room;
 
@@ -21,15 +21,21 @@
 	async function erase(room: Room) {
 		await unwrap(remove(room.route));
 	}
+
+	function back(url: string): string {
+		const index = url.lastIndexOf('/');
+
+		return url.slice(0, index);
+	}
 	
 </script>
 
 <div class="room">
-	<a class="button border-blue" href={`/${room.nav}`}>Back</a>
+	<a class="button border-blue" href={back($page.url.pathname)}>Back</a>
 	<div class="grow"/>
 	<div class="text-4xl">{room.name}</div>
 	<div class="grow"/>
-	{#if room.ownerId === $page.data.user.id}
+	{#if room.owner?.id === $page.data.user.id}
 		<button class="button border-red" on:click={() => erase(room)}>Erase</button>
 	{:else}
 		<button class="button border-red" on:click={() => leave(room)}>Leave</button>

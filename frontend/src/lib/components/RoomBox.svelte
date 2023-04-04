@@ -18,10 +18,10 @@
 	$: room = $roomStore.get(room.id)!;
 	$: state = (room as GameRoom).state ? $gameStateStore.get((room as GameRoom).state!.id)! : undefined;
 	$: user = $userStore.get($page.data.user?.id)!;
-	$: owner = room.ownerId ? $userStore.get(room.ownerId)! : undefined;
+	$: owner = room.owner ? $userStore.get(room.owner.id)! : undefined;
 	$: team = state?.teams.find((team) => team.players?.some(({ userId }) => userId === user.id));
 
-	function teamSelector(room: Room): Promise<number | null> {
+	function teamSelector(): Promise<number | null> {
 		const inputOptions = state!.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
 		const promise = Swal.fire({
 			input: "radio",
@@ -65,7 +65,7 @@
 	
 	async function changeTeam(room: Room) {
 		try {
-			const team = await teamSelector(room);
+			const team = await teamSelector();
 		
 			await unwrap(patch(`${room.route}/team/${(room as GameRoom).self!.id}`, { team }));
 			

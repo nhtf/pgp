@@ -30,9 +30,11 @@
 
 </script>
 
-{#each stores as [caption, store]}
-	<Table {caption} entities={[...store.values()]} />
-{/each}
+{#key stores}
+	{#each stores as [caption, store]}
+		<Table {caption} entities={[...store.values()]} />
+	{/each}
+{/key}
 
 {#each games ?? [] as game (game.id)}
 	<Match {game} />

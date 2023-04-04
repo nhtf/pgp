@@ -1,26 +1,26 @@
-import { Injectable, Inject } from "@nestjs/common";
-import { Repository } from "typeorm";
-import { RoomInvite } from "src/entities/RoomInvite";
 import type { Room } from "src/entities/Room";
 import type { User } from "src/entities/User";
+import { Injectable, Inject } from "@nestjs/common";
+import { RoomInvite } from "src/entities/RoomInvite";
+import { Repository } from "typeorm";
 
-interface IDObject {
+interface Entity {
 	id: number;
 }
 
 interface InviteInfo {
-	from: User | number;
-	to: User | number;
-	room: Room | number;
+	to: User;
+	from: User;
+	room: Room ;
 }
 
-function get_object<T extends IDObject>(obj: T | number): T {
+function get_object<T extends Entity>(obj: T | number): T {
 	if (typeof obj === "number")
 		return { id: obj } as T;
 	return obj;
 }
 
-function get_id<T extends IDObject>(obj: T | number): number {
+function get_id<T extends Entity>(obj: T | number): number {
 	if (obj == undefined)
 		return undefined;
 	if (typeof obj === "number")
@@ -39,21 +39,20 @@ export class RoomInviteService {
 		return this.invite_repo.save(invites);
 	}
 
-	async create(...invites: InviteInfo[]): Promise<RoomInvite[]> {
-		const list : RoomInvite[] = [];
-		for (const invite of invites) {
-			const room_invite = new RoomInvite();
-
-			room_invite.from = get_object(invite.from);
-			room_invite.to = get_object(invite.to);
-			room_invite.room = get_object(invite.room);
-			list.push(room_invite);
-		}
-		return list;
-	}
-
 	async remove(...invite: RoomInvite[]): Promise<void> {
 		await this.invite_repo.remove(invite);
+	}
+
+	async create(...invites: InviteInfo[]): Promise<RoomInvite[]> {
+		return invites.map(({ from, to, room }) => {
+			const invite = new RoomInvite;
+
+			invite.to = to;
+			invite.from = from;
+			invite.room = room;
+
+			return invite;
+		});
 	}
 
 	async remove_where(where: Partial<InviteInfo>): Promise<void> {
@@ -72,21 +71,21 @@ export class RoomInviteService {
 	}
 
 	async get(where?: Partial<InviteInfo>): Promise<RoomInvite[]> {
-		return await this.invite_repo.find({
+		return this.invite_repo.find({
 			where: {
 				from: {
-					id: get_id(where?.from),
+					id: where?.from?.id,
 				},
 				to: {
-					id: get_id(where?.to),
+					id: where?.to?.id,
 				},
 				room: {
-					id: get_id(where?.room),
+					id: where?.room?.id,
 				},
 			},
 			relations: {
-				from: true,
 				to: true,
+				from: true,
 				room: true,
 			},
 		});

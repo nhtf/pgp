@@ -84,13 +84,13 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		) {
 		}
 
-		update(room: T, value: any, ...receivers: User[]) {
+		update(room: T, value: any) {
 			UpdateGateway.instance.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.UPDATE,
 				value,
-			}, ...(receivers ?? room.is_private ? room.users : []));
+			}, ...(room.is_private ? room.users : []));
 		}
 
 		async get_rooms(me: User, filter: string) {
@@ -172,12 +172,18 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		
 			room.members = await this.room_service.add_members(room, { user, role: Role.OWNER });
 		
+			room.send_update({
+				subject: Subject.ROOM,
+				id: room.id,
+				action: Action.UPDATE,
+				value: { owner: room.owner }
+			});
+		
 			UpdateGateway.instance.send_update({
 				subject: Subject.ROOM,
 				id: room.id,
 				action: Action.UPDATE,
 				value: {
-					ownerId: room.owner.id,
 					joined: true,
 					self: room.self(user),
 				}
@@ -223,8 +229,8 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		@HttpCode(HttpStatus.NO_CONTENT)
 		@RequiredRole(NO_MEMBER)
 		async join(
-			@GetRoom() room: T,
 			@Me() me: User,
+			@GetRoom() room: T,
 			@Body() dto: PasswordDTO,
 		) {
 			if (await this.room_service.areBanned(room, me))
@@ -307,11 +313,12 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			if (target.role >= member.role || (dto.role !== Role.OWNER && dto.role >= member.role))
 				throw new ForbiddenException(ERR_PERM);
 
-			const changes = [{ member: target, changes: dto }];
+			const changes = [{ id: target.id, ...dto } as Partial<U>];
 			
 			if (dto.role === Role.OWNER)
-				changes.push({ member: member, changes: { role: Role.ADMIN } as Partial<U> });
-			await this.room_service.edit_members(room, ...(changes as any));
+				changes.push({ id: member.id, role: Role.ADMIN } as Partial<U>);
+		
+			await this.room_service.save_members(...changes as U[]);
 		}
 
 		@Delete(":id/member(s)?/me")
@@ -374,14 +381,13 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			await this.invite_service.save(...await this.invite_service.create({ from: me, to: target, room }));
 		}
 
-		@Delete(":id/invite(s)/:invite")
+		@Delete(":id/invite(s)?/:invite")
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async delete_invite(
 			@Me() me: User,
 			@GetRoom() room: T,
 			@Param("invite", ParseIDPipe(RoomInvite, { room: true })) invite: RoomInvite
 		) {
-			console.log(room, invite);
 			if (invite.room.id !== room.id)
 				throw new NotFoundException();
 

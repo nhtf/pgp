@@ -89,6 +89,13 @@ export class DebugController {
 		private readonly userService: UserService,
 	) {}
 
+	@Get()
+	async upTop() {
+		return this.userRepo.createQueryBuilder()
+			.where("true")
+			.getMany();
+	}
+
 	@Get("useradd")
 	async useradd(@Query() dto: UserDTO) {
 		// const exists = dto.username ?
@@ -175,6 +182,7 @@ export class DebugController {
 			relations: {
 				banned_rooms: true,
 				friends: true,
+				blocked: true,
 			},			
 		});
 	}

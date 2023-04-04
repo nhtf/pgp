@@ -9,11 +9,11 @@
     import { get } from "$lib/Web";
     import Match from "./Match.svelte";
 
-	// TODO: user not in store joins
 	export let member: Member | undefined = undefined;
 	export let user: User = $userStore.get(member!.userId)!
 	export let room: Room | undefined = undefined;
 	export let extend: boolean = false;
+	export let banned: boolean = false;
 
 	$: me = $userStore.get($page.data.user?.id)!;
 	$: user = $userStore.get(user.id)!;
@@ -57,7 +57,7 @@
 			{#if user.id !== me.id}
 				<DropdownDivider/>
 				{#each actions as { condition, fun }}
-					{#if !condition || condition({ user, member, friendIds, blockedIds, my_role }) }
+					{#if !condition || condition({ user, member, friendIds, blockedIds, my_role, banned }) }
 						<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
 					{/if}
 				{/each}
@@ -85,7 +85,7 @@
 			{#if user.id !== me.id}
 				<DropdownDivider/>
 				{#each actions as { condition, fun }}
-					{#if !condition || condition({ user, member, friendIds, blockedIds, my_role }) }
+					{#if !condition || condition({ user, member, room, friendIds, blockedIds, my_role, banned }) }
 						<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
 					{/if}
 				{/each}

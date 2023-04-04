@@ -1,7 +1,7 @@
 import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
-import { Access, Role } from "src/enums";
+import { Access, Action, Role, Subject } from "src/enums";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
 import { UpdateGateway, UpdatePacket } from "src/gateways/update.gateway";
@@ -44,11 +44,6 @@ export class Room {
 	@Expose()
 	get access(): Access {
 		return this.is_private ? Access.PRIVATE : this.password ? Access.PROTECTED : Access.PUBLIC;
-	}
-
-	@Expose()
-	get ownerId(): number | undefined {
-		return this.owner?.id;
 	}
 
 	@Expose()

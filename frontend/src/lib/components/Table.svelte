@@ -1,21 +1,21 @@
 <script lang="ts">
     import type { ObjectLiteral } from "$lib/stores";
     import { Access, Gamemode, Status } from "$lib/enums";
+    import { status_colors } from "$lib/constants";
 
 	export let caption: string | undefined = undefined;
 	export let entities: ObjectLiteral[];
 
 	const keys = Object.keys(entities[0] ?? {});
 	const custom = [
-		{ name: "status", fun: (value: any) => Status[value] },
-		{ name: "access", fun: (value: any) => Access[value] },
-		{ name: "gamemode", fun: (value: any) => Gamemode[value] },
+		{ name: "status", fun: (value: any) => `<div style="background-color: ${status_colors[value]}">${Status[value]}</div>` },
+		{ name: "access", fun: (value: any) => value !== undefined ? Access[value] : "" },
+		{ name: "gamemode", fun: (value: any) => value !== undefined ? Gamemode[value] : "" },
 	
 		{ name: "state", fun: (value: any) => value?.id ?? "" },
 		{ name: "achievements", fun: (value: any) => "-" },
-		{ name: "avatar", fun: (value: any) => "-" },
+		{ name: "avatar", fun: (value: any) => value ? `<img class="avatar" src=${value} alt="avatar"/>` : ""},
 	];
-
 
 </script>
 
@@ -31,14 +31,16 @@
 		</tr>
 		{#each entities as entity}
 			<tr>
-				{#each keys as key}
+				{#each keys.map((key) => [key, entity[key]]) as [key, value]}
 					<td>
 						{#if custom.some(({ name }) => name === key)}
-							{custom.find(({ name }) => name === key)?.fun(entity[key]) }
-						{:else if typeof entity[key] === "object" && entity[key] !== null}
-							<svelte:self entities={Array.isArray(entity[key]) ? entity[key] : [entity[key]]}/>
+							{@html custom.find(({ name }) => name === key)?.fun(value) }
+						{:else if typeof value === "object" && value !== null}
+							{#if Object.values(value).some((value) => value !== undefined)}
+								<svelte:self entities={Array.isArray(value) ? value : [value]}/>
+							{/if}
 						{:else}
-							{entity[key] ?? ""}
+							{value ?? ""}
 						{/if}
 					</td>
 				{/each}
@@ -51,7 +53,6 @@
 	table {
 		border: 1px solid;
 		height: min-content;
-		/* margin: 0.5rem; */
 		table-layout: fixed;
 		text-align: center;
 	}

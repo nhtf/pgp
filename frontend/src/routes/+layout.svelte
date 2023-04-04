@@ -48,7 +48,7 @@
 	});
 
 	updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
-		if (update.action === Action.REMOVE && update.id === Number($page.params.id)) {
+		if (update.action === Action.REMOVE && update.id === Number($page.params.room)) {
 			await goto(route);
 		}
 	});
@@ -58,7 +58,7 @@
 
 		if (update.action === Action.REMOVE
 			&& member?.userId === $page.data.user.id
-			&& Number($page.params.id) === member?.roomId
+			&& Number($page.params.room) === member?.roomId
 		) {
 			await goto(route);
 		}

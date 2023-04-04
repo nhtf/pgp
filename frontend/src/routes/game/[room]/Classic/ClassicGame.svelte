@@ -3,7 +3,7 @@
 	import { page } from "$app/stores";
 	import { Classic } from "./Classic";
 	import { Shader } from "./Shader";
-    import type { GameRoom } from "$lib/entities";
+    import type { GameRoom, GameRoomMember } from "$lib/entities";
 
 	export let room: GameRoom;
 
@@ -18,10 +18,7 @@
 
 		await classic.start({
 			room,
-			member: {
-				user: $page.data.user,
-				...$page.data.member,
-			},
+			member: { ...room.self!	},
 		});
 
 		frame = window.requestAnimationFrame(function render(time) {

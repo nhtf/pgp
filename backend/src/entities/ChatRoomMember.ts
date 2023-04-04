@@ -10,11 +10,9 @@ export class ChatRoomMember extends Member {
 	@OneToMany(() => Message, (message) => message.member)
 	messages: Message[];
 
-	@Exclude()
 	@CreateDateColumn({ type: "timestamptz" })
 	mute: Date;
 
-	@Expose()
 	get is_muted(): boolean {
 		return this.mute > new Date;
 	}

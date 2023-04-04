@@ -100,13 +100,15 @@ export class UpdateGateway extends ProtectedGateway("update") {
 		}
 	}
 
-	remove_user(user: User) {
-		this.sockets.get(user.id)?.forEach((socket) => {
-			socket.disconnect();
+	remove_users(...users: User[]) {
+		users.forEach((user) => {
+			this.sockets.get(user.id)?.forEach((socket) => {
+				socket.disconnect();
+			});
+		
+			this.sockets.delete(user.id);
+			this.status.delete(user.id);
 		});
-	
-		this.sockets.delete(user.id);
-		this.status.delete(user.id);
 	}
 
 	send_update(packet: UpdatePacket, ...receivers: Partial<User>[]) {

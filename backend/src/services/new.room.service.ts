@@ -33,7 +33,6 @@ export interface IRoomService<T extends Room, U extends Member, S extends Create
 	get_members(room: T): Promise<Member[]>;
 	get_member(room: T, user: User): Promise<Member | undefined>;
 	add_members(room: T, ...members: AddMemberType[]): Promise<Member[]>;
-	edit_members(room: T, ...members: EditMemberType<U>[]): Promise<Member[]>;
 	remove_members(room: T, ...members: { member: U, ban?: boolean }[]): Promise<void>;
 	save_members(...members: U[]): Promise<U[]>;
 
@@ -130,21 +129,6 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 			});
 
 			return this.save_members(...adding as any);
-		}
-
-		edit_member(change: EditMemberType<U>): U {
-			for (const key in change.changes) {
-				change.member[key] = change.changes[key];
-			}
-			return change.member;
-		}
-
-		async edit_members(room: T, ...members: EditMemberType<U>[]): Promise<U[]> {
-			const list = members.map((change) => {
-				//member.role = changes.role ?? member.role;
-				return this.edit_member(change);
-			});
-			return this.save_members(list as any);
 		}
 
 		async remove_members(room: T, ...members: { member: U, ban?: boolean }[]) {

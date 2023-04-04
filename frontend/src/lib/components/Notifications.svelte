@@ -23,22 +23,19 @@
 	let oldLength: number;
 
 	$: user = $userStore.get($page.data.user?.id)!;
-	$: invites = [...$inviteStore.values()];
-	$: notifications = invites.filter((invite) => invite.to.id === user.id);
+	$: notifications = [...$inviteStore.values()].filter((invite) => invite.to.id === user.id);
 	$: notifMap = new Map(notifications.map(
 		(invite) => [invite, notifMap.get(invite) ?? Status.UNREAD])
 	);
 
-	$: newNotifs = [...notifMap.values()].some(
-		(status) => status === Status.UNREAD
-	);
+	$: newNotifs = [...notifMap.values()].some(unread);
+	$: newlength = [...notifMap.values()].filter(unread).length;
 
-	$: newlength = [...notifMap.values()].filter(
-		(status) => status === Status.UNREAD
-	).length;
+	function unread(status: Status): boolean {
+		return status === Status.UNREAD;
+	}
 
 	async function acceptInvite(invite: Invite) {
-		mark(invite, Status.REMOVED);
 		await respond(invite, "accept");
 
 		if (invite.type === "GameRoom") {
@@ -59,6 +56,8 @@
 				}
 			});
 		}
+	
+		mark(invite, Status.REMOVED);
 	}
 
 	function markAllRead() {

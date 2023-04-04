@@ -21,8 +21,8 @@ export class Room<U extends Member = Member> extends Entity {
 	access: Access;
 	type: "ChatRoom" | "GameRoom";
 	joined: boolean;
-	ownerId?: number;
 
+	owner?: User;
 	self?: U;
 
 	get route(): string {
@@ -69,10 +69,15 @@ export class Member extends Entity {
 	type: string;
 	roomId: number;
 	userId: number;
+
 };
 
 export class ChatRoomMember extends Member {
-	is_muted: boolean;
+	mute: string;
+
+	get is_muted(): boolean {
+		return new Date(this.mute!) > new Date;
+	}
 }
 
 export class GameRoomMember extends Member {

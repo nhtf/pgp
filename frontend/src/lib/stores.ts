@@ -1,5 +1,5 @@
 import type { UpdatePacket } from "$lib/types";
-import { Entity, User, Member, GameRoom, Room, Invite, GameState } from "$lib/entities"
+import { Entity, User, Member, ChatRoom, GameRoom, Room, Invite, GameState } from "$lib/entities"
 import { writable, type Writable } from "svelte/store";
 import { updateManager } from "$lib/updateSocket";
 import { Subject, Action } from "$lib/enums";
@@ -8,7 +8,12 @@ import { Access } from "$lib/enums"
 export type ObjectLiteral = { [key: string]: any; }
 
 function create<T extends Entity>(value: ObjectLiteral, entityType: (new () => T)): T {
-	const entity = new entityType;
+	let entity = new entityType;
+
+	// TODO...
+	if (value.access !== undefined) {
+		entity = (value.type === "ChatRoom" ? new ChatRoom : new GameRoom) as unknown as T;
+	}
 
 	updateDeepPartial(entity, value);
 
@@ -106,10 +111,14 @@ updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
 	}
 });
 
-// Add state from new room
+// Add state or owner from new room
 updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 	if (update.value?.state) {
 		updateStore(gameStateStore, update.value.state, GameState);
+	}
+
+	if (update.value?.owner) {
+		updateStore(userStore, update.value.owner, User);
 	}
 });
 

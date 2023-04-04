@@ -3,6 +3,7 @@
 	import { respond } from "$lib/invites";
 	import { Tabs, TabItem } from "flowbite-svelte";
 	import { inviteStore, userStore } from "$lib/stores";
+    import type { Invite, User } from "$lib/entities";
 
 	export let data: PageData;
 
@@ -10,9 +11,15 @@
 
 	$: user = $userStore.get(data.user.id)!;
 	$: invites = [...$inviteStore.values()];
-	$: send = invites.filter((invite) => invite.from.id === user.id);
-	$: received = invites.filter((invite) => invite.to.id === user.id);
-	
+
+	function received(user: User, invite: Invite) {
+		return invite.to.id === user.id;
+	}
+
+	function sent(user: User, invite: Invite) {
+		return invite.from.id === user.id;
+	}
+
 </script>
 
 <div class="invite_list">
@@ -28,7 +35,7 @@
 			defaultClass="rounded"
 			title="received"
 		>
-			{#each received as invite (invite.id)}
+			{#each invites.filter(received.bind({}, user)) as invite (invite.id)}
 				<div class="invite">
 					<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
 					<div>{invite.type} invite from {invite.from.username}</div>
@@ -53,7 +60,7 @@
 			defaultClass="rounded"
 			title="sent"
 		>
-				{#each send as invite (invite.id)}
+				{#each invites.filter(sent.bind({}, user)) as invite (invite.id)}
 					<div class="invite">
 						<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
 						<div>{invite.type} invitation to {invite.to.username}</div>

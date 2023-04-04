@@ -12,7 +12,6 @@
 	let users: User[] = [];
 	let open = false;
 
-	$: users;
 	$: filtered = users.filter(filter);
 
 	function onWindowClick(event: MouseEvent) {

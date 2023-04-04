@@ -1,29 +1,21 @@
 <script lang="ts">
-	import type { Room, User } from "$lib/entities";
+	import type { Room } from "$lib/entities";
 	import type { PageData } from "./$types";
 	import { memberStore, roomStore } from "$lib/stores";
 	import { patch, remove } from "$lib/Web";
 	import { goto } from "$app/navigation";
 	import { unwrap } from "$lib/Alert";
 	import { Role } from "$lib/enums";
-	import {
-		Dropdown,
-		Avatar,
-		Tooltip,
-		DropdownHeader,
-		DropdownItem,
-	} from "flowbite-svelte";
+    import UserDropdown from "$lib/components/UserDropdown.svelte";
+    import RoomHeader from "$lib/components/RoomHeader.svelte";
 	import RoomInput from "$lib/components/RoomInput.svelte";
 	import Invite from "$lib/components/Invite.svelte";
-    import Swal from "sweetalert2";
-    import RoomHeader from "$lib/components/RoomHeader.svelte";
-    import UserDropdown from "$lib/components/UserDropdown.svelte";
 
 	export let data: PageData;
 
 	$: room = $roomStore.get(data.room.id)!;
 	$: { !room && goto(`/chat`) }
-	$: self = $memberStore.get(data.member.id)!;
+	$: self = $memberStore.get(room?.self!.id)!;
 	$: banned = data.banned;
 
 	async function edit(edit: any, room: Room) {
@@ -55,7 +47,7 @@
 			<h1>Banned Users</h1>
 			<div class="banned">
 				{#each banned as user}
-					<UserDropdown {user}/>
+					<UserDropdown {user} {room} banned={true}/>
 				{/each}
 			</div>
 		</div>

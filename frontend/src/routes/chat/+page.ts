@@ -9,20 +9,13 @@ export const load: PageLoad = (async ({ fetch }) => {
 
 	const joined: ChatRoom[] = await unwrap(get(`/chat?filter=joined`));
 	const joinable: ChatRoom[] = await unwrap(get(`/chat?filter=joinable`));
-	const rooms = joined.map((room) => {
-		room.joined = true;
-		return room;
-	}).concat(joinable.map((room) => {
-		room.joined = false;
-		return room;
-	}));
+	const rooms = joined.concat(joinable);
 
-	const owners = rooms
-		.filter(({ owner }) => owner !== undefined)
-		.map(({ owner }) => owner) as User[];
-	
-	updateStore(userStore, owners, User);
 	updateStore(roomStore, rooms, ChatRoom);
+	updateStore(userStore, rooms
+		.filter(({ owner }) => owner !== undefined)
+		.map(({ owner }) => owner!),
+	User);
 
 	return { rooms };
 }) satisfies PageLoad;

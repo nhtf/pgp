@@ -27,10 +27,7 @@
 		await world.start({
 			container,
 			room,
-			member: {
-				user: $page.data.user,
-				...$page.data.member,
-			}
+			member: { ...room.self! }
 		});
 		console.log("world has started", Date.now() - startTime);
 		vrButton.addEventListener("click", function(ev) {

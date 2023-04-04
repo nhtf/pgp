@@ -1,5 +1,5 @@
 import { Controller, Inject, Put, Delete, UseGuards, ParseEnumPipe, Body, HttpCode, HttpStatus } from "@nestjs/common";
-import { IRoomService } from "src/services/room.service";
+import { IRoomService } from "src/services/new.room.service";
 import { GameRoom } from "src/entities/GameRoom";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { HttpAuthGuard } from "src/auth/auth.guard";
@@ -34,8 +34,8 @@ export class MatchController {
 	constructor(
 		@Inject("USER_REPO")
 		private readonly user_repo: Repository<User>,
-		@Inject("GAMEROOM_PGPSERVICE")
-		private readonly room_service: IRoomService<GameRoom, GameRoomMember>,
+		@Inject("GAMEROOM_SERVICE")
+		private readonly room_service: IRoomService<GameRoom, GameRoomMember, {}>,
 		private readonly update_service: UpdateGateway,
 	) {}
 
@@ -64,9 +64,8 @@ export class MatchController {
 				const other = await this.user_repo.findOneBy({ id });
 
 				if (other != undefined) {
-					const room = await this.room_service.create("", true);
-					await this.room_service.add_member(room, user);
-					await this.room_service.add_member(room, other);
+					const room = await this.room_service.create({ is_private: true });
+					await this.room_service.add_members(room, { user }, { user: other });
 					await this.room_service.save(room);
 
 					const url = `${FRONTEND_ADDRESS}/game`;

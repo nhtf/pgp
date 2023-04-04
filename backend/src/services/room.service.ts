@@ -55,105 +55,6 @@ export interface IRoomService<T extends Room, U extends Member> {
 	owned_rooms(user: User): Promise<T[]>;
 }
 
-export function GenericRoomService<T extends Room, U extends Member>(RoomType: (new () => T), MemberType: (new () => U)) {
-	class RoomService<T extends Room> implements IRoomService<T, U> {
-		constructor(
-			readonly room_repo: Repository<T>,
-			readonly member_repo: Repository<U>,
-			readonly invite_repo: Repository<RoomInvite>,
-			readonly user_repo: Repository<User>,
-		) { }
-
-		async save(room: T): Promise<T> {
-			return this.room_repo.save(room);
-		}
-
-		async create(name: string | null, is_private: boolean, password: string | null): Promise<T> {
-			if (!name) {
-				name = randomBytes(30).toString("base64");
-			}
-
-			if (!is_private && await this.room_repo.findOneBy({ name, is_private: false } as FindOptionsWhere<T>))
-				throw new ForbiddenException(`A room with the name "${name}" already exists`);
-
-			const room = new RoomType;
-		
-			room.name = name;
-			room.is_private = is_private;
-			room.members = [];
-			room.invites = [];
-			room.banned_users = [];
-		
-			if (!room.is_private && password) {
-				room.password = await argon2.hash(password);
-			}
-
-			// return await this.room_repo.save(room as unknown as T);
-
-			return room as unknown as T;
-		}
-
-		// Unused
-		async destroy(...rooms: T[]) {
-			await this.room_repo.remove(rooms);
-		}
-
-		async add_member(room: T, user: User, role?: Role): Promise<U> {
-			if (room.users.some(({ id }) => id === user.id)) {
-				throw new ForbiddenException("Already member of room");
-			}
-
-			const member = new MemberType;
-		
-			member.user = user;
-			member.role = role ?? Role.MEMBER;
-			member.room = room;
-
-			room.members.push(member);
-			
-			// return await this.member_repo.save(member);
-
-			return member;
-		}
-
-		// Unused
-		async edit_member(room: T, member: U, role: Role): Promise<U> {
-			member.role = role;
-	
-			return this.member_repo.save(member);
-		}
-
-		async del_member(room: T, member: U, ban?: boolean) {
-			const index = room.members?.findIndex((x) => x.id === member.id);
-		
-			if (index < 0) {
-				throw new NotFoundException("Member not found");
-			}
-		
-			// room.members.splice(index, 1);
-		
-			if (ban === true) {
-				room = await this.room_repo.findOne({ where: { id: room.id }, relations: { banned_users: true } } as FindOneOptions<T>)
-
-				room.banned_users.push({ id: member.userId } as User);
-			
-				await this.room_repo.save(room);
-			}
-
-			await this.member_repo.remove(member);
-		}
-
-		async owned_rooms(user: User): Promise<T[]> {
-			return this.room_repo.findBy({ members: { role: Role.OWNER, user: { id: user.id } } } as FindOptionsWhere<T>)
-		}
-	}
-	return RoomService;
-}
-
-export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
-	return new (GenericRoomService<T, U>(type, MemberType))(room_repo, member_repo, invite_repo, user_repo);
-}
-
 export const GetMember = createParamDecorator(
 	async (where: undefined, ctx: ExecutionContext) => {
 		const request = ctx.switchToHttp().getRequest();
@@ -181,370 +82,469 @@ export const GetRoom = createParamDecorator(
 	}
 );
 
-export function GenericRoomController<T extends Room, U extends Member, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), MemberType: (new () => U), route?: string, c?: (new () => C)): any {
-	@UseGuards(HttpAuthGuard, RolesGuard)
-	@UseInterceptors(ClassSerializerInterceptor)
-	@Controller(route || type.name.toString().toLowerCase())
-	class RoomControllerFactory {
-		constructor(
-			@Inject(type.name.toString().toUpperCase() + "_REPO")
-			readonly room_repo: Repository<T>,
-			@Inject(MemberType.name.toString().toUpperCase() + "_REPO")
-			readonly member_repo: Repository<U>,
-			@Inject("ROOMINVITE_REPO")
-			readonly invite_repo: Repository<RoomInvite>,
-			@Inject(type.name.toString().toUpperCase() + "_PGPSERVICE")
-			readonly service: IRoomService<T, U>,
-			readonly update_service: UpdateGateway,
-		) {
-		}
+// export function GenericRoomService<T extends Room, U extends Member>(RoomType: (new () => T), MemberType: (new () => U)) {
+// 	class RoomService<T extends Room> implements IRoomService<T, U> {
+// 		constructor(
+// 			readonly room_repo: Repository<T>,
+// 			readonly member_repo: Repository<U>,
+// 			readonly invite_repo: Repository<RoomInvite>,
+// 			readonly user_repo: Repository<User>,
+// 		) { }
 
-		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
-			return qb
-				.subQuery()
-				.from(Member, "member")
-				.select("member.roomId")
-				.select("member.userId")
-				.where(`"roomId" = room.id`)
-				.andWhere(`"userId" = :userId`, { userId: user.id })
-				.getQuery();
-		}
+// 		async save(room: T): Promise<T> {
+// 			return this.room_repo.save(room);
+// 		}
 
-		joinedQuery(user: User) {
-			return this.room_repo.createQueryBuilder("room")
-				.where((qb) => `EXISTS (${this.isMemberQuery(qb, user)})`)
-		}
+// 		async create(name: string | null, is_private: boolean, password: string | null): Promise<T> {
+// 			if (!name) {
+// 				name = randomBytes(30).toString("base64");
+// 			}
 
-		// TODO: Check banned users
-		joinableQuery(user: User) {
-			return this.room_repo.createQueryBuilder("room")
-				.where((qb) => `NOT EXISTS (${this.isMemberQuery(qb, user)})`)
-				.andWhere("room.is_private = false")
-		}
+// 			if (!is_private && await this.room_repo.findOneBy({ name, is_private: false } as FindOptionsWhere<T>))
+// 				throw new ForbiddenException(`A room with the name "${name}" already exists`);
 
-		relations(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
-			return qb;
-		}
-
-		loadRelations(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
-			return this.relations(qb
-				.leftJoinAndSelect("room.members", "member")
-				.leftJoinAndSelect("member.user", "self")
-				.leftJoinAndSelect("member.player", "selfPlayer")
-				.leftJoinAndSelect("selfPlayer.team", "selfTeam")
-			);
-		}
-
-		async get_member(user: User, room: Room): Promise<U | null> {
-			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
-		}
-
-		async onCreate(room: T, dto: C) { }
-		async onJoin(room: T, member: U) { }
-
-		@Get("joined")
-		async joined(@Me() me: User) {
-			const qb = this.joinedQuery(me);
-			const rooms = await this.loadRelations(qb).getMany();
-
-			return rooms.map((room) => {
-				return {
-					...instanceToPlain(room),
-					joined: true,
-					self: room.self(me),
-				}
-			});
-		}
-
-		@Get("joinable")
-		async joinable(@Me() me: User) {
-			const qb = this.joinableQuery(me);
-			const rooms = await this.loadRelations(qb).getMany();
-
-			return rooms.map((room) => {
-				return {
-					...instanceToPlain(room),
-					joined: false,
-				}
-			});
-		}
-
-		@Post()
-		@UsePipes(new ValidationPipe({ expectedType: c || CreateRoomDTO }))
-		async create_room(@Me() user: User, @Body() dto: C) {
-			const name = dto.name ? dto.name.trim() : genName();
-			const room = await this.service.create(name, dto.is_private, dto.password);
+// 			const room = new RoomType;
 		
-			await this.onCreate(room, dto);
-			await this.service.add_member(room, user, Role.OWNER);
-			await this.service.save(room);
+// 			room.name = name;
+// 			room.is_private = is_private;
+// 			room.members = [];
+// 			room.invites = [];
+// 			room.banned_users = [];
+		
+// 			if (!room.is_private && password) {
+// 				room.password = await argon2.hash(password);
+// 			}
 
-			UpdateGateway.instance.send_update({
-				subject: Subject.ROOM,
-				id: room.id,
-				action: Action.UPDATE,
-				value: {
-					joined: true,
-					self: room.self(user),
-				}
-			}, user)
+// 			// return await this.room_repo.save(room as unknown as T);
 
-			return room;
-		}
+// 			return room as unknown as T;
+// 		}
 
-		@Get("id/:id")
-		@RequiredRole(Role.MEMBER)
-		async get_room(@Me() me: User, @GetRoom() room: T) {
-			return { ...instanceToPlain(room), joined: true, self: room.self(me)}
-		}
+// 		// Unused
+// 		async destroy(...rooms: T[]) {
+// 			await this.room_repo.remove(rooms);
+// 		}
 
-		@Patch("id/:id")
-		@RequiredRole(Role.OWNER)
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async edit_room(@GetRoom() room: T, @Body() dto: CreateRoomDTO) {
-			if (dto.is_private && dto.password) {
-				throw new UnprocessableEntityException("A private room cannot have a password");
-			}
+// 		async add_member(room: T, user: User, role?: Role): Promise<U> {
+// 			if (room.users.some(({ id }) => id === user.id)) {
+// 				throw new ForbiddenException("Already member of room");
+// 			}
 
-			room.name = dto.name ?? genName();
-			room.password = dto.password ? await argon2.hash(dto.password) : null;
-			room.is_private = dto.is_private;
+// 			const member = new MemberType;
+		
+// 			member.user = user;
+// 			member.role = role ?? Role.MEMBER;
+// 			member.room = room;
 
-			await this.room_repo.save(room);
-	
-			room.send_update({
-				subject: Subject.ROOM,
-				id: room.id,
-				action: Action.UPDATE,
-				value: { name: room.name, access: room.access },
-			});
-		}
-
-		@Delete("id/:id")
-		@RequiredRole(Role.OWNER)
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async delete_room(@Param("id", ParseIDPipe(type, { invites: true })) room: T) {
-			await this.room_repo.remove(room);
-
-			// Cascade delete doesn't trigger subscriber because why would it
-			room.invites.forEach((invite) => {
-				UpdateGateway.instance.send_update({
-					subject: Subject.INVITE,
-					action: Action.REMOVE,
-					id: invite.id,
-				});
-			});
-		}
-
-		@Get("id/:id/member(s)?")
-		@RequiredRole(Role.MEMBER)
-		async list_members(@GetRoom() room: T) {
-			return room.members;
-		}
-
-		@Post("id/:id/member(s)?")
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async join(
-			@Me() me: User,
-			@Param("id", ParseIDPipe(type, { banned_users: true })) room: T,
-			@Body() body: any,
-		) {
-			const invite = await this.invite_repo.findOneBy({ room: { id: room.id }, to: { id: me.id } });
-
-			if (!invite) {
-				if (room.access === Access.PRIVATE) {
-					throw new NotFoundException(ERR_ROOM_NOT_FOUND);
-				}
-	
-				if (room.access === Access.PROTECTED) {
-					const password = body.password;
+// 			room.members.push(member);
 			
-					if (!password) {
-						throw new BadRequestException("Missing password");
-					}
+// 			// return await this.member_repo.save(member);
+
+// 			return member;
+// 		}
+
+// 		// Unused
+// 		async edit_member(room: T, member: U, role: Role): Promise<U> {
+// 			member.role = role;
 	
-					if (!await argon2.verify(room.password, password)) {
-						throw new ForbiddenException("Incorrect password");
-					}
-				}
-			}
+// 			return this.member_repo.save(member);
+// 		}
 
-			if (room.banned_users.some((user) => user.id === me.id)) {
-				throw new ForbiddenException("You have been banned from this channel");
-			}
-
-
-			const member = await this.service.add_member(room, me);
-
-			await this.member_repo.save(member);
-			await this.onJoin(room, member)
-			await this.service.save(room);
-
-			if (invite) {
-				await this.invite_repo.remove(invite);
-			}
+// 		async del_member(room: T, member: U, ban?: boolean) {
+// 			const index = room.members?.findIndex((x) => x.id === member.id);
 		
-			this.update_service.send_update({
-				subject: Subject.ROOM,
-				id: room.id,
-				action: Action.UPDATE,
-				value: {
-					...instanceToPlain(room),
-					joined: true,
-					self: room.self(me),
-				},
-			}, me);
-		}
-
-		@Get("id/:id/self")
-		@RequiredRole(Role.MEMBER)
-		async self(@Me() me: User, @GetRoom() room: T) {
-			return room.self(me);
-		}
-
-		@Delete("id/:id/member(s)?/me")
-		@RequiredRole(Role.MEMBER)
-		async user_leave(
-			@GetMember() member: U,
-			@Res() res: Response,
-		) {
-			res.redirect(`${member.id}`);
-		}
-
-		@Delete("id/:id/member(s)?/:target")
-		@RequiredRole(Role.MEMBER)
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async remove_member(
-			@GetMember() member: U,
-			@GetRoom() room: T,
-			@Param("target", ParseIDPipe(MemberType)) target: U,
-			@Body() dto: LeaveDTO,
-		) {
-			const ban = dto.ban;
+// 			if (index < 0) {
+// 				throw new NotFoundException("Member not found");
+// 			}
 		
-			if (member.id !== target.id && target.role >= member.role) {
-				throw new ForbiddenException(ERR_PERM);
-			}
+// 			// room.members.splice(index, 1);
+		
+// 			if (ban === true) {
+// 				room = await this.room_repo.findOne({ where: { id: room.id }, relations: { banned_users: true } } as FindOneOptions<T>)
 
-			if (ban && member.role < Role.ADMIN) {
-				throw new ForbiddenException(ERR_PERM);
-			}
+// 				room.banned_users.push({ id: member.userId } as User);
+			
+// 				await this.room_repo.save(room);
+// 			}
 
-			if (target.role === Role.OWNER) {
-				if (room.members.length > 1) {
-					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
-				}
+// 			await this.member_repo.remove(member);
+// 		}
 
-				return await this.service.destroy(room);
-			}
+// 		async owned_rooms(user: User): Promise<T[]> {
+// 			return this.room_repo.findBy({ members: { role: Role.OWNER, user: { id: user.id } } } as FindOptionsWhere<T>)
+// 		}
+// 	}
+// 	return RoomService;
+// }
 
-			await this.service.del_member(room, target, ban);
+// export function getRoomService<T extends Room, U extends Member>(room_repo: Repository<T>, member_repo: Repository<U>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>, type: (new () => T), MemberType: (new () => U)) {
+// 	return new (GenericRoomService<T, U>(type, MemberType))(room_repo, member_repo, invite_repo, user_repo);
+// }
 
-			this.update_service.send_update({
-				subject: Subject.ROOM,
-				action: Action.UPDATE,
-				id: room.id,
-				value: { joined: false },
-			}, target.user);
-		}
+// export function GenericRoomController<T extends Room, U extends Member, C extends CreateRoomDTO = CreateRoomDTO>(type: (new () => T), MemberType: (new () => U), route?: string, c?: (new () => C)): any {
+// 	@UseGuards(HttpAuthGuard, RolesGuard)
+// 	@UseInterceptors(ClassSerializerInterceptor)
+// 	@Controller(route || type.name.toString().toLowerCase())
+// 	class RoomControllerFactory {
+// 		constructor(
+// 			@Inject(type.name.toString().toUpperCase() + "_REPO")
+// 			readonly room_repo: Repository<T>,
+// 			@Inject(MemberType.name.toString().toUpperCase() + "_REPO")
+// 			readonly member_repo: Repository<U>,
+// 			@Inject("ROOMINVITE_REPO")
+// 			readonly invite_repo: Repository<RoomInvite>,
+// 			@Inject(type.name.toString().toUpperCase() + "_PGPSERVICE")
+// 			readonly service: IRoomService<T, U>,
+// 			readonly update_service: UpdateGateway,
+// 		) {
+// 		}
 
-		@Patch("id/:id/member(s)?/:target")
-		@RequiredRole(Role.MEMBER)
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async edit_member(
-			@GetMember() member: U,
-			@GetRoom() room: T,
-			@Param("target", ParseIDPipe(MemberType)) target: U,
-			@Body("role", new ParseEnumPipe(Role)) role: Role
-		) {
-			if (!room.members.map((member) => member.id).includes(target.id)) {
-				throw new BadRequestException(ERR_NOT_MEMBER);
-			}
+// 		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
+// 			return qb
+// 				.subQuery()
+// 				.from(Member, "member")
+// 				.select("member.roomId")
+// 				.select("member.userId")
+// 				.where(`"roomId" = room.id`)
+// 				.andWhere(`"userId" = :userId`, { userId: user.id })
+// 				.getQuery();
+// 		}
 
-			if (target.role >= member.role || (role !== Role.OWNER && role >= member.role)) {
-				throw new ForbiddenException(ERR_PERM);
-			}
+// 		joinedQuery(user: User) {
+// 			return this.room_repo.createQueryBuilder("room")
+// 				.where((qb) => `EXISTS (${this.isMemberQuery(qb, user)})`)
+// 		}
 
-			await this.member_repo.save({ id: target.id, role } as U);
+// 		// TODO: Check banned users
+// 		joinableQuery(user: User) {
+// 			return this.room_repo.createQueryBuilder("room")
+// 				.where((qb) => `NOT EXISTS (${this.isMemberQuery(qb, user)})`)
+// 				.andWhere("room.is_private = false")
+// 		}
 
-			if (role === Role.OWNER) {
-				await this.member_repo.save({ id: member.id, role: Role.ADMIN } as U);
-			}
-		}
+// 		relations(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
+// 			return qb;
+// 		}
 
-		@Get("id/:id/invite(s)?")
-		@RequiredRole(Role.MEMBER)
-		async invites(@GetRoom() room: T) {
-			return this.invite_repo.findBy({ room: { id: room.id } });
-		}
+// 		loadRelations(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
+// 			return this.relations(qb
+// 				.leftJoinAndSelect("room.members", "member")
+// 				.leftJoinAndSelect("member.user", "self")
+// 				.leftJoinAndSelect("member.player", "selfPlayer")
+// 				.leftJoinAndSelect("selfPlayer.team", "selfTeam")
+// 			);
+// 		}
 
-		@Post("id/:id/invite(s)?")
-		@RequiredRole(Role.ADMIN)
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async create_invite(
-			@Me() me: User,
-			@Param("id", ParseIDPipe(type, { banned_users: true, invites: true })) room: T,
-			@Body("username", ParseUsernamePipe()) target: User
-		) {
-			if (room.members.find((member) => member.user.id === target.id)) {
-				throw new ForbiddenException("User already member of this room");
-			}
+// 		async get_member(user: User, room: Room): Promise<U | null> {
+// 			return this.member_repo.findOneBy({ user: { id: user.id }, room: { id: room.id } } as FindOptionsWhere<U>);
+// 		}
 
-			if (room.invites?.find((invite) => invite.to.id === target.id)) {
-				throw new ForbiddenException("Already invited this user");
-			}
+// 		async onCreate(room: T, dto: C) { }
+// 		async onJoin(room: T, member: U) { }
 
-			if (room.banned_users?.find((user) => user.id === target.id)) {
-				throw new ForbiddenException("Cannot invite banned user");
-			}
+// 		@Get("joined")
+// 		async joined(@Me() me: User) {
+// 			const qb = this.joinedQuery(me);
+// 			const rooms = await this.loadRelations(qb).getMany();
 
-			await this.invite_repo.save({ from: me, to: target, room, type: room.type });
-		}
+// 			return rooms.map((room) => {
+// 				return {
+// 					...instanceToPlain(room),
+// 					joined: true,
+// 					self: room.self(me),
+// 				}
+// 			});
+// 		}
 
-		@Delete("id/:id/invite(s)?/:invite")
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async delete_invite(
-			@Me() me: User,
-			@GetRoom() room: T,
-			@Param("invite", ParseIDPipe(RoomInvite, { room: true })) invite: RoomInvite,
-		) {
-			if (invite.room.id !== room.id) {
-				throw new NotFoundException("Not found");
-			}
+// 		@Get("joinable")
+// 		async joinable(@Me() me: User) {
+// 			const qb = this.joinableQuery(me);
+// 			const rooms = await this.loadRelations(qb).getMany();
 
-			if (invite.from.id !== me.id && invite.to.id !== me.id) {
-				if (room.access === Access.PRIVATE)
-					throw new NotFoundException("Not found");
-				else
-					throw new ForbiddenException(ERR_PERM);
-			}
+// 			return rooms.map((room) => {
+// 				return {
+// 					...instanceToPlain(room),
+// 					joined: false,
+// 				}
+// 			});
+// 		}
 
-			await this.invite_repo.remove(invite);
-		}
+// 		@Post()
+// 		@UsePipes(new ValidationPipe({ expectedType: c || CreateRoomDTO }))
+// 		async create_room(@Me() user: User, @Body() dto: C) {
+// 			const name = dto.name ? dto.name.trim() : genName();
+// 			const room = await this.service.create(name, dto.is_private, dto.password);
+		
+// 			await this.onCreate(room, dto);
+// 			await this.service.add_member(room, user, Role.OWNER);
+// 			await this.service.save(room);
 
-		@Get("id/:id/ban(s)?")
-		@RequiredRole(Role.ADMIN)
-		async list_bans(@Param("id", ParseIDPipe(type, { banned_users: true })) room: T) {
-			return room.banned_users;
-		}
+// 			UpdateGateway.instance.send_update({
+// 				subject: Subject.ROOM,
+// 				id: room.id,
+// 				action: Action.UPDATE,
+// 				value: {
+// 					joined: true,
+// 					self: room.self(user),
+// 				}
+// 			}, user)
 
-		@Delete("id/:id/ban(s)?/:user_id")
-		@RequiredRole(Role.ADMIN)
-		@HttpCode(HttpStatus.NO_CONTENT)
-		async remove_ban(
-			@GetRoom() room: T,
-			@Param("user_id", ParseIDPipe(User)) target: User,
-		) {
-			const index = room.banned_users?.findIndex(user => user.id === target.id);
+// 			return room;
+// 		}
 
-			if (index < 0) {
-				throw new NotFoundException("User not banned");
-			}
+// 		@Get("id/:id")
+// 		@RequiredRole(Role.MEMBER)
+// 		async get_room(@Me() me: User, @GetRoom() room: T) {
+// 			return { ...instanceToPlain(room), joined: true, self: room.self(me)}
+// 		}
 
-			room.banned_users.splice(index, 1);
+// 		@Patch("id/:id")
+// 		@RequiredRole(Role.OWNER)
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async edit_room(@GetRoom() room: T, @Body() dto: CreateRoomDTO) {
+// 			if (dto.is_private && dto.password) {
+// 				throw new UnprocessableEntityException("A private room cannot have a password");
+// 			}
 
-			await this.room_repo.save(room);
-		}
-	}
-	return RoomControllerFactory;
-}
+// 			room.name = dto.name ?? genName();
+// 			room.password = dto.password ? await argon2.hash(dto.password) : null;
+// 			room.is_private = dto.is_private;
+
+// 			await this.room_repo.save(room);
+	
+// 			room.send_update({
+// 				subject: Subject.ROOM,
+// 				id: room.id,
+// 				action: Action.UPDATE,
+// 				value: { name: room.name, access: room.access },
+// 			});
+// 		}
+
+// 		@Delete("id/:id")
+// 		@RequiredRole(Role.OWNER)
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async delete_room(@Param("id", ParseIDPipe(type, { invites: true })) room: T) {
+// 			await this.room_repo.remove(room);
+
+// 			// Cascade delete doesn't trigger subscriber because why would it
+// 			room.invites.forEach((invite) => {
+// 				UpdateGateway.instance.send_update({
+// 					subject: Subject.INVITE,
+// 					action: Action.REMOVE,
+// 					id: invite.id,
+// 				});
+// 			});
+// 		}
+
+// 		@Get("id/:id/member(s)?")
+// 		@RequiredRole(Role.MEMBER)
+// 		async list_members(@GetRoom() room: T) {
+// 			return room.members;
+// 		}
+
+// 		@Post("id/:id/member(s)?")
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async join(
+// 			@Me() me: User,
+// 			@Param("id", ParseIDPipe(type, { banned_users: true })) room: T,
+// 			@Body() body: any,
+// 		) {
+// 			const invite = await this.invite_repo.findOneBy({ room: { id: room.id }, to: { id: me.id } });
+
+// 			if (!invite) {
+// 				if (room.access === Access.PRIVATE) {
+// 					throw new NotFoundException(ERR_ROOM_NOT_FOUND);
+// 				}
+	
+// 				if (room.access === Access.PROTECTED) {
+// 					const password = body.password;
+			
+// 					if (!password) {
+// 						throw new BadRequestException("Missing password");
+// 					}
+	
+// 					if (!await argon2.verify(room.password, password)) {
+// 						throw new ForbiddenException("Incorrect password");
+// 					}
+// 				}
+// 			}
+
+// 			if (room.banned_users.some((user) => user.id === me.id)) {
+// 				throw new ForbiddenException("You have been banned from this channel");
+// 			}
+
+
+// 			const member = await this.service.add_member(room, me);
+
+// 			await this.member_repo.save(member);
+// 			await this.onJoin(room, member)
+// 			await this.service.save(room);
+
+// 			if (invite) {
+// 				await this.invite_repo.remove(invite);
+// 			}
+		
+// 			this.update_service.send_update({
+// 				subject: Subject.ROOM,
+// 				id: room.id,
+// 				action: Action.UPDATE,
+// 				value: {
+// 					...instanceToPlain(room),
+// 					joined: true,
+// 					self: room.self(me),
+// 				},
+// 			}, me);
+// 		}
+
+// 		@Get("id/:id/self")
+// 		@RequiredRole(Role.MEMBER)
+// 		async self(@Me() me: User, @GetRoom() room: T) {
+// 			return room.self(me);
+// 		}
+
+// 		@Delete("id/:id/member(s)?/me")
+// 		@RequiredRole(Role.MEMBER)
+// 		async user_leave(
+// 			@GetMember() member: U,
+// 			@Res() res: Response,
+// 		) {
+// 			res.redirect(`${member.id}`);
+// 		}
+
+// 		@Delete("id/:id/member(s)?/:target")
+// 		@RequiredRole(Role.MEMBER)
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async remove_member(
+// 			@GetMember() member: U,
+// 			@GetRoom() room: T,
+// 			@Param("target", ParseIDPipe(MemberType)) target: U,
+// 			@Body() dto: LeaveDTO,
+// 		) {
+// 			const ban = dto.ban;
+		
+// 			if (member.id !== target.id && target.role >= member.role) {
+// 				throw new ForbiddenException(ERR_PERM);
+// 			}
+
+// 			if (ban && member.role < Role.ADMIN) {
+// 				throw new ForbiddenException(ERR_PERM);
+// 			}
+
+// 			if (target.role === Role.OWNER) {
+// 				if (room.members.length > 1) {
+// 					throw new ForbiddenException("You must transfer ownership before leaving a room as owner");
+// 				}
+
+// 				return await this.service.destroy(room);
+// 			}
+
+// 			await this.service.del_member(room, target, ban);
+
+// 			this.update_service.send_update({
+// 				subject: Subject.ROOM,
+// 				action: Action.UPDATE,
+// 				id: room.id,
+// 				value: { joined: false },
+// 			}, target.user);
+// 		}
+
+// 		@Patch("id/:id/member(s)?/:target")
+// 		@RequiredRole(Role.MEMBER)
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async edit_member(
+// 			@GetMember() member: U,
+// 			@GetRoom() room: T,
+// 			@Param("target", ParseIDPipe(MemberType)) target: U,
+// 			@Body("role", new ParseEnumPipe(Role)) role: Role
+// 		) {
+// 			if (!room.members.map((member) => member.id).includes(target.id)) {
+// 				throw new BadRequestException(ERR_NOT_MEMBER);
+// 			}
+
+// 			if (target.role >= member.role || (role !== Role.OWNER && role >= member.role)) {
+// 				throw new ForbiddenException(ERR_PERM);
+// 			}
+
+// 			await this.member_repo.save({ id: target.id, role } as U);
+
+// 			if (role === Role.OWNER) {
+// 				await this.member_repo.save({ id: member.id, role: Role.ADMIN } as U);
+// 			}
+// 		}
+
+// 		@Get("id/:id/invite(s)?")
+// 		@RequiredRole(Role.MEMBER)
+// 		async invites(@GetRoom() room: T) {
+// 			return this.invite_repo.findBy({ room: { id: room.id } });
+// 		}
+
+// 		@Post("id/:id/invite(s)?")
+// 		@RequiredRole(Role.ADMIN)
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async create_invite(
+// 			@Me() me: User,
+// 			@Param("id", ParseIDPipe(type, { banned_users: true, invites: true })) room: T,
+// 			@Body("username", ParseUsernamePipe()) target: User
+// 		) {
+// 			if (room.members.find((member) => member.user.id === target.id)) {
+// 				throw new ForbiddenException("User already member of this room");
+// 			}
+
+// 			if (room.invites?.find((invite) => invite.to.id === target.id)) {
+// 				throw new ForbiddenException("Already invited this user");
+// 			}
+
+// 			if (room.banned_users?.find((user) => user.id === target.id)) {
+// 				throw new ForbiddenException("Cannot invite banned user");
+// 			}
+
+// 			await this.invite_repo.save({ from: me, to: target, room, type: room.type });
+// 		}
+
+// 		@Delete("id/:id/invite(s)?/:invite")
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async delete_invite(
+// 			@Me() me: User,
+// 			@GetRoom() room: T,
+// 			@Param("invite", ParseIDPipe(RoomInvite, { room: true })) invite: RoomInvite,
+// 		) {
+// 			if (invite.room.id !== room.id) {
+// 				throw new NotFoundException("Not found");
+// 			}
+
+// 			if (invite.from.id !== me.id && invite.to.id !== me.id) {
+// 				if (room.access === Access.PRIVATE)
+// 					throw new NotFoundException("Not found");
+// 				else
+// 					throw new ForbiddenException(ERR_PERM);
+// 			}
+
+// 			await this.invite_repo.remove(invite);
+// 		}
+
+// 		@Get("id/:id/ban(s)?")
+// 		@RequiredRole(Role.ADMIN)
+// 		async list_bans(@Param("id", ParseIDPipe(type, { banned_users: true })) room: T) {
+// 			return room.banned_users;
+// 		}
+
+// 		@Delete("id/:id/ban(s)?/:user_id")
+// 		@RequiredRole(Role.ADMIN)
+// 		@HttpCode(HttpStatus.NO_CONTENT)
+// 		async remove_ban(
+// 			@GetRoom() room: T,
+// 			@Param("user_id", ParseIDPipe(User)) target: User,
+// 		) {
+// 			const index = room.banned_users?.findIndex(user => user.id === target.id);
+
+// 			if (index < 0) {
+// 				throw new NotFoundException("User not banned");
+// 			}
+
+// 			room.banned_users.splice(index, 1);
+
+// 			await this.room_repo.save(room);
+// 		}
+// 	}
+// 	return RoomControllerFactory;
+// }

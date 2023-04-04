@@ -98,24 +98,11 @@
 			<Achievements/>
 		</div>
 	</div>
-	<!-- <div class="block-hor">
-		<div class="block-cell">
-			<h3>Last game played</h3>
-			<div class="block-hor" id="legend">
-				<div class="block-cell table-cell" id="no-grow">opponent</div>
-				<div class="block-cell table-cell">me</div>
-			</div>
-			<div class="block-hor" id="content">
-				<div class="block-cell table-cell" id="no-grow">5</div>
-				<div class="block-cell table-cell">3</div>
-			</div>
-		</div>
-	</div> -->
-	<!-- <div>
+	<div>
 		{#each $page.data.games.sort(byId).reverse() as game (game.id)}
 			<Match user={profile} {game}/>
 		{/each}
-	</div> -->
+	</div>
 </div>
 
 <style>
@@ -142,29 +129,6 @@
 		padding: 0;
 		padding-right: 3px;
 	}
-
-	.table-cell {
-		/* border: 1px solid var(--border-color);
-		border-radius: 6px; */
-		/* box-shadow: 1px 1px 1px 1px var(--hover-color); */
-		min-height: 25px;
-	}
-
-	#content {
-		border-radius: 6px;
-		height: 30px;
-		max-width: 250px;
-	}
-
-	#legend {
-        background: var(--box-color);
-		border-radius: 6px;
-		height: 30px;
-        /* box-shadow: 0 0 0 var(--box-color); */
-		box-shadow: 2px 3px 5px 2px rgba(0, 0, 0, 0.4);
-		margin-bottom: 5px;
-		max-width: 250px;
-    }
 
 	#user-block {
 		width: -moz-available;

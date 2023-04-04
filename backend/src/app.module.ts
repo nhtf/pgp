@@ -15,18 +15,16 @@ import * as session from "express-session";
 import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
-import { ChatController } from "./controllers/chat.controller";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
 import { User } from "./entities/User";
-import { GameController } from "./controllers/game.controller";
 import { SessionService } from "src/services/session.service";
 import * as Pool from "pg-pool";
 import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";
 import { SetupGuard } from "src/guards/setup.guard";
 import { Room } from "./entities/Room";
-import { getRoomService } from "./services/room.service";
+// import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
 import { RoomInvite } from "./entities/RoomInvite";
 import { HttpModule } from "@nestjs/axios";
@@ -157,17 +155,17 @@ const entityProviders = entityFiles.map<{
 	};
 });
 
-const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room || value.name == "Room").map(value => {//TODO remove
-	const name = value.name.toUpperCase();
-	return {
-		provide: name + "_PGPSERVICE",
-		useFactory: (room_repo: any, member_repo: Repository<any>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
-			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any, entityClasses.find(clazz => clazz.name === (value.name + "Member")) as any);
-			return tmp;
-		},
-		inject: [name + "_REPO", (name == "ROOM" ? "" : name) + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
-	};
-});
+// const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room || value.name == "Room").map(value => {//TODO remove
+// 	const name = value.name.toUpperCase();
+// 	return {
+// 		provide: name + "_PGPSERVICE",
+// 		useFactory: (room_repo: any, member_repo: Repository<any>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
+// 			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any, entityClasses.find(clazz => clazz.name === (value.name + "Member")) as any);
+// 			return tmp;
+// 		},
+// 		inject: [name + "_REPO", (name == "ROOM" ? "" : name) + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
+// 	};
+// });
 
 const services = [
 	{
@@ -193,6 +191,11 @@ const services = [
 		},
 		inject: ["GAMEROOM_REPO", "GAMEROOMMEMBER_REPO", "GAMESTATE_REPO", "PLAYER_REPO"],
 	},
+	// {
+	// 	provide: "USER_SERVICE",
+	// 	inject: ["DATA_SOURCE", "USER_REPO", "ROOM_SERVCE"]
+
+	// }
 ];
 
 @Module({
@@ -208,9 +211,7 @@ const services = [
 		AppController,
 		AuthController,
 		BotController,
-		//ChatController,
 		DebugController,
-		//GameController,
 		TotpController,
 		MediaController,
 		NewGameController,
@@ -233,7 +234,7 @@ const services = [
 		RoomInviteService,
 		...databaseProviders,
 		...entityProviders,
-		...roomServices,
+		// ...roomServices,
 		...services,
 	],
 	exports: [

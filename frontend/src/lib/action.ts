@@ -5,7 +5,7 @@ import { goto } from "$app/navigation";
 import { unwrap } from "$lib/Alert"
 import Swal from "sweetalert2"
 
-type Info = { user: User, member?: Member, friendIds: number[], blockedIds: number[], my_role?: Role };
+type Info = { user: User, member?: Member, room?: Room, friendIds: number[], blockedIds: number[], my_role?: Role, banned: boolean };
 type Args = { user: User, member?: Member, room?: Room };
 type Action = {
 	condition?: (context: Info) => boolean;
@@ -18,8 +18,9 @@ export const actions: Action[] = [
 	{ fun: unfriend, condition: ({ user, friendIds }) => friendIds.includes(user.id) },
 	{ fun: block, condition: ({ user, blockedIds }) => !blockedIds.includes(user.id) },
 	{ fun: unblock, condition: ({ user, blockedIds }) => blockedIds.includes(user.id) },
-	{ fun: invite, condition: ({ user}) => user.status !== Status.INGAME && user.status !== Status.OFFLINE },
-	{ fun: spectate, condition: ({ user}) => user.status === Status.INGAME },
+	{ fun: invite, condition: ({ user }) => user.status !== Status.INGAME && user.status !== Status.OFFLINE },
+	{ fun: spectate, condition: ({ user }) => user.status === Status.INGAME },
+	{ fun: unban, condition: ({ banned }) => banned },
 
 	{ fun: promote, condition: ({ member, my_role }) => member && my_role ? my_role === Role.OWNER : false },
 	{ fun: demote, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && member.role > 0 : false },
@@ -36,7 +37,7 @@ async function befriend({ user }: Args) {
 }
 
 async function unfriend({ user }: Args) {
-	await unwrap(remove(`/user/me/friends/${user.id}`));
+	await unwrap(remove(`/user/me/friends`, { friend: user.id }));
 }
 
 async function block({ user }: Args) {
@@ -58,6 +59,10 @@ async function spectate({ user }: Args) {
 
 	await patch(`/game/${id}/team/me`, { team: null });
 	await goto(`/game/${id}`);
+}
+
+async function unban({ room, user }: Args) {
+	await unwrap(remove(`${room!.route}/bans/${user.id}`));
 }
 
 async function invite({ user }: Args) {
@@ -114,17 +119,22 @@ async function mute({ member, room }: Args) {
 		inputValue,
 		text: "mute duration",
 		showCancelButton: true,
+		inputValidator: (value: string) => {
+			if (Number(value) < 1)
+				return "Duration must be positive";
+			return null;
+		}
 	});
 
 	if (isConfirmed) {
 		const duration = Number(value) * 60 * 1000;
 
-		await unwrap(post(`${room!.route}/mute/${member!.id}`, { duration }));
+		await unwrap(patch(`${room!.route}/members/${member!.id}`, { mute: new Date(Date.now() + duration) }));
 	}
 }
 
 async function unmute({ member, room }: Args) {
-	await unwrap(post(`${room!.route}/mute/${member!.id}`, { duration: 0 }));
+	await unwrap(patch(`${room!.route}/members/${member!.id}`, { mute: new Date() }));
 }
 
 // Util
