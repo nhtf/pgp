@@ -384,4 +384,11 @@ export class DebugController {
 	
 		return all[all.length - 1];
 	}
+
+	@Get("member(s)?/homeless")
+	async noRoom() {
+		const members = await this.memberRepo.findBy({ room: null });
+
+		await this.memberRepo.remove(members);
+	}
 }

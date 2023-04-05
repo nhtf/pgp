@@ -6,8 +6,6 @@ Profile page stat part
 
 Match History page (either on profile or seperate page?)
 
-chat invite for game (also how to determine which kind of game)
-
 matchmaking system!!
 
 store more state in database, like who's turn it is to serve the ball
@@ -17,5 +15,3 @@ team one is right side?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!?!
 create extension pg_trgm on startup
 
 netcode is horribly broken
-
-accept/deny invite doesn't work

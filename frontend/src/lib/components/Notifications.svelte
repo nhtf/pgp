@@ -39,12 +39,9 @@
 		await respond(invite, "accept");
 
 		if (invite.type === "GameRoom") {
-			const room = invite.room as GameRoom;
-			const self = await unwrap(get(`/game/self`));
-			const team = room.state!.teams[1];
-		
-			await unwrap(patch(`/game/${room.id}/team/${self.id}`, { team: team.id }));
+			await unwrap(patch(`${invite.room!.route}/team/empty`));
 
+			console.log(invite.room!.nav);
 			Swal.fire({
 				title: "Go to game?",
 				showConfirmButton: true,
@@ -52,7 +49,7 @@
 				confirmButtonText: "Go",
 			}).then(async (result) => {
 				if (result.isConfirmed) {
-					await goto(`/game/${room.id}`);
+					await goto(invite.room!.route);
 				}
 			});
 		}

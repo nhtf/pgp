@@ -1,13 +1,13 @@
 <script lang="ts">
     import type { GameRoom } from "$lib/entities";
-	import { gameStateStore, inviteStore, memberStore, roomStore, userStore } from "$lib/stores";
+	import { gameStore, inviteStore, memberStore, roomStore, userStore } from "$lib/stores";
     import { status_colors } from "$lib/constants";
 	import { byId } from "$lib/sorting";
     import { Gamemode, Status } from "$lib/enums";
 
 	$: users = [...$userStore.values()];
 	$: rooms = [...$roomStore.values()] as GameRoom[];
-	$: games = [...$gameStateStore.values()];
+	$: games = [...$gameStore.values()];
 	$: invites = [...$inviteStore.values()];
 	$: members = [...$memberStore.values()];
 </script>

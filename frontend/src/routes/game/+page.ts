@@ -1,6 +1,6 @@
 import type { PageLoad } from "./$types"
 import { GameRoom, GameState, User } from "$lib/entities";
-import { userStore, roomStore, updateStore, gameStateStore } from "$lib/stores";
+import { userStore, roomStore, updateStore, gameStore } from "$lib/stores";
 import { get } from "$lib/Web";
 import { unwrap } from "$lib/Alert";
 
@@ -14,7 +14,7 @@ export const load: PageLoad = (async ({ fetch }) => {
 	const rooms = joined.concat(joinable);
 
     updateStore(roomStore, rooms, GameRoom);
-	updateStore(gameStateStore, rooms.map(({ state }) => state!), GameState);
+	updateStore(gameStore, rooms.map(({ state }) => state!), GameState);
 	
 	return { rooms };
 }) satisfies PageLoad;

@@ -8,7 +8,7 @@ export async function respond(invite: Invite, action: "accept" | "deny") {
 			const room = invite.room!;
 		
 			if (action === "accept") {
-				await post(`${room.route}/members`, { id: null });
+				await post(`${room.route}/members`);
 			} else {
 				await remove(`${room.route}/invite/${invite.id}`);
 			}

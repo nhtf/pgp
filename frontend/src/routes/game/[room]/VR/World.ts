@@ -74,7 +74,9 @@ export class World extends Net {
 		
 		this.scene = new THREE.Scene();
 		this.renderer = this.addThreeObject(new THREE.WebGLRenderer({ antialias: true }));
-		this.camera = new THREE.PerspectiveCamera(90, 1, 0.1, 1000);
+		const canvasDim = document.getElementsByClassName("game-container")[0].getBoundingClientRect();
+		this.camera = new THREE.PerspectiveCamera(90, canvasDim.width / canvasDim.height, 0.1, 100);
+		this.camera.position.set(0, 1.7, 2);
 		this.audioListener = new THREE.AudioListener();
 		this.cameraGroup = new THREE.Group();
 		this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));

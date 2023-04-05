@@ -1,8 +1,6 @@
 import { a, FIELDWIDTH, scoreColors, scorePositions } from "./Constants";
 import type { Team } from "../lib2D/Team";
 
-
-//TODO draw score on canvas instead of webgl?
 export class Score {
 
     private r: number;

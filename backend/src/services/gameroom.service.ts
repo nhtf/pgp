@@ -1,5 +1,5 @@
 import type { User } from "src/entities/User";
-import type { Player } from "src/entities/Player";
+import { Player } from "src/entities/Player";
 import { Injectable, Inject } from "@nestjs/common";
 import { Repository, DeepPartial } from "typeorm";
 import { GameRoom } from "src/entities/GameRoom";
@@ -7,7 +7,7 @@ import { Gamemode } from "src/enums";
 import { GameState } from "src/entities/GameState";
 import { Team } from "src/entities/Team";
 import { GameRoomMember } from "src/entities/GameRoomMember";
-import { GenericRoomService, CreateRoomOptions } from "src/services/new.room.service";
+import { GenericRoomService, CreateRoomOptions } from "src/services/room.service";
 import { genTeamName } from "src/namegen"
 
 interface CreateGameRoomOptions extends CreateRoomOptions {
@@ -39,6 +39,7 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 
 		async create(options: CreateGameRoomOptions) {
 			const player_count = PLAYER_NUMBERS.get(options.gamemode);
+			console.log(options);
 			if (!player_count.includes(options.players))
 				throw new Error(`Invalid amount of players ${options.players} for gamemode ${options.gamemode.toString()}. Possible values: ${player_count}`);
 
@@ -57,11 +58,35 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 				state.teams.push(team);
 			}
 
-			state.room = { id: room.id } as GameRoom;
-
 			room.state = state;
 		
 			return this.room_repo.save(room);
+		}
+
+		async set_team(member: GameRoomMember, team: Team) {
+			if (!member.player && team) {
+				member.player = new Player();
+				member.player.user = member.user;
+			} else if (member.player && !team) {
+				await this.remove_players(member.player);
+				member.player = null;
+			}
+			
+			if (team) {
+				member.player.team = team;
+			}
+		
+			await this.save_members(member);
+		}
+
+		async get_teams(room: GameRoom): Promise<Team[]> {
+			if (room?.state?.teams == undefined)
+				room.state = await this.get_state(room);
+			return room.state.teams;
+		}
+
+		async lock_teams(room: GameRoom) {
+			await this.save_states({ id: room.state.id, teamsLocked: true });
 		}
 
 		async get_history(user: User): Promise<GameState[]> {
@@ -88,7 +113,6 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 		}
 
 		async get_players(room: GameRoom, user: User): Promise<Player | null> {
-			//return this.player_repo.findOneBy({ { user: { id: user.id } }, team: { state: { room: { id: room.id } } } });
 			return this.player_repo.findOneBy({
 				user: {
 					id: user.id,
@@ -112,20 +136,6 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 		}
 
 		async get_state(room: GameRoom): Promise<GameState> {
-			return this.state_repo.findOne({
-			where: {
-				room: {
-					id: room.id
-				}
-			},
-			relations: {
-				teams: {
-					players: {
-						user: true
-					}
-				}
-			}
-		});
-
+			return this.state_repo.findOneBy({ room: { id: room.id } });
 		}
 }

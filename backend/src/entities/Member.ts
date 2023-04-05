@@ -11,14 +11,14 @@ export class Member {
 	id: number;
 
 	@Exclude()
-	@ManyToOne(() => User, (user) => user.members, { eager: true, onDelete: "CASCADE" })
+	@ManyToOne(() => User, (user) => user.members, { eager: true, onDelete: "CASCADE", nullable: false })
 	user: User;
 
 	@RelationId((member: Member) => member.user)
 	userId: number;
 
 	@Exclude()
-	@ManyToOne(() => Room, { onDelete: "CASCADE", cascade: ["insert", "update"] })
+	@ManyToOne(() => Room, { onDelete: "CASCADE", cascade: ["insert", "update"], nullable: false })
 	room: Room;
 
 	@RelationId((member: Member) => member.room)

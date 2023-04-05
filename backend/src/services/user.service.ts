@@ -14,6 +14,10 @@ export class UserService {
 		private readonly update_service: UpdateGateway,
 	) {}
 
+	async get(...ids: number[]) {
+		return await this.user_repo.findBy({ id: In(ids) });
+	}
+
 	async remove(...users: User[]) {
 		const ids = users.map((user) => user.id);
 		const rooms = await this.room_repo.findBy({
@@ -50,16 +54,16 @@ export class UserService {
 	}
 
 	removeFromJoinTableQuery(table: string, ...users: User[]): DeleteQueryBuilder<any> {
-		return users.reduce((acc, user) => {
-			acc.orWhere("userId_1 = :id", user);
-			acc.orWhere("userId_2 = :id", user);
-	
-			return acc;
-		}, this.datasource
-			.createQueryBuilder()
+		const query = this.datasource.createQueryBuilder()
 			.delete()
 			.from(table)
-			.where("false")
-		);
+			.where("false");
+		
+		users.forEach((user) => {
+			query.orWhere("userId_1 = :id", user);
+			query.orWhere("userId_2 = :id", user);
+		});
+	
+		return query;
 	}
 }

@@ -5,7 +5,7 @@ import { io } from "socket.io-client";
 
 const WS = `ws://${BACKEND_ADDRESS}/update`;
 
-type UpdateFunction = (update: UpdatePacket) => void;
+type UpdateFunction = (update: UpdatePacket) => Promise<void> | void;
 
 class UpdateManager {
 	functions: { fun: UpdateFunction, subject: Subject }[] = [];
@@ -18,25 +18,36 @@ class UpdateManager {
 		return this.functions.push({ subject, fun }) - 1;
 	}
 
-	remove(indices: number | number[]) {
-		if (typeof indices === "number") {
-			indices = [indices];
-		}
-
+	remove(...indices: number[]) {
 		indices.forEach((index) => {
-			this.functions.splice(index);
+			this.functions.splice(index, 1);
 		});
 	}
 
-	async execute(update: UpdatePacket) {
-		const funs = this.functions.filter(({ subject }) => subject === update.subject);
+	prioritise(...indices: number[]) {
+		indices.forEach((index) => {
+			this.functions.splice(0, 0, ...this.functions.splice(index, 1))
+		});
+	}
+
+	execute(update: UpdatePacket) {
+		const funs = this.functions
+			.filter(({ subject }) => subject === update.subject)
+			.map(({ fun }) => fun);
+
+		// const funs = this.functions.filter_map((info) => info.subject === update.subject ? info.fun : undefined);
+
 		const style = `color: ${funs.length ? "black" : "gray"}`;
 
 		console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
 
-		funs?.forEach(({ fun }) => {
-			fun(update);
-		})
+		// IIFE
+		// socket.on can't be awaited, but some function need to run before others
+		(async () => {
+			for await (const fun of funs) {
+				await fun(update);
+			}
+		})();
 	}
 }
 

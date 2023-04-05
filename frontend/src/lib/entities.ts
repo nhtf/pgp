@@ -26,11 +26,11 @@ export class Room<U extends Member = Member> extends Entity {
 	self?: U;
 
 	get route(): string {
-		return `/${this.nav}/${this.id}`;
+		return `${this.nav}/${this.id}`;
 	}
 
 	get nav(): string {
-		return this.type.replace("Room", "").toLowerCase();
+		return `/${this.type.replace("Room", "").toLowerCase()}`;
 	}
 
 	get icon(): string | null {

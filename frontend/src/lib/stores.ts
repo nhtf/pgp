@@ -35,16 +35,15 @@ function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 }
 
 function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: Subject, entityType: (new () => T)) {
-	updateManager.set(subject, (update: UpdatePacket) => {
+	updateManager.set(subject, async (update: UpdatePacket) => {
 		store.update((entities) => {
 			switch (update.action) {
 				case Action.INSERT:
-					entities.set(update.id, create(update.value, entityType))
+					entities.set(update.id, create(update.value, entityType));
 					break;
 				case Action.UPDATE:
 					if (!entities.has(update.id)) {
-						entities.set(update.id, create({ id: update.id, ...update.value }, entityType));
-						break ;
+						entities.set(update.id, create({ id: update.id }, entityType));
 					}
 
 					updateDeepPartial(entities.get(update.id) as ObjectLiteral, update.value);
@@ -87,10 +86,15 @@ export const blockStore = storeFactory<Entity>(Subject.BLOCK, Entity);
 export const memberStore = storeFactory<Member>(Subject.MEMBER, Member);
 export const inviteStore = storeFactory<Invite>(Subject.INVITE, Invite);
 export const friendStore = storeFactory<Entity>(Subject.FRIEND, Entity);
-export const gameStateStore = storeFactory<GameState>(Subject.GAMESTATE, GameState);
+export const gameStore = storeFactory<GameState>(Subject.GAMESTATE, GameState);
+
+updateManager.set(Subject.ROOM, onRoomInsert);
+updateManager.set(Subject.ROOM, onPrivateRemove);
+updateManager.set(Subject.FRIEND, onFriendInsert);
+updateManager.set(Subject.GAMESTATE, onScoreUpdate);
 
 // Removed from private room
-updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
+async function onPrivateRemove(update: UpdatePacket) {
 	if (update.action === Action.UPDATE && update.value.joined === false) {
 		roomStore.update((rooms) => {
 			const room = rooms.get(update.id)!;
@@ -102,30 +106,29 @@ updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
 			return rooms;
 		});
 	}
-});
+}
 
 // Add new friend to userStore
-updateManager.set(Subject.FRIEND, (update: UpdatePacket) => {
+async function onFriendInsert(update: UpdatePacket) {
 	if (update.action === Action.INSERT) {
 		updateStore(userStore, update.value, User);
 	}
-});
+}
 
 // Add state or owner from new room
-updateManager.set(Subject.ROOM, (update: UpdatePacket) => {
+async function onRoomInsert(update: UpdatePacket) {
 	if (update.value?.state) {
-		updateStore(gameStateStore, update.value.state, GameState);
+		updateStore(gameStore, update.value.state, GameState);
 	}
 
 	if (update.value?.owner) {
 		updateStore(userStore, update.value.owner, User);
 	}
-});
+};
 
-// Score update
-updateManager.set(Subject.TEAM, (update: UpdatePacket) => {
+async function onScoreUpdate(update: UpdatePacket) {
 	if (update.action === Action.UPDATE) {
-		gameStateStore.update((old) => {
+		gameStore.update((old) => {
 			const state = old.get(update.value.stateId);
 		
 			if (state) {
@@ -135,6 +138,8 @@ updateManager.set(Subject.TEAM, (update: UpdatePacket) => {
 			}
 		
 			return old;
-		})
+		});
 	}
-});
+}
+
+export const queueing = writable(false);

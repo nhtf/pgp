@@ -2,7 +2,7 @@ import type { Room } from "src/entities/Room";
 import type { User } from "src/entities/User";
 import { Injectable, Inject } from "@nestjs/common";
 import { RoomInvite } from "src/entities/RoomInvite";
-import { Repository } from "typeorm";
+import { Repository, In } from "typeorm";
 
 interface Entity {
 	id: number;
@@ -89,5 +89,15 @@ export class RoomInviteService {
 				room: true,
 			},
 		});
+	}
+
+	async are_invited(room: Room, ...users: User[]): Promise<boolean> {
+		const ids = users.map((user) => user.id);
+		const invites = await this.invite_repo.findBy({
+			room: {	id: room.id	},
+			to: { id: In(ids) }
+		})
+	
+		return invites.length > 0;
 	}
 }

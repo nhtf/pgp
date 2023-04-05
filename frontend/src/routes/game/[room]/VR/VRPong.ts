@@ -35,8 +35,6 @@ export interface Options extends WorldOptions {
 
 export type PaddleUpdate = Partial<PaddleObject>;
 
-const textureLoader = new THREE.TextureLoader();
-
 function createLights(world: Pong) {
     const ambient = new THREE.AmbientLight("white", 0.9);
 	const light = new THREE.PointLight("white", 25);
@@ -45,21 +43,25 @@ function createLights(world: Pong) {
 	light.shadow.mapSize.width = 2048;
 	light.shadow.mapSize.height = 2048;
 	world.scene.add(light);
-	const areaLight = new THREE.RectAreaLight("white", 20, 62, 0.4);
-	areaLight.position.y = 11;
+	const areaLight = new THREE.RectAreaLight("white", 10, 62, 1);
+	areaLight.position.y = 10.75;
 	areaLight.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
-	const areaLightL = new THREE.RectAreaLight("white", 20, 62, 0.4);
-	areaLightL.position.set(-10, 11, 0);
+	const areaLightL = new THREE.RectAreaLight("white", 10, 62, 1);
+	areaLightL.position.set(-10, 10.75, 0);
 	areaLightL.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
-	const areaLightR = new THREE.RectAreaLight("white", 20, 62, 0.4);
-	areaLightR.position.set(10, 11, 0);
+	const areaLightR = new THREE.RectAreaLight("white", 10, 62, 1);
+	areaLightR.position.set(10, 10.75, 0);
 	areaLightR.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
-	const helper = new RectAreaLightHelper( areaLight, "red" );
+	const areaLightCeiling = new THREE.RectAreaLight("white", 1, 62, 36);
+	areaLightCeiling.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
+	areaLightCeiling.position.y = 12.1;
+	const helper = new RectAreaLightHelper(areaLightCeiling, "red");
 	world.scene.add(areaLight);
 	world.scene.add(areaLightL);
 	world.scene.add(areaLightR);
-	world.scene.add(helper);
 	world.scene.add(ambient);
+	world.scene.add(areaLightCeiling);
+	world.scene.add(helper);
 }
 
 function createScoreboard(world: Pong) {
@@ -413,11 +415,11 @@ export class Pong extends World {
 
 		this.member = options.member;
 		this.state = new State(options.room.state!.teams);
-		const load = await Promise.all([Promise.all([loadModel("/Assets/gltf/pingPongTable/pingPongTable.gltf"), loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform), loadModel("/Assets/gltf/PGP_HALL/PGP_HALL.gltf")]), Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`))), Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)))]);
+		const load = await Promise.all([Promise.all([loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform), loadModel("/Assets/gltf/PGP_HALL/PGP_HALL.glb")]), Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`))), Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)))]);
 		let modelArray = load[0];
-		this.tableModel =  modelArray[0];
-		this.paddleModel =  modelArray[1];
-		this.hallModel =  modelArray[2];
+		this.tableModel =  modelArray[1].children[0].children.filter((child) => child.name === "MainTable")![0];
+		this.paddleModel =  modelArray[0];
+		this.hallModel =  modelArray[1];
 		this.scene.add(this.hallModel);
 
 		this.tableSounds = load[1];
@@ -445,7 +447,6 @@ export class Pong extends World {
 		});
 
 		await super.start(options);
-
 		window.onkeydown = event => {
 			const forward = new THREE.Vector3();
 			const cross = new THREE.Vector3();

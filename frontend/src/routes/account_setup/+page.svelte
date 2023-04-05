@@ -7,7 +7,7 @@
 	let username = "";
 
 	async function set_username() {
-		await unwrap(put('/user/me/username', { username }, true));
+		await unwrap(put('/user/me/username', { username }));
 		await invalidate(`${BACKEND}/user/me`);
 		await goto(`/profile/${encodeURIComponent(username)}`);
 	}

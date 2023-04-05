@@ -1,235 +1,148 @@
-import { BadRequestException, Body, ForbiddenException, Get, Inject, Param, ParseIntPipe, Post, Delete, HttpCode, HttpStatus } from "@nestjs/common";
-import { Repository } from "typeorm";
-// import { IRoomService, GenericRoomController, GetRoom, GetMember } from "src/services/room.service";
-import { ChatRoom } from "src/entities/ChatRoom";
+import type { CreateRoomOptions } from "src/services/room.service";
+import { Get, Inject, Delete, Param, ForbiddenException, Body, Post, HttpCode, HttpStatus } from "@nestjs/common";
+import { IsString, Length, IsOptional, IsBoolean, IsDateString, IsEnum } from "class-validator";
+import { GenericRoomController, GetRoom, GetMember } from "src/controllers/room.controller";
+import { RoomInviteService } from "src/services/roominvite.service";
+import { ChatRoomService } from "src/services/chatroom.service";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
+import { RequiredRole } from "src/guards/role.guard";
+import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
-import { RoomInvite } from "src/entities/RoomInvite";
-import { UpdateGateway } from "src/gateways/update.gateway";
+import { EMBED_LIMIT } from "src/vars";
 import { ParseIDPipe } from "src/util";
 import { ERR_PERM } from "src/errors";
-import { Action, Role, Subject } from "src/enums";
-import { RequiredRole } from "src/guards/role.guard"
-import { Embed } from "src/entities/Embed";
+import { Role } from "src/enums";
 import * as linkify from "linkifyjs";
-import { EMBED_LIMIT, BOUNCER_KEY, EMBED_MAXLENGTH } from "src/vars";
-import { CHAT_ACHIEVEMENT } from "src/achievements";
-import { AchievementService } from "src/services/achievement.service";
-import { createHmac } from "node:crypto";
-import { IsString, MaxLength } from "class-validator";
-import axios from "axios";
 
-type Link = {
-    type: string;
-    value: string;
-    isLink: boolean;
-    href: string;
-    start: number;
-    end: number;
+interface Link {
+	type: string;
+	value: string;
+	isLink: boolean;
+	href: string;
+	start: number;
+	end: number;
+}
+
+class CreateRoomDTO implements CreateRoomOptions {
+	@IsString()
+	@IsOptional()
+	@Length(3, 20)
+	name?: string;
+
+	@IsBoolean()
+	@IsOptional()
+	is_private?: boolean;
+
+	@IsString()
+	@IsOptional()
+	@Length(1, 500)
+	password?: string;
+}
+
+class EditRoomDTO implements Partial<CreateRoomOptions> {
+	@IsString()
+	@Length(3, 20)
+	@IsOptional()
+	name?: string;
+
+	@IsBoolean()
+	@IsOptional()
+	is_private?: boolean;
+
+	@IsString()
+	@IsOptional()
+	@Length(1, 500)
+	password?: string;
+} 
+
+class EditMemberDTO implements Partial<ChatRoomMember> {
+	@IsOptional()
+	@IsEnum(Role)
+	role?: Role;
+
+	@IsOptional()
+	@IsDateString()
+	mute?: Date;
 }
 
 class MessageDTO {
 	@IsString()
-	@MaxLength(2000)
+	@Length(1, 2000)
 	content: string;
 }
 
-// export class ChatController extends GenericRoomController(ChatRoom, ChatRoomMember, "chat") {
+export class NewChatRoomController extends GenericRoomController(
+	ChatRoom,
+	ChatRoomMember,
+	CreateRoomDTO,
+	EditRoomDTO,
+	EditMemberDTO,
+	"chat"
+) {
 
-// 	constructor(
-// 		@Inject("CHATROOM_REPO")
-// 		room_repo: Repository<ChatRoom>,
-// 		@Inject("MEMBER_REPO")
-// 		member_repo: Repository<ChatRoomMember>,
-// 		@Inject("ROOMINVITE_REPO")
-// 		invite_repo: Repository<RoomInvite>,
-// 		@Inject("CHATROOM_PGPSERVICE")
-// 		service: IRoomService<ChatRoom, ChatRoomMember>,
-// 		update_service: UpdateGateway,
-// 		@Inject("MESSAGE_REPO")
-// 		private readonly message_repo: Repository<Message>,
-// 		private readonly achievementService: AchievementService,
-// 	) {
-// 		super(room_repo, member_repo, invite_repo, service, update_service);
-// 	}
+	constructor(
+		@Inject("CHATROOM_SERVICE")
+		private readonly chat_service: ChatRoomService,
+		invite_service: RoomInviteService,
+	) {
+		super(chat_service, invite_service);
+	}
 
-// 	async onJoin(room: ChatRoom, member: ChatRoomMember) {
-// 		console.log(member);
-// 		const messages = await this.message_repo.find({
-// 			where: {
-// 				room: {
-// 					id: room.id,
-// 				},
-// 				member: null,
-// 				user: {
-// 					id: member.user.id,
-// 				},
-// 			}
-// 		});
+	@Get(":id/message(s)?")
+	@RequiredRole(Role.MEMBER)
+	async list_messages(@GetRoom() room: ChatRoom) {
+		return this.chat_service.get_messages(room);
+	}
 
-// 		messages.forEach((message) => {
-// 			message.member = member;
-// 		});
+	@Post(":id/message(s)?")
+	@RequiredRole(Role.MEMBER)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async send_message(
+		@GetRoom() room: ChatRoom,
+		@GetMember() member: ChatRoomMember,
+		@Body() dto: MessageDTO,
+	) {
+		if (member.is_muted)
+			throw new ForbiddenException("You are muted");
 
-// 		await this.message_repo.save(messages);
-// 	}
-
-// 	async createEmbed(link: Link): Promise<Embed | null> {
-// 		try {
-// 			const response = await axios.head(link.href, { maxContentLength: EMBED_MAXLENGTH, maxRedirects: 5 });
+		const content = dto.content;
 		
-// 			// TODO check if address is not a local address
-// 			// const client = response.request as ClientRequest;
-// 			// const address = client.socket.remoteAddress;
-// 			// console.log(client.socket.localAddress);
-// 			const type: string = response.headers["content-type"];
+		const links: Link[] = linkify.find(content, "url");
+		const embeds = (await Promise.all(
+			links
+				.slice(0, EMBED_LIMIT)
+				.map((link) => this.chat_service.create_embed(new URL(link.href)))
+		)).filter((embed) => embed !== null);
 
-// 			if (!type) {
-// 				return null;
-// 			}
+		const message = new Message();
 
-// 			const embed = new Embed;
-		
-// 			embed.url = new URL(link.href).toString();
-// 			embed.digest = createHmac("sha256", BOUNCER_KEY).update(embed.url).digest("hex");
-// 			embed.rich = type.startsWith("text/html");
+		message.user = member.user;
+		message.content = content;
+		message.embeds = embeds;
+		message.member = member;
+		message.room = room;
 
-// 			return embed;
-// 		} catch (err){
-// 			return null;
-// 		}
-// 	}
+		await this.chat_service.add_messages(room, message);
+	}
 
-// 	@Get("id/:id/users")
-// 	@RequiredRole(Role.MEMBER)
-// 	async get_users(@GetRoom() room: ChatRoom) {
-// 		const members: ChatRoomMember[] = await this.member_repo.find({
-// 			relations: {
-// 				user: true,
-// 			},
-// 			where: {
-// 				room: {
-// 					id: room.id,
-// 				}
-// 			}
-// 		});
-// 		const messages = await this.message_repo.find({
-// 			relations: {
-// 				user: true,
-// 			},
-// 			where: {
-// 				member: null,
-// 				room: {
-// 					id: room.id,
-// 				},
-// 			},
-// 		});
+	@Delete(":id/message(s)?/:message")
+	@RequiredRole(Role.MEMBER)
+	@HttpCode(HttpStatus.NO_CONTENT)
+	async delete_message(
+		@GetRoom() room: ChatRoom,
+		@GetMember() member: ChatRoomMember,
+		@Param("message", ParseIDPipe(Message, { user: true })) message: Message
+	) {
+		const message_owner = await this.room_service.get_member(room, message.user);
 
-// 		const users = [...members.map((member) => member.user), ...messages.map((message) => message.user)];
-// 		const unique = new Map(users.map((user) => [user.id, user]));
+		if (message_owner.id !== member.id && message_owner.role >= member.role)
+			throw new ForbiddenException(ERR_PERM);
+		await this.chat_service.remove_messages(message);
+	}
 
-// 		return [...unique.values()];
-// 	}
-
-// 	@Post("id/:id/mute/:target")
-// 	@RequiredRole(Role.ADMIN)
-// 	async mute(
-// 		@GetMember() member: ChatRoomMember,
-// 		@GetRoom() room: ChatRoom,
-// 		@Param("target", ParseIDPipe(ChatRoomMember, { room: { members: { user: true } } })) target: ChatRoomMember,
-// 		@Body("duration", ParseIntPipe) duration: number
-// 	) {
-// 		if (target.room.id !== room.id) {
-// 			throw new BadRequestException("Target not a member of this room");
-// 		}
-		
-// 		if (target.role >= member.role) {
-// 			throw new ForbiddenException(ERR_PERM);
-// 		}
-
-// 		target.mute = new Date(Date.now() + duration);
-		
-// 		await this.member_repo.save(target);
-	
-// 		UpdateGateway.instance.send_update({
-// 			subject: Subject.MEMBER,
-// 			action: Action.UPDATE,
-// 			id: target.id,
-// 			value: { is_muted: target.is_muted },
-// 		}, ...target.room.users);
-	
-// 		if (target.mute > new Date) {
-// 			setTimeout(() => {
-// 				UpdateGateway.instance.send_update({
-// 					subject: Subject.MEMBER,
-// 					action: Action.UPDATE,
-// 					id: target.id,
-// 					value: { is_muted: false },
-// 				}, ...target.room.users);
-// 			}, duration);
-// 		}
-// 	}
-
-// 	@Get("id/:id/messages")
-// 	@RequiredRole(Role.MEMBER)
-// 	async get_messages(@GetRoom() room: ChatRoom) {
-// 		return await this.message_repo.find({
-// 			relations: {
-// 				member: true,
-// 				user: true,
-// 			},
-// 			where: {
-// 				room: {
-// 					id: room.id,
-// 				},
-// 			},
-// 		});
-// 	}
-
-// 	@Post("id/:id/message(s)?/")
-// 	@RequiredRole(Role.MEMBER)
-// 	@HttpCode(HttpStatus.NO_CONTENT)
-// 	async sendMessage(
-// 		@GetMember() member: ChatRoomMember,
-// 		@GetRoom() room: ChatRoom,
-// 		@Body() dto: MessageDTO,
-// 	) {
-// 		if (member.is_muted) {
-// 			throw new ForbiddenException("You have been muted");
-// 		}
-
-// 		const content = dto.content;
-
-// 		const links: Link[] = linkify.find(content, "url");
-// 		const embeds = (await Promise.all(links.map((link) => this.createEmbed(link))))
-// 			.filter((embed) => embed !== null)
-// 			.slice(0, EMBED_LIMIT);
-		
-// 		const message = new Message();
-	
-// 		message.user = member.user;
-// 		message.content = content;
-// 		message.embeds = embeds;
-// 		message.member = member;
-// 		message.room = room;
-
-// 		await this.message_repo.save(message);
-// 		await this.achievementService.inc_progress(CHAT_ACHIEVEMENT, member.user, 1);
-// 	}
-
-// 	@Delete("id/:id/message(s)?/:message")
-// 	@RequiredRole(Role.MEMBER)
-// 	async deleteMessage(
-// 		@GetMember() member: ChatRoomMember,
-// 		@Param("message", ParseIDPipe(Message)) message: Message
-// 	) {
-// 		const target = await this.member_repo.findOneBy({ id: message.memberId });
-
-// 		if (target.id !== member.id && target.role >= member.role) {
-// 			throw new ForbiddenException(ERR_PERM);
-// 		}
-
-// 		await this.message_repo.remove(message);
-// 	}
-
-// }
+	@Get(":id/users")
+	@RequiredRole(Role.MEMBER)
+	async list_users(@GetRoom() room: ChatRoom) {
+		return await this.chat_service.get_users(room);
+	}
+}

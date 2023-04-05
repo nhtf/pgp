@@ -33,9 +33,13 @@
 		vrButton.addEventListener("click", function(ev) {
 			requestAnimationFrame(function() {
 				const canvas = document.getElementsByTagName("canvas")[0];
+				canvas.style.position = "fixed";
+				canvas.style.inset = "77px 5px 5px 5px!important";
+				canvas.style.borderRadius = "6px";
 				const parent = canvas.parentElement;
 
 				if (!parent?.classList.contains("game-container")) {
+					console.log("parent has game-container");
 					canvas.parentElement!.id = "threejs-unfucker";
 				}
 			});
@@ -52,17 +56,20 @@
 <style global>
 	.game-container {
 		position: fixed;
-		inset: 177px 5px 5px 5px;
+		inset: 77px 5px 5px 5px;
 		z-index: 10000;
 	}
 
 	.canvas {
-		position: fixed;
-		inset: 77px 5px 5px 5px;
-		border-radius: 6px;
+		position: fixed!important;
+		inset: 77px 5px 5px 5px!important;
+		border-radius: 6px!important;
 	}
 
 	#threejs-unfucker {
 		z-index: -1 !important;
+		position: fixed!important;
+		inset: 77px 5px 5px 5px!important;
+		
 	}
 </style>

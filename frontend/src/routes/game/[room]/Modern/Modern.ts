@@ -15,14 +15,11 @@ import { FullShader } from "./fullShader";
 import type {Snapshot as NetSnapshot } from "../Net";
 import type { BallObject } from "./Ball";
 import type { PaddleObject } from "./Paddle";
-import { fontEdges } from "./Shaders/fonts";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
 const wall = new Audio("/Assets/sounds/wall.wav");
 const music = new Audio("/Assets/sounds/zetauri.wav");
-
-// TODO: fix typescript errors in save and load
 
 //This is not from interfaces because my MouseEvent needs a vectorObject
 export interface MouseEvent extends NetEvent {
@@ -400,6 +397,8 @@ export class Modern {
 			});
 		}
 	}
+
+	//TODO add a click to release ball
 
 	public stop() {
 		this.game!.stop();

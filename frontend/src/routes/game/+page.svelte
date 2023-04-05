@@ -3,6 +3,7 @@
     import { unwrap } from "$lib/Alert";
 	import RoomInput from "$lib/components/RoomInput.svelte";
 	import RoomOverview from "$lib/components/RoomOverview.svelte";
+    import Queue from "$lib/components/Queue.svelte";
 
 	async function create(room: any) {
 		room.name = room.name.length ? room.name : undefined;
@@ -13,6 +14,7 @@
 </script>
 
 <div class="flex flex-col m-4 gap-2 px-1 py-0.5">
+	<Queue/>
 	<RoomInput type={"GameRoom"} click={create}/>
 	<RoomOverview type={"GameRoom"} />
 </div>

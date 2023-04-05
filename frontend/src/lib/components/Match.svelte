@@ -1,15 +1,15 @@
 <script lang="ts">
     import { GameState, type User } from "$lib/entities";
-    import { gameStateStore, updateStore } from "$lib/stores";
+    import { gameStore, updateStore } from "$lib/stores";
     import { page } from "$app/stores";
     import { byId } from "$lib/sorting";
 
 	export let game: GameState;
 	export let user: User = $page.data.user;
 
-	updateStore(gameStateStore, game, GameState);
+	updateStore(gameStore, game, GameState);
 
-	$: game = $gameStateStore.get(game.id)!;
+	$: game = $gameStore.get(game.id)!;
 	$: team = game.teams.find((team) => team.players.some(({ userId }) => userId === user.id))!;
 	$: result = team?.score - Math.max(...game.teams
 		.filter((x) => x.id !== team?.id)

@@ -5,7 +5,7 @@ import type { Member } from "src/entities/Member"
 import type { Message } from "src/entities/Message"
 import type { GameState } from "src/entities/GameState"
 import type { AchievementProgress } from "src/entities/AchievementProgress"
-import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, FindOptionsRelations } from "typeorm"
+import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, FindOptionsRelations, DeepPartial } from "typeorm"
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { ReceiverFinder } from "src/ReceiverFinder" 
 import { instanceToPlain } from "class-transformer"
@@ -13,22 +13,25 @@ import { Action, Subject } from "src/enums"
 
 type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User[] | null, relations?: FindOptionsRelations<any> };
 
+function roomReceivers(room: Room): User[] | null {
+	return room?.is_private ? room?.users?.length ? room?.users : null : [];
+}
+
 const subjects: SubjectInfo[] = [
 	{ subject: Subject.USER, names: [ "User" ], fun: (_: User) => [] },
 	{ subject: Subject.ACHIEVEMENT, names: [ "Achievement" ], fun: (ach: AchievementProgress) => [] },
-	{ subject: Subject.ROOM, names: [ "Room", "ChatRoom", "GameRoom" ], fun: (room: Room) => room.is_private ? room.users?.length ? room.users : null : [] },
+	{ subject: Subject.ROOM, names: [ "Room", "ChatRoom", "GameRoom" ], fun: (room: Room) => roomReceivers(room) },
 	{ subject: Subject.INVITE, names: [ "Invite", "RoomInvite", "FriendRequest" ], fun: (invite: Invite) => [invite.from, invite.to] },
 	{ subject: Subject.MEMBER, names: [ "Member", "ChatRoomMember", "GameRoomMember" ],
-		fun: (member: Member) => member.room?.users,
+		fun: (member: Member) => roomReceivers(member.room),
 		relations: { room: { members: { user: true } } }
 	},
 	{ subject: Subject.MESSAGE, names: [ "Message" ],
-		fun: (message: Message) => message.room?.users,
+		fun: (message: Message) => roomReceivers(message.room),
 		relations: { room: { members: { user: true } } }
 	},
-	// TODO: check if used
 	{ subject: Subject.GAMESTATE, names: [ "GameState" ],
-		fun: (state: GameState) => state.room?.users,
+		fun: (state: GameState) => roomReceivers(state.room),
 		relations: { room: { members: { user: true }} }
 	},
 ];

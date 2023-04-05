@@ -3,6 +3,7 @@ import { Gamemode, Role, Status } from "$lib/enums"
 import { get, post, patch, remove } from "$lib/Web"
 import { goto } from "$app/navigation";
 import { unwrap } from "$lib/Alert"
+import { GameRoom } from "$lib/entities"
 import Swal from "sweetalert2"
 
 type Info = { user: User, member?: Member, room?: Room, friendIds: number[], blockedIds: number[], my_role?: Role, banned: boolean };
@@ -82,11 +83,13 @@ async function invite({ user }: Args) {
 		players: 2,
 	};
 
-	const room = await unwrap(post(`/game`, roomDto));
-	const self = await unwrap(get(`/game/${room.id}/self`));
-	const team = room.state.teams[0];
+	const info = await unwrap(post(`/game`, roomDto));
+	const room = new GameRoom;
 
-	await unwrap(patch(`/game/${room.id}/team/${self.id}`, { team: team.id }));
+	room.id = info.id;
+	room.type = info.type;
+
+	await unwrap(patch(`/game/${room.id}/team/empty`));
 	await unwrap(post(`/game/${room.id}/invite`, { username: user.username }));
 	await roomPrompt(room);
 }
@@ -164,7 +167,7 @@ async function roomPrompt(room: Room) {
 		confirmButtonText: "Go",
 	}).then(async (result) => {
 		if (result.isConfirmed) {
-			await goto(`/${room.nav}`);
+			await goto(room.route);
 		}
 	});
 }

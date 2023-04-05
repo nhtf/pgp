@@ -35,6 +35,7 @@
 
 	let currentTheme: string;
 	let timer: number | null = null;
+	let indices: number[] = [];
 
 	$: user = data.user ? $userStore.get(data.user.id) : null;
 	$: twofa_enabled = user?.auth_req === 2;
@@ -47,25 +48,30 @@
 			.addEventListener("change", applyTheme);
 	});
 
-	updateManager.set(Subject.ROOM, async (update: UpdatePacket) => {
-		if (update.action === Action.REMOVE && update.id === Number($page.params.room)) {
-			await goto(route);
-		}
-	});
+	indices.push(updateManager.set(Subject.ROOM, roomRemove));
+	indices.push(updateManager.set(Subject.MEMBER, memberRemove));
 
-	updateManager.set(Subject.MEMBER, async (update: UpdatePacket) => {
+	updateManager.prioritise(...indices);
+
+	addEventListener("mousemove", heartBeat);
+	addEventListener("keypress", heartBeat);
+
+	async function roomRemove(update: UpdatePacket) {
+		if (update.action === Action.REMOVE && update.id === Number($page.params.room)) {
+			await goto(route); // To async or not to async, svelte works in mysterious ways
+		}
+	}
+
+	async function memberRemove(update: UpdatePacket) {
 		const member = $memberStore.get(update.id);
 
 		if (update.action === Action.REMOVE
-			&& member?.userId === $page.data.user.id
+			&& member?.userId === $page.data.user?.id
 			&& Number($page.params.room) === member?.roomId
 		) {
 			await goto(route);
 		}
-	});
-
-	addEventListener("mousemove", heartBeat);
-	addEventListener("keypress", heartBeat);
+	}
 
 	function heartBeat() {
 		if (!timer) {

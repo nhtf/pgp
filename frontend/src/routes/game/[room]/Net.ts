@@ -117,7 +117,7 @@ export class Net {
 		while (index < this.allEvents.length && this.allEvents[index].time == this.time) {
 			const event = this.allEvents[index];
 
-			console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
+			// console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
 
 			const listeners = this.listeners.get(event.name);
 
@@ -191,7 +191,7 @@ export class Net {
 		this.tickCounter.add(1);
 		this.earlyTick();
 		this.lateTick();
-		console.log(`tick time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
+		// console.log(`tick time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
 	}
 
 	private forward(target: number) {

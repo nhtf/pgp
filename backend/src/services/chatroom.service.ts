@@ -1,5 +1,5 @@
 import type { Message } from "src/entities/Message";
-import { GenericRoomService, CreateRoomOptions } from "src/services/new.room.service";
+import { GenericRoomService, CreateRoomOptions } from "src/services/room.service";
 import { Injectable, Inject } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { ChatRoom } from "src/entities/ChatRoom";

@@ -3,7 +3,7 @@
 	import {
 		blockStore,
 		friendStore,
-		gameStateStore,
+		gameStore,
 		inviteStore,
 		memberStore,
 		roomStore,
@@ -21,7 +21,7 @@
 	$: stores = [
 		["Users", $userStore],
 		["Rooms", $roomStore],
-		["Games", $gameStateStore],
+		["Games", $gameStore],
 		["Blocked", $blockStore],
 		["Members", $memberStore],
 		["Invites", $inviteStore],

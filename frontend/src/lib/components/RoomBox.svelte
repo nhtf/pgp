@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { GameRoom, Room } from "$lib/entities";
-	import { gameStateStore, roomStore, userStore } from "$lib/stores";
-	import { post, remove, patch, get } from "$lib/Web";
+	import { gameStore, roomStore, userStore } from "$lib/stores";
+	import { post, remove, patch, get, put } from "$lib/Web";
 	import { icon_path } from "$lib/constants";
 	import { unwrap } from "$lib/Alert";
 	import { Access } from "$lib/enums";
@@ -16,9 +16,10 @@
 	let password = "";
 
 	$: room = $roomStore.get(room.id)!;
-	$: state = (room as GameRoom).state ? $gameStateStore.get((room as GameRoom).state!.id)! : undefined;
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: owner = room.owner ? $userStore.get(room.owner.id)! : undefined;
+
+	$: state = [...$gameStore.values()].find((game) => game.roomId === room.id);
 	$: team = state?.teams.find((team) => team.players?.some(({ userId }) => userId === user.id));
 
 	function teamSelector(): Promise<number | null> {
@@ -67,13 +68,13 @@
 		try {
 			const team = await teamSelector();
 		
-			await unwrap(patch(`${room.route}/team/${(room as GameRoom).self!.id}`, { team }));
+			await unwrap(patch(`${room.route}/team/${room.self!.id}`, { team }));
 			
 		} catch (_) {}
 	}
 
 	async function lock(room: Room) {
-		await unwrap(post(`${room.route}/lock`));
+		await unwrap(put(`${room.route}/lock`));
 	}
 
 </script>

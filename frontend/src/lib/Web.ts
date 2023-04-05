@@ -44,23 +44,15 @@ export async function patch(pathname: string, body?: any) {
 	});
 }
 
-export async function put(pathname: string, body: any, stringify: boolean) {
-	if (stringify) {
-		return await json(`${BACKEND}${pathname}`, {
-			credentials: "include",
-			method: "PUT",
-			headers: {
-				"Content-Type": "application/json",
-			},
-			body: JSON.stringify(body),
-		});
-	} else {
-		return await json(`${BACKEND}${pathname}`, {
-			credentials: "include",
-			method: "PUT",
-			body,
-		});
-	}
+export async function put(pathname: string, body?: any) {
+	return await json(`${BACKEND}${pathname}`, {
+		credentials: "include",
+		method: "PUT",
+		headers: {
+			"Content-Type": "application/json",
+		},
+		body: JSON.stringify(body),
+	});
 }
 
 export async function remove(pathname: string, body?: any) {

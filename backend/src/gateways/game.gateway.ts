@@ -82,8 +82,6 @@ export class GameGateway extends ProtectedGateway("game") {
 					});
 				}
 			});
-		
-			// UpdateGateway.instance.send_state_update({ id: client.room });
 		}
 	}
 

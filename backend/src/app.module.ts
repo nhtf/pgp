@@ -1,32 +1,26 @@
+import type { Message } from "src/entities/Message";
+import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
+import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";
+import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { AppController } from "./controllers/app.controller";
 import { Player } from "src/entities/Player";
 import { GameState } from "src/entities/GameState";
-import { Reflector } from "@nestjs/core";
-import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { GameGateway } from "./gateways/game.gateway";
 import { AuthController } from "./auth/auth.controller";
 import { TotpController } from "./auth/totp.controller";
 import { DebugController } from "./controllers/debug.controller";
-import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
 import { DataSource } from "typeorm";
 import { HOST, DB_PORT, DB_USER, DB_PASS } from "./vars";
 import { HttpAuthGuard } from "./auth/auth.guard";
-import * as session from "express-session";
-import { SESSION_SECRET, SESSION_ABSOLUTE_TIMEOUT, DB_DATABASE } from "./vars";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
 import { MemberMiddleware } from "./middleware/member.middleware";
 import { ActivityMiddleware } from "./middleware/activity.middleware";
 import { UpdateGateway } from "./gateways/update.gateway";
-import { User } from "./entities/User";
 import { SessionService } from "src/services/session.service";
-import * as Pool from "pg-pool";
-import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";
 import { SetupGuard } from "src/guards/setup.guard";
-import { Room } from "./entities/Room";
-// import { getRoomService } from "./services/room.service";
 import { Repository } from "typeorm";
-import { RoomInvite } from "./entities/RoomInvite";
 import { HttpModule } from "@nestjs/axios";
 import { MediaController } from "src/controllers/media.controller";
 import { EntitySubscriber } from "src/subscribers/entity.subscriber"
@@ -38,15 +32,15 @@ import { UserService } from "src/services/user.service";
 import { MatchController } from "src/controllers/match.controller";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
-import { GenericRoomService } from "src/services/new.room.service";
 import { GameRoomService } from "src/services/gameroom.service";
-import { NewGameController } from "src/controllers/new.game.controller";
+import { NewGameController } from "src/controllers/game.controller";
 import { GameRoom } from "src/entities/GameRoom";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { RoomInviteService } from "src/services/roominvite.service";
-import { NewChatRoomController } from "src/controllers/chatroom.controller";
+import { NewChatRoomController } from "src/controllers/chat.controller";
 import { ChatRoomService } from "src/services/chatroom.service";
-import type { Message } from "src/entities/Message";
+import * as session from "express-session";
+import * as Pool from "pg-pool";
 
 export const db_pool = new Pool({
 	database: DB_DATABASE,
