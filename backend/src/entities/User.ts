@@ -106,12 +106,15 @@ export class User {
 	@OneToMany(() => User, (bot) => bot.owner)
 	bots: User[];
 
-	@ManyToOne(() => User, (user) => user.bots, { cascade: ["insert", "remove"] }) //TODO set nullable: false
+	@ManyToOne(() => User, (user) => user.bots, { cascade: ["insert", "remove"] })
 	owner: User;
 
 	@Column({ nullable: true })
 	@Exclude()
 	api_secret: string | null;
+
+	@Column({ default: false })
+	queueing: boolean;
 
 	@Expose()
 	get is_bot(): boolean {

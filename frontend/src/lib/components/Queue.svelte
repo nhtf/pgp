@@ -1,47 +1,69 @@
 <script lang="ts">
-	import { unwrap } from "$lib/Alert";
+	import { userStore } from "$lib/stores";
+	import { Checkbox } from "flowbite-svelte";
 	import { put, remove } from "$lib/Web";
 	import { Gamemode } from "$lib/enums";
-	import { queueing } from "$lib/stores";
-	import { Checkbox } from "flowbite-svelte";
-    import { players } from "../../routes/game/[room]/Modern/Constants";
+	import { unwrap } from "$lib/Alert";
+	import { page } from "$app/stores";
 
-	const modes: { gamemode: Gamemode, players: number[], name: string }[] = [
-		{ gamemode: Gamemode.CLASSIC, players: [2], name: "Classic" },
-		{ gamemode: Gamemode.VR, players: [2], name: "VR" },
-		{ gamemode: Gamemode.MODERN, players: [2, 4], name: "Modern" },
+	type QueueDTO = { type: Gamemode, player_counts: number[] }[];
+
+	$: user = $userStore.get($page.data.user.id)!;
+
+	const names = [ "Classic", "VR", "Modern" ]
+	const modes: QueueDTO = [
+		{ type: Gamemode.CLASSIC, player_counts: [2] },
+		{ type: Gamemode.VR, player_counts: [2] },
+		{ type: Gamemode.MODERN, player_counts: [2, 4] },
 	];
 
-	let options = modes.map(({ gamemode, players }) => { return { type: gamemode, player_counts: players } });
+	let checks: boolean[][] = [];
+	let gamemodes: QueueDTO;
+
+	$: checks = modes.map(({ player_counts }) => Array(player_counts.length).fill(true));
+
+	$: gamemodes = modes.filter(({ type, player_counts }) => {
+		return player_counts.filter((_, index) => {
+			return checks[type][index];
+		}).length > 0;
+	});
 
 	async function queue() {
-		await unwrap(put(`/match/me`, { gamemodes: options }));
-		queueing.update(() => true);
+		await unwrap(put(`/match/me`, { gamemodes }));
 	}
 
 	async function dequeue() {
-		await unwrap(remove(`/match/me`, { gamemodes: options }));
-		queueing.update(() => false);
+		await unwrap(remove(`/match/me`, { gamemodes }));
 	}
 </script>
 
-<div class="room">
-	{#each modes as { players, name }, index}
-		<div class="flex flex-row gap-4">
-			<span class="label">{name}</span>
-			{#each players as player}
-				<div class="flex flex-row gap-4">
-					<Checkbox class="checkbox" />
-					<div class="private-check">{player}</div>
-				</div>
+<div class="room gap-8">
+	{#each modes as { player_counts, type }}
+		<div class="spacing">
+			<span class="label opacity-{user.queueing ? "50" : "100"}">{names[type]}:</span>
+			{#each player_counts as player, index}
+			<div class="spacing">
+				{#if player_counts.length > 1}
+					<span class="label">{player}P</span>
+				{/if}
+				<Checkbox bind:checked={checks[type][index]} disabled={user.queueing} class="checkbox" />
+			</div>
 			{/each}
 		</div>
 	{/each}
 	<div class="grow" />
-	{#if !$queueing}
-		<button class="button border-green" on:click={queue}>Find match</button>
-	{:else}
+	{#if user.queueing}
 		<div>Searching for match...</div>
 		<button class="button border-red" on:click={dequeue}>Cancel</button>
+	{:else}
+		<button class="button border-green" on:click={queue}>Find match</button>
 	{/if}
 </div>
+
+<style>
+	.spacing {
+		display: flex;
+		gap: 0.5rem;
+		align-items: center;
+	}
+</style>

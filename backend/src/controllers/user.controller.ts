@@ -44,6 +44,7 @@ import { instanceToPlain } from "class-transformer";
 import { AchievementService } from "src/services/achievement.service";
 import { FRIEND_COUNT_ACHIEVEMENT, AVATAR_ACHIEVEMENT } from "src/achievements";
 import { IsBooleanString, IsOptional, IsString } from "class-validator";
+import { UserService } from "src/services/user.service"
 import * as gm from "gm";
 
 declare module "express" {
@@ -84,8 +85,30 @@ export function GenericUserController(
 			readonly progress_repo: Repository<AchievementProgress>,
 			@Inject("ACHIEVEMENTVIEW_REPO")
 			readonly view_repo: Repository<AchievementView>,
-			readonly achievement_service: AchievementService
+			readonly achievement_service: AchievementService,
+			readonly user_service: UserService,
 		) { }
+
+		async invite(user: User, target: User) {
+			const invite = new FriendRequest;
+
+			invite.from = user;
+			invite.to = target;
+
+			await this.request_repo.save(invite);
+		}
+
+		async befriend(user: User, target: User, request: Invite) {
+			this.user_service.both(user, target, async (first: User, second: User) => {
+				first.add_friend(second);
+				first = await this.user_repo.save(first);
+				first.send_friend_update(Action.INSERT, second);
+			
+				await this.achievement_service.inc_progress(FRIEND_COUNT_ACHIEVEMENT, first, 1);
+			});
+		
+			await this.request_repo.remove(request);
+		}
 
 		@Get()
 		@UseGuards(SetupGuard)
@@ -282,27 +305,17 @@ export function GenericUserController(
 
 			user.friends = await this.user_repo.findBy({ friends: { id: user.id } });
 
-			if (!user.friends.find((user) => user.id === friend.id)) {
+			if (!user.friends.some((user) => user.id === friend.id)) {
 				throw new NotFoundException();
 			}
 
-			user.remove_friend(friend);
-			friend.remove_friend(user);
-
-			[user, friend] = await this.user_repo.save([user, friend]);
-
-			user.send_friend_update(Action.REMOVE, friend);
-			friend.send_friend_update(Action.REMOVE, user);
-			await this.achievement_service.inc_progress(
-				FRIEND_COUNT_ACHIEVEMENT,
-				user,
-				-1
-			);
-			await this.achievement_service.inc_progress(
-				FRIEND_COUNT_ACHIEVEMENT,
-				friend,
-				-1
-			);
+			await this.user_service.both(user, friend, async (first: User, second: User) => {
+				first.remove_friend(second);
+				first = await this.user_repo.save(first);
+				first.send_friend_update(Action.REMOVE, second);
+			
+				await this.achievement_service.inc_progress(FRIEND_COUNT_ACHIEVEMENT, first, -1);
+			});
 		}
 
 		@Get(options.cparam + "/friend(s)?/request(s)?")
@@ -353,32 +366,9 @@ export function GenericUserController(
 			const request = await this.request_repo.findOneBy({	from: { id: target.id }, to: { id: user.id } });
 
 			if (request) {
-				user.add_friend(target);
-				target.add_friend(user);
-
-				await this.request_repo.remove(request);
-				[user, target] = await this.user_repo.save([user, target]);
-
-				user.send_friend_update(Action.INSERT, target);
-				target.send_friend_update(Action.INSERT, user);
-
-				await this.achievement_service.inc_progress(
-					FRIEND_COUNT_ACHIEVEMENT,
-					user,
-					1
-				);
-				await this.achievement_service.inc_progress(
-					FRIEND_COUNT_ACHIEVEMENT,
-					target,
-					1
-				);
+				await this.befriend(user, target, request);
 			} else {
-				const invite = new FriendRequest;
-
-				invite.from = user;
-				invite.to = target;
-
-				await this.request_repo.save(invite);
+				await this.invite(user, target);
 			}
 		}
 

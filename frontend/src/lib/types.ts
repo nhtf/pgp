@@ -40,4 +40,10 @@ export type Suggestion = {
 	src: string,
 	width: number,
 	height: number,
-}
+};
+
+export type Rediret = {
+	message: string,
+	url: string,
+	can_cancel: boolean,
+};

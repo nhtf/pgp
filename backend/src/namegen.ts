@@ -81,6 +81,7 @@ export const genAdjective = () => choice([
 	() => `unusual`,
 	() => `ugly`,
 	() => `wicked`,
+	() => `worse`,
 ])();
 
 export const genRoomSynonym = () => choice([

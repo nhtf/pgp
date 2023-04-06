@@ -32,12 +32,16 @@
 		);
 	}
 
+	function onKeyPress(event) {
+		console.log("here");
+	}
+
 </script>
 
 <div class="block-cell self-start bg-c bordered h-full">
 	<div class="block-hor">
 		<div class="flex gap-1">
-			<UserSearch bind:value filter={isBefriendable}/>
+			<UserSearch on:keypress={onKeyPress} bind:value filter={isBefriendable}/>
 			<button
 				class="button border-green"
 				disabled={!value}

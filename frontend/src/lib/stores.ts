@@ -141,5 +141,3 @@ async function onScoreUpdate(update: UpdatePacket) {
 		});
 	}
 }
-
-export const queueing = writable(false);

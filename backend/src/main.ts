@@ -27,14 +27,6 @@ class BetterAdapter extends IoAdapter {
 		server.of("/room").use(wrap(sessionMiddleware));
 		server.of("/game").use(wrap(sessionMiddleware));
 		server.of("/update").use(wrap(sessionMiddleware));
-		/*
-		server.of("/room").on("connection", (socket) => {
-			socket.on("disconnect", () => {
-				console.log("disconnect");
-			});
-			console.log("connect");
-		});
-		*/
 		return server;
 	}
 }
@@ -50,10 +42,6 @@ async function bootstrap() {
 		new ValidationPipe({
 			transform: false, // TODO: true
 			forbidUnknownValues: false, // TODO: true
-			/*
-			exceptionFactory: (e) => {
-				throw new HttpException("bad request", HttpStatus.BAD_REQUEST);
-			}*/
 		}),
 	);
 	const betterAdapter = new BetterAdapter(app);

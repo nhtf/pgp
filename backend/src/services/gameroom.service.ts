@@ -39,7 +39,6 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 
 		async create(options: CreateGameRoomOptions) {
 			const player_count = PLAYER_NUMBERS.get(options.gamemode);
-			console.log(options);
 			if (!player_count.includes(options.players))
 				throw new Error(`Invalid amount of players ${options.players} for gamemode ${options.gamemode.toString()}. Possible values: ${player_count}`);
 
@@ -59,6 +58,8 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			}
 
 			room.state = state;
+
+			state.room = { id: room.id } as GameRoom;
 		
 			return this.room_repo.save(room);
 		}

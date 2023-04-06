@@ -39,7 +39,7 @@
 					preConfirm: async () => {
 						const form = new FormData();
 						form.append("avatar", file);
-						return await put("/user/me/avatar", form, false).catch(
+						return await put("/user/me/avatar", form, true).catch(
 							(error) => {
 								Swal.showValidationMessage(error.message);
 							}

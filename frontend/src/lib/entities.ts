@@ -12,6 +12,7 @@ export class User extends Entity {
 	status: Status;
 	activeRoomId: number | null;
 	auth_req?: number;
+	queueing: boolean;
 
 	achievements?: Achievement[];
 };

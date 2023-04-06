@@ -1,10 +1,9 @@
 import { Entity, TableInheritance, PrimaryGeneratedColumn, Column, OneToMany, ManyToMany, JoinTable } from "typeorm";
 import { Member } from "./Member";
 import { User } from "./User";
-import { Access, Action, Role, Subject } from "src/enums";
+import { Access, Role } from "src/enums";
 import { Exclude, Expose, instanceToPlain } from "class-transformer";
 import { RoomInvite } from "./RoomInvite";
-import { UpdateGateway, UpdatePacket } from "src/gateways/update.gateway";
 
 @Entity()
 @TableInheritance({ column : { type: "varchar", name: "type" } })
@@ -59,11 +58,5 @@ export class Room {
 		const member = this.members.find((member) => member.userId === user.id);
 	
 		return member ? instanceToPlain(member) : undefined;
-	}
-
-	send_update(packet: UpdatePacket) {
-		const receivers = this.is_private ? this.users : [];
-		
-		UpdateGateway.instance.send_update(packet, ...receivers);
 	}
 }
