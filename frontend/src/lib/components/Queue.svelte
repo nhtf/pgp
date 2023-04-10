@@ -4,7 +4,6 @@
 	import { Gamemode } from "$lib/enums";
 	import { queueing } from "$lib/stores";
 	import { Checkbox } from "flowbite-svelte";
-    import { players } from "../../routes/game/[room]/Modern/Constants";
 
 	const modes: { gamemode: Gamemode, players: number[], name: string }[] = [
 		{ gamemode: Gamemode.CLASSIC, players: [2], name: "Classic" },
