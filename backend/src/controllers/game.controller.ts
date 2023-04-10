@@ -18,6 +18,7 @@ import { Role } from "src/enums";
 import { RequiredRole } from "src/guards/role.guard";
 import { UpdateGateway } from "src/gateways/update.gateway";
 import { instanceToPlain } from "class-transformer"
+import { SelectQueryBuilder } from "typeorm"
 
 class CreateGameRoomOptions implements CreateRoomOptions {
 	@IsString()
@@ -76,6 +77,13 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 		super(game_service, invite_service);
 	}
 
+	relations(qb: SelectQueryBuilder<GameRoom>): SelectQueryBuilder<GameRoom> {
+		return super.relations(qb)
+			.leftJoinAndSelect("room.state", "state")
+			.leftJoinAndSelect("state.teams", "team")
+			.leftJoinAndSelect("team.players", "player");
+	}
+
 	@Post()
 	@UsePipes(new ValidationPipe({ expectedType: CreateGameRoomOptions }))
 	async create_room(@Me() me: User, @Body() dto: CreateGameRoomOptions) {
@@ -86,7 +94,7 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 		return room;
 	}
 
-	@Patch(":id/team/empty")
+	@Patch(":id/team/auto")
 	@RequiredRole(Role.MEMBER)
 	async autoteam(@Me() me: User, @GetRoom() room: GameRoom, @GetMember() member: GameRoomMember) {
 		if (member.player) {

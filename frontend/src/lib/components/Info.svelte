@@ -54,9 +54,9 @@
 				return null;
 			},
 			preConfirm: async (username) => {
-				return await put("/user/me/username", { username }, true).catch(error => {
-						Swal.showValidationMessage(error.message);
-					});
+				return await put("/user/me/username", { username }).catch(error => {
+					Swal.showValidationMessage(error.message);
+				});
 			},
 		});
 	}

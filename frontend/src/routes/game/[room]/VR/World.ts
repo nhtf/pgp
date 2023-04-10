@@ -223,7 +223,7 @@ export class World extends Net {
 
 		super.earlyTick();
 	}
-	
+
 	public lateTick() {
 		for (let entity of this.entities) {
 			this.world.removeRigidBody(entity.physicsObject);

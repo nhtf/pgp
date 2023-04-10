@@ -20,11 +20,34 @@
 
 	function onDropdownClick(user: User) {
 		value = user.username;
+		document.getElementById("search")?.focus();
+		//[...document.getElementsByClassName("search-input")]?[0].focus();
+	}
+
+	function onKeyPress(event: KeyboardEvent) {
+		if (users.length !== 0 && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
+			const current = document.activeElement as HTMLElement;
+			const items = [...document.getElementsByClassName("search-item")] as HTMLElement[];
+			let idx = items.indexOf(current);
+			console.log(idx);
+
+			if (idx < 0) {
+				idx = 0;
+			} else {
+				if (event.key === "ArrowUp")
+					idx = (idx + items.length - 1) % users.length;
+				else
+					idx = (idx + 1) % users.length;
+			}
+			current.blur()
+			items[idx].focus();
+			//console.log("should do something");
+		}
 	}
 
 	async function onInput() {
 		dispatch("input");
-	
+
 		if (value.length) {
 			users = await get(`/users`, { username: value, human: true });
 		} else {
@@ -41,10 +64,11 @@
 	<Search
 		size="lg"
 		id="search"
-		class="input"
+		class="input search-input"
 		placeholder="username"
 		bind:value
 		on:input={onInput}
+		on:keypress={onKeyPress}
 	/>
 	{#if value}
 		<Dropdown bind:open>
@@ -52,7 +76,7 @@
 				<DropdownHeader>No users found</DropdownHeader>
 			{/if}
 			{#each filtered as user (user.id)}
-				<DropdownItem on:click={() => onDropdownClick(user)}>
+				<DropdownItem class="search-item" on:click={() => onDropdownClick(user)} on:onkeypress={onKeyPress}>
 					<div class="user">
 						<img class="avatar" src={user.avatar} alt="" />
 						<div>{user.username}</div>

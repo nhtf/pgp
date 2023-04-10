@@ -44,14 +44,14 @@ export async function patch(pathname: string, body?: any) {
 	});
 }
 
-export async function put(pathname: string, body?: any) {
+export async function put(pathname: string, body?: any, raw?: boolean) {
 	return await json(`${BACKEND}${pathname}`, {
 		credentials: "include",
 		method: "PUT",
-		headers: {
-			"Content-Type": "application/json",
+		headers: raw ? {} : {
+			"Content-Type": "application/json" ,
 		},
-		body: JSON.stringify(body),
+		body: body ? (raw ? body : JSON.stringify(body)) : undefined,
 	});
 }
 

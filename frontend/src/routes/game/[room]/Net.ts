@@ -15,6 +15,8 @@ export const DESYNC_CHECK_INTERVAL = 300;
 export const DESYNC_CHECK_DELTA = 240;
 export const SAVE_ALL_SNAPSHOTS = true;
 
+let doingDesyncCheck = false;
+
 export interface Snapshot {
 	time: number;
 }
@@ -118,6 +120,10 @@ export class Net {
 			const event = this.allEvents[index];
 
 			// console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
+			
+			if (doingDesyncCheck) {
+				console.log(event);
+			}
 
 			const listeners = this.listeners.get(event.name);
 
@@ -141,6 +147,10 @@ export class Net {
 		if (SAVE_ALL_SNAPSHOTS) {
 			this.allSnapshots = this.allSnapshots.filter(x => x.time != this.time);
 			this.allSnapshots.push(this.save());
+
+			if (this.time % DESYNC_CHECK_INTERVAL == DESYNC_CHECK_INTERVAL - DESYNC_CHECK_DELTA - SNAPSHOT_INTERVAL) {
+				console.log("snapshot", this.save());
+			}
 		}
 
 		if (this.time > this.maxTime) {
@@ -177,6 +187,7 @@ export class Net {
 
 				if (latest !== null) {
 					console.log(`sending desync check for ${latest[0].time} (real time is ${this.time}, outgoing hash is ${hashCode(JSON.stringify(latest[0]))})`);
+					console.log(latest[0]);
 
 					this.broadcast({
 						name: "desync-check",
@@ -203,6 +214,10 @@ export class Net {
 
 		while (this.time < target) {
 			this.tick();
+
+			if (doingDesyncCheck) {
+				console.log(this.save());
+			}
 		}
 	}
 
@@ -326,10 +341,13 @@ export class Net {
 					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
 						console.log(`running desync check of ${message.snapshot.time} (real time is ${this.time}, incoming hash is ${hashCode(JSON.stringify(message.snapshot))}`);
 						// TODO: incoming hash seems wrong
-	
+
+						doingDesyncCheck = true;
 						this.load(latest[0]);
 						this.father.regress(latest[1]);
+						console.log(this.save());
 						this.forward(message.snapshot.time);
+						doingDesyncCheck = false;
 						const testState = this.save();
 						this.load(this.snapshots[this.snapshots.length - 1][0]); // TODO: doesn't load latest snapshot (possibly used elsewhere too)
 						this.father.regress(this.snapshots[this.snapshots.length - 1][1]);

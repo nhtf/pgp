@@ -94,7 +94,7 @@
 		{#if owner?.id === user.id}
 			<Invite {room}/>
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
-			{#if room.type === "GameRoom" && !state?.teamsLocked}
+			{#if room.type === "GameRoom" && state && !state.teamsLocked}
 				<button class="button border-yellow" on:click={() => lock(room)}>Lock teams</button>
 			{/if}
 

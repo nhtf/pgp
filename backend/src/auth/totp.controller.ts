@@ -11,7 +11,8 @@ import {
 	Body,
 	Inject,
 	HttpCode,
-	InternalServerErrorException
+	InternalServerErrorException,
+	UnauthorizedException,
 } from "@nestjs/common";
 import { Request } from "express";
 import { authenticator } from "otplib";
@@ -33,10 +34,8 @@ class OAuthGuard implements CanActivate {
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
 		const response = context.switchToHttp().getResponse();
-		//TODO check for null and undefined instead of !request.session?.access_token ?
 		if (!request.session?.access_token || !(request.session?.auth_level >= AuthLevel.OAuth)) {
-			response.status(401).json("Unauthorized");
-			return false;
+			throw new UnauthorizedException();
 		}
 		return true;
 	}

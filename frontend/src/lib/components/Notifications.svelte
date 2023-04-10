@@ -39,7 +39,7 @@
 		await respond(invite, "accept");
 
 		if (invite.type === "GameRoom") {
-			await unwrap(patch(`${invite.room!.route}/team/empty`));
+			await unwrap(patch(`${invite.room!.route}/team/auto`));
 
 			console.log(invite.room!.nav);
 			Swal.fire({

@@ -13,7 +13,7 @@ export interface CreateRoomOptions {
 }
 
 export interface AddMemberType {
-	user: User;
+	user: Pick<User, "id"> & Partial<User>;
 	role?: Role;
 }
 
@@ -122,7 +122,7 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 				.map(({ user, role }) => {
 					const member = new MemberType();
 				
-					member.user = user;
+					member.user = user as User;
 					member.role = role ?? Role.MEMBER;
 					member.room = { id: room.id } as T;
 				

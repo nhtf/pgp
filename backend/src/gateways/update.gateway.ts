@@ -186,7 +186,7 @@ export class UpdateGateway extends ProtectedGateway("update") {
 			action: Action.UPDATE,
 			id: state.id,
 			value: value ?? { teams: instanceToPlain(state.teams) },
-		}, ...[user, ...friends]);
+		}, user, ...friends);
 	}
 
 }

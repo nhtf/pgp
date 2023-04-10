@@ -149,18 +149,6 @@ const entityProviders = entityFiles.map<{
 	};
 });
 
-// const roomServices = entityClasses.filter((value: any) => value.__proto__ === Room || value.name == "Room").map(value => {//TODO remove
-// 	const name = value.name.toUpperCase();
-// 	return {
-// 		provide: name + "_PGPSERVICE",
-// 		useFactory: (room_repo: any, member_repo: Repository<any>, invite_repo: Repository<RoomInvite>, user_repo: Repository<User>) => {
-// 			const tmp = getRoomService(room_repo, member_repo, invite_repo, user_repo, value as any, entityClasses.find(clazz => clazz.name === (value.name + "Member")) as any);
-// 			return tmp;
-// 		},
-// 		inject: [name + "_REPO", (name == "ROOM" ? "" : name) + "MEMBER_REPO", "ROOMINVITE_REPO", "USER_REPO"]
-// 	};
-// });
-
 const services = [
 	{
 		provide: "CHATROOM_SERVICE",

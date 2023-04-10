@@ -72,11 +72,16 @@ interface QueueGamemode {
 	player_count: number;
 };
 
+function zip<T, U>(a: Array<T>, b: Array<U>): Array<[T, U]> {
+	if (a.length !== b.length)
+		throw new Error("Cannot zip arrays of different sizes");
+	return a.map((elem, idx) => [elem, b[idx]]);
+}
+
 @Controller("match")
 @UseGuards(HttpAuthGuard, SetupGuard, HumanGuard)
 export class MatchController {
 
-	//private readonly queue: Map<QueueGamemode, Array<UserID>> = new Map();
 	private readonly queue: Map<Gamemode, Map<number, Array<UserID>>> = new Map();
 
 	constructor(
@@ -85,7 +90,7 @@ export class MatchController {
 		private readonly update_service: UpdateGateway,
 	) {}
 
-	dequeue_user(id: number) {
+	async dequeue_user(id: number) {
 		for (const [_, modes] of this.queue.entries()) {
 			for (const [_, users] of modes.entries()) {
 				const idx = users.indexOf(id);
@@ -94,33 +99,44 @@ export class MatchController {
 				users.splice(idx, 1);
 			}
 		}
+
+		await this.user_service.dequeue({ id });
 	}
 
-	async make_match(type: QueueGamemode) {
-		const room = await this.game_service.create({ is_private: true, gamemode: type.gamemode, players: type.player_count });
+	async make_match(gamemode: Gamemode, player_count: number) {
+		const room = await this.game_service.create({
+			is_private: true,
+			gamemode,
+			players: player_count
+		});
 
 		await this.game_service.lock_teams(room);
 	
-		const ids = this.queue.get(type.gamemode).get(type.player_count);
-		const members = await this.game_service.add_members(room, ...ids.map((id) => {
-			return { user: { id } as User };
+		const ids = this.queue.get(gamemode).get(player_count);
+		const users: Pick<User, "id">[] = ids.map((id) => {
+			return { id };
+		});
+		const members = await this.game_service.add_members(room, ...users.map((user) => {
+			return { user };
 		}));
 
 		const teams =  await this.game_service.get_teams(room);
 
-		for (const [member, team] of members.map<[GameRoomMember, Team]>((member, idx) => [member, teams[idx]])) {
+		for (const [member, team] of zip(members, teams)) {
 			await this.game_service.set_team(member, team);
 			this.dequeue_user(member.user.id);
 		}
+
 		this.update_service.send_update({
 			subject: Subject.REDIRECT,
 			action: Action.INSERT,
 			id: room.id,
 			value: {
+				message: "Found a game",
 				url: `${FRONTEND_ADDRESS}/game/${room.id}`,
 				can_cancel: true,
 			}
-		}, ...[]);
+		}, ...users);
 	}
 
 	@Put("me")
@@ -130,14 +146,12 @@ export class MatchController {
 		@Body() dto: GamemodesDTO,
 	) {
 		const list = [];
-		console.log(this.queue);
 		for (const gamemode of dto.gamemodes) {
 			const gamemode_map = this.queue.get(gamemode.type) ?? this.queue.set(gamemode.type, new Map()).get(gamemode.type);
 			for (const player_count of gamemode.player_counts) {
-				const type: QueueGamemode = { gamemode: gamemode.type, player_count };
 				const waiting = gamemode_map.get(player_count);
 				if (waiting == undefined) {
-					list.push(type)
+					list.push([gamemode.type, player_count])
 					continue;
 				}
 				if (waiting.includes(user.id))
@@ -145,28 +159,29 @@ export class MatchController {
 
 				if (waiting.length + 1 == player_count) {
 					waiting.push(user.id);
-					await this.make_match(type);
+					await this.make_match(gamemode.type, player_count);
 					return;
 				}
 			}
 		}
-		for (const item of list) {
-			if (!this.queue.has(item.gamemode))
-				this.queue.set(item.gamemode, new Map());
-			const gamemode_map = this.queue.get(item.gamemode);
+		for (const [gamemode, player_count] of list) {
+			if (!this.queue.has(gamemode))
+				this.queue.set(gamemode, new Map());
+			const gamemode_map = this.queue.get(gamemode);
 
-			if (gamemode_map.has(item.player_count))
-				gamemode_map.get(item.player_count).push(user.id);
+			if (gamemode_map.has(player_count))
+				gamemode_map.get(player_count).push(user.id);
 			else
-				gamemode_map.set(item.player_count, [user.id]);
+				gamemode_map.set(player_count, [user.id]);
 		}
+	
+		await this.user_service.enqueue(user);
 	}
 
 	@Delete("me")
 	@HttpCode(HttpStatus.NO_CONTENT)
 	async dequeue(
 		@Me() user: User,
-		@Body() dto: GamemodesDTO
 	) {
 		this.dequeue_user(user.id);
 	}

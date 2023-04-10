@@ -46,6 +46,10 @@ export class GameGateway extends ProtectedGateway("game") {
 			id: client.user,
 			value: { activeRoomId: null }
 		});
+
+		// if (lastPlayerToDisconnect && finishedInDatabase) {
+			// game done
+		// }
 	}
 
 	async onJoin(client: Socket) {
@@ -68,6 +72,8 @@ export class GameGateway extends ProtectedGateway("game") {
 		client.to(String(client.room)).emit("broadcast", data);
 
 		if (data.name === "synchronize") {
+			// data.snapshot.state.finished;
+
 			data.snapshot.state.teams.forEach(async (team) => {
 				const old = await this.teamRepo.findOneBy({ id: team.id });
 			

@@ -1,15 +1,14 @@
 <script lang="ts">
 	import type { ChatRoom, Message, ChatRoomMember } from "$lib/entities";
-	import type { PageData } from "./$types";
 	import type { UpdatePacket } from "$lib/types";
-	import { afterUpdate, onDestroy, onMount } from "svelte";
-	import { unwrap } from "$lib/Alert";
-	import { post } from "$lib/Web";
+	import type { PageData } from "./$types";
 	import { Action, CoalitionColors, roles, Subject } from "$lib/enums";
 	import { blockStore, memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
+	import { onDestroy, onMount } from "svelte";
+	import { unwrap } from "$lib/Alert";
+	import { post } from "$lib/Web";
 	import { byDate } from "$lib/sorting";
-    import { goto } from "$app/navigation";
 	import MessageBox from "$lib/components/MessageBox.svelte"
 	import ScratchPad from "$lib/components/ScratchPad.svelte";
     import RoomHeader from "$lib/components/RoomHeader.svelte";
@@ -40,10 +39,6 @@
 
 	onDestroy(() => {
 		updateManager.remove(index);
-	});
-
-	afterUpdate(() => {
-		console.log("afterupdate", room);
 	});
 
 	addEventListener("wheel", (event: WheelEvent) => {

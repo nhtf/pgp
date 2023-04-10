@@ -44,7 +44,7 @@ class UpdateManager {
 		// IIFE
 		// socket.on can't be awaited, but some function need to run before others
 		(async () => {
-			for await (const fun of funs) {
+			for (const fun of funs) {
 				await fun(update);
 			}
 		})();

@@ -58,10 +58,6 @@ export const GetMember = createParamDecorator(
 	}
 );
 
-function all_of(array: boolean[]): boolean {
-	return array.every((val) => val);
-}
-
 export function GenericRoomController<T extends Room, U extends Member, S extends CreateRoomOptions>(
 	RoomType: (new () => T),
 	MemberType: (new () => U),
@@ -106,36 +102,10 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 
 		}
 
-		async get_rooms(me: User, filter: string) {
-			switch (filter) {
-				case "joined":
-					return this.room_service.query()
-						.where((qb) => `EXISTS (${this.isMemberQuery(qb, me)})`)
-						.leftJoinAndSelect("room.members", "member")
-						.leftJoinAndSelect("member.user", "user")
-						.leftJoinAndSelect("room.state", "state")
-						.leftJoinAndSelect("state.teams", "team")
-						.leftJoinAndSelect("team.players", "player")
-
-						.getMany();
-				case "joinable":
-					return this.room_service.query()
-						.where((qb) => `NOT EXISTS (${this.isMemberQuery(qb, me)})`)
-						.andWhere("room.is_private = false")
-						.leftJoinAndSelect("room.members", "member")
-						.leftJoinAndSelect("member.user", "user")
-						.leftJoinAndSelect("room.state", "state")
-						.leftJoinAndSelect("state.teams", "team")
-						.leftJoinAndSelect("team.players", "player")
-
-						.getMany();
-				case "visible":
-					return this.room_service.get([{ is_private: false }, { members: { user: { id: me.id } } }]);
-				case undefined:
-					throw new BadRequestException("Missing filter")
-				default:
-					throw new BadRequestException("Invalid filter")
-			}
+		relations(qb: SelectQueryBuilder<T>): SelectQueryBuilder<T> {
+			return qb
+				.leftJoinAndSelect("room.members", "member")
+				.leftJoinAndSelect("member.user", "user")
 		}
 
 		isMemberQuery(qb: SelectQueryBuilder<T>, user: User) {
@@ -149,11 +119,32 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				.getQuery();
 		}
 
+		selectRoomQuery(me: User, filter: string): SelectQueryBuilder<T> {
+			switch (filter) {
+				case "joined":
+					return this.room_service.query()
+						.where((qb) => `EXISTS (${this.isMemberQuery(qb, me)})`);
+				case "joinable":
+					return this.room_service.query()
+						.where((qb) => `NOT EXISTS (${this.isMemberQuery(qb, me)})`)
+						.andWhere("room.is_private = false");
+				case "visible":
+					return this.room_service.query()
+						.where((qb) => `EXISTS (${this.isMemberQuery(qb, me)})`)
+						.orWhere("room.is_private = false");
+				case undefined:
+					throw new BadRequestException("Missing filter")
+				default:
+					throw new BadRequestException("Invalid filter")
+			}
+		}
+
 		// Room
 
 		@Get()
 		async list_rooms(@Me() me: User, @Query("filter") filter: string) {
-			const rooms = await this.get_rooms(me, filter);
+			const qb = this.selectRoomQuery(me, filter);
+			const rooms = await this.relations(qb).getMany();
 
 			return rooms.map((room) => {
 				const self = room.self(me);
@@ -177,12 +168,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 
 			room.members = await this.room_service.add_members(room, { user, role: Role.OWNER });
 
-			room.send_update({
-				subject: Subject.ROOM,
-				id: room.id,
-				action: Action.UPDATE,
-				value: { owner: room.owner }
-			});
+			this.update(room, { owner: room.owner });
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.ROOM,
@@ -246,7 +232,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 
 			const invites = await this.invite_service.get({ to: me, room });
 
-			if (!invites) {
+			if (invites == undefined || invites.length === 0) {
 				switch (room.access) {
 					case Access.PRIVATE:
 						throw new NotFoundException(ERR_ROOM_NOT_FOUND);
@@ -258,7 +244,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				}
 			}
 
-			room.send_update({
+			UpdateGateway.instance.send_update({
 				subject: Subject.USER,
 				action: Action.UPDATE,
 				id: me.id,

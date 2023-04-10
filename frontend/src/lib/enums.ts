@@ -11,6 +11,7 @@ export enum Subject {
 	PLAYER,
 	ACHIEVEMENT,
 	SCORE,
+	REDIRECT,
 }
 
 export enum Action {

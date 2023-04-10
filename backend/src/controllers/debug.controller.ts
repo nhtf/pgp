@@ -391,4 +391,14 @@ export class DebugController {
 
 		await this.memberRepo.remove(members);
 	}
+
+	@Get("room(s)?/beheaded")
+	async noOwner() {
+		const all = await this.roomRepo.find();
+		const rooms = all.filter((room) => !room.members.some(({ role }) => role === Role.OWNER));
+
+		await this.roomRepo.remove(rooms);
+	
+		return rooms;
+	}
 }

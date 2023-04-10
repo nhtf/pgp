@@ -89,7 +89,7 @@ async function invite({ user }: Args) {
 	room.id = info.id;
 	room.type = info.type;
 
-	await unwrap(patch(`/game/${room.id}/team/empty`));
+	await unwrap(patch(`/game/${room.id}/team/auto`));
 	await unwrap(post(`/game/${room.id}/invite`, { username: user.username }));
 	await roomPrompt(room);
 }

@@ -4,6 +4,8 @@ services:
     image: 'postgres:latest'
     restart: always
     env_file: .env
+    volumes:
+      - ./database:/docker-entrypoint-initdb.d
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
     expose:

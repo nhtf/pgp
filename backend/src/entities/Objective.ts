@@ -6,9 +6,7 @@ export class Objective {
 	@PrimaryGeneratedColumn()
 	id: number;
 
-	@Column({
-		nullable: true //TODO set to false
-	})
+	@Column()
 	name: string;
 
 	@Column({

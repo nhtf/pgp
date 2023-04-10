@@ -72,13 +72,11 @@ export abstract class Entity {
 	public set position(vector: Vector) {
 		this.ammoPosition.setValue(vector.x, vector.y, vector.z);
 		this.ammoTransform.setOrigin(this.ammoPosition);
-		this.physicsObject.setWorldTransform(this.ammoTransform);
 	}
 
 	public set rotation(quaternion: Quaternion) {
 		this.ammoRotation.setValue(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
 		this.ammoTransform.setRotation(this.ammoRotation);
-		this.physicsObject.setWorldTransform(this.ammoTransform);
 	}
 
 	public set linearVelocity(vector: Vector) {
@@ -115,7 +113,7 @@ export abstract class Entity {
 		buffer[12] = angularVelocity.z;
 
 		return serialize(buffer.buffer);
-	   */
+		*/
 	}
 
 	public motionStateFromObject(obj: object) {
@@ -126,17 +124,17 @@ export abstract class Entity {
 		this.rotation = new Quaternion(buffer[3], buffer[4], buffer[5], buffer[6]);
 		this.linearVelocity = new Vector(buffer[7], buffer[8], buffer[9]);
 		this.angularVelocity = new Vector(buffer[10], buffer[11], buffer[12]);
-	   */
+		*/
 	}
 
 	public physicsTick() {
 		if (this.targetPosition !== null) {
-			let position = this.targetPosition;
+			const position = this.targetPosition;
 			this.linearVelocity = position.sub(this.position).scale(50);
 		}
 
 		if (this.targetRotation !== null) {
-			let rotation = this.targetRotation;
+			const rotation = this.targetRotation;
 			this.angularVelocity = rotation.mul(this.rotation.inverse()).euler().scale(50);
 		}
 	}
