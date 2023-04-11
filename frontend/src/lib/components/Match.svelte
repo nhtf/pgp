@@ -10,6 +10,7 @@
 	let players = game.teams.map((team) => team.players).flat();
 	let users = players.map((player) => player.user);
 
+	// TODO
 	// updateStore(userStore, users, User);
 	updateStore(gameStore, game, GameState);
 
