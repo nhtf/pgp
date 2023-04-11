@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { GameRoom, Room } from "$lib/entities";
+	import type { DMRoom, Room } from "$lib/entities";
 	import { gameStore, roomStore, userStore } from "$lib/stores";
 	import { post, remove, patch, get, put } from "$lib/Web";
 	import { icon_path } from "$lib/constants";
@@ -31,10 +31,6 @@
 			showCancelButton: true,
 			width: "auto",
 		}).then(({ isConfirmed, value }) => {
-			if (!isConfirmed) {
-				throw new Error("No team selected");
-			}
-		
 			return value > 0 ? value : null;
 		});
 
@@ -77,6 +73,15 @@
 		await unwrap(put(`${room.route}/lock`));
 	}
 
+	function enterText(room: Room) {
+		switch (room.type) {
+			case "ChatRoom":
+				return "Enter"
+			case "GameRoom":
+				return team ? `Play as ${team.name}` : "Spectate";
+		}
+	}
+
 </script>
 
 <div class="room" style={`filter: brightness(${room.joined ? "100" : "80"}%)`}>
@@ -85,7 +90,7 @@
 	{:else if room.icon}
 		<img class="icon" src={room.icon} alt="icon"/>
 	{/if}
-	<div class="room-name">{room.name}</div>
+	<div class="text-lg">{room.name}</div>
 	{#if owner?.id === user.id}
 		<img class="icon-owner" src={crown} alt="crown" title="You are the owner of this room"/>
 	{/if}
@@ -109,7 +114,9 @@
 		{#if state && !state.teamsLocked}
 			<button class="button border-yellow" on:click={() => changeTeam(room)}>Change team</button>
 		{/if}
-		<a class="button border-blue" href={room.route}>{room.type === "ChatRoom" ? "Enter" : team ? `Play as ${team.name}` : "Spectate"}</a>
+		{#key team}
+			<a class="button border-blue" href={room.route}>{enterText(room)}</a>
+		{/key}
 	{:else}
 		{#if room.access === Access.PROTECTED}
 			<input class="input" placeholder="Password" type="password" bind:value={password}>
@@ -119,11 +126,6 @@
 </div>
 
 <style>
-	.room-name {
-		font-size: larger;
-		align-self: center;
-	}
-
 	.icon-owner {
 		width: 1.5rem;
 		height: 1.5rem;

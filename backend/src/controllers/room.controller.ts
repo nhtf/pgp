@@ -119,7 +119,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 				.getQuery();
 		}
 
-		selectRoomQuery(me: User, filter: string): SelectQueryBuilder<T> {
+		selectRoomQuery(me: User, filter: string = "visible"): SelectQueryBuilder<T> {
 			switch (filter) {
 				case "joined":
 					return this.room_service.query()
@@ -142,7 +142,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		// Room
 
 		@Get()
-		async list_rooms(@Me() me: User, @Query("filter") filter: string) {
+		async list_rooms(@Me() me: User, @Query("filter") filter: string): Promise<any[]> {
 			const qb = this.selectRoomQuery(me, filter);
 			const rooms = await this.relations(qb).getMany();
 
@@ -158,7 +158,6 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 		}
 
 		@Post()
-		@HttpCode(HttpStatus.NO_CONTENT)
 		@UsePipes(new ValidationPipe({ expectedType: CreateRoomDTO }))
 		async create_room(
 			@Me() user: User,
@@ -211,6 +210,12 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 
 		// Members
 
+		@Get(":id/users")
+		@RequiredRole(Role.MEMBER)
+		async list_users(@GetRoom() room: T) {
+			return this.room_service.get_users(room);
+		}
+	
 		@Get(":id/member(s)?")
 		@RequiredRole(Role.MEMBER)
 		async get_members(@GetRoom() room: T) {

@@ -6,6 +6,7 @@ import {
 	Req,
 	Get,
 	Query,
+	Param,
 } from "@nestjs/common";
 import {
 	Length,
@@ -91,9 +92,7 @@ export class DebugController {
 
 	@Get()
 	async upTop() {
-		return this.userRepo.createQueryBuilder()
-			.where("true")
-			.getMany();
+		return this.roomRepo.findBy({ type: "Chatroom" })
 	}
 
 	@Get("useradd")
@@ -350,8 +349,14 @@ export class DebugController {
 	}
 
 	@Get("room(s)?/wipe")
-	async clearRooms() {
-		return this.roomRepo.remove(await this.roomRepo.find());
+	async clearRooms(@Query("type") type?: string) {
+		let rooms = await this.roomRepo.find();
+
+		if (type) {
+			rooms = rooms.filter((room) => room.type === type)
+		}
+	
+		return this.roomRepo.remove(rooms);
 	}
 
 	@Get("bot(s)?")
@@ -401,4 +406,27 @@ export class DebugController {
 	
 		return rooms;
 	}
+
+	@Get("room(s)?/fakeDM")
+	async oops() {
+		const rooms = (await this.roomRepo.find()).filter(({ name }) => name.includes("&"));
+
+		return this.roomRepo.remove(rooms);
+
+
+	}
+
+	@Get("room(s)?/id/:id")
+	async room(@Param("id", ParseIDPipe(Room)) room: Room) {
+		return this.roomRepo.findOne({
+			where: { id: room.id },
+			relations: {
+				members: {
+					user: true,
+				},
+				banned_users: true,
+			}
+		});
+	}
+
 }

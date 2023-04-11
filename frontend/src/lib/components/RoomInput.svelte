@@ -5,7 +5,7 @@
 
 	export let click: Function;
 	export let room: Room | null = null;
-	export let type: "ChatRoom" | "GameRoom" | undefined = room?.type;
+	export let type: "ChatRoom" | "GameRoom" | "DM" | undefined = room?.type;
 
 	const gamemodes = new Map([
 		[Gamemode.CLASSIC, { name: "Classic", players: [2] }],
@@ -35,6 +35,8 @@
 		name = "";
 		password = "";
 	}
+
+	const checkmark = "/Assets/icons/checkmark.svg";
 	
 </script>
 
@@ -54,7 +56,12 @@
 		disabled={is_private}
 	/>
 	<div class="private-check">
-		<Checkbox bind:checked={is_private} class="checkbox" />
+		<Checkbox custom bind:checked={is_private}>
+			<div class="checkbox">
+				{#if is_private}
+				<img class="icon" src={checkmark} alt="checkmark" />
+				{/if}
+		</Checkbox>
 		<span class="label">Private</span>
 	</div>
 	{#if type === "GameRoom"}

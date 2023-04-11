@@ -1,4 +1,5 @@
 import type { CreateRoomOptions } from "src/services/room.service";
+import type { User } from "src/entities/User";
 import { Get, Inject, Delete, Param, ForbiddenException, Body, Post, HttpCode, HttpStatus } from "@nestjs/common";
 import { IsString, Length, IsOptional, IsBoolean, IsDateString, IsEnum } from "class-validator";
 import { GenericRoomController, GetRoom, GetMember } from "src/controllers/room.controller";
@@ -9,21 +10,15 @@ import { RequiredRole } from "src/guards/role.guard";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { Message } from "src/entities/Message";
 import { EMBED_LIMIT } from "src/vars";
-import { ParseIDPipe } from "src/util";
+import { ParseIDPipe, Me } from "src/util";
 import { ERR_PERM } from "src/errors";
 import { Role } from "src/enums";
+import { AchievementService } from "src/services/achievement.service";
+import { CHAT_ACHIEVEMENT  } from "src/achievements";
+import type { Link } from "src/types";
 import * as linkify from "linkifyjs";
 
-interface Link {
-	type: string;
-	value: string;
-	isLink: boolean;
-	href: string;
-	start: number;
-	end: number;
-}
-
-class CreateRoomDTO implements CreateRoomOptions {
+export class CreateRoomDTO implements CreateRoomOptions {
 	@IsString()
 	@IsOptional()
 	@Length(3, 20)
@@ -82,8 +77,9 @@ export class NewChatRoomController extends GenericRoomController(
 
 	constructor(
 		@Inject("CHATROOM_SERVICE")
-		private readonly chat_service: ChatRoomService,
+		protected readonly chat_service: ChatRoomService,
 		invite_service: RoomInviteService,
+		protected readonly ach_service: AchievementService,
 	) {
 		super(chat_service, invite_service);
 	}
@@ -98,6 +94,7 @@ export class NewChatRoomController extends GenericRoomController(
 	@RequiredRole(Role.MEMBER)
 	@HttpCode(HttpStatus.NO_CONTENT)
 	async send_message(
+		@Me() user: User,
 		@GetRoom() room: ChatRoom,
 		@GetMember() member: ChatRoomMember,
 		@Body() dto: MessageDTO,
@@ -122,6 +119,8 @@ export class NewChatRoomController extends GenericRoomController(
 		message.member = member;
 		message.room = room;
 
+		await this.ach_service.inc_progress(CHAT_ACHIEVEMENT, member.user, 1);
+
 		await this.chat_service.add_messages(room, message);
 	}
 
@@ -138,11 +137,5 @@ export class NewChatRoomController extends GenericRoomController(
 		if (message_owner.id !== member.id && message_owner.role >= member.role)
 			throw new ForbiddenException(ERR_PERM);
 		await this.chat_service.remove_messages(message);
-	}
-
-	@Get(":id/users")
-	@RequiredRole(Role.MEMBER)
-	async list_users(@GetRoom() room: ChatRoom) {
-		return await this.chat_service.get_users(room);
 	}
 }

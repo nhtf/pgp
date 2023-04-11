@@ -1,33 +1,29 @@
 <script lang="ts">
-	import type { ChatRoom, Message, ChatRoomMember } from "$lib/entities";
+	import type { DMRoom, Message, User } from "$lib/entities";
 	import type { UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
-	import { Action, CoalitionColors, roles, Subject } from "$lib/enums";
-	import { blockStore, memberStore, roomStore } from "$lib/stores";
+	import { Action, Subject } from "$lib/enums";
+	import { blockStore, roomStore, userStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { onDestroy, onMount } from "svelte";
-	import { byDate } from "$lib/sorting";
 	import { unwrap } from "$lib/Alert";
-    import { page } from "$app/stores";
 	import { post } from "$lib/Web";
+	import { byDate } from "$lib/sorting";
+    import { goto } from "$app/navigation";
 	import MessageBox from "$lib/components/MessageBox.svelte"
 	import ScratchPad from "$lib/components/ScratchPad.svelte";
-    import RoomHeader from "$lib/components/RoomHeader.svelte";
     import UserDropdown from "$lib/components/UserDropdown.svelte";
 
 	export let data: PageData;
 
-	const role_colors = Object.values(CoalitionColors);
-	const role_names = [ "Members", "Admins", "Owner" ];
 	const load = 10;
 
 	let messages = data.messages.sort(byDate);
 	let relativeScroll = messages.length;
 	let index: number;
 
-	$: room = $roomStore.get(data.room.id) as ChatRoom;
-	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id) as ChatRoomMember[];
-	$: self = members.find(({ userId }) => userId === $page.data.user?.id);
+	$: room = $roomStore.get(data.room.id) as DMRoom;
+	$: other = $userStore.get(room.other!.id)!;
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
@@ -82,38 +78,35 @@
 		setTimeout(() => relativeScroll = messages.length - load, 1000);
 	}
 
+	async function block(user: User) {
+		await unwrap(post(`/user/me/blocked`, { id: user.id }));
+		await goto(`/dm`);
+	}
+
 </script>
 
-{#if room && self}
-	<RoomHeader {room}/>
-	<div class="room-page">
-		<div class="room-container">
-			<div class="messages" id="messages" use:scrollToBottom={messages}>
-				{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
-					{#if index >= min}
-						<MessageBox on:load|once={scroll} {room} {message} {self} />
-					{/if}
-				{/each}
-			</div>
-			{#if relativeScroll + load < messages.length}
-				<button class="button middle" on:click={scroll}>Go to bottom</button>
-			{/if}
-			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
-		</div>
-		<div class="member-container">
-			{#each roles.slice().reverse() as role}
-				{#if members.some((member) => member.role === role)}
-					<div class="member-group">
-						<h1 style={`color: #${role_colors[role]}`}>{role_names[role]}</h1>
-						{#each members.filter((member) => member.role === role) as member (member.id)}
-							<UserDropdown {member} {room}/>
-						{/each}
-					</div>
+<div class="room">
+	<a class="button border-blue" href={`/dm`}>Back</a>
+	<div class="grow"/>
+	<UserDropdown user={other} extend={true}/>
+	<div class="grow"/>
+	<button class="button border-red" on:click={() => block(other)}>Block</button>		
+</div>
+<div class="room-page">
+	<div class="room-container">
+		<div class="messages" id="messages" use:scrollToBottom={messages}>
+			{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
+				{#if index >= min}
+					<MessageBox on:load|once={scroll} {room} {message} />
 				{/if}
 			{/each}
 		</div>
+		{#if relativeScroll + load < messages.length}
+			<button class="button middle" on:click={scroll}>Go to bottom</button>
+		{/if}
+		<ScratchPad callback={sendMessage}/>
 	</div>
-{/if}
+</div>
 
 <style>
 
@@ -147,22 +140,6 @@
 
 		/* TODO */
 		height: 70vh;
-	}
-
-	.member-container {
-		align-items: center;
-		background-color: var(--box-color);
-		border-radius: 1rem;
-		display: flex;
-		flex-direction: column;
-		gap: 2rem;
-		padding: 0.5rem;
-	}
-      
-	.member-group {
-		display: flex;
-		flex-direction: column;
-		align-items: center;
 	}
 
 </style>

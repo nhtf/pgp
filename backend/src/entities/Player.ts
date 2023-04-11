@@ -14,7 +14,7 @@ export class Player {
 	@RelationId((player: Player) => player.team)
 	teamId: number;
 
-	@ManyToOne(() => User, (user) => user.players, { onDelete: "CASCADE" })
+	@ManyToOne(() => User, (user) => user.players, { eager: true, onDelete: "CASCADE" })
 	user: User;
 
 	@RelationId((player: Player) => player.user)

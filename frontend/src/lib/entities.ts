@@ -13,6 +13,7 @@ export class User extends Entity {
 	activeRoomId: number | null;
 	auth_req?: number;
 	queueing: boolean;
+	is_dm: boolean;
 
 	achievements?: Achievement[];
 };
@@ -20,7 +21,7 @@ export class User extends Entity {
 export class Room<U extends Member = Member> extends Entity {
     name: string;
 	access: Access;
-	type: "ChatRoom" | "GameRoom";
+	type: "ChatRoom" | "GameRoom" | "DM";
 	joined: boolean;
 
 	owner?: User;
@@ -57,6 +58,10 @@ export class GameRoom extends Room<GameRoomMember> {
 	}
 };
 
+export class DMRoom extends Room {
+	other?: User;
+}
+
 export class GameState extends Entity {
 	gamemode: Gamemode;
 	teamsLocked: boolean;
@@ -67,10 +72,9 @@ export class GameState extends Entity {
 
 export class Member extends Entity {
 	role: Role;
-	type: string;
+	type: "ChatRoomMember" | "GameRoomMember";
 	roomId: number;
 	userId: number;
-
 };
 
 export class ChatRoomMember extends Member {
@@ -98,6 +102,7 @@ export class Team extends Entity {
 	score: number;
 	stateId: number;
 	players: Player[];
+	active: boolean;
 };
 
 export class Invite extends Entity {

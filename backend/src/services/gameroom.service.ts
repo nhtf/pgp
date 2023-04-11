@@ -51,7 +51,11 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			for (let idx = 0; idx < options.players; ++idx) {
 				const team = new Team();
 
-				team.name = genTeamName(20);
+				while (true) {
+					team.name = genTeamName(20);
+					if (state.teams.findIndex((other) => other.name == team.name) < 0)
+						break;
+				}
 				team.players = [];
 			
 				state.teams.push(team);

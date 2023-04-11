@@ -26,4 +26,10 @@ export class GameState {
 	@Column({ default: false })
 	teamsLocked: boolean = false;
 
+	@Column({ default: false })
+	finished: boolean = false;
+
+	@Exclude()
+	@Column({ default: false })
+	processed: boolean = false;
 }

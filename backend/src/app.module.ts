@@ -1,4 +1,5 @@
 import type { Message } from "src/entities/Message";
+import type { DMRoom } from "src/entities/DMRoom";
 import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";
@@ -39,6 +40,8 @@ import { GameRoomMember } from "src/entities/GameRoomMember";
 import { RoomInviteService } from "src/services/roominvite.service";
 import { NewChatRoomController } from "src/controllers/chat.controller";
 import { ChatRoomService } from "src/services/chatroom.service";
+import { DMRoomController } from "src/controllers/dm.controller";
+import { DMRoomService } from "src/services/dm.service";
 import * as session from "express-session";
 import * as Pool from "pg-pool";
 
@@ -64,6 +67,7 @@ const entityFiles = [
 	"./entities/Room",
 	"./entities/Member",
 	"./entities/GameRoom",
+	"./entities/DMRoom",
 	"./entities/ChatRoomMember",
 	"./entities/GameRoomMember",
 	"./entities/Team",
@@ -162,6 +166,17 @@ const services = [
 		inject: ["CHATROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
 	},
 	{
+		provide: "DMROOM_SERVICE",
+		useFactory: (
+			room_repo: Repository<DMRoom>,
+			member_repo: Repository<ChatRoomMember>,
+			message_repo: Repository<Message>,
+		) => {
+			return new DMRoomService(room_repo, member_repo, message_repo);
+		},
+		inject: ["DMROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
+	},
+	{
 		provide: "GAMEROOM_SERVICE",
 		useFactory: (
 			room_repo: Repository<GameRoom>,
@@ -202,6 +217,7 @@ const services = [
 		UserUsernameController,
 		MatchController,
 		NewChatRoomController,
+		DMRoomController,
 	],
 	providers: [
 		GameGateway,
@@ -236,6 +252,6 @@ export class AppModule implements NestModule {
 				{ path: "debug(.*)", method: RequestMethod.ALL })
 			.forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
-		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(NewChatRoomController, NewGameController);
+		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(NewChatRoomController, NewGameController, DMRoomController);
 	}
 }

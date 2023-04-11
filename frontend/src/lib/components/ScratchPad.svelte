@@ -5,7 +5,7 @@
 	import { get } from "$lib/Web";
 
 	export let callback: (content: string) => void;
-	export let disabled: boolean;
+	export let disabled: boolean = false;
 
 	//http://alistapart.com/article/expanding-text-areas-made-elegant/
 	const send_icon = `${icon_path}/send.svg`;

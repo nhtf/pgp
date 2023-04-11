@@ -22,7 +22,7 @@ export const achievements: AchievementDef[] = [
 	{
 		name: AVATAR_ACHIEVEMENT,
 		max: 1,
-		image: "/Assets/achievement-icons/vrpong.svg",
+		image: "/Assets/achievement-icons/avatarAchievment.svg",
 		objectives: [
 			{
 				name: "Look at me!",

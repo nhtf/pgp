@@ -35,14 +35,12 @@ class UpdateManager {
 			.filter(({ subject }) => subject === update.subject)
 			.map(({ fun }) => fun);
 
-		// const funs = this.functions.filter_map((info) => info.subject === update.subject ? info.fun : undefined);
-
 		const style = `color: ${funs.length ? "black" : "gray"}`;
 
 		console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
 
 		// IIFE
-		// socket.on can't be awaited, but some function need to run before others
+		// socket.on() can't be awaited, but some functions need to run before others
 		(async () => {
 			for (const fun of funs) {
 				await fun(update);

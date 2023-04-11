@@ -32,6 +32,11 @@ export interface MouseEvent extends NetEvent {
 	b?: number; //button clicked
 }
 
+export interface BallEvent extends NetEvent {
+	vx: string;
+	vy: string;
+}
+
 export interface ScoreEvent extends NetEvent {
 	u: number; //userId that is sending the event
 	t: number; //teamId of team that is being updated
@@ -170,12 +175,21 @@ export class Game extends Net {
 					paddle.rotation = this.level.paddles[paddle.owner].angle;
 					this.shader.rotatePaddle(paddle.rotation, paddle.owner);
 				}
-				if (event.b === 0 && this.ball.velocity.magnitude() === 0 && this.teams[paddle.owner].active) {
-					this.ball.velocity = new Vector(ballVelociy[this.players][paddle.owner].x, ballVelociy[this.players][paddle.owner].y);
+				if (event.b === 0 && this.teams[paddle.owner].active) {
+					// this.ball.velocity = new Vector(ballVelociy[this.players][paddle.owner].x, ballVelociy[this.players][paddle.owner].y);
 					this.teams[paddle.owner].active = false;
+					this.send("ballLaunch", {vx: serializeNumber(ballVelociy[this.players][paddle.owner].x), vy: serializeNumber(ballVelociy[this.players][paddle.owner].y)});
 				}
 
 			}
+		});
+
+		//TODO still causes desync?
+		//TODO doesn't correspond to correct player for 4 players?
+		this.on("ballLaunch", netEvent => {
+			const event = netEvent as BallEvent;
+			this.ball.velocity = new Vector(deserializeNumber(event.vx), deserializeNumber(event.vy));
+			this.shader.changeBallOwner([0.871, 0.898, 0.07, 1]);
 		});
 
 		this.on("ping", netEvent => {
@@ -273,6 +287,7 @@ export class Game extends Net {
 				if (this.teams[goal].score > 10 || this.teams[goal].score < 0) {
 					console.log("game over? -> send update to backend and stop the game here or something");
 				}
+				//TODO score seems to be incorrect check here  and in the render thing
 				this.shader.updateScore(this.teams[goal].score, goal);
 				//TODO reimplement the ripples again
 				// setOriginRipple(this.ball.position.x, this.ball.position.y);
@@ -280,7 +295,8 @@ export class Game extends Net {
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(0,0);
 				this.teams[goal].active = true;
-				// new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
+				this.shader.changeBallOwner(this.level.goalBorderColors[goal]);
+				// this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
 				
 				break;
 			} else {

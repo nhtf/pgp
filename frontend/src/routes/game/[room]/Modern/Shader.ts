@@ -65,7 +65,7 @@ export class Shader {
         let extendOptions: Options = {};
         extendOptions.transform = options?.transform;
         extendOptions.gradient = mesh.options?.gradient;
-        extendOptions.color = mesh.options?.color;
+        extendOptions.color = mesh.options?.color ? mesh.options?.color : options?.color;
         extendOptions.gradientPos = mesh.options?.gradientPos;
         extendOptions.gradientRadius = options?.gradientRadius ;
         extendOptions.ballRadius = options?.ballRadius;
@@ -74,8 +74,9 @@ export class Shader {
     }
 
     private renderMesh(gl: WebGL2RenderingContext, mesh: Mesh, options?: Options, index: number = 0) {
-        if (options?.color)
+        if (options?.color) {
             this.program.setUniform(gl, "color", options.color[index]);
+        }
         if (options?.gradient !== undefined)
             this.program.setUniform(gl, "gradient", options.gradient);
         if (options?.transform)

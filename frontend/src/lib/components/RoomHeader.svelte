@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { Room } from "$lib/entities";
+    import type { Member, Room } from "$lib/entities";
     import { Dropdown, DropdownHeader } from "flowbite-svelte";
     import { memberStore, roomStore } from "$lib/stores";
     import { goto } from "$app/navigation";
@@ -11,11 +11,10 @@
 	export let room: Room;
 
 	$: room = $roomStore.get(room?.id)!;
-	$: self = room ? $memberStore.get(room.self!.id)! : undefined;
+	$: self = [...$memberStore.values()].find(({ roomId, userId }) => roomId === room?.id && userId === $page.data.user?.id);
 
 	async function leave(room: Room) {
-		await unwrap(remove(`${room.route}/members/${self!.id}`));
-		await goto(`/${room.nav}`);
+		await unwrap(remove(`${room.route}/members/${self?.id}`));
 	}
 
 	async function erase(room: Room) {
@@ -37,11 +36,11 @@
 		<div class="text-4xl">{room?.name}</div>
 		<div class="grow"/>
 		{#if room.owner?.id === $page.data.user.id}
-			<button class="button border-red" on:click={() => erase(room)}>Erase</button>
+			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 		{:else}
 			<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 		{/if}
-		{#if self && self.role >= Role.ADMIN}
+		{#if room.type === "ChatRoom" && self && self.role >= Role.ADMIN}
 			<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 			<button class="button border-green">Dropdown</button>
 			<Dropdown placement="left">

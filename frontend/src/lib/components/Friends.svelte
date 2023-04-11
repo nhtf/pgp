@@ -32,7 +32,7 @@
 		);
 	}
 
-	function onKeyPress(event) {
+	function onKeyPress(event: any) {
 		console.log("here");
 	}
 

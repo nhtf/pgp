@@ -58,6 +58,7 @@ export class FullShader {
 	private minScale: number;
 	private debugVertices: number[][];
 	private scores: number[] = [];
+	private ballOwner: number[];
 
 	public constructor(canvas: HTMLCanvasElement, level: level) {
 		this.canvas = canvas;
@@ -72,6 +73,7 @@ export class FullShader {
 		this.ball = new Shader(this.gl, ballVert, ballFrag);
 		this.gl.bindBuffer(this.gl.ELEMENT_ARRAY_BUFFER, this.gl.createBuffer());
 		this.minScale = this.scale();
+		this.ballOwner = [0.745, 0.635, 0.1098, 1];
 		
 		this.timer = 0;
 		this.lastTime = 0;
@@ -187,6 +189,10 @@ export class FullShader {
 		this.ballPos.y = (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.minScale + yOffset;
 	}
 
+	public changeBallOwner(color: number[]) {
+		this.ballOwner = color;
+	}
+
 	public updateScore(score: number, team: number) {
 		this.scores[team] = score;
 	}
@@ -235,27 +241,44 @@ export class FullShader {
 		this.renderPaddles(time, viewport, res);
 		
 		this.ball.setUniform(this.gl, time, viewport, this.ballPos, res,  {size: {x: ballSize * this.minScale, y: ballSize * this.minScale}});
-		this.ball.renderNamed(this.gl, "ball");
+		//TODO This needs to slightly more clear for which player is supposed to launch the ball
+		this.ball.renderNamed(this.gl, "ball", {color: [this.ballOwner]});
 
 		this.field.setUniform(this.gl, time, viewport, this.ballPos, res);
 		this.field.renderNamed(this.gl, "fieldBorder", {transform: this.level.normalMatrix});
-
+		
 		this.renderScore();
 	}
 
 	//TODO make the outline of the text better
 	private renderScore() {
-		for (let i = 0; i < this.level.players; i+=1) {
+		for (let i = 0; i < this.level.players; i++) {
 			const nIndex = Math.abs(this.scores[i] % 10);
 			const matrix = new m3();
 			matrix.translation(this.level.scorePositions[i].x - WIDTH / 2, (this.level.scorePositions[i].y) - HEIGHT / 2);
 			matrix.scaling(2 / WIDTH, 2 / HEIGHT);
-			
-			if (Math.abs(this.scores[i]) < 10) {
-				this.field.renderTriangles(this.gl, font[nIndex], matrix.matrix, this.level.scoreColors[i]);
-				this.field.renderPoints(this.gl, fontEdges[nIndex], matrix.matrix, [1,1,1,1]);
+
+			if (this.scores[i] < 0) {
+				//TODO fix the look of the minus symbol
+				const minMatrix = new m3();
+				minMatrix.rotationZAxis(Math.PI / 2);
+				minMatrix.translation(this.level.scorePositions[i].x - WIDTH / 2, (this.level.scorePositions[i].y) - HEIGHT / 2);
+				minMatrix.scaling(2 / WIDTH, 2 / HEIGHT);
+				minMatrix.scaling(0.8, 1);
+				minMatrix.translation(-0.12, 0.15);
+				this.field.renderTriangles(this.gl, font[1], minMatrix.matrix, this.level.scoreColors[i]);
+				this.field.renderPoints(this.gl, fontEdges[1], minMatrix.matrix, [1,1,1,1]);
+				// matrix.rotationZAxis(-Math.PI / 2);
+				// matrix.translation(-0.07, 0);
 			}
-			else if (Math.abs(this.scores[i]) < 100) {	
+
+			
+			this.field.renderTriangles(this.gl, font[nIndex], matrix.matrix, this.level.scoreColors[i]);
+			this.field.renderPoints(this.gl, fontEdges[nIndex], matrix.matrix, [1,1,1,1]);
+
+			if (Math.abs(this.scores[i]) < 10)
+				continue;
+			else if (Math.abs(this.scores[i]) < 100) {
 				const tensIndex = Math.floor(Math.abs(this.scores[i] / 10));
 				matrix.translation(-0.07, 0);
 				this.field.renderTriangles(this.gl, font[tensIndex], matrix.matrix, this.level.scoreColors[i]);

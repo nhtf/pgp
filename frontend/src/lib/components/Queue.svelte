@@ -5,11 +5,13 @@
 	import { Gamemode } from "$lib/enums";
 	import { unwrap } from "$lib/Alert";
 	import { page } from "$app/stores";
+    import { icon_path } from "$lib/constants";
 
 	type QueueDTO = { type: Gamemode, player_counts: number[] }[];
 
 	$: user = $userStore.get($page.data.user.id)!;
 
+	const checkmark = `${icon_path}/checkmark.svg`;
 	const names = [ "Classic", "VR", "Modern" ]
 	const modes: QueueDTO = [
 		{ type: Gamemode.CLASSIC, player_counts: [2] },
@@ -35,6 +37,7 @@
 	async function dequeue() {
 		await unwrap(remove(`/match/me`, { gamemodes }));
 	}
+
 </script>
 
 <div class="room gap-8">
@@ -42,12 +45,18 @@
 		<div class="spacing">
 			<span class="label opacity-{user.queueing ? "50" : "100"}">{names[type]}:</span>
 			{#each player_counts as player, index}
-			<div class="spacing">
-				{#if player_counts.length > 1}
-					<span class="label">{player}P</span>
-				{/if}
-				<Checkbox bind:checked={checks[type][index]} disabled={user.queueing} class="checkbox" />
-			</div>
+				<div class="spacing">
+					{#if player_counts.length > 1}
+						<span class="label">{player}P</span>
+					{/if}
+					<Checkbox custom bind:checked={checks[type][index]} disabled={user.queueing}>
+					<div class="checkbox">
+						{#if checks[type][index]}
+							<img class="icon" src={checkmark} alt="checkmark" />
+						{/if}
+					</div>
+					</Checkbox>
+				</div>
 			{/each}
 		</div>
 	{/each}
@@ -63,7 +72,7 @@
 <style>
 	.spacing {
 		display: flex;
-		gap: 0.5rem;
+		column-gap: 0.5rem;
 		align-items: center;
 	}
 </style>
