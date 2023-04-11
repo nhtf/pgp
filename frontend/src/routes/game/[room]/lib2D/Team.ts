@@ -6,11 +6,13 @@ export class Team {
 	public id: number;
     public userId?: number;
     public ping: number;
+    public active: boolean;
 
-	public constructor(id: number, score?: number) {
+	public constructor(id: number, active: boolean, score?: number) {
 		this.score = score === undefined ? 0 : score;
 		this.id = id;
         this.ping = 0;
+        this.active = false;
 	}
 
     public save(): TeamObject {

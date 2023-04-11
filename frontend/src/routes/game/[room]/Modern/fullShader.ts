@@ -10,10 +10,12 @@ const ballSize = 7; //Visual size on the screen
 export interface Events {
 	mousemove(moveX: number, moveY: number): void;
     mouseWheel(deltaY: number): void;
+	mouseClick(button: number):void;
 }
 
 let active = false;
 export function activateRipple() {
+	console.log("activating ripple");
 	active = true;
 }
 let position: VectorObject = {x: 0, y: 0};
@@ -151,6 +153,10 @@ export class FullShader {
 			const x = ((ev.movementX) / minScale);
 			const y = ((ev.movementY) / minScale);
 			events.mousemove(x, y);
+		});
+
+		this.canvas.addEventListener("mousedown", ev => {
+			events.mouseClick(ev.button);
 		});
 
         this.canvas.addEventListener("wheel", ev => {
@@ -318,6 +324,7 @@ export class FullShader {
 		// this.debugRenderer(viewport, res);
 		
 		if (active) {
+			console.log("active");
 			this.timer += time - this.lastTime;
 			if (this.timer > 500) {
 				this.timer = 0;
@@ -325,7 +332,7 @@ export class FullShader {
 			}
 		}
 		const fps = 1/ (time -this.lastTime) * 1000;
-		console.log("fps: ", fps);
+		// console.log("fps: ", fps);
 		this.lastTime = time;
 	}
 }

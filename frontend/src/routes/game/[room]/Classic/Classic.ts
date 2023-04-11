@@ -241,8 +241,8 @@ export class Game extends Net {
 		const teams = options.room.state!.teams;
 
 		this.teams = [
-			new Team(teams[0].id, teams[0].score),
-			new Team(teams[1].id, teams[1].score),
+			new Team(teams[0].id, true,teams[0].score),
+			new Team(teams[1].id, true,teams[1].score),
 		];
 
 		this.paddles = [

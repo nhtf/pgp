@@ -110,4 +110,27 @@ export class Paddle {
 		}
 		return true;
 	}
+
+	public isInPlayerAreaRot(rot: number, area: Line[]) {
+		const crot = Math.cos(rot);
+        const srot = -Math.sin(rot);
+        const w = this.width;
+        const h = this.height / 2;
+
+		let points: VectorObject[] = []
+		points.push({ x: (crot * -w + srot * -h) + this.position.x, y:  (-srot * -w + crot * -h) + this.position.y});
+		points.push({ x: (crot * w + srot * -h) + this.position.x, y:  (-srot * w + crot * -h) + this.position.y});
+		points.push({ x: (crot * -w + srot * h) + this.position.x, y:  (-srot * -w + crot * h) + this.position.y});
+		points.push({ x: (crot * w + srot * h) + this.position.x, y:  (-srot * w + crot * h) + this.position.y});
+
+		for (let point of points) {
+			if (!isInConvexHull(point, area, true))
+				return false;
+		}
+		return true;
+	}
+
+	public isBallInPaddle(ballPos: VectorObject) {
+		return isInConvexHull(ballPos, this.getCollisionLines(), true);
+	}
 }

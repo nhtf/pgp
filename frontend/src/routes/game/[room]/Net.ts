@@ -11,9 +11,11 @@ export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
 export const HISTORY_LIFETIME = 300;
-export const DESYNC_CHECK_INTERVAL = 300;
-export const DESYNC_CHECK_DELTA = 240;
-export const SAVE_ALL_SNAPSHOTS = true;
+export const DESYNC_CHECK_INTERVAL = 60;
+export const DESYNC_CHECK_DELTA = 120;
+export const REPLAY_CHECK_INTERVAL = 0;
+export const REPLAY_CHECK_DELTA = 1;
+export const SAVE_ALL_SNAPSHOTS = false;
 
 let doingDesyncCheck = false;
 
@@ -119,7 +121,7 @@ export class Net {
 		while (index < this.allEvents.length && this.allEvents[index].time == this.time) {
 			const event = this.allEvents[index];
 
-			// console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
+			console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
 			
 			if (doingDesyncCheck) {
 				console.log(event);
@@ -195,6 +197,26 @@ export class Net {
 					});
 				}
 			}
+
+			if (REPLAY_CHECK_INTERVAL > 0 && this.time % REPLAY_CHECK_INTERVAL == 0 && this.time > REPLAY_CHECK_INTERVAL + SYNCHRONIZE_INTERVAL) {
+				const latest = this.getLatest(this.time - REPLAY_CHECK_DELTA);
+
+				if (latest !== null) {
+					const beforeState = this.save();
+					doingDesyncCheck = true;
+					this.load(latest[0]);
+					this.father.regress(latest[1]);
+					this.forward(this.maxTime);
+					doingDesyncCheck = false;
+					const afterState = this.save();
+					
+					console.log(`replay check for ${latest[0].time} (real time is ${this.time}, before hash is ${hashCode(JSON.stringify(beforeState))}, after hash is ${hashCode(JSON.stringify(afterState))})`);
+	
+					if (JSON.stringify(beforeState) != JSON.stringify(afterState)) {
+						debugger;
+					}
+				}
+			}
 		}
 	}
 
@@ -202,7 +224,7 @@ export class Net {
 		this.tickCounter.add(1);
 		this.earlyTick();
 		this.lateTick();
-		// console.log(`tick time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
+		console.log(`tick time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
 	}
 
 	private forward(target: number) {
@@ -267,7 +289,7 @@ export class Net {
 		let latest = null;
 
 		for (let snapshot of this.snapshots) {
-			if (snapshot[0].time < before) {
+			if (snapshot[0].time <= before) {
 				if (latest === null || snapshot[0].time > latest[0].time) {
 					latest = snapshot;
 				}
@@ -336,11 +358,10 @@ export class Net {
 					this.forward(message.time);
 					break;
 				case "desync-check":
-					let latest = this.getLatest(message.snapshot.time);
+					let latest = this.getLatest(message.snapshot.time - 1);
 	
 					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
-						console.log(`running desync check of ${message.snapshot.time} (real time is ${this.time}, incoming hash is ${hashCode(JSON.stringify(message.snapshot))}`);
-						// TODO: incoming hash seems wrong
+						console.log(`running desync check of ${message.snapshot.time} (real time is ${this.time}, incoming hash is ${hashCode(JSON.stringify(message.snapshot))})`);
 
 						doingDesyncCheck = true;
 						this.load(latest[0]);
@@ -349,8 +370,9 @@ export class Net {
 						this.forward(message.snapshot.time);
 						doingDesyncCheck = false;
 						const testState = this.save();
-						this.load(this.snapshots[this.snapshots.length - 1][0]); // TODO: doesn't load latest snapshot (possibly used elsewhere too)
-						this.father.regress(this.snapshots[this.snapshots.length - 1][1]);
+						latest = this.getLatest(this.maxTime)!;
+						this.load(latest[0]);
+						this.father.regress(latest[1]);
 						this.forward(this.maxTime);
 	
 						if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
