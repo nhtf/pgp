@@ -13,16 +13,16 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 	const members: ChatRoomMember[] = await unwrap(get(`/chat/${params.room}/members`));
 	const messages: Message[] = await unwrap(get(`/chat/${params.room}/messages`));
 
-	updateStore(roomStore, room, ChatRoom);
-	updateStore(userStore, users, User);
-	updateStore(memberStore, members, ChatRoomMember);
+	updateStore(User, users);
+	updateStore(ChatRoom, room);
+	updateStore(ChatRoomMember, members);
 
 	let banned: User[] | null = null;
 
 	if (room.self!.role >= Role.ADMIN) {
-		banned = await unwrap(get(`/chat/${params.room}/bans`));
+		banned = await unwrap(get(`/chat/${params.room}/bans`)) as User[];
 	
-		updateStore(userStore, banned!, Entity);
+		updateStore(User, banned);
 	}
 
     return { room, members, messages, banned };

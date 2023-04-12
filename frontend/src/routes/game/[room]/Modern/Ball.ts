@@ -1,10 +1,7 @@
 import { Vector, intersection } from "../lib2D/Math2D";
-import type { VectorObject, Line } from "../lib2D/Math2D";
+import type {  Line } from "../lib2D/Math2D";
 import { FIELDWIDTH, FIELDHEIGHT } from "./Constants";
 import { serialize, deserialize } from "../Math";
-
-//for making the trailing effect
-let positions: VectorObject[] = [];
 
 export interface BallObject {
 	transform: string,
@@ -13,12 +10,10 @@ export interface BallObject {
 export class Ball {
 	public position: Vector;
 	public velocity: Vector;
-	public counter: number;
 
 	public constructor() {
 		this.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
-		this.velocity = new Vector(1.41, 1.41);
-		this.counter = 0;
+		this.velocity = new Vector(0.0, 0.0);	
 	}
 
 	public collision(lines: Line[]): [Line, Vector, number] | null {

@@ -1,5 +1,5 @@
 import type { PageLoad } from "./$types";
-import { GameState } from "$lib/entities"
+import { Game } from "$lib/entities"
 import { updateStore, gameStore } from "$lib/stores"
 import { get } from "$lib/Web"
 
@@ -8,12 +8,12 @@ export const load: PageLoad = (async ({ fetch, parent }) => {
 
 	const { user } = await parent();
 
-	let games: GameState[] = [];
+	let games: Game[] = [];
 
 	try {
-		games = await get(`/game/history/${user?.id}`) as GameState[];
+		games = await get(`/game/history/${user?.id}`) as Game[];
 
-		updateStore(gameStore, games, GameState);
+		updateStore(Game, games);
 	} catch (error) {}
 
 	return { games };

@@ -1,8 +1,7 @@
 <script lang="ts">
-	import type { GameRoom, Invite } from "$lib/entities";
+	import type { RoomInvite, Invite } from "$lib/entities";
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import { page } from "$app/stores";
-	import { respond } from "$lib/invites";
 	import { backIn as anim } from "svelte/easing";
 	import { inviteStore, userStore } from "$lib/stores";
 	import { onMount } from "svelte";
@@ -36,12 +35,14 @@
 	}
 
 	async function acceptInvite(invite: Invite) {
-		await respond(invite, "accept");
+		await invite.accept;
 
-		if (invite.type === "GameRoom") {
-			await unwrap(patch(`${invite.room!.route}/team/auto`));
+		if (invite.type === "GameRoomInvite") {
+			const room = (invite as RoomInvite).room;
+		
+			await unwrap(patch(`${room.route}/team/auto`));
 
-			console.log(invite.room!.nav);
+			console.log(room.nav);
 			Swal.fire({
 				title: "Go to game?",
 				showConfirmButton: true,
@@ -49,7 +50,7 @@
 				confirmButtonText: "Go",
 			}).then(async (result) => {
 				if (result.isConfirmed) {
-					await goto(invite.room!.route);
+					await goto(room.route);
 				}
 			});
 		}
@@ -136,7 +137,7 @@
 					>
 						wants to be your friend
 					</div>
-					{:else if invite.type === "ChatRoom"}
+					{:else if invite.type === "ChatRoomInvite"}
 					<div
 						class="text-gray-500 text-sm dark:text-gray-400"
 					>

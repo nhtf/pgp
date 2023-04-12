@@ -418,7 +418,7 @@ export function GenericRoomController<T extends Room, U extends Member, S extend
 			@GetRoom() room: T,
 			@Param("user_id", ParseIDPipe(User)) target: User,
 		) {
-			if (!await this.room_service.areBanned(room, target))
+			if (!(await this.room_service.areBanned(room, target)))
 				throw new NotFoundException("User not banned");
 			await this.room_service.unban(room, target);
 		}

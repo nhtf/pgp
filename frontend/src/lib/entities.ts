@@ -1,6 +1,7 @@
 import type { Access, Role, Status, Gamemode } from "./enums";
 import type { Achievement } from "./types";
 import { icon_path, gamemode_icons } from "./constants"
+import { post, remove } from "$lib/Web";
 
 export class Entity {
 	id: number;
@@ -18,14 +19,14 @@ export class User extends Entity {
 	achievements?: Achievement[];
 };
 
-export class Room<U extends Member = Member> extends Entity {
+export class Room<T extends Member = Member> extends Entity {
     name: string;
 	access: Access;
 	type: "ChatRoom" | "GameRoom" | "DM";
 	joined: boolean;
 
 	owner?: User;
-	self?: U;
+	self?: T;
 
 	get route(): string {
 		return `${this.nav}/${this.id}`;
@@ -45,7 +46,7 @@ export class ChatRoom extends Room<ChatRoomMember> {
 };
 
 export class GameRoom extends Room<GameRoomMember> {
-	state?: GameState;
+	state?: Game;
 
 	get icon(): string | null {
 		if (!this.state) {
@@ -62,7 +63,7 @@ export class DMRoom extends Room {
 	other?: User;
 }
 
-export class GameState extends Entity {
+export class Game extends Entity {
 	gamemode: Gamemode;
 	teamsLocked: boolean;
 	roomId: number | null;
@@ -106,18 +107,50 @@ export class Team extends Entity {
 };
 
 export class Invite extends Entity {
+	date: Date;
+	type: "ChatRoomInvite" | "GameRoomInvite" | "FriendRequest";
+
+	to: User;
+	from: User;
+
+	room?: Room;
+
+	get accept(): Promise<any> {
+		return Promise.resolve("Invite accept called");
+	}
+
+	get deny(): Promise<any> {
+		return Promise.resolve("Invite deny called");
+	}
+
+};
+
+export class RoomInvite extends Invite {
 	constructor() {
 		super();
 		this.room = new Room;
 	}
 
-	date: Date;
-	type: "ChatRoom" | "GameRoom" | "FriendRequest";
+	room: Room;
 
-	to: User;
-	from: User;
-	room?: Room;
-};
+	get accept(): Promise<any> {
+		return post(`${this.room.route}/members`)
+	}
+
+	get deny(): Promise<any> {
+		return remove(`${this.room.route}/invite/${this.id}`);
+	}
+} 
+
+export class FriendRequest extends Invite {
+	get accept(): Promise<any> {
+		return post(`/user/me/friends`, { username: this.from.username });
+	}
+
+	get deny(): Promise<any> {
+		return remove(`/user/me/friends/requests/${this.id}`);
+	}
+}
 
 export type Embed = {
 	digest: string;
@@ -132,3 +165,13 @@ export class Message extends Entity {
 	memberId: number | null;
 	userId: number;
 };
+
+export class Stat extends Entity {
+	gamemode: Gamemode;
+	team_count: number;
+
+	wins: number;
+	losses: number;
+	draws: number;
+	rank: number;
+}

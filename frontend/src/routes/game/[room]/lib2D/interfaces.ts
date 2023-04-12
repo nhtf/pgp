@@ -12,10 +12,10 @@ export interface PaddleObject {
 	position: VectorObject;
 	height: number;
     width: number;
-	userId?: number;
 	ping: number;
 	rotation: number;
 	transform?: string;
+	userId?: number;
 }
 
 export interface Snapshot extends NetSnapshot {
@@ -43,6 +43,7 @@ export interface Options extends NetOptions {
 export interface TeamObject {
 	id: number;//Id
 	score: number;//Score
-	user?: number;//UserID
 	ping: number;//Ping
+	user?: number;//UserID
+	active?: boolean;
 }

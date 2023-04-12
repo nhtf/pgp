@@ -86,10 +86,10 @@ export class Paddle {
 		return {
 			position: this.position.save(),
 			height: this.height,
-			userId: this.userId,
 			width: 0, //width only needed for the modern pong
 			ping: this.ping,
-			rotation: 0
+			rotation: 0,
+			userId: this.userId,
 		};
 	}
 

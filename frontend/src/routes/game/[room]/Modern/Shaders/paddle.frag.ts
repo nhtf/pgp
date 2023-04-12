@@ -37,7 +37,6 @@ uniform highp float rotation; // time
 //     return retcolor;
 // }
 
-//TODO for radial gradient do the color slightly different
 void main()
 {
     // if (!gradient)

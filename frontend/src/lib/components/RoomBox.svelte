@@ -1,10 +1,11 @@
 <script lang="ts">
-	import type { DMRoom, Room } from "$lib/entities";
+	import type { Room } from "$lib/entities";
 	import { gameStore, roomStore, userStore } from "$lib/stores";
 	import { post, remove, patch, get, put } from "$lib/Web";
 	import { icon_path } from "$lib/constants";
 	import { unwrap } from "$lib/Alert";
 	import { Access } from "$lib/enums";
+    import { byId } from "$lib/sorting";
 	import { page } from "$app/stores";
 	import Invite from "./Invite.svelte";
     import Swal from "sweetalert2";
@@ -22,8 +23,13 @@
 	$: state = [...$gameStore.values()].find((game) => game.roomId === room.id);
 	$: team = state?.teams.find((team) => team.players?.some(({ userId }) => userId === user.id));
 
-	function teamSelector(): Promise<number | null> {
-		const inputOptions = state!.teams.reduce((acc, team) => { return { ...acc, [team.id]: team.name } }, { "0": "spectate" });
+	function teamSelector(): Promise<number | null | undefined> {
+		const inputOptions = state!.teams
+			.sort(byId)
+			.reduce((acc, team) => {
+				return { ...acc, [team.id]: team.name }
+			}, { "0": "spectate" });
+		
 		const promise = Swal.fire({
 			input: "radio",
 			inputOptions,
@@ -31,6 +37,8 @@
 			showCancelButton: true,
 			width: "auto",
 		}).then(({ isConfirmed, value }) => {
+			if (!isConfirmed)
+				return undefined;
 			return value > 0 ? value : null;
 		});
 
@@ -61,12 +69,11 @@
 	}
 	
 	async function changeTeam(room: Room) {
-		try {
-			const team = await teamSelector();
-		
+		const team = await teamSelector();
+
+		if (team !== undefined) {
 			await unwrap(patch(`${room.route}/team/${room.self!.id}`, { team }));
-			
-		} catch (_) {}
+		}
 	}
 
 	async function lock(room: Room) {

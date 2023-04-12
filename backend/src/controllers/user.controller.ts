@@ -99,7 +99,7 @@ export function GenericUserController(
 		}
 
 		async befriend(user: User, target: User, request: Invite) {
-			this.user_service.both(user, target, async (first: User, second: User) => {
+			await this.user_service.permute(user, target, async (first: User, second: User) => {
 				first.add_friend(second);
 				first = await this.user_repo.save(first);
 				first.send_friend_update(Action.INSERT, second);
@@ -309,7 +309,7 @@ export function GenericUserController(
 				throw new NotFoundException();
 			}
 
-			await this.user_service.both(user, friend, async (first: User, second: User) => {
+			await this.user_service.permute(user, friend, async (first: User, second: User) => {
 				first.remove_friend(second);
 				first = await this.user_repo.save(first);
 				first.send_friend_update(Action.REMOVE, second);

@@ -14,7 +14,7 @@
 		.sort(byId);
 
 	function notInDms(user: User) {
-		return !rooms.map((room) => room.other).some((other) => user.id === other?.id);
+		return !rooms.some((room) => user.id === room.other?.id);
 	}
 
 	async function create() {

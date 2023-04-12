@@ -1,13 +1,15 @@
 <script lang="ts">
     import type { Member, Room, User } from "$lib/entities";
-    import { Avatar, Button, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
-    import { blockStore, friendStore, memberStore, userStore } from "$lib/stores";
+    import { Avatar, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
+    import { blockStore, friendStore, gameStore, memberStore, updateStore, userStore } from "$lib/stores";
     import { status_colors } from "$lib/constants";
     import { actions } from "$lib/action";
-	import { page } from "$app/stores";
     import { Status } from "$lib/enums";
+	import { page } from "$app/stores";
+    import { onMount } from "svelte";
     import { get } from "$lib/Web";
     import Match from "./Match.svelte";
+    import { fetchGame } from "$lib/util";
 
 	export let member: Member | undefined = undefined;
 	export let user: User = $userStore.get(member!.userId)!
@@ -25,6 +27,14 @@
 	$: friendIds = [...$friendStore.keys()];
 	$: blockedIds = [...$blockStore.keys()];
 
+	$: game = [...$gameStore.values()].find((game) => game.roomId === user.activeRoomId);
+
+	onMount(async () => {
+		if (user.activeRoomId) {
+			await fetchGame(user.activeRoomId);
+		}
+	});
+
 	function findMember(user: User, room: Room) {
 		return [...$memberStore.values()].find(isMember.bind({}, user, room));
 	}
@@ -39,7 +49,6 @@
 
 </script>
 
-
 <div class="user opacity-{opacity}">
 	<Avatar
 		src={user.avatar}
@@ -50,12 +59,10 @@
 		}}
 	/>
 	<Tooltip>{user.username}</Tooltip>
-	{#if user.activeRoomId}
-		{#await get(`/game/${user.activeRoomId}/state`) then game}
-			<Popover placement="bottom">
-				<Match {game}/>
-			</Popover>
-		{/await}
+	{#if game}
+		<Popover placement="bottom">
+			<Match {game} {user}/>
+		</Popover>
 	{/if}
 	{#if extend}
 		<div>{user.username}</div>

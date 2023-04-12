@@ -46,12 +46,12 @@ export function ProtectedGateway(namespace?: string) {
 
 			client.user = user.id;
 			
-			this.onConnect(client);
+			await this.onConnect(client);
 		}
 
 		async handleDisconnect(client: Socket) {
 			if (client.user) {
-				this.onDisconnect(client);
+				await this.onDisconnect(client);
 			}
 		}
 
@@ -65,7 +65,7 @@ export function ProtectedGateway(namespace?: string) {
 				throw new WsException(error.message);
 			}
 
-			client.join(String(client.room));
+			await client.join(String(client.room));
 
 			await this.onJoin(client);
 

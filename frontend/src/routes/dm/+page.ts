@@ -10,8 +10,8 @@ export const load: PageLoad = (async ({ fetch }) => {
 	const rooms: DMRoom[] = await unwrap(get(`/dm`));
 	const others = rooms.map((room) => room.other) as User[];
 
-	updateStore(userStore, others, User);
-	updateStore(roomStore, rooms, DMRoom);
+	updateStore(User, others);
+	updateStore(DMRoom, rooms);
 
 	return { rooms, others };
 }) satisfies PageLoad;

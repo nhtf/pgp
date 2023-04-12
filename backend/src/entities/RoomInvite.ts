@@ -13,6 +13,6 @@ export class RoomInvite extends Invite {
 
 	@Expose()
 	get type(): string {
-		return this.room?.type ?? "unknown";
+		return `${this.room?.type}Invite`;
 	}
 }

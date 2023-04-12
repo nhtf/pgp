@@ -46,6 +46,7 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			const state = new GameState();
 
 			state.gamemode = options.gamemode;
+			state.team_count = options.players;
 			state.teams = [];
 
 			for (let idx = 0; idx < options.players; ++idx) {

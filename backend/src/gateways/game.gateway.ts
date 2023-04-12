@@ -4,12 +4,12 @@ import { Team } from "src/entities/Team";
 import { GameState} from "src/entities/GameState"
 import { MessageBody, SubscribeMessage, ConnectedSocket } from "@nestjs/websockets";
 import { Socket } from "socket.io";
-import { Repository, In } from "typeorm"
+import { Repository } from "typeorm"
 import { GameRoom } from "src/entities/GameRoom";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { UpdateGateway } from "src/gateways/update.gateway"
-import { Action, Subject } from "src/enums"
+import { Action, Status, Subject } from "src/enums"
 
 type BroadcastData = {
 	name: "update" | "synchronize" | "desync-check",
@@ -44,7 +44,10 @@ export class GameGateway extends ProtectedGateway("game") {
 			subject: Subject.USER,
 			action: Action.UPDATE,
 			id: client.user,
-			value: { activeRoomId: null }
+			value: {
+				activeRoomId: null,
+				status: Status.ACTIVE,
+			}
 		});
 
 		// if (lastPlayerToDisconnect && finishedInDatabase) {
@@ -55,13 +58,16 @@ export class GameGateway extends ProtectedGateway("game") {
 	async onJoin(client: Socket) {
 		const user = await this.userRepo.save({ id: client.user, activeRoom: { id: client.room }});
 	
-		client.join(String(client.room));
+		await client.join(String(client.room));
 	
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			action: Action.UPDATE,
 			id: user.id,
-			value: { activeRoomId: client.room }
+			value: {
+				activeRoomId: client.room,
+				status: Status.INGAME
+			}
 		});
 
 		await UpdateGateway.instance.send_state_update(user, { id: client.room });
@@ -77,7 +83,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			data.snapshot.state.teams.forEach(async (team) => {
 				const old = await this.teamRepo.findOneBy({ id: team.id });
 			
-				if (team.score > old.score) {
+				if (team.score !== old.score) {
 					await this.teamRepo.save({ id: team.id, score: team.score });
 
 					UpdateGateway.instance.send_update({

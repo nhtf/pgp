@@ -1,18 +1,78 @@
 import type { UpdatePacket } from "$lib/types";
-import { Entity, User, Member, ChatRoom, GameRoom, Room, Invite, GameState } from "$lib/entities"
-import { writable, type Writable } from "svelte/store";
+import { ChatRoom, RoomInvite, ChatRoomMember, Entity, FriendRequest, Game, GameRoom, GameRoomMember, Invite, Member, Room, User, DMRoom } from "$lib/entities";
+import { Access, Action, Subject } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
-import { Subject, Action } from "$lib/enums";
-import { Access } from "$lib/enums"
+import { writable, type Writable } from "svelte/store";
+import { fetchGame } from "$lib/util";
+
+updateManager.set(Subject.USER, onActiveRoom);
+updateManager.set(Subject.ROOM, onRoomInsert);
+updateManager.set(Subject.TEAM, onScoreUpdate);
+updateManager.set(Subject.ROOM, onPrivateRemove);
+updateManager.set(Subject.FRIEND, onFriendInsert);
+
+export const userStore = storeFactory(User, Subject.USER);
+export const roomStore = storeFactory(Room, Subject.ROOM);
+export const gameStore = storeFactory(Game, Subject.GAMESTATE);
+export const memberStore = storeFactory(Member, Subject.MEMBER);
+export const inviteStore = storeFactory(Invite, Subject.INVITE);
+
+export const blockStore = storeFactory(Entity, Subject.BLOCK);
+export const friendStore = storeFactory(Entity, Subject.FRIEND);
+
+const stores = new Map<(new () => any), Writable<Map<number, any>>>([
+	[User, userStore],
+	[Room, roomStore],
+	[DMRoom, roomStore],
+	[ChatRoom, roomStore],
+	[GameRoom, roomStore],
+	[Game, gameStore],
+	[Member, memberStore],
+	[ChatRoomMember, memberStore],
+	[GameRoomMember, memberStore],
+	[Invite, inviteStore],
+]);
+
+export function store<T extends Entity>(entityType: (new () => T)): Writable<Map<number, T>> {
+	return stores.get(entityType)!;
+}
+
+export function updateStore<T extends Entity>(entityType: (new () => T), entities: T | T[], customStore?: Writable<Map<number, Entity>>) {
+	if (!Array.isArray(entities)) {
+		entities = [entities];
+	}
+
+	const stored = customStore ?? store(entityType)!;
+
+	stored.update((stored) => {
+		(entities as T[]).forEach((entity) => {
+			stored.set(entity.id, create(entity, entityType))
+		});
+
+		return stored;
+	});
+}
 
 export type ObjectLiteral = { [key: string]: any; }
+
+const generics = new Map<string, (new () => any)>([
+	["ChatRoom", ChatRoom],
+	["GameRoom", GameRoom],
+	["ChatRoomInvite", RoomInvite],
+	["GameRoomInvite", RoomInvite],
+	["FriendRequest", FriendRequest],
+	["ChatRoomMember", ChatRoomMember],
+	["GameRoomMember", GameRoomMember],
+]);
 
 function create<T extends Entity>(value: ObjectLiteral, entityType: (new () => T)): T {
 	let entity = new entityType;
 
-	// TODO...
-	if (value.access !== undefined) {
-		entity = (value.type === "ChatRoom" ? new ChatRoom : new GameRoom) as unknown as T;
+	if (value?.type) {
+		let type = generics.get(value.type);
+
+		if (type)
+			entity = new type;
 	}
 
 	updateDeepPartial(entity, value);
@@ -22,16 +82,16 @@ function create<T extends Entity>(value: ObjectLiteral, entityType: (new () => T
 
 function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 	Object.keys(update).forEach((key) => {
-		if (typeof update[key] === "object"	
-			&& !Array.isArray(update[key]) 
+		if (typeof update[key] === "object"
+			&& update[key] !== null
+			&& !Array.isArray(update[key])
 			&& entity[key] !== undefined
-			&& update[key] !== null 
 		) {
 			updateDeepPartial(entity[key], update[key]);
 		} else {
 			entity[key] = update[key];
 		}
-	});	
+	});
 }
 
 function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: Subject, entityType: (new () => T)) {
@@ -58,40 +118,13 @@ function setUpdate<T extends Entity>(store: Writable<Map<number, T>>, subject: S
 	});
 }
 
-function storeFactory<T extends Entity>(subject: Subject, entityType: (new () => T)): Writable<Map<number, T>> {
+function storeFactory<T extends Entity>(entityType: (new () => T), subject: Subject): Writable<Map<number, T>> {
 	const store = writable(new Map<number, T>);
 
 	setUpdate(store, subject, entityType);
 
 	return store;
 }
-
-export function updateStore<T extends Entity>(store: Writable<Map<number, T>>, entities: T | T[], entityType: (new () => T)) {
-	if (!Array.isArray(entities)) {
-		entities = [entities];
-	}
-
-	store.update((stored) => {
-		(entities as T[]).forEach((entity) => {
-			stored.set(entity.id, create(entity, entityType))
-		});
-
-		return stored;
-	});
-}
-
-export const userStore = storeFactory(Subject.USER, User);
-export const roomStore = storeFactory(Subject.ROOM, Room);
-export const blockStore = storeFactory<Entity>(Subject.BLOCK, Entity);
-export const memberStore = storeFactory<Member>(Subject.MEMBER, Member);
-export const inviteStore = storeFactory<Invite>(Subject.INVITE, Invite);
-export const friendStore = storeFactory<Entity>(Subject.FRIEND, Entity);
-export const gameStore = storeFactory<GameState>(Subject.GAMESTATE, GameState);
-
-updateManager.set(Subject.ROOM, onRoomInsert);
-updateManager.set(Subject.TEAM, onScoreUpdate);
-updateManager.set(Subject.ROOM, onPrivateRemove);
-updateManager.set(Subject.FRIEND, onFriendInsert);
 
 // Removed from private room
 async function onPrivateRemove(update: UpdatePacket) {
@@ -111,34 +144,44 @@ async function onPrivateRemove(update: UpdatePacket) {
 // Add new friend to userStore
 async function onFriendInsert(update: UpdatePacket) {
 	if (update.action === Action.INSERT) {
-		updateStore(userStore, update.value, User);
+		updateStore(User, update.value);
 	}
 }
 
-// Add state and/or owner from new room
+// Add state, owner and other from new room
 async function onRoomInsert(update: UpdatePacket) {
 	if (update.value?.state) {
-		updateStore(gameStore, update.value.state, GameState);
+		updateStore(User, update.value.state);
 	}
 
 	if (update.value?.owner) {
-		updateStore(userStore, update.value.owner, User);
+		updateStore(User, update.value.owner);
+	}
+
+	if (update.value?.other) {
+		updateStore(User, update.value.other);
 	}
 };
 
 // Change team score in game
 async function onScoreUpdate(update: UpdatePacket) {
 	if (update.action === Action.UPDATE) {
-		gameStore.update((old) => {
+		store(Game)!.update((old) => {
 			const state = old.get(update.value.stateId);
-		
+
 			if (state) {
 				const team = state.teams.find(({ id }) => id === update.id)!;
-	
+
 				team.score = update.value.score;
 			}
-		
+
 			return old;
 		});
+	}
+}
+
+async function onActiveRoom(update: UpdatePacket) {
+	if (update.value?.activeRoomId) {
+		await fetchGame(update.value.activeRoomId);
 	}
 }

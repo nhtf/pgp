@@ -223,11 +223,13 @@
 	.input-container {
 		position: relative;
 		flex-grow: 1;
+		width: 90%;
 	}
 
 	pre {
 		white-space: pre-wrap;
 		word-wrap: break-word;
+		max-height: 100%;
 	}
 
 	pre,

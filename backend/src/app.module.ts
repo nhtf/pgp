@@ -42,6 +42,7 @@ import { NewChatRoomController } from "src/controllers/chat.controller";
 import { ChatRoomService } from "src/services/chatroom.service";
 import { DMRoomController } from "src/controllers/dm.controller";
 import { DMRoomService } from "src/services/dm.service";
+import { LeaderboardController } from "src/controllers/leaderboard.controller";
 import * as session from "express-session";
 import * as Pool from "pg-pool";
 
@@ -79,6 +80,8 @@ const entityFiles = [
 	"./entities/AchievementProgress",
 	"./entities/Objective",
 	"./entities/AchievementView",
+	"./entities/LeaderboardView",
+	"./entities/GameQueue",
 ];
 
 export const session_store = new (require("pg-session-store")(session))({
@@ -218,6 +221,7 @@ const services = [
 		MatchController,
 		NewChatRoomController,
 		DMRoomController,
+		LeaderboardController,
 	],
 	providers: [
 		GameGateway,

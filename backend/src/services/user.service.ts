@@ -53,7 +53,7 @@ export class UserService {
 			.orWhere("userId_2 IN (:...ids)", { ids });
 	}
 
-	async both(first: User, second: User, fun: (f: User, s: User) => Promise<void>) {
+	async permute(first: User, second: User, fun: (f: User, s: User) => Promise<void>) {
 		await fun(first, second);
 		await fun(second, first);
 	}

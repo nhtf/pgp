@@ -51,6 +51,8 @@ interface Snapshot extends NetSnapshot {
 	};
 };
 
+//TODO still desync seems to be ping and userId in paddle that is the issue maybe?
+
 function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 
 	const ballLine: Line = {p0: ball.position, p1: ball.position.add(paddleVelo), name: "ballLine"};
@@ -175,6 +177,16 @@ export class Game extends Net {
 					paddle.rotation = this.level.paddles[paddle.owner].angle;
 					this.shader.rotatePaddle(paddle.rotation, paddle.owner);
 				}
+				if (event.b === 0 && this.ball.velocity.magnitude() == 0) {
+					let teamActive = 0;
+					this.teams.forEach((team, i) => {
+						if (team.active) {
+							teamActive = i;
+						}
+					})
+					this.teams[teamActive].active = true;
+					console.log("player ", paddle.owner, " is trying to launch the ball, ball can be launched by player ", teamActive);
+				}
 				if (event.b === 0 && this.teams[paddle.owner].active) {
 					// this.ball.velocity = new Vector(ballVelociy[this.players][paddle.owner].x, ballVelociy[this.players][paddle.owner].y);
 					this.teams[paddle.owner].active = false;
@@ -184,9 +196,9 @@ export class Game extends Net {
 			}
 		});
 
-		//TODO still causes desync?
-		//TODO doesn't correspond to correct player for 4 players?
+		
 		this.on("ballLaunch", netEvent => {
+			console.log("ballLaunch Event!!!");
 			const event = netEvent as BallEvent;
 			this.ball.velocity = new Vector(deserializeNumber(event.vx), deserializeNumber(event.vy));
 			this.shader.changeBallOwner([0.871, 0.898, 0.07, 1]);
@@ -249,7 +261,12 @@ export class Game extends Net {
 			this.shader.movePaddle(paddle.position, paddle.owner);
 			this.shader.rotatePaddle(paddle.rotation, paddle.owner);
 		});
-		this.teams.forEach((team, i) => team.load(snapshot.state.teams[i]));
+		this.teams.forEach((team, i) => {
+			team.load(snapshot.state.teams[i]);
+			this.shader.updateScore(team.score, i);
+			if (team.active)
+				this.shader.changeBallOwner(this.level.goalBorderColors[i]);
+		});
 		super.load(snapshot);
 	}
 
@@ -274,27 +291,28 @@ export class Game extends Net {
 			} else if (collision[0].name.startsWith("goal")) {
 				this.pray("score-sound", 30, () => (scoreSound.cloneNode(true) as HTMLAudioElement).play());
 				let goal: number = +collision[0].name.charAt(4);
-				if (this.level.players > 2)
+				console.log("goal: ", goal);
+				console.log("goal: ", collision[0].name.charAt(5));
+				if (this.level.players > 2) {
 					this.teams[goal].score -= 1;
-				else if (goal === 1) {
-					goal = 0;
-					this.teams[goal].score += 1;
+					this.teams[goal].active = true;
 				}
 				else {
-					goal = 1;
 					this.teams[goal].score += 1;
+					goal = goal ? 0 : 1;
+					this.teams[goal].active = true;
 				}
 				if (this.teams[goal].score > 10 || this.teams[goal].score < 0) {
 					console.log("game over? -> send update to backend and stop the game here or something");
 				}
-				//TODO score seems to be incorrect check here  and in the render thing
 				this.shader.updateScore(this.teams[goal].score, goal);
 				//TODO reimplement the ripples again
 				// setOriginRipple(this.ball.position.x, this.ball.position.y);
 				activateRipple();
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(0,0);
-				this.teams[goal].active = true;
+				
+				console.log("player ", goal, " should be launching the ball");
 				this.shader.changeBallOwner(this.level.goalBorderColors[goal]);
 				// this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
 				
@@ -343,8 +361,20 @@ export class Game extends Net {
 		const teams = options.room.state!.teams;
 		for (let i = 0; i < this.level.players; i++) {
 			this.teams.push(new Team(teams[i].id, teams[i].active, teams[i].score));
+			if (teams[i].active) {
+				this.shader.changeBallOwner(this.level.goalBorderColors[i]);
+			}
 			this.shader.updateScore(teams[i].score, i);
 		}
+		// if (this.ball.velocity.magnitude() == 0) {
+		// 	let active = 0;
+		// 	teams.forEach((team, i) => {
+		// 		if (team.active)
+		// 			active = i;
+		// 	});
+		// 	this.teams[active].active = true;
+		// 	this.shader.changeBallOwner(this.level.goalBorderColors[active]);
+		// }
 
 		let index = 0;
 		for (let paddle of this.level.paddles) {
@@ -407,7 +437,6 @@ export class Modern {
 		await this.game?.start(options);
 	}
 
-	//TODO fix that now sometimes paddle can get outside of playerfield( but if move again it's in again?)
 	public mousemove(moveX: number, moveY: number) {
 		if (!this.options) {
 			return;

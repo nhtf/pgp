@@ -56,14 +56,6 @@ class EditOptions implements Partial<CreateGameRoomOptions> {
 	@IsOptional()
 	@Length(1, 500)
 	password?: string;
-
-	@IsEnum(Gamemode)
-	@IsOptional()
-	gamemode: Gamemode;
-
-	@IsNumber()
-	@IsOptional()
-	players: number;
 };
 
 class EditMemberDTO implements Partial<GameRoomMember> {};
@@ -113,7 +105,7 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 
 		await this.game_service.save_members({ id: member.id, player } as GameRoomMember);
 
-		UpdateGateway.instance.send_state_update(me, room);
+		await UpdateGateway.instance.send_state_update(me, room);
 	}
 
 	@Patch(":id/team/me")

@@ -72,6 +72,6 @@ async function bootstrap() {
 		return achievement;
 	}));
 	
-	app.listen(BACKEND_PORT);
+	await app.listen(BACKEND_PORT);
 }
 bootstrap();

@@ -9,8 +9,6 @@
 
 	type QueueDTO = { type: Gamemode, player_counts: number[] }[];
 
-	$: user = $userStore.get($page.data.user.id)!;
-
 	const checkmark = `${icon_path}/checkmark.svg`;
 	const names = [ "Classic", "VR", "Modern" ]
 	const modes: QueueDTO = [
@@ -19,11 +17,10 @@
 		{ type: Gamemode.MODERN, player_counts: [2, 4] },
 	];
 
-	let checks: boolean[][] = [];
 	let gamemodes: QueueDTO;
 
-	$: checks = modes.map(({ player_counts }) => Array(player_counts.length).fill(true));
-
+	$: user = $userStore.get($page.data.user.id)!;
+	$: checks = modes.map<boolean[]>(({ player_counts }) => Array(player_counts.length).fill(true));
 	$: gamemodes = modes.filter(({ type, player_counts }) => {
 		return player_counts.filter((_, index) => {
 			return checks[type][index];
@@ -36,6 +33,10 @@
 
 	async function dequeue() {
 		await unwrap(remove(`/match/me`, { gamemodes }));
+	}
+
+	function any(checks: boolean[][]) {
+		return checks.some((arr) => arr.some((check) => check));
 	}
 
 </script>
@@ -65,7 +66,7 @@
 		<div>Searching for match...</div>
 		<button class="button border-red" on:click={dequeue}>Cancel</button>
 	{:else}
-		<button class="button border-green" on:click={queue}>Find match</button>
+		<button class="button border-green" on:click={queue} disabled={!any(checks)} >Find match</button>
 	{/if}
 </div>
 

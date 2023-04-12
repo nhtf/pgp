@@ -13,9 +13,9 @@ export const load: PageLoad = async ({ fetch, params }) => {
 	const users: User[] = await unwrap(get(`/game/${params.room}/users`));
 	const members: GameRoomMember[] = await unwrap(get(`/game/${params.room}/members`));
 
-	updateStore(userStore, users, User);
-	updateStore(roomStore, room, GameRoom);
-	updateStore(memberStore, members, GameRoomMember);
+	updateStore(User, users);
+	updateStore(GameRoom, room);
+	updateStore(GameRoomMember, members);
 
 	return { room };
 };

@@ -1,19 +1,21 @@
 
 type sorting = { type: string; active: string; ascending: boolean };
 type sorter = sorting[];
-type leaderdata = {
+export type leaderdata = {
     username: string;
     avatar: string;
     wins: number;
     losses: number;
     draws: number;
     rank: number;
+    id: number;
+    gamemode: number;
 };
 
 export let LEADERBOARDS = [
     {
-        title: "VR Pong",
-        id: "vrpong",
+        title: "Classic Pong",
+        id: "orpong",
         sorter: [
             { type: "rank", active: "active", ascending: false },
             { type: "user", active: "inactive", ascending: false },
@@ -24,8 +26,32 @@ export let LEADERBOARDS = [
         active: true,
     },
     {
-        title: "Classic Pong",
-        id: "orpong",
+        title: "VR Pong",
+        id: "vrpong",
+        sorter: [
+            { type: "rank", active: "active", ascending: false },
+            { type: "user", active: "inactive", ascending: false },
+            { type: "win", active: "inactive", ascending: false },
+            { type: "lose", active: "inactive", ascending: false },
+            { type: "draw", active: "inactive", ascending: false },
+        ],
+        active: false,
+    },
+    {
+        title: "Modern Pong 2P",
+        id: "m2pong",
+        sorter: [
+            { type: "rank", active: "active", ascending: false },
+            { type: "user", active: "inactive", ascending: false },
+            { type: "win", active: "inactive", ascending: false },
+            { type: "lose", active: "inactive", ascending: false },
+            { type: "draw", active: "inactive", ascending: false },
+        ],
+        active: false,
+    },
+    {
+        title: "Modern Pong 4P",
+        id: "m4pong",
         sorter: [
             { type: "rank", active: "active", ascending: false },
             { type: "user", active: "inactive", ascending: false },

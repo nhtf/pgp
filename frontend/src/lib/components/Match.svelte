@@ -1,18 +1,11 @@
 <script lang="ts">
-    import { gameStore, updateStore, userStore } from "$lib/stores";
-    import { GameState, User } from "$lib/entities";
+    import type { Game, User } from "$lib/entities";
+    import { gameStore, userStore } from "$lib/stores";
     import { byId } from "$lib/sorting";
     import { page } from "$app/stores";
 
-	export let game: GameState;
+	export let game: Game;
 	export let user: User = $page.data.user;
-
-	let players = game.teams.map((team) => team.players).flat();
-	let users = players.map((player) => player.user);
-
-	// TODO
-	// updateStore(userStore, users, User);
-	updateStore(gameStore, game, GameState);
 
 	$: game = $gameStore.get(game.id)!;
 	$: team = game.teams.find((team) => team.players.some(({ userId }) => userId === user.id))!;

@@ -1,19 +1,19 @@
 <script lang="ts">
 	import type { UpdatePacket } from "$lib/types";
-	import { page } from "$app/stores";
-	import { goto } from "$app/navigation";
-	import { put } from "$lib/Web";
-    import { userStore } from "$lib/stores";
-    import { onDestroy, onMount } from "svelte";
     import { updateManager } from "$lib/updateSocket";
+    import { onDestroy, onMount } from "svelte";
+    import { userStore } from "$lib/stores";
+	import { goto } from "$app/navigation";
     import { Subject } from "$lib/enums";
-	import Avatar from "./Avatar.svelte";
-	import Achievements from "./Achievements.svelte";
-	import Swal from "sweetalert2";
-	import "@sweetalert2/theme-dark/dark.scss";
-	import * as validator from "validator";
-    import Match from "./Match.svelte";
     import { byId } from "$lib/sorting";
+	import { page } from "$app/stores";
+	import { put } from "$lib/Web";
+	import Achievements from "./Achievements.svelte";
+	import Avatar from "./Avatar.svelte";
+    import Match from "./Match.svelte";
+	import Swal from "sweetalert2";
+	import * as validator from "validator";
+	import "@sweetalert2/theme-dark/dark.scss";
 
 	const edit_icon = "/Assets/icons/pen.png";
 
@@ -31,10 +31,7 @@
 
 	onDestroy(() => {
 		updateManager.remove(index);
-	})
-
-	function clickfunction(event: MouseEvent) {
-	}
+	});
 
 	async function changeUsername() {
 		await Swal.fire({
@@ -62,8 +59,6 @@
 	}
 </script>
 
-<svelte:window on:click={clickfunction}/>
-
 <div class="block-vert" id="info">
 	<div class="block-hor" id="user-block">
 		<div class="block-cell" id="user-name-block">
@@ -78,7 +73,7 @@
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">
-					<div class="block-hor" id="level-text">33</div>
+					<div class="block-hor" id="level-text">{Math.floor($page.data.level)}</div>
 					<div class="block-hor" id="level-text">Level</div>
 				</div>
 				<div class="block-cell" id="level-block-bar">
@@ -98,9 +93,9 @@
 			<Achievements/>
 		</div>
 	</div>
-	<div>
-		{#each $page.data.games.sort(byId).reverse() as game (game.id)}
-			<Match user={profile} {game}/>
+	<div class="block-hor">
+		{#each $page.data.stats as stat}
+			<div>{stat.id}</div>
 		{/each}
 	</div>
 </div>

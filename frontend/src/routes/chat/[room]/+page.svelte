@@ -82,6 +82,7 @@
 		setTimeout(() => relativeScroll = messages.length - load, 1000);
 	}
 
+	//TODO some more things to do with really large messages in the textarea
 </script>
 
 {#if room && self}
@@ -137,6 +138,7 @@
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
+		width: 90%;
 	}
 
 	.messages {
@@ -146,7 +148,7 @@
 		overflow: auto;
 
 		/* TODO */
-		height: 70vh;
+		/* height: 70vh; */
 	}
 
 	.member-container {

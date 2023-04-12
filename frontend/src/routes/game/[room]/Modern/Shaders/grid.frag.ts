@@ -118,7 +118,6 @@ highp vec3 stars(highp float starSize)
 	return vec3(color);
 }
 
-//TODO make the stars fluctuate slightly with time
 highp vec3 starColor() {
     highp vec3 smallStars = stars(6.);
     highp vec3 mediumStars = stars(8.);

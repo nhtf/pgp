@@ -20,6 +20,11 @@ export class GameState {
 	@RelationId((gameState: GameState) => gameState.room)
 	roomId: number | null;
 
+	@Column({
+	       default: 0//TODO remove
+	})
+	team_count: number;
+
 	@OneToMany(() => Team, (team) => team.state, { eager: true, cascade: [ "insert", "update" ] })
 	teams: Team[];
 
@@ -28,8 +33,4 @@ export class GameState {
 
 	@Column({ default: false })
 	finished: boolean = false;
-
-	@Exclude()
-	@Column({ default: false })
-	processed: boolean = false;
 }

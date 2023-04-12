@@ -241,7 +241,6 @@ export class FullShader {
 		this.renderPaddles(time, viewport, res);
 		
 		this.ball.setUniform(this.gl, time, viewport, this.ballPos, res,  {size: {x: ballSize * this.minScale, y: ballSize * this.minScale}});
-		//TODO This needs to slightly more clear for which player is supposed to launch the ball
 		this.ball.renderNamed(this.gl, "ball", {color: [this.ballOwner]});
 
 		this.field.setUniform(this.gl, time, viewport, this.ballPos, res);
@@ -250,7 +249,6 @@ export class FullShader {
 		this.renderScore();
 	}
 
-	//TODO make the outline of the text better
 	private renderScore() {
 		for (let i = 0; i < this.level.players; i++) {
 			const nIndex = Math.abs(this.scores[i] % 10);
@@ -259,17 +257,16 @@ export class FullShader {
 			matrix.scaling(2 / WIDTH, 2 / HEIGHT);
 
 			if (this.scores[i] < 0) {
-				//TODO fix the look of the minus symbol
 				const minMatrix = new m3();
 				minMatrix.rotationZAxis(Math.PI / 2);
-				minMatrix.translation(this.level.scorePositions[i].x - WIDTH / 2, (this.level.scorePositions[i].y) - HEIGHT / 2);
+				minMatrix.scaling(0.6, 1);
+				if (nIndex === 1)
+					minMatrix.translation(this.level.scorePositions[i].x - WIDTH / 2 - 10, (this.level.scorePositions[i].y) - HEIGHT / 2 + 20);
+				else
+					minMatrix.translation(this.level.scorePositions[i].x - WIDTH / 2 - 15, (this.level.scorePositions[i].y) - HEIGHT / 2 + 20);
 				minMatrix.scaling(2 / WIDTH, 2 / HEIGHT);
-				minMatrix.scaling(0.8, 1);
-				minMatrix.translation(-0.12, 0.15);
 				this.field.renderTriangles(this.gl, font[1], minMatrix.matrix, this.level.scoreColors[i]);
 				this.field.renderPoints(this.gl, fontEdges[1], minMatrix.matrix, [1,1,1,1]);
-				// matrix.rotationZAxis(-Math.PI / 2);
-				// matrix.translation(-0.07, 0);
 			}
 
 			

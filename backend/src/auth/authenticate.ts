@@ -34,7 +34,7 @@ export async function authenticateOrReject(request: IncomingMessage, get_user: (
 		if (!user)
 			throw { message: "Not found", code: HttpStatus.NOT_FOUND };
 		try {
-			if (!user.is_bot || !await argon2.verify(user.api_secret, Buffer.from(dto.secret, "base64")))
+			if (!user.is_bot || !(await argon2.verify(user.api_secret, Buffer.from(dto.secret, "base64"))))
 				throw { message: "Unauthorized", code: HttpStatus.UNAUTHORIZED };
 		} catch (err) {
 			if (err.code == HttpStatus.UNAUTHORIZED)

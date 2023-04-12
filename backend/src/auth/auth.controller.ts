@@ -70,12 +70,7 @@ export class AuthController {
 	async logout(@Session() session: SessionObject) {
 		session.auth_level = AuthLevel.None;
 	
-		if (!await this.session_utils.destroy_session(session)) {
-			throw new HttpException(
-				"could not logout",
-				HttpStatus.INTERNAL_SERVER_ERROR,
-			);
-		}
+		await this.session_utils.destroy_session(session);
 
 		return {};
 	}
@@ -95,7 +90,7 @@ export class AuthController {
 	}
 
 	async get_id(access_token: AccessToken): Promise<number | undefined> {
-		let rest_client = new rm.RestClient("pgp", "https://api.intra.42.fr", [
+		const rest_client = new rm.RestClient("pgp", "https://api.intra.42.fr", [
 			new BearerCredentialHandler(access_token.token.access_token as string, false),
 		]);
 		const res = await rest_client.get<ResultDTO>("/v2/me");

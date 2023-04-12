@@ -88,7 +88,7 @@
 	}
 
 	.message-content {
-		overflow-wrap: break-word;
+		overflow-wrap: anywhere;
 		white-space: pre-wrap;
 	}
 

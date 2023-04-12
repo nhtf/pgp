@@ -33,7 +33,6 @@ highp vec4 getGradientColor(){
     return retcolor;
 }
 
-//TODO for radial gradient do the color slightly different
 void main()
 {
     highp vec4 endColor;

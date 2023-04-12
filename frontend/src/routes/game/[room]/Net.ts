@@ -121,7 +121,7 @@ export class Net {
 		while (index < this.allEvents.length && this.allEvents[index].time == this.time) {
 			const event = this.allEvents[index];
 
-			console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
+			// console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
 			
 			if (doingDesyncCheck) {
 				console.log(event);
@@ -213,6 +213,7 @@ export class Net {
 					console.log(`replay check for ${latest[0].time} (real time is ${this.time}, before hash is ${hashCode(JSON.stringify(beforeState))}, after hash is ${hashCode(JSON.stringify(afterState))})`);
 	
 					if (JSON.stringify(beforeState) != JSON.stringify(afterState)) {
+						console.log(JSON.stringify(beforeState), JSON.stringify(afterState));
 						debugger;
 					}
 				}
@@ -224,7 +225,7 @@ export class Net {
 		this.tickCounter.add(1);
 		this.earlyTick();
 		this.lateTick();
-		console.log(`tick time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
+		// console.log(`tick time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
 	}
 
 	private forward(target: number) {
@@ -376,6 +377,8 @@ export class Net {
 						this.forward(this.maxTime);
 	
 						if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
+							console.log(JSON.stringify(testState));
+							console.log(JSON.stringify(message.snapshot));
 							debugger;
 						}
 					}

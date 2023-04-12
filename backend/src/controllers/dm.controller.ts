@@ -12,6 +12,7 @@ import { UserService } from "src/services/user.service";
 import { instanceToPlain } from "class-transformer"
 import { AchievementService } from "src/services/achievement.service";
 import { RequiredRole } from "src/guards/role.guard";
+import { UpdateGateway } from "src/gateways/update.gateway";
 
 class CreateDMRoomDTO implements CreateRoomDTO {
 	@IsEmpty()
@@ -81,6 +82,8 @@ export class DMRoomController extends NewChatRoomController {
 
 		await this.room_service.add_members(room, { user, role: Role.MEMBER }, { user: other, role: Role.MEMBER });
 
+		this.update(room, { other: instanceToPlain(other) });
+	
 		return room;
 	}
 

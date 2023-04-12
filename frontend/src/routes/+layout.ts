@@ -16,9 +16,9 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 		const blocked: User[] = await get(`/user/me/blocked`);
 		const invites: Invite[] = await get(`/user/me/invites`);
 	
-		updateStore(userStore, user, User);
-		updateStore(inviteStore, invites, Invite);
-		updateStore(blockStore, blocked.map(({ id }) => { return { id } }), Entity);
+		updateStore(User, user);
+		updateStore(Invite, invites);
+		updateStore(Entity, blocked.map(({ id }) => { return { id } }), blockStore);
 
 	} catch (err) { }
 

@@ -1,9 +1,8 @@
 <script lang="ts">
-	import type { PageData } from "./$types";
-	import { respond } from "$lib/invites";
-	import { Tabs, TabItem } from "flowbite-svelte";
-	import { inviteStore, userStore } from "$lib/stores";
     import type { Invite, User } from "$lib/entities";
+	import type { PageData } from "./$types";
+	import { inviteStore, userStore } from "$lib/stores";
+	import { Tabs, TabItem } from "flowbite-svelte";
 
 	export let data: PageData;
 
@@ -42,12 +41,12 @@
 					<div class="buttons">
 						<button
 							class="border-green"
-							on:click={() => respond(invite, "accept")}
+							on:click={() => invite.accept}
 							>Accept</button
 						>
 						<button
 							class="border-red"
-							on:click={() => respond(invite, "deny")}
+							on:click={() => invite.deny}
 							>Deny</button
 						>
 					</div>
@@ -66,7 +65,7 @@
 						<div>{invite.type} invitation to {invite.to.username}</div>
 						<button
 							class="border-red"
-							on:click={() => respond(invite, "deny")}
+							on:click={() => invite.deny}
 							>Cancel</button
 						>
 					</div>

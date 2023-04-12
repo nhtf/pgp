@@ -10,8 +10,8 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 	const room: DMRoom = await unwrap(get(`/dm/${params.room}`));
 	const messages: Message[] = await unwrap(get(`/dm/${params.room}/messages`));
 
-	updateStore(roomStore, room, DMRoom);
-	updateStore(userStore, room.other, User);
+	updateStore(DMRoom, room);
+	updateStore(User, room.other!);
 
     return { room, messages };
 }) satisfies PageLoad;

@@ -26,7 +26,7 @@
 	}
 
 	async function fetchMembers() {
-		updateStore(memberStore, await unwrap(get(`${room.route}/members`)), Member);
+		updateStore(Member, await unwrap(get(`${room.route}/members`)));
 	}
 
 </script>
