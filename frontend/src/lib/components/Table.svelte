@@ -2,9 +2,10 @@
     import type { ObjectLiteral } from "$lib/stores";
     import { Access, Gamemode, Status } from "$lib/enums";
     import { status_colors } from "$lib/constants";
+    import { byId } from "$lib/sorting";
 
 	export let caption: string | undefined = undefined;
-	export let entities: ObjectLiteral[];
+	export let entities: any[];
 
 	const keys = Object.keys(entities[0] ?? {});
 	const custom = [
@@ -29,7 +30,7 @@
 				<th>{key}</th>
 			{/each}
 		</tr>
-		{#each entities as entity}
+		{#each entities.sort(byId) as entity}
 			<tr>
 				{#each keys.map((key) => [key, entity[key]]) as [key, value]}
 					<td>

@@ -30,11 +30,6 @@ export abstract class Entity {
 	public world: World;
 	public removed: boolean;
 	public interpolation: number;
-	private ammoTransform: Ammo.btTransform;
-	private ammoPosition: Ammo.btVector3;
-	private ammoRotation: Ammo.btQuaternion;
-	private ammoLinearVelocity: Ammo.btVector3;
-	private ammoAngularVelocity: Ammo.btVector3;
 
 	public constructor(world: World, uuid: string, renderObject: THREE.Object3D, physicsObject: Ammo.btRigidBody) {
 		this.world = world;
@@ -46,47 +41,68 @@ export abstract class Entity {
 		this.lastUpdate = 0;
 		this.removed = false;
 		this.interpolation = 1;
-		this.ammoTransform = physicsObject.getWorldTransform();
-		this.ammoPosition = this.ammoTransform.getOrigin();
-		this.ammoRotation = this.ammoTransform.getRotation();
-		this.ammoLinearVelocity = this.physicsObject.getLinearVelocity();
-		this.ammoAngularVelocity = this.physicsObject.getAngularVelocity();
 	}
 
 	public get position(): Vector {
-		return Vector.moveFromAmmo(this.ammoTransform.getOrigin());
+		const motionState = this.physicsObject.getMotionState();
+		const worldTransform = new Ammo.btTransform();
+		motionState.getWorldTransform(worldTransform);
+		const origin = Vector.fromAmmo(worldTransform.getOrigin());
+		Ammo.destroy(worldTransform);
+		return origin;
 	}
 
 	public get rotation(): Quaternion {
-		return Quaternion.moveFromAmmo(this.ammoTransform.getRotation());
+		const motionState = this.physicsObject.getMotionState();
+		const worldTransform = new Ammo.btTransform();
+		motionState.getWorldTransform(worldTransform);
+		const rotation = Quaternion.fromAmmo(worldTransform.getRotation());
+		Ammo.destroy(worldTransform);
+		return rotation;
 	}
 
 	public get linearVelocity(): Vector {
-		return Vector.moveFromAmmo(this.physicsObject.getLinearVelocity());
+		return Vector.fromAmmo(this.physicsObject.getLinearVelocity());
 	}
 
 	public get angularVelocity(): Vector {
-		return Vector.moveFromAmmo(this.physicsObject.getAngularVelocity());
+		return Vector.fromAmmo(this.physicsObject.getAngularVelocity());
 	}
 
 	public set position(vector: Vector) {
-		this.ammoPosition.setValue(vector.x, vector.y, vector.z);
-		this.ammoTransform.setOrigin(this.ammoPosition);
+		const motionState = this.physicsObject.getMotionState();
+		const worldTransform = new Ammo.btTransform();
+		motionState.getWorldTransform(worldTransform);
+		const origin = new Ammo.btVector3(vector.x, vector.y, vector.z);
+		worldTransform.setOrigin(origin);
+		motionState.setWorldTransform(worldTransform);
+		this.physicsObject.setMotionState(motionState);
+		Ammo.destroy(origin);
+		Ammo.destroy(worldTransform);
 	}
 
 	public set rotation(quaternion: Quaternion) {
-		this.ammoRotation.setValue(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
-		this.ammoTransform.setRotation(this.ammoRotation);
+		const motionState = this.physicsObject.getMotionState();
+		const worldTransform = new Ammo.btTransform();
+		motionState.getWorldTransform(worldTransform);
+		const rotation = new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
+		worldTransform.setRotation(rotation);
+		motionState.setWorldTransform(worldTransform);
+		this.physicsObject.setMotionState(motionState);
+		Ammo.destroy(rotation);
+		Ammo.destroy(worldTransform);
 	}
 
 	public set linearVelocity(vector: Vector) {
-		this.ammoLinearVelocity.setValue(vector.x, vector.y, vector.z);
-		this.physicsObject.setLinearVelocity(this.ammoLinearVelocity);
+		const linearVelocity = new Ammo.btVector3(vector.x, vector.y, vector.z);
+		this.physicsObject.setLinearVelocity(linearVelocity);
+		Ammo.destroy(linearVelocity);
 	}
 
 	public set angularVelocity(vector: Vector) {
-		this.ammoAngularVelocity.setValue(vector.x, vector.y, vector.z);
-		this.physicsObject.setAngularVelocity(this.ammoAngularVelocity);
+		const angularVelocity = new Ammo.btVector3(vector.x, vector.y, vector.z);
+		this.physicsObject.setAngularVelocity(angularVelocity);
+		Ammo.destroy(angularVelocity);
 	}
 
 	public motionStateIntoObject(): object {
@@ -185,11 +201,6 @@ export abstract class Entity {
 		Ammo.destroy(this.physicsObject.getCollisionShape());
 		Ammo.destroy(this.physicsObject.getMotionState());
 		Ammo.destroy(this.physicsObject);
-		Ammo.destroy(this.ammoTransform);
-		Ammo.destroy(this.ammoPosition);
-		Ammo.destroy(this.ammoRotation);
-		Ammo.destroy(this.ammoLinearVelocity);
-		Ammo.destroy(this.ammoAngularVelocity);
 	}
 
 	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {

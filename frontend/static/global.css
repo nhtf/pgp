@@ -43,6 +43,8 @@ body {
 		Arial, sans-serif;
 	--input-bkg-color: #f9fafb;
 	--button-hover-color: #f3f4f6;
+	--input-border-color: rgb(107, 114, 128);
+	--checkbox-bkg-color: #eeeeee;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -74,6 +76,8 @@ body {
 		--circumference: 188.4955592154;
 		--input-bkg-color: #374151;
 		--button-hover-color: #374151;
+		--input-border-color: rgb(107, 114, 128);
+		--checkbox-bkg-color: rgb(41, 45, 57);
 	}
 }
 
@@ -103,6 +107,8 @@ body.dark {
 	--circumference: 188.4955592154;
 	--input-bkg-color: #374151;
 	--button-hover-color: #374151;
+	--input-border-color: rgb(107, 114, 128);
+	--checkbox-bkg-color: rgb(41, 45, 57);
 }
 
 * {
@@ -411,14 +417,16 @@ table {
 	width: 30px !important;
 	height: 30px !important;
 	vertical-align: top !important;
-	background-color: var(--box-color) !important;
+	/* background-color: var(--checkbox-bkg-color) !important; */
 	border-radius: 0.5rem !important;
+	border-color: var(--input-border-color)!important;
+	border-width: 1px;
 }
 
 .select {
 	display: inline-block !important;
 	background: var(--box-color);
-	border: 1px solid var(--border-color);
+	border: 1px solid var(--input-border-color);
 	border-radius: 0.375rem;
 	padding-top: 0.25rem !important;
 	padding-bottom: 0.25rem !important;
@@ -498,8 +506,8 @@ canvas {
 }
 
 .icon {
-	width: 2rem;
-	height: 2rem;
+	width: 1.75rem;
+	height: 1.75rem;
 	-webkit-filter: var(--invert);
 	filter: var(--invert);
 	align-self: center;

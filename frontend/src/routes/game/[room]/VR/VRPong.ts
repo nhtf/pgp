@@ -339,7 +339,7 @@ export class Pong extends World {
 			}, {
 				uuid: this.paddleUUID,
 				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),
-				tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
+				// tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
 			});
 		}
 

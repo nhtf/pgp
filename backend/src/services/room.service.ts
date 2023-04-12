@@ -2,8 +2,10 @@ import type { Member } from "src/entities/Member";
 import type { Room } from "src/entities/Room";
 import type { User } from "src/entities/User";
 import { Repository, FindOneOptions, FindOptionsWhere, FindOptionsRelations, SelectQueryBuilder } from "typeorm";
+import { UpdateGateway } from "src/gateways/update.gateway";
+import { instanceToPlain } from "class-transformer";
+import { Action , Role, Subject } from "src/enums";
 import { genName } from "src/namegen"
-import { Role } from "src/enums";
 import * as argon2 from "argon2";
 
 export interface CreateRoomOptions {
@@ -30,6 +32,7 @@ export interface IRoomService<T extends Room, U extends Member, S extends Create
 	create(options: S): Promise<T>;
 	edit(room: T, options: Partial<S>): Promise<T>;
 
+	get_users(room: T): Promise<User[]>;
 	get_members(room: T): Promise<U[]>;
 	get_member(room: T, user: User): Promise<U | undefined>;
 	add_members(room: T, ...members: AddMemberType[]): Promise<U[]>;
@@ -75,7 +78,11 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 		// Room
 	
 		async get(where?: any) {
-			return this.room_repo.findBy(where ?? {});
+			const rooms = await this.room_repo.findBy(where ?? {});
+			for (const room of rooms) {
+				room.members = await this.member_repo.findBy({ room: { id: room.id } } as any);
+			}
+			return rooms;
 		}
 
 		async create({ name, is_private, password }: S) {
@@ -104,6 +111,10 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 
 		// Members
 
+		async get_users(room: T): Promise<User[]> {
+			return room.users;
+		}
+	
 		async get_members(room: T) {
 			return room.members as U[];
 		}
@@ -129,7 +140,24 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 					return member;
 			});
 
-			return this.save_members(...adding as any);
+			const added = await this.save_members(...adding as any[]);
+
+			room.members.push(...added);
+
+			members.forEach(({ user }) => {
+				UpdateGateway.instance.send_update({
+					subject: Subject.ROOM,
+					action: Action.UPDATE,
+					id: room.id,
+					value: {
+						...instanceToPlain(room),
+						joined: true,
+						self: room.self(user as User) 
+					}
+				}, user);
+			});
+		
+			return added;
 		}
 
 		async remove_members(room: T, ...members: { member: U, ban?: boolean }[]) {
@@ -140,6 +168,12 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 		
 			await this.member_repo.remove(removing);
 			await this.ban(room, ...banning);
+
+			room = await this.find(room);
+
+			if (!room.members.length) {
+				await this.remove(room);
+			}
 		}
 
 		// Bans
@@ -168,7 +202,7 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 
 		// Util
 	
-		async find(room: T, relations: any) {
+		async find(room: T, relations?: any) {
 			return this.room_repo.findOne({ where: { id: room.id }, relations: relations as FindOptionsRelations<T> } as FindOneOptions<T>)
 		}
 

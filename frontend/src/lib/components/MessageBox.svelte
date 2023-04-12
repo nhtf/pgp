@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { ChatRoomMember, Message } from "$lib/entities";
+	import type { ChatRoomMember, Message, Room } from "$lib/entities";
 	import { BOUNCER, icon_path } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { CoalitionColors } from "$lib/enums";
@@ -11,10 +11,10 @@
     import UserDropdown from "./UserDropdown.svelte";
 	import "linkify-plugin-mention";
 
+	export let room: Room;
 	export let message: Message;
-	export let self: ChatRoomMember;
+	export let self: ChatRoomMember | undefined = undefined;
 
-	// const tenor_regex = /^https:\/\/media\.tenor\.com\/([^\/]+\/[^\/]+\.gif)$/;
 	const role_colors = Object.values(CoalitionColors);
 	const trash = `${icon_path}/trash.svg`;
 
@@ -27,7 +27,7 @@
 	$: member = message.memberId ? $memberStore.get(message.memberId)! as ChatRoomMember : undefined;
 
 	async function censor() {
-		await unwrap(remove(`/chat/${self.roomId}/messages/${message.id}`));
+		await unwrap(remove(`${room.route}/messages/${message.id}`));
 	}
 </script>
 
@@ -47,7 +47,7 @@
 				{user.username}
 			</div>
 			<div class="grow" />
-			{#if !member || member.id === self.id || member.role < self.role}
+			{#if user.id === $page.data.user.id || (self && (!member || member.role < self.role))}
 				<button on:click={censor}
 					><img class="w-5 h-5" src={trash} alt="delete" /></button
 				>

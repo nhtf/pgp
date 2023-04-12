@@ -25,6 +25,7 @@
     import { updateManager, updateSocket } from "$lib/updateSocket";
     import { Action, Subject } from "$lib/enums";
 	import Notifications from "$lib/components/Notifications.svelte";
+    import Swal from "sweetalert2";
 
 	export let data: LayoutData;
 
@@ -50,6 +51,7 @@
 
 	indices.push(updateManager.set(Subject.ROOM, roomRemove));
 	indices.push(updateManager.set(Subject.MEMBER, memberRemove));
+	indices.push(updateManager.set(Subject.REDIRECT, redirect));
 
 	updateManager.prioritise(...indices);
 
@@ -71,6 +73,20 @@
 		) {
 			await goto(route);
 		}
+	}
+
+	async function redirect(update: UpdatePacket) {
+		Swal.fire({
+			icon: "info",
+			title: "redirect",
+			confirmButtonText: "Go",
+			text: update.value.message,
+			showCancelButton: update.value.can_cancel,
+		}).then(async (result) => {
+			if (result.isConfirmed) {
+				await goto(update.value.url)
+			}
+		})
 	}
 
 	function heartBeat() {
@@ -120,10 +136,10 @@
 
 	const links = [
 		{ url: "/chat", name: "Chat Rooms" },
+		{ url: "/dm", name: "DMs" },
 		{ url: "/game", name: "Game Rooms" },
 		{ url: "/leaderboard", name: "Leaderboard" },
 		{ url: "/invite", name: "Invites" },
-		{ url: "/stores", name: "Stores" }, // TODO: remove
 	];
 </script>
 

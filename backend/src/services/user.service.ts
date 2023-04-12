@@ -20,6 +20,10 @@ export class UserService {
 		return this.user_repo.findBy({ id: In(ids) });
 	}
 
+	async get_by_username(username: string) {
+		return this.user_repo.findOneBy({ username });
+	}
+
 	async remove(...users: User[]) {
 		const ids = users.map((user) => user.id);
 		const rooms = await this.room_repo.findBy({
@@ -33,22 +37,6 @@ export class UserService {
 
 		await this.room_repo.remove(rooms);
 
-		// const friend_query = this.datasource.createQueryBuilder()
-		// 	.delete()
-		// 	.from("friend")
-		// 	.where("false");
-		// const block_query = this.datasource.createQueryBuilder()
-		// 	.delete()
-		// 	.from("block")
-		// 	.where("false");
-
-		// for (const user of users) {
-		// 	friend_query.orWhere("userId_1 = :id", user);
-		// 	friend_query.orWhere("userId_2 = :id", user);
-		// 	block_query.orWhere("userId_1 = :id", user);
-		// 	block_query.orWhere("userId_2 = :id", user);
-		// }
-
 		this.update_service.remove_users(...users);
 		await this.removeFromJoinTableQuery("friend", ...users).execute();
 		await this.removeFromJoinTableQuery("block", ...users).execute();
@@ -56,15 +44,13 @@ export class UserService {
 	}
 
 	removeFromJoinTableQuery(table: string, ...users: User[]): DeleteQueryBuilder<any> {
-		const query = this.datasource.createQueryBuilder()
-			.delete().from(table).where("false");
-
-		users.forEach((user) => {
-			query.orWhere("userId_1 = :id", user);
-			query.orWhere("userId_2 = :id", user);
-		});
-
-		return query;
+		const ids = users.map((user) => user.id);
+	
+		return this.datasource.createQueryBuilder()
+			.delete()
+			.from(table)
+			.where("userId_1 IN (:...ids)", { ids })
+			.orWhere("userId_2 IN (:...ids)", { ids });
 	}
 
 	async both(first: User, second: User, fun: (f: User, s: User) => Promise<void>) {

@@ -15,6 +15,7 @@ import { FullShader } from "./fullShader";
 import type {Snapshot as NetSnapshot } from "../Net";
 import type { BallObject } from "./Ball";
 import type { PaddleObject } from "./Paddle";
+import { activateRipple } from "./fullShader";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
@@ -28,6 +29,12 @@ export interface MouseEvent extends NetEvent {
 	y: string; //ypos
 	t: number; //teamId
 	r: string; //rotation
+	b?: number; //button clicked
+}
+
+export interface BallEvent extends NetEvent {
+	vx: string;
+	vy: string;
 }
 
 export interface ScoreEvent extends NetEvent {
@@ -123,8 +130,6 @@ export class Game extends Net {
 		});
 
 		this.on("mousescroll", netEvent => {
-			//TODO do a check for if after rotation ball gets inside paddle
-			//TODO check if rotation causes paddle to get outside player field
 			const event = netEvent as MouseEvent;
 			let paddle = this.getPaddle(event.u);
 
@@ -138,7 +143,12 @@ export class Game extends Net {
 				paddle.userId = event.u;
 				paddle.ping = this.time;
 
+				const oldRot = paddle.rotation;
 				paddle.rotation += deserializeNumber(event.r);
+				if (paddle.isBallInPaddle(this.ball.position)) {
+					console.log("ball in paddle with this rotation - NOT ALLOWED!!");
+					paddle.rotation = oldRot;
+				}
 
 				if (paddle.rotation != deserializeNumber(serializeNumber(paddle.rotation))) {
 					console.error("how did we get here");
@@ -146,6 +156,40 @@ export class Game extends Net {
 
 				this.shader.rotatePaddle(paddle.rotation, paddle.owner);
 			}
+		});
+
+		this.on("mouseclick", netEvent => {
+			const event = netEvent as MouseEvent;
+			let paddle = this.getPaddle(event.u);
+
+			if (paddle === null) {
+				paddle = this.paddles.find(p => p.team.id == event.t) ?? null;
+				if (paddle?.userId !== undefined) {
+					paddle = null;
+				}
+			}
+			if (paddle !== null) {
+				paddle.userId = event.u;
+				paddle.ping = this.time;
+				if (event.b === 1 ) {
+					paddle.rotation = this.level.paddles[paddle.owner].angle;
+					this.shader.rotatePaddle(paddle.rotation, paddle.owner);
+				}
+				if (event.b === 0 && this.teams[paddle.owner].active) {
+					// this.ball.velocity = new Vector(ballVelociy[this.players][paddle.owner].x, ballVelociy[this.players][paddle.owner].y);
+					this.teams[paddle.owner].active = false;
+					this.send("ballLaunch", {vx: serializeNumber(ballVelociy[this.players][paddle.owner].x), vy: serializeNumber(ballVelociy[this.players][paddle.owner].y)});
+				}
+
+			}
+		});
+
+		//TODO still causes desync?
+		//TODO doesn't correspond to correct player for 4 players?
+		this.on("ballLaunch", netEvent => {
+			const event = netEvent as BallEvent;
+			this.ball.velocity = new Vector(deserializeNumber(event.vx), deserializeNumber(event.vy));
+			this.shader.changeBallOwner([0.871, 0.898, 0.07, 1]);
 		});
 
 		this.on("ping", netEvent => {
@@ -240,12 +284,19 @@ export class Game extends Net {
 					goal = 1;
 					this.teams[goal].score += 1;
 				}
+				if (this.teams[goal].score > 10 || this.teams[goal].score < 0) {
+					console.log("game over? -> send update to backend and stop the game here or something");
+				}
+				//TODO score seems to be incorrect check here  and in the render thing
 				this.shader.updateScore(this.teams[goal].score, goal);
 				//TODO reimplement the ripples again
 				// setOriginRipple(this.ball.position.x, this.ball.position.y);
-				// activateRipple();
+				activateRipple();
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
-				this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
+				this.ball.velocity = new Vector(0,0);
+				this.teams[goal].active = true;
+				this.shader.changeBallOwner(this.level.goalBorderColors[goal]);
+				// this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
 				
 				break;
 			} else {
@@ -290,9 +341,8 @@ export class Game extends Net {
 		if (this.players === GAME.FOURPLAYERS)
 			startScore = 10;
 		const teams = options.room.state!.teams;
-		console.log(teams);
 		for (let i = 0; i < this.level.players; i++) {
-			this.teams.push(new Team(teams[i].id, teams[i].score));
+			this.teams.push(new Team(teams[i].id, teams[i].active, teams[i].score));
 			this.shader.updateScore(teams[i].score, i);
 		}
 
@@ -362,43 +412,63 @@ export class Modern {
 		if (!this.options) {
 			return;
 		}
-			if (this.options.member.player != null) {
-				if (this.game) {
-					let paddle = this.game.getPaddle(this.options.member.userId);
+		if (this.options.member.player != null) {
+			if (this.game) {
+				let paddle = this.game.getPaddle(this.options.member.userId);
 
-					let movement: VectorObject = {x: 0, y: 0};
-					if (paddle?.isInPlayerArea({x: paddle.position.x + moveX, y: paddle.position.y}, this.game.field.getPlayerAreas()[paddle.owner]))
-						movement.x = moveX;
-					if (paddle?.isInPlayerArea({x: paddle.position.x, y: paddle.position.y + moveY}, this.game.field.getPlayerAreas()[paddle.owner]))
-						movement.y = moveY;
-					this.game!.send("mousemove", {
-						u: this.options.member.userId,
-						x: serializeNumber(movement.x),
-						y: serializeNumber(movement.y),
-						t: this.options.member.player?.teamId,
-					});
-				}
-			
+				let movement: VectorObject = {x: 0, y: 0};
+				if (paddle?.isInPlayerArea({x: paddle.position.x + moveX, y: paddle.position.y}, this.game.field.getPlayerAreas()[paddle.owner]))
+					movement.x = moveX;
+				if (paddle?.isInPlayerArea({x: paddle.position.x, y: paddle.position.y + moveY}, this.game.field.getPlayerAreas()[paddle.owner]))
+					movement.y = moveY;
+				this.game!.send("mousemove", {
+					u: this.options.member.userId,
+					x: serializeNumber(movement.x),
+					y: serializeNumber(movement.y),
+					t: this.options.member.player?.teamId,
+				});
+			}
 		}
 	}
 
-	//TODO add a middleclick to reset rotation
 	public mouseWheel(deltaY: number) {
 		if (!this.options) {
 			return;
-		}	
+		}
 		if (this.options.member.player != null && this.players === GAME.FOURPLAYERS) {
+			let rot = 0;
+			if (this.game) {
+				let paddle = this.game.getPaddle(this.options.member.userId);
+				if (paddle?.isInPlayerAreaRot(paddle.rotation + deltaY, this.game.field.getPlayerAreas()[paddle.owner]))
+					rot = deltaY;
+			}
+			
 			this.game!.send("mousescroll", {
 				u: this.options.member.userId,
 				x: serializeNumber(0),
 				y: serializeNumber(0),
 				t: this.options.member.player?.team?.id,
-				r: serializeNumber(deltaY),
+				r: serializeNumber(rot),
 			});
 		}
 	}
 
-	//TODO add a click to release ball
+	public mouseClick(button: number) {
+		if (!this.options) {
+			return;
+		}
+
+		if (this.options.member.player != null) {
+			this.game!.send("mouseclick", {
+				u: this.options.member.userId,
+				x: serializeNumber(0),
+				y: serializeNumber(0),
+				t: this.options.member.player?.team?.id,
+				r: serializeNumber(0),
+				b: button,
+			});
+		}
+	}
 
 	public stop() {
 		this.game!.stop();

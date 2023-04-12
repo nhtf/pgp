@@ -228,6 +228,7 @@ export class World extends Net {
 		for (let entity of this.entities) {
 			this.world.removeRigidBody(entity.physicsObject);
 			entity.physicsObject.forceActivationState(1);
+			entity.physicsObject.activate(true);
 			entity.motionStateFromObject(entity.motionStateIntoObject());
 		}
 
@@ -238,11 +239,12 @@ export class World extends Net {
 			this.world.addRigidBody(entity.physicsObject);
 		}
 
+
 		for (let i = 0; i < STEPS_PER_TICK; i++) {
 			for (let entity of this.entities) {
 				entity.physicsTick();
 			}
-
+		
 			const subFrame = this.time * STEPS_PER_TICK + i;
 			const physicsStep = 1 / TICKS_PER_SECOND / STEPS_PER_TICK * PHYSICS_MULTIPLIER;
 			this.broadphaseInterface.resetPool(this.collisionDispatcher);

@@ -89,9 +89,9 @@ export const friendStore = storeFactory<Entity>(Subject.FRIEND, Entity);
 export const gameStore = storeFactory<GameState>(Subject.GAMESTATE, GameState);
 
 updateManager.set(Subject.ROOM, onRoomInsert);
+updateManager.set(Subject.TEAM, onScoreUpdate);
 updateManager.set(Subject.ROOM, onPrivateRemove);
 updateManager.set(Subject.FRIEND, onFriendInsert);
-updateManager.set(Subject.GAMESTATE, onScoreUpdate);
 
 // Removed from private room
 async function onPrivateRemove(update: UpdatePacket) {
@@ -115,7 +115,7 @@ async function onFriendInsert(update: UpdatePacket) {
 	}
 }
 
-// Add state or owner from new room
+// Add state and/or owner from new room
 async function onRoomInsert(update: UpdatePacket) {
 	if (update.value?.state) {
 		updateStore(gameStore, update.value.state, GameState);
@@ -126,6 +126,7 @@ async function onRoomInsert(update: UpdatePacket) {
 	}
 };
 
+// Change team score in game
 async function onScoreUpdate(update: UpdatePacket) {
 	if (update.action === Action.UPDATE) {
 		gameStore.update((old) => {

@@ -2,7 +2,7 @@ import type { Message } from "src/entities/Message";
 import { GenericRoomService, CreateRoomOptions } from "src/services/room.service";
 import { Injectable, Inject } from "@nestjs/common";
 import { Repository } from "typeorm";
-import { ChatRoom } from "src/entities/ChatRoom";
+import { DMRoom } from "src/entities/DMRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
 import { EMBED_MAXLENGTH, EMBED_ALGORITHM, BOUNCER_KEY, BOUNCER_MAX_REDIRECTS, BOUNCER_ADDRESS } from "src/vars";
 import { createHmac } from "node:crypto";
@@ -10,20 +10,12 @@ import { Embed } from "src/entities/Embed";
 import { HttpService } from "@nestjs/axios";
 import axios from "axios";
 import type { User } from "src/entities/User";
-import * as argon2 from "argon2";
-
-export interface CreateChatRoomOptions extends CreateRoomOptions {
-	name?: string;
-	is_private?: boolean;
-	password?: string;
-	is_dm: boolean;
-}
 
 @Injectable()
-export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember, CreateChatRoomOptions>(ChatRoom, ChatRoomMember) {
+export class DMRoomService extends GenericRoomService<DMRoom, ChatRoomMember, CreateRoomOptions>(DMRoom, ChatRoomMember) {
 	constructor(
-		@Inject("CHATROOM_REPO")
-		room_repo: Repository<ChatRoom>,
+		@Inject("DMROOM_REPO")
+		room_repo: Repository<DMRoom>,
 		@Inject("CHATROOMMEMBER_REPO")
 		member_repo: Repository<ChatRoomMember>,
 		@Inject("MESSAGE_REPO")
@@ -32,18 +24,11 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 		super(room_repo, member_repo);
 	}
 
-	async create(options: CreateChatRoomOptions) {
-		const room = await super.create(options);
-
-		room.is_dm = options.is_dm ?? false;
-		return this.room_repo.save(room);
-	}
-
-	async get_messages(room: ChatRoom): Promise<Message[]> {
+	async get_messages(room: DMRoom): Promise<Message[]> {
 		return this.message_repo.findBy({ room: { id: room.id } });
 	}
 
-	async add_messages(room: ChatRoom, ...messages: Message[]) {
+	async add_messages(room: DMRoom, ...messages: Message[]) {
 		room = await this.find(room, { messages: true });
 
 		room.messages.push(...messages);
@@ -75,8 +60,17 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 		}
 	}
 
-	async get_users(room: ChatRoom): Promise<User[]> {
-		const from_members = await super.get_users(room);
+	async get_users(room: DMRoom): Promise<User[]> {
+		const members: ChatRoomMember[] = await this.member_repo.find({
+			relations: {
+				user: true,
+			},
+			where: {
+				room: {
+					id: room.id,
+				}
+			}
+		});
 		const messages = await this.message_repo.find({
 			relations: {
 				user: true,
@@ -89,7 +83,7 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 			},
 		});
 
-		const users = [...from_members, ...messages.map((message) => message.user)];
+		const users = [...members.map((member) => member.user), ...messages.map((message) => message.user)];
 		const unique = new Map(users.map((user) => [user.id, user]));
 
 		return [...unique.values()];

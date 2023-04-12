@@ -35,8 +35,10 @@
 	}
 
 	const progress = achievement.progress / (current_obj?.threshold ?? 1);
-	const achieved = achievement.progress > achievement.objectives[0].threshold;
+	const achieved = achievement.progress >= achievement.objectives[0].threshold;
 	const color = achieved ? current_obj!.color : "gray";
+
+	console.log("prog", progress, "achieved: ", achieved, "color: ", color);
 </script>
 
 <div

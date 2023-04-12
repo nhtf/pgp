@@ -133,7 +133,7 @@ export class MatchController {
 			id: room.id,
 			value: {
 				message: "Found a game",
-				url: `${FRONTEND_ADDRESS}/game/${room.id}`,
+				url: `/game/${room.id}`,
 				can_cancel: true,
 			}
 		}, ...users);

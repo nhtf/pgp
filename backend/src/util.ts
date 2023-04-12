@@ -74,7 +74,7 @@ export function validate_id(value: any) {
 export async function parseId<T>(type: (new () => T), value: any, repo: Repository<T>) {
 	const entity = await repo.findOneBy({ id: validate_id(value) } as unknown as FindOptionsWhere<T>);
 	if (!entity)
-		throw new HttpException("not found", HttpStatus.NOT_FOUND);
+		throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 	return entity;
 }
 
@@ -96,7 +96,7 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: any) {
 					} as unknown as FindOptionsWhere<T>,
 				});
 				if (!entity)
-					throw new HttpException("not found", HttpStatus.NOT_FOUND);
+					throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 				return entity;
 			} catch (error) {
 				throw new BadRequestException(error.message);
@@ -132,7 +132,7 @@ export function ParseUsernamePipe(relations?: any) {
 				});
 			
 				if (!entity) {
-					throw new HttpException("not found", HttpStatus.NOT_FOUND);
+					throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 				}
 
 				return entity;

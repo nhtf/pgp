@@ -1,12 +1,17 @@
 <script lang="ts">
-    import { GameState, type User } from "$lib/entities";
-    import { gameStore, updateStore } from "$lib/stores";
-    import { page } from "$app/stores";
+    import { gameStore, updateStore, userStore } from "$lib/stores";
+    import { GameState, User } from "$lib/entities";
     import { byId } from "$lib/sorting";
+    import { page } from "$app/stores";
 
 	export let game: GameState;
 	export let user: User = $page.data.user;
 
+	let players = game.teams.map((team) => team.players).flat();
+	let users = players.map((player) => player.user);
+
+	// TODO
+	// updateStore(userStore, users, User);
 	updateStore(gameStore, game, GameState);
 
 	$: game = $gameStore.get(game.id)!;
@@ -14,7 +19,7 @@
 	$: result = team?.score - Math.max(...game.teams
 		.filter((x) => x.id !== team?.id)
 		.map(({ score }) => score));
-	
+
 </script>
 
 <div class="match match-{result < 0 ? "loss" : result == 0 ? "draw" : "win"}">
@@ -25,8 +30,8 @@
 				<div class="match-team">
 					<div class="match-team-score">{Math.abs(team.score)}</div>
 					<div class="match-team-name">{team.name}</div>
-					{#each team.players as player (player.id)}
-						<div class="match-team-player">{player.user?.username}</div>
+					{#each team.players.sort(byId) as player (player.id)}
+						<div class="match-team-player">{$userStore.get(player.userId)?.username}</div>
 					{/each}
 				</div>
 			</div>

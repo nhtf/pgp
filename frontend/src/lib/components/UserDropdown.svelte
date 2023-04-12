@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { Member, Room, User } from "$lib/entities";
-    import { Avatar, Button, Dropdown, DropdownDivider, DropdownItem, Tooltip } from "flowbite-svelte";
+    import { Avatar, Button, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
     import { blockStore, friendStore, memberStore, userStore } from "$lib/stores";
     import { status_colors } from "$lib/constants";
     import { actions } from "$lib/action";
@@ -39,69 +39,49 @@
 
 </script>
 
-<div class="udd">
-	{#if !extend}
-		<Avatar
-			src={user.avatar}
-			id="avatar-{user.id}"
-			dot={{
-				placement: "bottom-right",
-				color: status_colors[user.status],
-			}}
-		/>
-		<Tooltip>{user.username}</Tooltip>
-		<Dropdown class="dropdown" triggeredBy="#avatar-{user.id}">
-			<DropdownItem class="dropdown-item">
-				<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
-			</DropdownItem>
-			{#if user.id !== me.id}
-				<DropdownDivider/>
-				{#each actions as { condition, fun }}
-					{#if !condition || condition({ user, member, friendIds, blockedIds, my_role, banned }) }
-						<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
-					{/if}
-				{/each}
-			{/if}
-		</Dropdown>
-	{:else}
-		<Button color="alternative" class="friend-button opacity-{opacity} w-full">
-			<Avatar
-				src={user.avatar}
-				id="avatar-{user.id}"
-				dot={{
-					placement: "bottom-right",
-					color: status_colors[user.status],
-				}}
-			/>
-			<Tooltip>{user.username}</Tooltip>
-			{#if extend}
-				<div>{user.username}</div>
-			{/if}
-		</Button>
-		<Dropdown class="dropdown">
-			<DropdownItem class="dropdown-item">
-				<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
-			</DropdownItem>
-			{#if user.id !== me.id}
-				<DropdownDivider/>
-				{#each actions as { condition, fun }}
-					{#if !condition || condition({ user, member, room, friendIds, blockedIds, my_role, banned }) }
-						<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
-					{/if}
-				{/each}
-			{/if}
-		</Dropdown>
-		{#if extend && user.activeRoomId}
-			{#await get(`/game/${user.activeRoomId}/state`) then game}
+
+<div class="user opacity-{opacity}">
+	<Avatar
+		src={user.avatar}
+		id="avatar-{user.id}"
+		dot={{
+			placement: "bottom-right",
+			color: status_colors[user.status],
+		}}
+	/>
+	<Tooltip>{user.username}</Tooltip>
+	{#if user.activeRoomId}
+		{#await get(`/game/${user.activeRoomId}/state`) then game}
+			<Popover placement="bottom">
 				<Match {game}/>
-			{/await}
-		{/if}
+			</Popover>
+		{/await}
 	{/if}
+	{#if extend}
+		<div>{user.username}</div>
+	{/if}
+	<Dropdown class="dropdown" triggeredBy="#avatar-{user.id}">
+		<DropdownItem class="dropdown-item">
+			<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
+		</DropdownItem>
+		{#if user.id !== me.id}
+			<DropdownDivider/>
+			{#each actions as { condition, fun }}
+				{#if !condition || condition({ user, member, friendIds, blockedIds, my_role, banned }) }
+					<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
+				{/if}
+			{/each}
+		{/if}
+	</Dropdown>
 </div>
 
 <style>
-
-	.udd {
-		min-width: 2rem;
+	.user {
+		display: flex;
+		flex-direction: row;
+		align-items: center;
+		gap: 1rem;
+		margin: 0.5rem;
 	}
+
 </style>

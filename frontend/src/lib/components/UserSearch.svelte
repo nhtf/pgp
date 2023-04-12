@@ -4,7 +4,7 @@
 	import { get } from "$lib/Web";
     import { createEventDispatcher } from "svelte";
 	
-	export let filter: (user: User) => boolean;
+	export let filter: (user: User) => boolean = () => true;
 	export let value = "";
 
 	const dispatch = createEventDispatcher();
@@ -24,7 +24,7 @@
 		//[...document.getElementsByClassName("search-input")]?[0].focus();
 	}
 
-	function onKeyPress(event: KeyboardEvent) {
+	function onKeyDown(event: KeyboardEvent) {
 		if (users.length !== 0 && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
 			const current = document.activeElement as HTMLElement;
 			const items = [...document.getElementsByClassName("search-item")] as HTMLElement[];
@@ -68,7 +68,7 @@
 		placeholder="username"
 		bind:value
 		on:input={onInput}
-		on:keypress={onKeyPress}
+		on:keydown={onKeyDown}
 	/>
 	{#if value}
 		<Dropdown bind:open>
@@ -76,7 +76,7 @@
 				<DropdownHeader>No users found</DropdownHeader>
 			{/if}
 			{#each filtered as user (user.id)}
-				<DropdownItem class="search-item" on:click={() => onDropdownClick(user)} on:onkeypress={onKeyPress}>
+				<DropdownItem class="search-item" on:click={() => onDropdownClick(user)} on:keydown={onKeyDown}>
 					<div class="user">
 						<img class="avatar" src={user.avatar} alt="" />
 						<div>{user.username}</div>
