@@ -1,6 +1,6 @@
 import type { LayoutLoad } from "./$types";
 import { Invite, User, Entity } from "$lib/entities";
-import { updateStore, userStore, inviteStore, blockStore } from "$lib/stores";
+import { updateStore, blockStore } from "$lib/stores";
 import { get } from "$lib/Web";
 
 export const ssr = false;

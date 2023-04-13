@@ -1,11 +1,9 @@
 <script lang="ts">
-	import {LEADERBOARDS, changeSort} from "./sorting";
+	import type { leaderdata } from "./sorting";
 	import type { PageData } from './$types';
+	import { LEADERBOARDS } from "./sorting";
 	import { onMount } from "svelte";
-	import type {leaderdata} from "./sorting";
-	export let data: PageData;
 	import { 
-		Avatar, 
 		TableBody, 
 		TableBodyCell, 
 		TableBodyRow,
@@ -15,7 +13,11 @@
 		Tabs, 
 		TabItem
 	 } from "flowbite-svelte";
-    import { BACKEND } from "$lib/constants";
+    import UserDropdown from "$lib/components/UserDropdown.svelte";
+	import type { User } from "$lib/entities";
+
+	export let data: PageData;
+
 	let width: number;
 	let height: number;
 	
@@ -72,6 +74,12 @@
 			}
 		}
 	}
+
+	function partialUser(user: Partial<User>): User {
+		return user as User;
+	}
+
+	//TODO make different tabs or toggle for ranked/unranked leaderboards
 </script>
 
 <svelte:window on:resize={checkwindow} bind:innerWidth={width} bind:innerHeight={height} on:click={checkDiv}/>
@@ -88,11 +96,11 @@
 			class="bordered"
 			placeholder="Search by username" hoverable={true} bind:inputValue={searchTerm[index]}>
 			<TableHead class="table-head">
-			  <TableHeadCell class="table-cell-s">rank</TableHeadCell>
-			  <TableHeadCell class="table-cell-s">user</TableHeadCell>
-			  <TableHeadCell class="table-cell-s">wins</TableHeadCell>
-			  <TableHeadCell class="table-cell-s">lose</TableHeadCell>
-			  <TableHeadCell class="table-cell-s">draw</TableHeadCell>
+				<TableHeadCell class="table-cell-s">rank</TableHeadCell>
+				<TableHeadCell class="table-cell-s">user</TableHeadCell>
+				<TableHeadCell class="table-cell-s">wins</TableHeadCell>
+				<TableHeadCell class="table-cell-s">losses</TableHeadCell>
+				<TableHeadCell class="table-cell-s">draws</TableHeadCell>
 			</TableHead>
 			<TableBody>
 			  {#each filteredItems[index] as item, i}
@@ -100,10 +108,7 @@
 				  <TableBodyCell tdClass="table-cell-s">{i + 1}</TableBodyCell>
 				  <TableBodyCell tdClass="table-cell-s">
 					<div class="flex items-center space-x-8 justify-center">
-					<Avatar src={`${BACKEND}/user/id/${item.id}/avatar`} size="sm"/>
-					<div class="space-y-1 font-medium dark:text-white space-x-2 padding-left">
-						<div>{item.username}</div>
-					</div>
+					<UserDropdown user={partialUser({ id: item.id })} extend={true} placement={"left"}/>
 				</div></TableBodyCell>
 				  <TableBodyCell tdClass="table-cell-s">{item.wins}</TableBodyCell>
 				  <TableBodyCell tdClass="table-cell-s">{item.losses}</TableBodyCell>

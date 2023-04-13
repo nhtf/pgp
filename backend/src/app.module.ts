@@ -41,8 +41,7 @@ import { RoomInviteService } from "src/services/roominvite.service";
 import { NewChatRoomController } from "src/controllers/chat.controller";
 import { ChatRoomService } from "src/services/chatroom.service";
 import { DMRoomController } from "src/controllers/dm.controller";
-import { DMRoomService } from "src/services/dm.service";
-import { LeaderboardController } from "src/controllers/leaderboard.controller";
+import { StatsController } from "src/controllers/stats.controller";
 import * as session from "express-session";
 import * as Pool from "pg-pool";
 
@@ -169,17 +168,6 @@ const services = [
 		inject: ["CHATROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
 	},
 	{
-		provide: "DMROOM_SERVICE",
-		useFactory: (
-			room_repo: Repository<DMRoom>,
-			member_repo: Repository<ChatRoomMember>,
-			message_repo: Repository<Message>,
-		) => {
-			return new DMRoomService(room_repo, member_repo, message_repo);
-		},
-		inject: ["DMROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
-	},
-	{
 		provide: "GAMEROOM_SERVICE",
 		useFactory: (
 			room_repo: Repository<GameRoom>,
@@ -221,7 +209,7 @@ const services = [
 		MatchController,
 		NewChatRoomController,
 		DMRoomController,
-		LeaderboardController,
+		StatsController,
 	],
 	providers: [
 		GameGateway,

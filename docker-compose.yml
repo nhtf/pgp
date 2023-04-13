@@ -29,5 +29,6 @@ services:
     image: 'rambler'
     build: 'rambler'
     env_file: .env
+    restart: always
     extra_hosts:
       - "host.docker.internal:host-gateway"

@@ -51,4 +51,7 @@ export enum CoalitionColors {
 	VELA = "E52A2D",
 }
 
-export const roles = [...Array(Object.keys(Role).length / 2).keys()];
+export function enumKeys(e: any) {
+	return [...Array(Object.keys(e).length / 2).keys()]
+}
+

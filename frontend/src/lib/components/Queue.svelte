@@ -1,11 +1,11 @@
 <script lang="ts">
 	import { userStore } from "$lib/stores";
+    import { icon_path } from "$lib/constants";
 	import { Checkbox } from "flowbite-svelte";
 	import { put, remove } from "$lib/Web";
 	import { Gamemode } from "$lib/enums";
 	import { unwrap } from "$lib/Alert";
 	import { page } from "$app/stores";
-    import { icon_path } from "$lib/constants";
 
 	type QueueDTO = { type: Gamemode, player_counts: number[] }[];
 
@@ -21,13 +21,12 @@
 
 	$: user = $userStore.get($page.data.user.id)!;
 	$: checks = modes.map<boolean[]>(({ player_counts }) => Array(player_counts.length).fill(true));
-	$: gamemodes = modes.filter(({ type, player_counts }) => {
-		return player_counts.filter((_, index) => {
-			return checks[type][index];
-		}).length > 0;
-	});
+	$: gamemodes = modes.map(({ type, player_counts }) => {
+		return { type, player_counts: player_counts.filter((_, index) => checks[type][index]) }
+	}).filter(({ player_counts }) => player_counts.length);
 
 	async function queue() {
+		console.log(gamemodes);
 		await unwrap(put(`/match/me`, { gamemodes }));
 	}
 

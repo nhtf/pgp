@@ -4,12 +4,13 @@ import { SetupGuard } from "src/guards/setup.guard";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import type { LeaderboardView } from "src/entities/LeaderboardView";
 import { Gamemode } from "src/enums";
-import { registerDecorator, ValidationOptions, ValidationArguments, IsIn, IsString, IsNumberString, IsOptional } from "class-validator";
+import { registerDecorator, ValidationOptions, ValidationArguments, IsIn, IsString, IsBooleanString, IsNumberString, IsOptional } from "class-validator";
 import { PLAYER_NUMBERS } from "src/services/gameroom.service";
 import { UserService } from "src/services/user.service";
 import validator from "validator";
-import { ParseUsernamePipe } from "src/util";
-import type { User } from "src/entities/User";
+import { ParseUsernamePipe, ParseIDPipe } from "src/util";
+import { User } from "src/entities/User";
+import { GameRoomService } from "src/services/gameroom.service";
 
 export function IsIntegerString(validationOptions?: ValidationOptions) {
 	return function (object: Object, propertyName: string) {
@@ -67,36 +68,61 @@ class OptionsDTO {
 	@IsString()
 	@IsIn(["ASC", "DESC"])
 	@IsOptional()
-	sort: string;
+	sort: "ASC" | "DESC";
+
+	@IsBooleanString()
+	@IsOptional()
+	ranked: string;
 }
 
-@Controller("leaderboard")//TODO rename to stats
+@Controller("stat(s)?")
 @UseGuards(HttpAuthGuard, SetupGuard)
-export class LeaderboardController { 
+export class StatsController { 
 
 	constructor(
 		@Inject("LEADERBOARDVIEW_REPO")
 		private readonly leader_repo: Repository<LeaderboardView>,
 		private readonly user_service: UserService,
+		private readonly game_service: GameRoomService,
 	) {}
 
-	@Get()
+	@Get("")
 	async get(@Query() dto: OptionsDTO) {
 		if (dto.username != undefined && (await this.user_service.get_by_username(dto.username) == undefined)) {
 			throw new NotFoundException("User not found")
 		}
-		return this.leader_repo.find({
-			where: {
-				gamemode: (dto.gamemode != undefined) ? Number(dto.gamemode) : undefined,
-				team_count: (dto.team_count != undefined) ? Number(dto.team_count) : undefined,
-				username: dto.username,
-			},
-			order: {
-				rank: dto.sort as any,
-			},
-			take: 10,
-			skip: (dto.page != undefined) ? Number(dto.page) : undefined,
-		});
+		const query = this.leader_repo
+			.createQueryBuilder("entry")
+			.select(`"id"`)
+			.addSelect("username")
+			.addSelect("gamemode")
+			.addSelect("team_count")
+
+		query
+			.addSelect("SUM(wins)::INTEGER", "wins")
+			.addSelect("SUM(losses)::INTEGER", "losses")
+			.addSelect("SUM(draws)::INTEGER", "draws")
+			.addSelect("(SUM(wins) + SUM(draws) * 0.5) / GREATEST(SUM(wins) + SUM(losses) + SUM(draws), 10)", "rank");
+		if (dto.gamemode != undefined)
+			query.andWhere("gamemode = :gamemode", { gamemode: Number(dto.gamemode) });
+		if (dto.team_count != undefined)
+			query.andWhere("team_count = :team_count", { team_count: Number(dto.team_count) });
+		if (dto.username != undefined)
+			query.andWhere("username = :username", { username: dto.username });
+		if (dto.ranked != undefined)
+			query.andWhere("ranked = :ranked", { ranked: dto.ranked === "true" });
+		query.take(10);
+		if (dto.page != undefined)
+			query.skip(Number(dto.page));
+		query
+			.groupBy("id")
+			.addGroupBy("username")
+			.addGroupBy("gamemode")
+			.addGroupBy("team_count");
+		if (dto.sort != undefined)
+			query.orderBy("rank", dto.sort);
+			query.addOrderBy("id", "ASC");
+		return await query.getRawMany();
 	}
 
 	@Get("levels/:username")
@@ -108,6 +134,11 @@ export class LeaderboardController {
 		for (const game of games) {
 			count += game.wins + game.losses + game.draws;
 		}
-		return Math.log(count); //TODO add some fancy calculation
+		return { level: Math.log(count + 1) + 1 }; //TODO add some fancy calculation
+	}
+
+	@Get("history/:user")
+	async history(@Param("user", ParseIDPipe(User)) user: User) {
+		return await this.game_service.get_states(user);
 	}
 }

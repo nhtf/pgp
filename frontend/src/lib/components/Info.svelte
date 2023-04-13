@@ -1,21 +1,30 @@
 <script lang="ts">
 	import type { UpdatePacket } from "$lib/types";
+    import type { Stat } from "$lib/entities";
+	import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from "flowbite-svelte"
     import { updateManager } from "$lib/updateSocket";
     import { onDestroy, onMount } from "svelte";
-    import { userStore } from "$lib/stores";
+    import { gameStore, userStore } from "$lib/stores";
 	import { goto } from "$app/navigation";
-    import { Subject } from "$lib/enums";
+    import { Gamemode, Subject, enumKeys } from "$lib/enums";
+    import { icon_path } from "$lib/constants";
     import { byId } from "$lib/sorting";
 	import { page } from "$app/stores";
 	import { put } from "$lib/Web";
-	import Achievements from "./Achievements.svelte";
 	import Avatar from "./Avatar.svelte";
     import Match from "./Match.svelte";
 	import Swal from "sweetalert2";
 	import * as validator from "validator";
 	import "@sweetalert2/theme-dark/dark.scss";
+    import Achievement from "./Achievement.svelte";
 
-	const edit_icon = "/Assets/icons/pen.png";
+	const edit_icon = `${icon_path}/pen.png`;
+
+	let stats: Stat[];
+
+	$: level_whole = Math.floor($page.data.level);
+	$: level_percentage = ($page.data.level - level_whole) * 100;
+	$: stats = $page.data.stats;
 
 	let index: number;
 
@@ -73,16 +82,15 @@
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">
-					<div class="block-hor" id="level-text">{Math.floor($page.data.level)}</div>
 					<div class="block-hor" id="level-text">Level</div>
+					<div class="block-hor" id="level-text">{level_whole}</div>
 				</div>
 				<div class="block-cell" id="level-block-bar">
 					<div class="block-hor" id="level-bar">
 						<div class="border">
-							<div class="bar" style="height:18px;width:20%" />
+							<div class="bar" style="height:18px;width:{level_percentage}%" />
 						</div>
 					</div>
-					<div class="block-hor" id="level-exp">123/12345 exp</div>
 				</div>
 			</div>
 		</div>
@@ -90,13 +98,36 @@
 	</div>
 	<div class="block-hor">
 		<div class="block-cell">
-			<Achievements/>
+			<div class="block-hor"><h3>Achievements</h3></div>
+			<div class="block-hor">
+				{#each $page.data.user.achievements as achievement}
+					<Achievement {achievement}/>
+				{/each}
+			</div>
 		</div>
 	</div>
-	<div class="block-hor">
-		{#each $page.data.stats as stat}
-			<div>{stat.id}</div>
-		{/each}
+	<div class="flex gap-1">
+		<Table>
+			<TableHead>
+				<TableHeadCell>gamemode</TableHeadCell>
+				<TableHeadCell>teams</TableHeadCell>
+				<TableHeadCell>wins</TableHeadCell>
+				<TableHeadCell>losses</TableHeadCell>
+				<TableHeadCell>draws</TableHeadCell>
+			</TableHead>
+			<TableBody>
+				{#each stats as stat}
+					<TableBodyRow>
+						<TableBodyCell>{Gamemode[stat.gamemode]}</TableBodyCell>
+						<TableBodyCell>{stat.team_count}</TableBodyCell>
+						<TableBodyCell>{stat.wins}</TableBodyCell>
+						<TableBodyCell>{stat.losses}</TableBodyCell>
+						<TableBodyCell>{stat.draws}</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+
+			</TableBody>
+		</Table>
 	</div>
 </div>
 
@@ -148,13 +179,6 @@
 	#level-block-bar {
 		flex-grow: 1;
 		height: 60px;
-	}
-
-	#level-exp {
-		font-size: 12px;
-		padding-top: 0;
-		padding-bottom: 0;
-		justify-content: flex-end;
 	}
 
 	#level-text {

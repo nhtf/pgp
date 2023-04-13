@@ -1,5 +1,5 @@
 import type { UpdatePacket } from "$lib/types";
-import { Subject, Action } from "$lib/enums";
+import type { Subject } from "$lib/enums";
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { io } from "socket.io-client";
 

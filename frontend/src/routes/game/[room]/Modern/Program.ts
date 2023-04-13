@@ -1,13 +1,14 @@
 import { mat3Identity } from "../lib2D/Matrix";
-import type { VectorObject } from "../lib2D/Math2D";
+import type { Vector } from "../lib2D/Math2D";
+import type { simpleVector } from "./Constants";
 
 export type uniforms = {
-    pos: VectorObject; //position for ripple effect maybe
+    pos: Vector; //position for ripple effect maybe
     width: number;
     height: number;
     timer: number;
     color?: number[]; 
-    resolution: VectorObject;
+    resolution: simpleVector;
 };
   
 

@@ -6,8 +6,6 @@
 
 	export let data: PageData;
 
-	let open = [true, false];
-
 	$: user = $userStore.get(data.user.id)!;
 	$: invites = [...$inviteStore.values()];
 
@@ -29,10 +27,10 @@
 		contentClass="tab-content-background"
 	>
 		<TabItem
-			bind:open={open[0]}
 			class="bg-c rounded"
 			defaultClass="rounded"
 			title="received"
+			open
 		>
 			{#each invites.filter(received.bind({}, user)) as invite (invite.id)}
 				<div class="invite">
@@ -54,7 +52,6 @@
 			{/each}
 		</TabItem>
 		<TabItem
-			bind:open={open[1]}
 			class="bg-c rounded"
 			defaultClass="rounded"
 			title="sent"

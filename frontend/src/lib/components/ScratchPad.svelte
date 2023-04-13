@@ -10,7 +10,7 @@
 	//http://alistapart.com/article/expanding-text-areas-made-elegant/
 	const send_icon = `${icon_path}/send.svg`;
 
-	let content = "";
+	export let content = "";
 	// let timer: NodeJs.Timeout;
 	let timer: number;
 	let suggestions: Suggestion[] = [];
@@ -224,6 +224,9 @@
 		position: relative;
 		flex-grow: 1;
 		width: 90%;
+		max-height: 100%;
+		display: flex;
+		align-self: center;
 	}
 
 	pre {
@@ -243,9 +246,11 @@
 		margin-left: 1em;
 		min-width: 20vw;
 		/* max-width: 60vw; */
-		max-height: 50em;
+		/* max-height: 50em; */
 		border: none;
 		padding: 1.5em;
+		display: flex;
+		max-height: 100%;
 	}
 
 	*:focus {
@@ -276,5 +281,6 @@
 		background-color: var(--box-color);
 		border-radius: 1em;
 		margin: 0.2em;
+		max-height: 50%;
 	}
 </style>

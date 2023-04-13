@@ -12,24 +12,24 @@
 	let container: Element;
 
 	onMount(async() => {
-		console.log($page.data);
+		// console.log($page.data);
 		const startTime = Date.now();
-		console.log("starting ammo init");
+		// console.log("starting ammo init");
 		await ammoInit();
 		
 		world = new Pong();
-		console.log(world);
-		console.log("created world");
+		// console.log(world);
+		// console.log("created world");
 		container.append(world.renderer.domElement);
 		const vrButton = VRButton.createButton(world.renderer);
 		container.append(vrButton);
-		console.log("starting world");
+		// console.log("starting world");
 		await world.start({
 			container,
 			room,
 			member: { ...room.self! }
 		});
-		console.log("world has started", Date.now() - startTime);
+		// console.log("world has started", Date.now() - startTime);
 		vrButton.addEventListener("click", function(ev) {
 			requestAnimationFrame(function() {
 				const canvas = document.getElementsByTagName("canvas")[0];
@@ -39,7 +39,7 @@
 				const parent = canvas.parentElement;
 
 				if (!parent?.classList.contains("game-container")) {
-					console.log("parent has game-container");
+					// console.log("parent has game-container");
 					canvas.parentElement!.id = "threejs-unfucker";
 				}
 			});

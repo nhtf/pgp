@@ -1,7 +1,7 @@
 import { ViewEntity, ViewColumn } from "typeorm";
 import type { Gamemode } from "src/enums";
 
-//TODO only count finished games
+//TODO create ranked view
 @ViewEntity({
 	expression: `
 	SELECT
@@ -9,6 +9,7 @@ import type { Gamemode } from "src/enums";
 	"user"."username",
 	"user"."gamemode",
 	"user"."team_count",
+	"user"."ranked",
 	"user"."wins"::INTEGER,
 	"user"."losses"::INTEGER,
 	"user"."draws"::INTEGER,
@@ -19,14 +20,16 @@ import type { Gamemode } from "src/enums";
 		"user"."username",
 		"user"."gamemode",
 		"user"."team_count",
-		SUM(CASE WHEN "delta" > 0 THEN 1 ELSE 0 END) AS "wins",
-		SUM(CASE WHEN "delta" < 0 THEN 1 ELSE 0 END) AS "losses",
-		SUM(CASE WHEN "delta" = 0 THEN 1 ELSE 0 END) AS "draws"
+		"user"."ranked",
+		SUM(CAST("delta" > 0 AS INT)) AS "wins",
+		SUM(CAST("delta" < 0 AS INT)) AS "losses",
+		SUM(CAST("delta" = 0 AS INT)) AS "draws"
 		FROM (
 			SELECT
 			"user".*,
 			"state"."gamemode",
 			"state"."team_count",
+			"state"."ranked",
 			"team"."score" - MAX("other"."score") AS "delta"
 			FROM "team"
 			LEFT JOIN "team" "other"
@@ -38,9 +41,10 @@ import type { Gamemode } from "src/enums";
 				ON "player"."userId" = "user"."id"
 			INNER JOIN "game_state" "state"
 				ON "team"."stateId" = "state"."id"
-			GROUP BY "user"."id", "state"."gamemode", "state"."team_count", "team"."id"
+			WHERE "state"."finished"
+			GROUP BY "user"."id", "state"."gamemode", "state"."team_count", "state"."ranked", "team"."id"
 		) AS "user"
-		GROUP BY "user"."id", "user"."username", "user"."gamemode", "user"."team_count"
+		GROUP BY "user"."id", "user"."username", "user"."gamemode", "user"."team_count", "user"."ranked"
 	) AS "user"
 	`
 })

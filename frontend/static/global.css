@@ -557,6 +557,12 @@ canvas {
 	color: blue;
 }
 
+.popover {
+	display: flex !important;
+	width: fit-content ;
+	flex-wrap: nowrap !important;
+}
+
 .room {
 	align-items: center;
 	background: var(--box-color);

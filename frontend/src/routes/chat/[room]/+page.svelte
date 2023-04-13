@@ -2,7 +2,7 @@
 	import type { ChatRoom, Message, ChatRoomMember } from "$lib/entities";
 	import type { UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
-	import { Action, CoalitionColors, roles, Subject } from "$lib/enums";
+	import { Action, CoalitionColors, enumKeys, Role,  Subject } from "$lib/enums";
 	import { blockStore, memberStore, roomStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { onDestroy, onMount } from "svelte";
@@ -21,17 +21,23 @@
 	const role_names = [ "Members", "Admins", "Owner" ];
 	const load = 10;
 
+	let content = "";
 	let messages = data.messages.sort(byDate);
 	let relativeScroll = messages.length;
 	let index: number;
+	let history: number = messages.filter(mine).length;
 
 	$: room = $roomStore.get(data.room.id) as ChatRoom;
 	$: members = [...$memberStore.values()].filter((member) => member.roomId === room?.id) as ChatRoomMember[];
 	$: self = members.find(({ userId }) => userId === $page.data.user?.id);
 
-	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
 	$: min = clamp(relativeScroll - load, 0, messages.length);
+
+	$: messages;
+	$: my_messages = messages.filter(mine);
+	$: history;
+
 
 	onMount(() => {
 		index = updateManager.set(Subject.MESSAGE, updateMessages);
@@ -46,6 +52,10 @@
 	
 		relativeScroll += delta;
 	});
+
+	function mine(message: Message) {
+		return message.userId === $page.data.user.id;
+	}
 
 	async function updateMessages(update: UpdatePacket) {
 		switch (update.action) {
@@ -68,6 +78,8 @@
 		if (content.length) {
 			await unwrap(post(`${room.route}/messages`, { content }));
 		}
+
+		history = my_messages.length;
 	}
 
 	function scrollToBottom(node: any, _: Message[]) {
@@ -82,8 +94,24 @@
 		setTimeout(() => relativeScroll = messages.length - load, 1000);
 	}
 
+	function onKeydown(event: KeyboardEvent) {
+		if (event.key === "ArrowUp") {
+			if (history > 0)
+				history -= 1;
+			content = my_messages[history].content;
+		}
+	
+		if (event.key === "ArrowDown") {
+			if (history < my_messages.length - 1)
+				history += 1;
+			content = my_messages[history].content;
+		}
+	}
+
 	//TODO some more things to do with really large messages in the textarea
 </script>
+
+<svelte:window on:keydown={onKeydown}/>
 
 {#if room && self}
 	<RoomHeader {room}/>
@@ -99,15 +127,15 @@
 			{#if relativeScroll + load < messages.length}
 				<button class="button middle" on:click={scroll}>Go to bottom</button>
 			{/if}
-			<ScratchPad callback={sendMessage} disabled={self?.is_muted}/>
+			<ScratchPad bind:content callback={sendMessage} disabled={self?.is_muted}/>
 		</div>
 		<div class="member-container">
-			{#each roles.slice().reverse() as role}
+			{#each enumKeys(Role).reverse() as role}
 				{#if members.some((member) => member.role === role)}
 					<div class="member-group">
 						<h1 style={`color: #${role_colors[role]}`}>{role_names[role]}</h1>
 						{#each members.filter((member) => member.role === role) as member (member.id)}
-							<UserDropdown {member} {room}/>
+							<UserDropdown {member} {room} extend={true}/>
 						{/each}
 					</div>
 				{/if}

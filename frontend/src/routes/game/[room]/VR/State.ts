@@ -114,11 +114,11 @@ export class State {
 		const total = this.teams.map(team => team.score).reduce((p, c) => p + c);
 		this.state = "serve-ball";
 		this.current = this.teams[Math.floor(total / 2) % this.teams.length];
-		console.log(this.teams.map(team => `${team.score}`).join(" - "));
+		// console.log(this.teams.map(team => `${team.score}`).join(" - "));
 	}
 
 	public onPaddleHit(user: number): boolean {
-		console.log("users", this.players.map(({ user }) => user));
+		// console.log("users", this.players.map(({ user }) => user));
 		const player = this.players.find(player => player.user === user)!;
 		
 		if (this.state == "serve-ball" && player.team == this.current) {

@@ -13,6 +13,7 @@ import { genTeamName } from "src/namegen"
 interface CreateGameRoomOptions extends CreateRoomOptions {
 	gamemode: Gamemode;
 	players: number;
+	ranked?: boolean;
 }
 
 export const PLAYER_NUMBERS = new Map([
@@ -47,6 +48,7 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 
 			state.gamemode = options.gamemode;
 			state.team_count = options.players;
+			state.ranked = options.ranked ?? false;
 			state.teams = [];
 
 			for (let idx = 0; idx < options.players; ++idx) {
@@ -143,5 +145,43 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 
 		async get_state(room: GameRoom): Promise<GameState> {
 			return this.state_repo.findOneBy({ room: { id: room.id } });
+		}
+
+		async is_in_ranked(user: Pick<User, "id">): Promise<boolean> {
+			const room = await this.state_repo.findOneBy({
+				ranked: true,
+				finished: false,
+				room: {
+					members: {
+						user: {
+							id: user.id,
+						},
+					},
+				},
+			});
+			return room != undefined;
+		}
+
+		async get_states(user: Pick<User, "id">): Promise<GameState[]> {
+			return await this.state_repo
+				.createQueryBuilder("state")
+				.where((qb) => {
+					const subQuery = qb
+						.subQuery()
+						.select("1")
+						.from(GameState, "tstate")
+						.leftJoin("tstate.teams", "teams")
+						.leftJoin("teams.players", "players")
+						.leftJoin("players.user", "user")
+						.where("user.id = :id")
+						.andWhere("tstate.id = state.id")
+						.getQuery();
+					return `EXISTS ${subQuery}`;
+				})
+				.setParameter("id", user.id)
+				.leftJoinAndSelect("state.teams", "teams")
+				.leftJoinAndSelect("teams.players", "players")
+				.leftJoinAndSelect("players.user", "user")
+				.getMany();
 		}
 }

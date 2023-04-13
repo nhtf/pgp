@@ -23,7 +23,7 @@
 	let index: number;
 
 	$: room = $roomStore.get(data.room.id) as DMRoom;
-	$: other = $userStore.get(room.other!.id)!;
+	$: other = room.other ? $userStore.get(room.other?.id) : undefined;
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
@@ -78,35 +78,37 @@
 		setTimeout(() => relativeScroll = messages.length - load, 1000);
 	}
 
-	async function block(user: User) {
-		await unwrap(post(`/user/me/blocked`, { id: user.id }));
+	async function block() {
+		await unwrap(post(`/user/me/blocked`, { id: other?.id }));
 		await goto(`/dm`);
 	}
 
 </script>
 
-<div class="room">
-	<a class="button border-blue" href={`/dm`}>Back</a>
-	<div class="grow"/>
-	<UserDropdown user={other} extend={true}/>
-	<div class="grow"/>
-	<button class="button border-red" on:click={() => block(other)}>Block</button>		
-</div>
-<div class="room-page">
-	<div class="room-container">
-		<div class="messages" id="messages" use:scrollToBottom={messages}>
-			{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
-				{#if index >= min}
-					<MessageBox on:load|once={scroll} {room} {message} />
-				{/if}
-			{/each}
-		</div>
-		{#if relativeScroll + load < messages.length}
-			<button class="button middle" on:click={scroll}>Go to bottom</button>
-		{/if}
-		<ScratchPad callback={sendMessage}/>
+{#if room && other}
+	<div class="room">
+		<a class="button border-blue" href={`/dm`}>Back</a>
+		<div class="grow"/>
+		<UserDropdown user={other} extend={true}/>
+		<div class="grow"/>
+		<button class="button border-red" on:click={block}>Block</button>		
 	</div>
-</div>
+	<div class="room-page">
+		<div class="room-container">
+			<div class="messages" id="messages" use:scrollToBottom={messages}>
+				{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
+					{#if index >= min}
+						<MessageBox on:load|once={scroll} {room} {message} />
+					{/if}
+				{/each}
+			</div>
+			{#if relativeScroll + load < messages.length}
+				<button class="button middle" on:click={scroll}>Go to bottom</button>
+			{/if}
+			<ScratchPad callback={sendMessage}/>
+		</div>
+	</div>
+{/if}
 
 <style>
 

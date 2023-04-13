@@ -76,9 +76,14 @@ type rot = {
     z: number;
 }
 
+export type simpleVector = {
+    x: number;
+    y: number;
+}
+
 export type level = {
     players: number;
-    scorePositions: VectorObject[];
+    scorePositions: simpleVector[];
     scoreColors: number[][];
     paddles: paddle[];
     collisions: Line[];
@@ -86,7 +91,7 @@ export type level = {
     playerAreas: Line[][];
     width: number;
     height:number;
-    paddleStartPos: VectorObject[];
+    paddleStartPos: simpleVector[];
     paddleBorderColors: number[][];
     paddleGradientColors: number[][];
     paddleBorder: triangles;
@@ -94,11 +99,11 @@ export type level = {
 
     fieldBorderColor: number[];
     fieldGradientColors: number[][];
-    fieldGradientPos: VectorObject[];
+    fieldGradientPos: simpleVector[];
     fieldGradientRot: rot[];
     fieldBorder: triangles;
     fieldGradient: triangles;
-    fieldGradientRadius: VectorObject;
+    fieldGradientRadius: simpleVector;
 
 
     goalBorder: triangles;

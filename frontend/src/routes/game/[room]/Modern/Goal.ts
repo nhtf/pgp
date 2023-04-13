@@ -1,4 +1,4 @@
-import { Vector } from "../lib2D/Math2D";
+import type { Vector } from "../lib2D/Math2D";
 import { goalWidth, goalHeight, 
     linethickness
  } from "./Constants";
@@ -17,7 +17,7 @@ export class Goal {
         this.width = goalWidth;
         this.height = goalHeight;
         this.rotation = rot;
-        this.position = Vector.load(pos);
+        this.position = pos;
         this.owner = goalOwner;
         this.fillColor = cf;
         this.strokeColor = cs;

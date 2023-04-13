@@ -44,5 +44,11 @@ export class AchievementService {
 		await this.progress_repo.save(progress);
 		return amount;
 	}
+
+	async inc_progresses(name: string, amount: number, users: User[]) {
+		for (const user of users) {
+			await this.inc_progress(name, user, amount);
+		}
+	}
 }
 

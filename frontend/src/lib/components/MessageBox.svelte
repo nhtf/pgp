@@ -40,9 +40,7 @@
 		<div class="flex gap-1">
 			<div
 				class="text-sm underline"
-				style={`text-align: ${text_align}; color: ${
-					member ? `#${role_colors[member.role]}` : "white"
-				}`}
+				style={`text-align: ${text_align}; ${member ? `color: #${role_colors[member.role]};` : ""}`}
 			>
 				{user.username}
 			</div>

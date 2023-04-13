@@ -100,13 +100,13 @@ export const achievements: AchievementDef[] = [
 		image: "/Assets/achievement-icons/pong.svg",
 		objectives: [
 			{
-				name: "placeholder",
+				name: "Beginner's unluck",
 				threshold: 5,
 				color: "#FF00FF",
 				description: "You lost 5 games",
 			},
 			{
-				name: "placeholder",
+				name: "...",
 				threshold: 10,
 				color: "#FFFFFF",
 				description: "You lost 10 games",
@@ -119,10 +119,16 @@ export const achievements: AchievementDef[] = [
 		image: "/Assets/achievement-icons/popular.svg",
 		objectives: [
 			{
-				name: "placeholder",
+				name: "Popular",
 				threshold: 5,
 				color: "#FF00FF",
 				description: "Made 5 friends",
+			},
+			{
+				name: "People person",
+				threshold: 20,
+				color: "#FFFFFF",
+				description: "Made 20 friends",
 			},
 		],
 	}

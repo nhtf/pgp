@@ -12,7 +12,7 @@ export class Team {
 		this.score = score === undefined ? 0 : score;
 		this.id = id;
         this.ping = 0;
-        this.active = active;
+        this.active = active === undefined ? false : active;
 	}
 
     public save(): TeamObject {

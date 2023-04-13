@@ -1,21 +1,21 @@
 <script lang="ts">
-    import type { Member, Room, User } from "$lib/entities";
-    import { Avatar, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
-    import { blockStore, friendStore, gameStore, memberStore, updateStore, userStore } from "$lib/stores";
-    import { status_colors } from "$lib/constants";
-    import { actions } from "$lib/action";
-    import { Status } from "$lib/enums";
+	import type { Member, Room, User } from "$lib/entities";
+	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
+	import { blockStore, friendStore, gameStore, memberStore, updateStore, userStore } from "$lib/stores";
+	import { status_colors } from "$lib/constants";
+	import { fetchGame } from "$lib/util";
+	import { actions } from "$lib/action";
+	import { Status } from "$lib/enums";
 	import { page } from "$app/stores";
-    import { onMount } from "svelte";
-    import { get } from "$lib/Web";
-    import Match from "./Match.svelte";
-    import { fetchGame } from "$lib/util";
+	import { onMount } from "svelte";
+	import Match from "./Match.svelte";
 
 	export let member: Member | undefined = undefined;
 	export let user: User = $userStore.get(member!.userId)!
 	export let room: Room | undefined = undefined;
 	export let extend: boolean = false;
 	export let banned: boolean = false;
+	export let placement: string = "bottom";
 
 	$: me = $userStore.get($page.data.user?.id)!;
 	$: user = $userStore.get(user.id)!;
@@ -30,7 +30,7 @@
 	$: game = [...$gameStore.values()].find((game) => game.roomId === user.activeRoomId);
 
 	onMount(async () => {
-		if (user.activeRoomId) {
+		if (user.activeRoomId && !game) {
 			await fetchGame(user.activeRoomId);
 		}
 	});
@@ -49,8 +49,9 @@
 
 </script>
 
-<div class="user opacity-{opacity}">
+<div class="user">
 	<Avatar
+		class="opacity-{opacity}"
 		src={user.avatar}
 		id="avatar-{user.id}"
 		dot={{
@@ -60,14 +61,14 @@
 	/>
 	<Tooltip>{user.username}</Tooltip>
 	{#if game}
-		<Popover placement="bottom">
+		<Popover {placement} class="popover">
 			<Match {game} {user}/>
 		</Popover>
 	{/if}
 	{#if extend}
 		<div>{user.username}</div>
 	{/if}
-	<Dropdown class="dropdown" triggeredBy="#avatar-{user.id}">
+	<Dropdown {placement} class="dropdown" triggeredBy="#avatar-{user.id}">
 		<DropdownItem class="dropdown-item">
 			<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
 		</DropdownItem>

@@ -203,7 +203,7 @@ export class Paddle extends Entity {
 
 	public earlyTick() {
 		if (this.lastUpdate < this.world.time - Paddle.LIFETIME) {
-			console.log("Removing paddle", this.uuid, this.lastUpdate, this.world.time, Paddle.LIFETIME);
+			// console.log("Removing paddle", this.uuid, this.lastUpdate, this.world.time, Paddle.LIFETIME);
 			this.removed = true;
 		}
 
@@ -278,7 +278,7 @@ export class Pong extends World {
 			if (ball === null && paddle !== null && paddle instanceof Paddle) {
 				const team = this.state!.players.find(player => player.user == paddle.userId)!.team;
 
-				console.log(this.state!.current?.id, team?.id);
+				// console.log(this.state!.current?.id, team?.id);
 
 				if (this.state!.current == team) {
 					this.create({
@@ -304,7 +304,7 @@ export class Pong extends World {
 	}
 
 	private controllerConnected(event: any, index: number) {
-		console.log("connected: ", event);
+		// console.log("connected: ", event);
 		if (!event.data.gamepad) {
 			if (index === 0) {
 				this.leftController = event.target;
@@ -339,7 +339,7 @@ export class Pong extends World {
 			}, {
 				uuid: this.paddleUUID,
 				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),
-				// tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
+				tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
 			});
 		}
 

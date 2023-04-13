@@ -2,6 +2,8 @@ Profile page stat part
 
 Match History page (either on profile or seperate page?)
 
-store more state in database, like who's turn it is to serve the ball
-
 netcode initialization is horribly broken
+
+fix when out of focus that it should stop updating/ stop game
+
+clicking on one user opens all of their dropdowns

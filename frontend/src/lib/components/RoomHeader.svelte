@@ -1,7 +1,7 @@
 <script lang="ts">
-    import type { Member, Room } from "$lib/entities";
+    import type { Room } from "$lib/entities";
     import { Dropdown, DropdownHeader } from "flowbite-svelte";
-    import { memberStore, roomStore } from "$lib/stores";
+    import { gameStore, memberStore, roomStore } from "$lib/stores";
     import { goto } from "$app/navigation";
     import { unwrap } from "$lib/Alert";
 	import { page } from "$app/stores";

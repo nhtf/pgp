@@ -12,8 +12,8 @@ export function deserializeNumber(buf: string): number {
 }
 
 export interface VectorObject {
-	x: number;
-	y: number;
+	x: string;
+	y: string;
 }
 
 export class Vector {
@@ -60,13 +60,13 @@ export class Vector {
 
 	public save(): VectorObject {
 		return {
-			x: this.x,
-			y: this.y,
+			x: serializeNumber(this.x),
+			y: serializeNumber(this.y),
 		};
 	}
 
 	public static load(object: VectorObject): Vector {
-		return new Vector(object.x, object.y);
+		return new Vector(deserializeNumber(object.x), deserializeNumber(object.y));
 	}
 }
 
@@ -89,27 +89,27 @@ export interface Line {
 	name: string,
 }
 
-function compare(a: VectorObject, b: VectorObject): number {
+function compare(a: { x: number, y: number }, b: { x: number, y: number }): number {
 	if (a.x == b.x)
 		return a.y < b.y ? -1 : 1;
 	return a.x < b.x ? -1 : 1;
 }
 
-function ccw(a: VectorObject, b: VectorObject, c: VectorObject) {
+function ccw(a: { x: number, y: number }, b: { x: number, y: number }, c: { x: number, y: number }) {
 	let p = a.x * (b.y - c.y)
 		+ b.x * (c.y - a.y)
 		+ c.x * (a.y - b.y);
 	return p > 0;
 }
 
-function cw(a: VectorObject, b: VectorObject, c: VectorObject) {
+function cw(a: { x: number, y: number }, b: { x: number, y: number }, c: { x: number, y: number }) {
 	let p = a.x * (b.y - c.y)
 		+ b.x * (c.y - a.y)
 		+ c.x * (a.y - b.y);
 	return p < 0;
 }
 
-function convexHull(points: VectorObject[]) {
+function convexHull(points: { x: number, y: number }[]) {
 	points.sort((a, b) => {
 		return compare(a, b);
 	});
@@ -149,7 +149,7 @@ function convexHull(points: VectorObject[]) {
 }
 
 //Also for lines themselves now
-export function isInConvexHull(entityPos: VectorObject, lines: Line[], linePartOfHull: boolean) {
+export function isInConvexHull(entityPos: { x: number, y: number }, lines: Line[], linePartOfHull: boolean) {
 		let points = [];
 		points.push(entityPos);
 		for (let line of lines) {

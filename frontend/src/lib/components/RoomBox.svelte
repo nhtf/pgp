@@ -1,10 +1,10 @@
 <script lang="ts">
 	import type { Room } from "$lib/entities";
-	import { gameStore, roomStore, userStore } from "$lib/stores";
+	import { gameStore, memberStore, roomStore, userStore } from "$lib/stores";
 	import { post, remove, patch, get, put } from "$lib/Web";
 	import { icon_path } from "$lib/constants";
 	import { unwrap } from "$lib/Alert";
-	import { Access } from "$lib/enums";
+	import { Access, Role } from "$lib/enums";
     import { byId } from "$lib/sorting";
 	import { page } from "$app/stores";
 	import Invite from "./Invite.svelte";
@@ -103,8 +103,10 @@
 	{/if}
 	<div class="grow"/>
 	{#if room.joined}
-		{#if owner?.id === user.id}
+		{#if room.self && room.self.role >= Role.ADMIN}
 			<Invite {room}/>
+		{/if}
+		{#if owner?.id === user.id}
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 			{#if room.type === "GameRoom" && state && !state.teamsLocked}
 				<button class="button border-yellow" on:click={() => lock(room)}>Lock teams</button>
