@@ -1,5 +1,4 @@
 <script lang="ts">
-    import type { ObjectLiteral } from "$lib/stores";
     import { Access, Gamemode, Status } from "$lib/enums";
     import { status_colors } from "$lib/constants";
     import { byId } from "$lib/sorting";

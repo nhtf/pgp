@@ -1,6 +1,6 @@
 import type { PageLoad } from "./$types"
-import { Entity, User, ChatRoom, ChatRoomMember, type Message } from "$lib/entities";
-import { userStore, roomStore, memberStore, updateStore  } from "$lib/stores";
+import { User, ChatRoom, ChatRoomMember, type Message } from "$lib/entities";
+import { updateStore  } from "$lib/stores";
 import { Role } from "$lib/enums"
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";

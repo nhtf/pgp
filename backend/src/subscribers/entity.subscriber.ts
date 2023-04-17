@@ -64,7 +64,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		const entity = event.entity;
 
 		try {
-			this.log(event, action);
+			//this.log(event, action);
 
 			const info = this.subjectEntry(event.metadata.targetName);
 			const value = valueFun(entity);		
@@ -104,7 +104,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		const info = subjects.find(({ names }) => names.includes(entityName));
 
 		if (!info) {
-			throw new Error("Ignored subject");			
+			throw new Error("Ignored subject");
 		}
 
 		return info;

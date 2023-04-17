@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Room } from "$lib/entities";
-	import { gameStore, memberStore, roomStore, userStore } from "$lib/stores";
-	import { post, remove, patch, get, put } from "$lib/Web";
+	import { gameStore, roomStore, userStore } from "$lib/stores";
+	import { post, remove, patch, put } from "$lib/Web";
 	import { icon_path } from "$lib/constants";
 	import { unwrap } from "$lib/Alert";
 	import { Access, Role } from "$lib/enums";
@@ -110,11 +110,6 @@
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 			{#if room.type === "GameRoom" && state && !state.teamsLocked}
 				<button class="button border-yellow" on:click={() => lock(room)}>Lock teams</button>
-			{/if}
-
-			<!-- TODO: remove -->
-			{#if room.type === "GameRoom" && state?.teamsLocked}
-				<button class="button border-yellow" on:click={() => get(`/debug/unlock`, { id: room.id })}>Unlock</button>
 			{/if}
 
 		{:else}

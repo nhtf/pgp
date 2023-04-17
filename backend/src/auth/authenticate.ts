@@ -26,7 +26,6 @@ export async function authenticateOrReject(request: IncomingMessage, get_user: (
 			throw { message: "Invalid key", code: HttpStatus.BAD_REQUEST };
 
 		const dto = plainToClass(AuthDTO, JSON.parse(info));
-		//TODO it appears that validate does not work properly, it did not error when the object did not contain a number
 		if ((await validate(dto)).length !== 0)
 			throw { message: "Invalid key", code: HttpStatus.BAD_REQUEST };
 		const user = await get_user(dto.id);

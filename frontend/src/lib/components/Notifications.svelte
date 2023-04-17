@@ -7,7 +7,7 @@
 	import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import { unwrap } from "$lib/Alert";
-    import { get, patch } from "$lib/Web";
+    import { patch } from "$lib/Web";
     import Swal from "sweetalert2";
 
 	enum Status {

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { DMRoom, Message, User } from "$lib/entities";
+	import type { DMRoom, Message } from "$lib/entities";
 	import type { UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
 	import { Action, Subject } from "$lib/enums";

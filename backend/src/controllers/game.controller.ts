@@ -126,7 +126,11 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 		@Param("target", ParseIDPipe(GameRoomMember)) target: GameRoomMember,
 		@Body("team", ParseOptionalIDPipe(Team)) team?: Team
 	) {
-		if ((target.role >= member.role && target.user.id !== me.id) || (member.role < Role.ADMIN && room.state.teamsLocked)) {
+		if (target.role >= member.role && target.user.id !== me.id) {
+			throw new ForbiddenException(ERR_PERM);
+		}
+
+		if (room.state.teamsLocked) {
 			throw new ForbiddenException(ERR_PERM);
 		}
 
@@ -137,7 +141,6 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 		await this.game_service.set_team(member, team);
 		await UpdateGateway.instance.send_state_update(me, room);
 	}
-
 
 	@Get(":id/state")
 	async get_state(@GetRoom() room: GameRoom) {

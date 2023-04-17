@@ -1,6 +1,5 @@
 import type { level } from "./Constants";
 import type { Line } from "../lib2D/Math2D"
-import { Vector } from "../lib2D/Math2D";
 
 export class Field {
 	public width: number;

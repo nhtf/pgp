@@ -19,7 +19,8 @@
 
 </script>
 
-<div class="invite_list">
+<!-- TODO: save as leaderboard -->
+<div class="flex flex-col m-4 gap-2">
 	<Tabs
 		style="underline"
 		divider
@@ -72,16 +73,6 @@
 </div>
 
 <style>
-	.invite_list {
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-start;
-		position: relative;
-		margin: 0 auto;
-		width: 80%;
-		top: 0.5rem;
-		height: calc(100vh - 80px);
-	}
 
 	.invite {
 		background-color: var(--box-color);
@@ -128,10 +119,6 @@
 	}
 
 	@media (max-width: 500px) {
-		.invite_list {
-			width: 100%;
-		}
-
 		.invite {
 			font-size: 1rem;
 		}

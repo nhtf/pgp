@@ -1,7 +1,6 @@
 import { ViewEntity, ViewColumn } from "typeorm";
 import type { Gamemode } from "src/enums";
 
-//TODO create ranked view
 @ViewEntity({
 	expression: `
 	SELECT

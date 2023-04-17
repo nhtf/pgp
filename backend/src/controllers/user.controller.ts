@@ -350,6 +350,8 @@ export function GenericUserController(
 			if (user.id !== me.id) {
 				throw new ForbiddenException();
 			};
+		
+			user.friends = await this.user_repo.findBy({ friends: { id: user.id } });
 
 			if (user.id === target.id) {
 				throw new UnprocessableEntityException("Cannot befriend yourself");

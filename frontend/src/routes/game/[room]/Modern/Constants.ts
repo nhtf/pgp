@@ -1,5 +1,4 @@
 import type { Line } from "../lib2D/Math2D";
-import type { VectorObject } from "../lib2D/Math2D";
 import type { triangles } from "./Shader";
 
 export const WIDTH = 440;
@@ -145,7 +144,7 @@ export const scoreColors = [
     [
         {cf: "rgba(213, 172, 28, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
         {cf: "rgba(65, 190, 220, 0.7)", cs: "rgba(65, 190, 220, 0.9)"},
-        {cf: "rgba(175, 25, 25, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
+        {cf: "rgba(175, 25, 25, 0.7)", cs: "rgba(175, 25, 25, 0.9)"},
         {cf: "rgba(28, 220, 25, 0.7)", cs: "rgba(28, 220, 25, 0.9)"}
     ]
 ];

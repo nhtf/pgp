@@ -1,7 +1,6 @@
 import type { VectorObject } from "./Math2D";
 import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "../Net";
-import type { GameRoomMember, User } from "$lib/entities";
-import type { Team } from "../lib2D/Team";
+import type { GameRoomMember } from "$lib/entities";
 
 export interface BallObject {
 	position: VectorObject;

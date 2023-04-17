@@ -42,7 +42,7 @@ export function updateStore<T extends Entity>(entityType: (new () => T), entitie
 		entities = [entities];
 	}
 
-	const stored = customStore ?? store(entityType)!;
+	const stored = customStore ?? store(entityType);
 
 	stored.update((stored) => {
 		(entities as T[]).forEach((entity) => {

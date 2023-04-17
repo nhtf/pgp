@@ -1,4 +1,3 @@
-import { mat3Identity } from "../lib2D/Matrix";
 import type { Vector } from "../lib2D/Math2D";
 import type { simpleVector } from "./Constants";
 

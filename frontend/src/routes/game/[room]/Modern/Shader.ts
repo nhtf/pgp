@@ -1,6 +1,7 @@
-import { Program, type uniforms } from "./Program";
+import { Program } from "./Program";
 import type { Vector } from "../lib2D/Math2D";
 import type { simpleVector } from "./Constants";
+import type {uniforms} from "./Program";
 
 export type triangles = {
     vertices: number[];

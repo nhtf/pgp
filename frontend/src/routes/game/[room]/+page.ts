@@ -1,5 +1,5 @@
 import type { PageLoad } from "./$types"
-import { updateStore, roomStore, userStore, memberStore } from "$lib/stores"
+import { updateStore } from "$lib/stores"
 import { GameRoom, GameRoomMember, User } from "$lib/entities";
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";

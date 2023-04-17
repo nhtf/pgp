@@ -40,8 +40,8 @@ async function bootstrap() {
 	});
 	app.useGlobalPipes(
 		new ValidationPipe({
-			transform: false, // TODO: true
-			forbidUnknownValues: false, // TODO: true
+			transform: false,
+			forbidUnknownValues: false, // ODOT: true
 		}),
 	);
 	const betterAdapter = new BetterAdapter(app);

@@ -41,6 +41,8 @@
 	.match-teams {
 		display: flex;
 		justify-content: center;
+		flex-direction: row;
+		min-width: 25rem;
 	}
 
 	.match-team {

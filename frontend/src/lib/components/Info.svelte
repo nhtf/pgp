@@ -1,41 +1,76 @@
 <script lang="ts">
 	import type { UpdatePacket } from "$lib/types";
-    import type { Stat } from "$lib/entities";
-	import { Table, TableBody, TableBodyCell, TableBodyRow, TableHead, TableHeadCell } from "flowbite-svelte"
-    import { updateManager } from "$lib/updateSocket";
-    import { onDestroy, onMount } from "svelte";
-    import { gameStore, userStore } from "$lib/stores";
+	import type { Stat } from "$lib/entities";
+	import {
+		Table,
+		TableBody,
+		TableBodyCell,
+		TableBodyRow,
+		TableHead,
+		TableHeadCell,
+	} from "flowbite-svelte";
+	import { updateManager } from "$lib/updateSocket";
+	import { onDestroy, onMount } from "svelte";
+	import { userStore } from "$lib/stores";
 	import { goto } from "$app/navigation";
-    import { Gamemode, Subject, enumKeys } from "$lib/enums";
-    import { icon_path } from "$lib/constants";
-    import { byId } from "$lib/sorting";
+	import { Gamemode, Subject } from "$lib/enums";
+	import { icon_path } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { put } from "$lib/Web";
 	import Avatar from "./Avatar.svelte";
-    import Match from "./Match.svelte";
 	import Swal from "sweetalert2";
 	import * as validator from "validator";
 	import "@sweetalert2/theme-dark/dark.scss";
-    import Achievement from "./Achievement.svelte";
+	import Achievement from "./Achievement.svelte";
 
 	const edit_icon = `${icon_path}/pen.png`;
 
+	class Level {
+		constructor(level: number) {
+			this.level = level;
+		}
+
+		level: number;
+
+		get floor(): number {
+			return Math.floor(this.level);
+		}
+
+		get percentage(): number {
+			return (this.level - this.floor) * 100;
+		}
+
+		get xp(): number {
+			return Math.floor(10 ** this.level);
+		}
+
+		get xp_needed(): number {
+			return 10 ** Math.ceil(this.level);
+		}
+	}
+
 	let stats: Stat[];
-
-	$: level_whole = Math.floor($page.data.level);
-	$: level_percentage = ($page.data.level - level_whole) * 100;
-	$: stats = $page.data.stats;
-
 	let index: number;
 
 	$: profile = $userStore.get($page.data.profile.id)!;
+	$: level = new Level($page.data.level);
+	$: stats = $page.data.stats;
 
 	onMount(() => {
-		index = updateManager.set(Subject.USER, async (update: UpdatePacket) => {
-			if (update.id === profile.id && update.value.username && update.value.username !== $page.params.username) {
-				await goto(`/profile/${encodeURIComponent(update.value.username)}`);
+		index = updateManager.set(
+			Subject.USER,
+			async (update: UpdatePacket) => {
+				if (
+					update.id === profile.id &&
+					update.value.username &&
+					update.value.username !== $page.params.username
+				) {
+					await goto(
+						`/profile/${encodeURIComponent(update.value.username)}`
+					);
+				}
 			}
-		});
+		);
 	});
 
 	onDestroy(() => {
@@ -60,9 +95,11 @@
 				return null;
 			},
 			preConfirm: async (username) => {
-				return await put("/user/me/username", { username }).catch(error => {
-					Swal.showValidationMessage(error.message);
-				});
+				return await put("/user/me/username", { username }).catch(
+					(error) => {
+						Swal.showValidationMessage(error.message);
+					}
+				);
 			},
 		});
 	}
@@ -74,34 +111,41 @@
 			<div class="block-hor">
 				<h1>{profile.username}</h1>
 				{#if $page.data.user?.id === profile.id}
-					<img src={edit_icon} alt="edit icon" id="edit-icon"
-					on:click={changeUsername}
-					on:keypress={changeUsername}
+					<img
+						src={edit_icon}
+						alt="edit icon"
+						id="edit-icon"
+						on:click={changeUsername}
+						on:keypress={changeUsername}
 					/>
 				{/if}
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">
 					<div class="block-hor" id="level-text">Level</div>
-					<div class="block-hor" id="level-text">{level_whole}</div>
+					<div class="block-hor" id="level-text">{level.floor}</div>
 				</div>
 				<div class="block-cell" id="level-block-bar">
 					<div class="block-hor" id="level-bar">
 						<div class="border">
-							<div class="bar" style="height:18px;width:{level_percentage}%" />
+							<div
+								class="bar"
+								style="height:18px;width:{level.percentage}%"
+							/>
 						</div>
 					</div>
+					<div>{level.xp} / {level.xp_needed} xp</div>
 				</div>
 			</div>
 		</div>
-		<Avatar user={profile}/>
+		<Avatar user={profile} />
 	</div>
 	<div class="block-hor">
 		<div class="block-cell">
 			<div class="block-hor"><h3>Achievements</h3></div>
 			<div class="block-hor">
 				{#each $page.data.user.achievements as achievement}
-					<Achievement {achievement}/>
+					<Achievement {achievement} />
 				{/each}
 			</div>
 		</div>
@@ -125,16 +169,13 @@
 						<TableBodyCell>{stat.draws}</TableBodyCell>
 					</TableBodyRow>
 				{/each}
-
 			</TableBody>
 		</Table>
 	</div>
 </div>
 
 <style>
-
-
-#edit-icon {
+	#edit-icon {
 		max-width: 50px;
 		max-height: 50px;
 		position: relative;
@@ -225,5 +266,4 @@
 		flex-grow: 1;
 		text-align: center;
 	}
-
 </style>

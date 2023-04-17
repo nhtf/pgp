@@ -161,14 +161,11 @@ body {
 	justify-content: flex-start;
 	align-items: center;
 	overflow-y: auto;
-	border-color: var(--border-color);
-	border-radius: 6px;
-	border-width: 2px;
-	border-style: solid;
+	border: 1px solid var(--border-color);
+	border-radius: 1rem;
 	scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
 	scrollbar-width: thin;
 	padding: 25px;
-	padding-top: 0;
 }
 
 /* horizontal blocks */
@@ -286,7 +283,7 @@ a {
 	padding-right: 0.5em;
 }
 
-.table-cell-s {
+.table-cell {
 	padding-left: 1rem !important;
 	padding-right: 0.5rem !important;
 	padding-top: 1rem !important;
@@ -326,14 +323,8 @@ table {
 .bordered {
 	-moz-border-radius: 6px;
 	-webkit-border-radius: 6px;
-	border-radius: 6px;
-	border: 2px solid var(--border-color) !important;
-}
-
-.tab-content-background {
-	/* background-color: var(--box-color)!important; */
-	/* margin-top: 1em; */
-	overflow-y: auto;
+	border-radius: 1rem;
+	border: 1px solid var(--border-color);
 }
 
 #table-search {
@@ -559,7 +550,7 @@ canvas {
 
 .popover {
 	display: flex !important;
-	width: fit-content ;
+	width: fit-content !important;
 	flex-wrap: nowrap !important;
 }
 
@@ -571,7 +562,6 @@ canvas {
 	flex-wrap: wrap;
 	gap: 0.5rem;
 	justify-content: flex-end;
-	margin: 0.25rem;
 	padding: 1rem;
 }
 
@@ -591,4 +581,18 @@ canvas {
 .swal2-radio {
 	background-color: var(--box-color) !important;
 	color: var(--text-color) !important;
+}
+
+.tab {
+	background-color: var(--box-color);
+	border-radius: 1rem 1rem 0 0;
+	display: flex;
+}
+
+.tab > * + * {
+	margin-left: 0.5rem !important;
+}
+
+.tab-content {
+	background-color: var(--box-color);
 }

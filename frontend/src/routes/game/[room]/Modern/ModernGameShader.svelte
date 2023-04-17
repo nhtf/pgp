@@ -23,11 +23,11 @@
 			modern.update(time);
 			animation = window.requestAnimationFrame(render);
 		});
-		canvas.requestPointerLock();
-
 		//this is to lock the cursor, with this mouse only sends mousemove instead of location
-		//TODO if specator don't do this
-		// canvas.addEventListener('click', function() { canvas.requestPointerLock();}, false);
+		if (room.self?.player) {
+			canvas.requestPointerLock();
+			canvas.addEventListener('click', function() { canvas.requestPointerLock();}, false);
+		}
 	});
 
 	onDestroy(() => {
@@ -35,9 +35,18 @@
 		cancelAnimationFrame(animation);//this is needed otherwise it will continue to update even after going to other page
 	});
 
-	
-
 </script>
 
-
+<div>
 <canvas bind:this={canvas}></canvas>
+</div>
+
+<style>
+	canvas {
+		position: fixed!important;
+		inset: 215px 5px 5px 5px!important;
+		border-radius: 6px!important;
+		height: calc(100vh - 225px);
+		width: calc(100vw - 10px);
+	}
+</style>

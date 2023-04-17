@@ -86,7 +86,8 @@ export class StatsController {
 		private readonly game_service: GameRoomService,
 	) {}
 
-	@Get("")
+	// TODO: ranked property in return (or different fetch?)
+	@Get()
 	async get(@Query() dto: OptionsDTO) {
 		if (dto.username != undefined && (await this.user_service.get_by_username(dto.username) == undefined)) {
 			throw new NotFoundException("User not found")
@@ -111,6 +112,7 @@ export class StatsController {
 			query.andWhere("username = :username", { username: dto.username });
 		if (dto.ranked != undefined)
 			query.andWhere("ranked = :ranked", { ranked: dto.ranked === "true" });
+
 		query.take(10);
 		if (dto.page != undefined)
 			query.skip(Number(dto.page));
@@ -125,8 +127,8 @@ export class StatsController {
 		return await query.getRawMany();
 	}
 
-	@Get("levels/:username")
-	async get_level(@Param("username", ParseUsernamePipe()) user: User) {
+	@Get("level(s)")
+	async get_level(@Query("username", ParseUsernamePipe()) user: User) {
 		const games = await this.leader_repo.find({
 			where: { id: user.id },
 		});
@@ -134,11 +136,11 @@ export class StatsController {
 		for (const game of games) {
 			count += game.wins + game.losses + game.draws;
 		}
-		return { level: Math.log(count + 1) + 1 }; //TODO add some fancy calculation
+		return { level: Math.log(count + 1) + 1 }; //ODOT add some fancy calculation
 	}
 
-	@Get("history/:user")
-	async history(@Param("user", ParseIDPipe(User)) user: User) {
+	@Get("history")
+	async history(@Query("username", ParseUsernamePipe(User)) user: User) {
 		return await this.game_service.get_states(user);
 	}
 }

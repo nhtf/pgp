@@ -1,26 +1,16 @@
 <script lang="ts" src="sweetalert2.min.js">
-    import { goto } from '$app/navigation';
-    import { BACKEND, FRONTEND } from '$lib/constants';
-	import { onMount } from 'svelte';
+    import { goto, invalidate } from '$app/navigation';
+    import { BACKEND } from '$lib/constants';
 	import Swal from 'sweetalert2';
-	import {get} from "$lib/Web";
+	import { post } from "$lib/Web";
 	let code: string = "";
 
-	//TODO use the get and post things here
 	async function verify_code() {
-		const response = await fetch(`${BACKEND}/otp/verify`,
-			{
-				method: 'POST',
-				credentials: 'include',
-				mode: 'cors',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded'
-				},
-				body: `otp=${code}`
-			});
-		if (response.ok) {
+		try {
+			const response = await post(`/otp/verify`, { otp: code });
+			await invalidate(`${BACKEND}/user/me`);
 			await goto(`/profile`);
-		} else {
+		} catch (error) {
 			const Toast = Swal.mixin({
 				toast: true,
 				position: 'top-end',
@@ -33,23 +23,9 @@
 				icon: 'error',
 				title: 'Invalid totp'
 			});
+
 		}
 	}
-
-	onMount(async() => {
-		const response = await fetch(`${BACKEND}/user/me`,
-			{
-				method: 'GET',
-				credentials: 'include',
-				mode: 'cors',
-				headers: {
-					'Content-Type': 'application/x-www-form-urlencoded'
-				},
-			});
-		if (response.ok) {
-			await goto(`/profile`);
-		}
-	});
 </script>
 
 <div class='flex-container'>

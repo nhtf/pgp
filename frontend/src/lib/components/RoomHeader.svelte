@@ -1,7 +1,6 @@
 <script lang="ts">
     import type { Room } from "$lib/entities";
-    import { Dropdown, DropdownHeader } from "flowbite-svelte";
-    import { gameStore, memberStore, roomStore } from "$lib/stores";
+    import { memberStore, roomStore } from "$lib/stores";
     import { goto } from "$app/navigation";
     import { unwrap } from "$lib/Alert";
 	import { page } from "$app/stores";
@@ -30,10 +29,10 @@
 </script>
 
 {#if room}
-	<div class="room">
+	<div class="room flex-nowrap">
 		<a class="button border-blue" href={back($page.url.pathname)}>Back</a>
 		<div class="grow"/>
-		<div class="text-4xl">{room?.name}</div>
+		<div class="name">{room.name}</div>
 		<div class="grow"/>
 		{#if room.owner?.id === $page.data.user.id}
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
@@ -42,10 +41,15 @@
 		{/if}
 		{#if room.type === "ChatRoom" && self && self.role >= Role.ADMIN}
 			<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
-			<button class="button border-green">Dropdown</button>
-			<Dropdown placement="left">
-				<DropdownHeader>aaaaaaaaaaaaaaaaaaaaaaaaaaaaaa</DropdownHeader>
-			</Dropdown>
 		{/if}				
 	</div>
 {/if}
+
+<style>
+	.name {
+		white-space: nowrap;
+		overflow: hidden;
+		font-size: large;
+	}
+
+</style>

@@ -1,5 +1,5 @@
-import { Vector, type VectorObject } from "../lib2D/Math2D";
-import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, scorePositions, type simpleVector } from "./Constants";
+import { Vector } from "../lib2D/Math2D";
+import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, type simpleVector } from "./Constants";
 import { m3 } from "../lib2D/Matrix";
 import { Shader} from "./Shader";
 import type { viewPort } from "./Shader";
@@ -149,7 +149,13 @@ export class FullShader {
 		});
 
         this.canvas.addEventListener("wheel", ev => {
-            const rotation = ev.deltaY / 16 * 2 * 0.01745329;
+			let rotation = 0;
+			if (Number.isInteger(ev.deltaY)) {
+				rotation = ev.deltaY / 16 * 2 * 0.01745329;
+			}
+			else {
+				rotation = Math.sqrt(ev.deltaY) * 0.01745329;
+			}
 				events.mouseWheel(rotation);
 			});
 	}
@@ -307,7 +313,6 @@ export class FullShader {
 		}
 	}
 
-	//TODO lerp/slerp the paddle (and ball?) for smoother motion
 	public render(time: number) {
 		let refresh = false;
 

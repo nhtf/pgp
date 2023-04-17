@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { Member, Room, User } from "$lib/entities";
 	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
-	import { blockStore, friendStore, gameStore, memberStore, updateStore, userStore } from "$lib/stores";
+	import { blockStore, friendStore, gameStore, memberStore, userStore } from "$lib/stores";
 	import { status_colors } from "$lib/constants";
 	import { fetchGame } from "$lib/util";
 	import { actions } from "$lib/action";
@@ -16,6 +16,7 @@
 	export let extend: boolean = false;
 	export let banned: boolean = false;
 	export let placement: string = "bottom";
+	export let key: number = 0;
 
 	$: me = $userStore.get($page.data.user?.id)!;
 	$: user = $userStore.get(user.id)!;
@@ -27,7 +28,7 @@
 	$: friendIds = [...$friendStore.keys()];
 	$: blockedIds = [...$blockStore.keys()];
 
-	$: game = [...$gameStore.values()].find((game) => game.roomId === user.activeRoomId);
+	$: game = user.activeRoomId ? [...$gameStore.values()].find((game) => game.roomId === user.activeRoomId) : undefined;
 
 	onMount(async () => {
 		if (user.activeRoomId && !game) {
@@ -53,7 +54,7 @@
 	<Avatar
 		class="opacity-{opacity}"
 		src={user.avatar}
-		id="avatar-{user.id}"
+		id="avatar-{user.id}-{key}"
 		dot={{
 			placement: "bottom-right",
 			color: status_colors[user.status],
@@ -61,14 +62,14 @@
 	/>
 	<Tooltip>{user.username}</Tooltip>
 	{#if game}
-		<Popover {placement} class="popover">
+		<Popover {placement} class="popover" triggeredBy="#avatar-{user.id}-{key}">
 			<Match {game} {user}/>
 		</Popover>
 	{/if}
 	{#if extend}
 		<div>{user.username}</div>
 	{/if}
-	<Dropdown {placement} class="dropdown" triggeredBy="#avatar-{user.id}">
+	<Dropdown {placement} class="dropdown" triggeredBy="#avatar-{user.id}-{key}">
 		<DropdownItem class="dropdown-item">
 			<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
 		</DropdownItem>

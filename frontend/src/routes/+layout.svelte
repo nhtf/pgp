@@ -83,10 +83,10 @@
 			text: update.value.message,
 			showCancelButton: update.value.can_cancel,
 		}).then(async (result) => {
-			if (result.isConfirmed) {
+			if (!update.value.can_cancel || result.isConfirmed) {
 				await goto(update.value.url)
 			}
-		})
+		});
 	}
 
 	function heartBeat() {

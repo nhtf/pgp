@@ -1,7 +1,7 @@
 import type { GameRoom } from "$lib/entities" 
 import { BACKEND_ADDRESS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
-import { Counter, randomHex, hashCode } from "./Util";
+import { Counter, randomHex } from "./Util";
 import { Father, Bible } from "./SignFromGod";
 import Swal from "sweetalert2";
 

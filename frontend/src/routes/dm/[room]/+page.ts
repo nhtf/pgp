@@ -1,6 +1,6 @@
 import type { PageLoad } from "./$types"
 import { User, DMRoom, type Message } from "$lib/entities";
-import { userStore, roomStore, updateStore  } from "$lib/stores";
+import { updateStore  } from "$lib/stores";
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
 

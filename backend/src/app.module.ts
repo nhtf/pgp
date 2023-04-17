@@ -50,7 +50,7 @@ export const db_pool = new Pool({
 	user: DB_USER,
 	password: DB_PASS,
 	port: DB_PORT,
-	ssl: false, //TODO set to true
+	ssl: false,
 	max: 20,
 	idleTimeoutMillis: 1000,
 	connectionTimoutMillis: 1000,
@@ -96,7 +96,6 @@ export const sessionMiddleware = session({
 	cookie: {
 		maxAge: SESSION_ABSOLUTE_TIMEOUT,
 		sameSite: "strict",
-		//TODO set secure attribute
 	},
 });
 
@@ -114,7 +113,6 @@ export const dataSource = new DataSource({
 	}),
 	subscribers: [EntitySubscriber],
 	synchronize: true, //TODO disable and test before turning in
-	//logging: true,
 	// TODO enable cache? (cache: true)
 });
 

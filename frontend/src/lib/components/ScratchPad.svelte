@@ -71,50 +71,9 @@
 		suggestions = [];
 	}
 
-	//$: rows = (content.match(/\n/g)?.length! + 1 || 1);
-
 	async function getSuggestions(which: "tenor" | "giphy", query: string) {
 		return unwrap(get(`/media/${which}`, { query }));
 	}
-
-	function getTenorQuery(txt: string) {
-		const matches = /^\/tenor (.*)/g.exec(txt);
-		if (matches && matches.length === 2) return matches[1];
-		return undefined;
-	}
-	/*
-
-	async function onKeyPress(event: KeyboardEvent) {
-		if (event.key === "Enter" && !event.shiftKey) {
-			event.preventDefault();
-			clearTimeout(timer);
-			const query = getTenorQuery(content);
-			if (query && running) {
-				const tmp = await getSuggestions(query);
-				apply(tmp[0].url);
-			} else if (suggestions.length !== 0) {
-				apply(suggestions[0].url);
-			} else {
-				sendMessage();
-			}
-			running = false;
-		}
-	}
-	//TODO also hanlde onInput so that Ctrl-A Del/backspace works
-	async function onInput(event: Event) {
-		clearTimeout(timer);
-		if (!getTenorQuery(content)) {
-			suggestions = [];
-		}
-		running = true;
-		timer = setTimeout(async () => {
-			running = false;
-			const query = getTenorQuery(content);
-			if (query) {
-				suggestions = await getSuggestions(query);
-			}
-		}, 1000);
-	}*/
 
 	async function onKeyPress(event: KeyboardEvent) {
 		if (event.key === "Enter" && !event.shiftKey) {
@@ -175,7 +134,7 @@
 
 <div class="text-container">
 	<div class="input-container">
-		<pre aria-hidden="true">{`${content}\n`}</pre>
+		<pre aria-hidden="true">&zwnj;{`${content}\n`}</pre>
 		<textarea
 			disabled={disabled || false}
 			on:keypress={onKeyPress}
@@ -280,7 +239,6 @@
 		display: flex;
 		background-color: var(--box-color);
 		border-radius: 1em;
-		margin: 0.2em;
 		max-height: 50%;
 	}
 </style>

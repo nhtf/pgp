@@ -51,8 +51,6 @@ interface Snapshot extends NetSnapshot {
 	};
 };
 
-//TODO still desync seems to be ping and userId in paddle that is the issue maybe?
-
 function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 
 	const ballLine: Line = {p0: ball.position, p1: ball.position.add(paddleVelo), name: "ballLine"};

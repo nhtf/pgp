@@ -7,7 +7,6 @@ import {
 } from "./Constants";
 import type { Line } from "../lib2D/Math2D";
 import type { Team } from "../lib2D/Team";
-import type { VectorObject } from "../lib2D/Math2D";
 import { serialize, deserialize } from "../Math";
 
 export interface PaddleObject {

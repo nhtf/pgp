@@ -14,3 +14,7 @@ export async function fetchGame(id: number) {
 	updateStore(Game, game);
 	updateStore(User, users);
 }
+
+export function clamp(n: number, min: number, max: number): number {
+	return n < min ? min : n > max ? max : n;
+}

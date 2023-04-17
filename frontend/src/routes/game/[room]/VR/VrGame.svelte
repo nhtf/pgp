@@ -1,8 +1,7 @@
 <script lang="ts">
 	import { onMount, onDestroy } from "svelte";
-	import { Ammo, ammoInit } from "./Ammo";
+	import { ammoInit } from "./Ammo";
 	import { Pong } from "./VRPong";
-	import { page } from "$app/stores";
     import type { GameRoom } from "$lib/entities";
 	import {VRButton} from "three/examples/jsm/webxr/VRButton";
 
@@ -12,24 +11,17 @@
 	let container: Element;
 
 	onMount(async() => {
-		// console.log($page.data);
-		const startTime = Date.now();
-		// console.log("starting ammo init");
 		await ammoInit();
 		
 		world = new Pong();
-		// console.log(world);
-		// console.log("created world");
 		container.append(world.renderer.domElement);
 		const vrButton = VRButton.createButton(world.renderer);
 		container.append(vrButton);
-		// console.log("starting world");
 		await world.start({
 			container,
 			room,
 			member: { ...room.self! }
 		});
-		// console.log("world has started", Date.now() - startTime);
 		vrButton.addEventListener("click", function(ev) {
 			requestAnimationFrame(function() {
 				const canvas = document.getElementsByTagName("canvas")[0];
@@ -39,7 +31,6 @@
 				const parent = canvas.parentElement;
 
 				if (!parent?.classList.contains("game-container")) {
-					// console.log("parent has game-container");
 					canvas.parentElement!.id = "threejs-unfucker";
 				}
 			});

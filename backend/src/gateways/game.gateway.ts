@@ -77,7 +77,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			id: client.user,
 			value: {
 				activeRoomId: null,
-				status: Status.ACTIVE,
+				// status: Status.ACTIVE,
 			}
 		});
 
@@ -104,7 +104,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			id: user.id,
 			value: {
 				activeRoomId: client.room,
-				status: Status.INGAME
+				// status: Status.INGAME
 			}
 		});
 

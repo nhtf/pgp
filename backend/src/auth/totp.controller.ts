@@ -80,13 +80,8 @@ export class TotpController {
 			});
 		});
 
-		try {
-			const qr = await promise;
-			return { secret, qr };
-		} catch (error) {
-			console.log("qr", error);
-			throw new InternalServerErrorException();
-		}
+		const qr = await promise;
+		return { secret, qr };
 	}
 
 	@Post("disable")
@@ -128,7 +123,7 @@ export class TotpController {
 		request: Request,
 	): Promise<void> {
 		if (!authenticator.check(otp, secret))
-			throw new HttpException("Invalid otp", HttpStatus.CONFLICT);
+			throw new HttpException("Invalid otp", HttpStatus.FORBIDDEN);
 
 		const access_token = request.session.access_token;
 		const id = request.session.user_id;

@@ -30,7 +30,7 @@
 
 </script>
 
-<div class="flex flex-col m-4 gap-2 px-1 py-0.5">
+<div class="flex flex-col m-4 gap-2">
 	<div class="room">
 		<UserSearch bind:value filter={notInDms} on:keypress={onKeyPress}/>
 		<div class="grow"/>
