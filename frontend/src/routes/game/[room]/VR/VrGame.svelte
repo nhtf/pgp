@@ -22,7 +22,7 @@
 			room,
 			member: { ...room.self! }
 		});
-		vrButton.addEventListener("click", function(ev) {
+		vrButton.addEventListener("click", function(_ev) {
 			requestAnimationFrame(function() {
 				const canvas = document.getElementsByTagName("canvas")[0];
 				canvas.style.position = "fixed";

@@ -1,21 +1,18 @@
 <script lang="ts">
-    import { post } from "$lib/Web";
-    import { unwrap } from "$lib/Alert";
-	import RoomInput from "$lib/components/RoomInput.svelte";
-	import RoomOverview from "$lib/components/RoomOverview.svelte";
-    import { onMount } from "svelte";
-    import { page } from "$app/stores";
-    import { updateStore } from "$lib/stores";
+	import type { PageData } from "./$types";
     import { ChatRoom, User } from "$lib/entities";
+    import { updateStore } from "$lib/stores";
+    import { unwrap } from "$lib/Alert";
+    import { post } from "$lib/Web";
+	import RoomOverview from "$lib/components/RoomOverview.svelte";
+	import RoomInput from "$lib/components/RoomInput.svelte";
 
-	onMount(() => {
-		const rooms: ChatRoom[] = $page.data.rooms;
-	
-		updateStore(ChatRoom, rooms);
-		updateStore(User, rooms
-			.filter(({ owner }) => owner !== undefined)
-			.map(({ owner }) => owner!));
-	});
+	export let data: PageData;
+
+	updateStore(ChatRoom, data.rooms);
+	updateStore(User, data.rooms
+		.filter(({ owner }) => owner !== undefined)
+		.map(({ owner }) => owner!));
 
 	async function create(room: any) {
 		room.name = room.name.length ? room.name : undefined;

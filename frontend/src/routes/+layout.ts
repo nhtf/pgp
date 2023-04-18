@@ -1,6 +1,5 @@
+import type { Invite, User } from "$lib/entities";
 import type { LayoutLoad } from "./$types";
-import { Invite, User, Entity } from "$lib/entities";
-import { updateStore, blockStore } from "$lib/stores";
 import { get } from "$lib/Web";
 
 export const ssr = false;
@@ -9,18 +8,14 @@ export const load: LayoutLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
 	let user: User | null = null;
+	let blocked: User[] | null = null;
+	let invites: Invite[] | null = null;
 
 	try {
 		user = await get(`/user/me`) as User;
-	
-		const blocked: User[] = await get(`/user/me/blocked`);
-		const invites: Invite[] = await get(`/user/me/invites`);
-
-		updateStore(User, user);
-		updateStore(Invite, invites);
-		updateStore(Entity, blocked.map(({ id }) => { return { id } }), blockStore);
-
+		blocked = await get(`/user/me/blocked`) as User[];
+		invites = await get(`/user/me/invites`) as Invite[];
 	} catch (err) { }
 
-	return { user };
+	return { user, blocked, invites };
 }) satisfies LayoutLoad;

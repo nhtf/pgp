@@ -2,7 +2,6 @@
 	import type { RoomInvite, Invite } from "$lib/entities";
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import { page } from "$app/stores";
-	import { backIn as anim } from "svelte/easing";
 	import { inviteStore, userStore } from "$lib/stores";
 	import { onMount } from "svelte";
     import { goto } from "$app/navigation";
@@ -76,12 +75,11 @@
 			oldLength = newlength;
 	}
 
-	function spin(node: any, { duration }: { duration: number }) {
+	function spin(_node: any, { duration }: { duration: number }) {
 		return {
 			duration,
 			css: (t: number) => {
 				const rot_eased = Math.sin(t * 4 * 2 * Math.PI);
-				const scal_eased = anim(t) + 0.5;
 				if (!newNotifs || oldLength >= newlength) {
 					oldLength = newlength;
 					return "";
@@ -266,7 +264,6 @@
 		border-radius: 100%;
 		border-width: 2px;
 		border-color: var(--border-color);
-		/* inline-flex relative -top-2 right-3 w-3 h-3 bg-red-500 rounded-full border-2 border-white dark:border-gray-900 */
 	}
 	.close-button:hover {
 		box-shadow: 0 0 3px 2px var(--shadow-color);
@@ -275,9 +272,6 @@
 	.bell-icon {
 		-webkit-filter: var(--invert);
 		filter: var(--invert);
-		/* transform: rotate(50deg); */
-		/* width: 1.5rem;
-		height: 1.5rem; */
 		width: 25px;
 		height: 25px;
 	}

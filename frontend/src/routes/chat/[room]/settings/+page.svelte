@@ -3,14 +3,12 @@
 	import { memberStore, roomStore, updateStore } from "$lib/stores";
 	import { User, ChatRoom } from "$lib/entities";
 	import { unwrap } from "$lib/Alert";
-    import { page } from "$app/stores";
 	import { Role } from "$lib/enums";
 	import { patch } from "$lib/Web";
-    import { onMount } from "svelte";
     import UserDropdown from "$lib/components/UserDropdown.svelte";
     import RoomHeader from "$lib/components/RoomHeader.svelte";
 	import RoomInput from "$lib/components/RoomInput.svelte";
-	import Invite from "$lib/components/Invite.svelte";
+	import Invite from "$lib/components/InviteBox.svelte";
 
 	export let data: PageData;
 
@@ -18,12 +16,8 @@
 	$: self = $memberStore.get(room?.self!.id)!;
 	$: banned = data.banned;
 
-	onMount(() => {
-		const data = $page.data as PageData;
-	
-		updateStore(User, data.banned);
-		updateStore(ChatRoom, data.room);
-	});
+	updateStore(User, data.banned);
+	updateStore(ChatRoom, data.room);
 
 	async function edit(edit: any, room: ChatRoom) {
 		edit.name = edit.name.length ? edit.name : null;

@@ -341,7 +341,7 @@ export class World extends Net {
 	public clientTick() {
 	}
 
-	public render(deltaTime: number) {
+	public render(_deltaTime: number) {
 	}
 
 	public async start(options: Options) {

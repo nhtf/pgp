@@ -1,13 +1,4 @@
-Profile page stat part
-
-Match History page (either on profile or seperate page?)
 
 netcode initialization is horribly broken
 
 fix when out of focus that it should stop updating/ stop game
-
-clicking on one user opens all of their dropdowns
-
-use svgMesh as an external library
-
-ScratchPad inputarea fails when message is either too wide or high

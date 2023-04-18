@@ -32,6 +32,10 @@ export class GameState {
 	@Column({ default: false })
 	finished: boolean = false;
 
+	@Exclude()
+	@Column({ default: false })
+	terminated: boolean = false;
+
 	@Column({ default: false })
 	ranked: boolean = false;
 }

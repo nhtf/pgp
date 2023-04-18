@@ -24,6 +24,7 @@
 
 </script>
 
+<!-- TODO: remove -->
 {#key stores}
 	{#each stores as [caption, store]}
 		<Table {caption} entities={[...store.values()]} />

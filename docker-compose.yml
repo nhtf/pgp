@@ -30,5 +30,16 @@ services:
     build: 'rambler'
     env_file: .env
     restart: always
-    extra_hosts:
+    extra_hosts: # TODO: veranderen zodra frontend en backend ook containers zijn
+      - "host.docker.internal:host-gateway"
+  nginx:
+    image: 'nginx:latest'
+    restart: always
+    env_file: .env
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - /etc/letsencrypt:/etc/letsencrypt # TODO: andere directory voor certs
+    ports:
+      - "${NGINX_PORT}:${NGINX_PORT}"
+    extra_hosts: # TODO: veranderen zodra frontend en backend ook containers zijn
       - "host.docker.internal:host-gateway"

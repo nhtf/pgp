@@ -89,7 +89,7 @@
 	{#if extend}
 		<div>{user.username}</div>
 	{/if}
-	<Dropdown {placement} class="dropdown" triggeredBy="#avatar-{user.id}-{key}">
+	<Dropdown {placement} class="dropdown" triggeredBy="#avatar-{user.id}-{key}" frameClass="dropdown">
 		<DropdownItem class="dropdown-item">
 			<a href={`/profile/${encodeURIComponent(user.username)}`}>Profile</a>
 		</DropdownItem>

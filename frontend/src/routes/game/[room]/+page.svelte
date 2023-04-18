@@ -1,8 +1,8 @@
 <script lang="ts">
-	import type { Team } from "$lib/entities";
 	import type { PageData } from "./$types";
+	import { GameRoom, User, type Team, Game, GameRoomMember } from "$lib/entities";
     import { scoreColors } from "./Modern/Constants";
-    import { gameStore } from "$lib/stores";
+    import { gameStore, updateStore } from "$lib/stores";
 	import { Gamemode } from "$lib/enums";
     import { byId } from "$lib/sorting";
     import { page } from "$app/stores";
@@ -12,6 +12,11 @@
 	import VrGame from "./VR/VrGame.svelte";
 
 	export let data: PageData;
+
+	updateStore(User, data.users);
+	updateStore(GameRoom, data.room);
+	updateStore(Game, data.room.state!);
+	updateStore(GameRoomMember, data.members);
 
 	const room = data.room;
 	const gamemode = room.state!.gamemode;

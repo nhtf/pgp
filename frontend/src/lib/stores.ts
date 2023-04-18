@@ -87,6 +87,7 @@ function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 		if (typeof update[key] === "object"
 			&& update[key] !== null
 			&& !Array.isArray(update[key])
+			&& entity[key] !== null
 			&& entity[key] !== undefined
 		) {
 			updateDeepPartial(entity[key], update[key]);
@@ -153,7 +154,7 @@ async function onFriendInsert(update: UpdatePacket) {
 // Add state, owner and other from new room
 async function onRoomInsert(update: UpdatePacket) {
 	if (update.value?.state) {
-		updateStore(User, update.value.state);
+		updateStore(Game, update.value.state);
 	}
 
 	if (update.value?.owner) {

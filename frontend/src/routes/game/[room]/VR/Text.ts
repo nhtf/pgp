@@ -20,6 +20,7 @@ export function createText(text: string, font: Font): TextGeometry {
 	});
 }
 
+//TODO make score text also appear on the posters (BIG)
 export class DynamicText {
 	private lastText: string;
 	private world: World;

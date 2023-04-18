@@ -4,12 +4,22 @@
     import Match from '$lib/components/Match.svelte';
 	import Info from "$lib/components/Info.svelte";
     import { byId } from '$lib/sorting';
+    import { friendStore, updateStore } from '$lib/stores';
+    import { Entity, Game, User } from '$lib/entities';
 
 	export let data: PageData;
 
+	updateStore(User, data.profile);
+	updateStore(Game, data.games);
+
+	if (data.profile.id === data.user?.id) {
+		updateStore(User, data.friends!);
+		updateStore(Entity, data.friends!.map(({ id }) => { return { id } }), friendStore);
+	}
+
 </script>
 
-<div class="block-container">
+<div class="block-container pt-2">
 	<Info/>
 	{#if data.user?.id === data.profile.id}
 		<Friends/>

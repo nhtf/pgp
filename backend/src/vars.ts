@@ -1,4 +1,6 @@
 export const PROD: boolean = process.env.NODE_ENV === "production";
+export const FRONTEND_DEV_HOST: string = process.env.FRONTEND_DEV_HOST;
+export const BACKEND_DEV_HOST: string = process.env.BACKEND_DEV_HOST;
 export const HOST: string = process.env.HOST;
 export const DB_PORT: number = Number(process.env.POSTGRES_PORT);
 export const DB_USER: string = process.env.POSTGRES_USERNAME;
@@ -7,10 +9,10 @@ export const DB_DATABASE: string = process.env.POSTGRES_DB;
 
 export const BACKEND_PORT: number = Number(PROD ? process.env.BACKEND_PROD_PORT : process.env.BACKEND_DEV_PORT);
 export const FRONTEND_PORT: number = Number(PROD ? process.env.FRONTEND_PROD_PORT : process.env.FRONTEND_DEV_PORT);
-export const BACKEND_ADDRESS: string =
-	"http://" + process.env.HOST + ":" + BACKEND_PORT;
-export const FRONTEND_ADDRESS: string =
-	"http://" + process.env.HOST + ":" + FRONTEND_PORT;
+export const BACKEND_DEV_ADDRESS: string = "https://" + BACKEND_DEV_HOST;
+export const FRONTEND_DEV_ADDRESS: string = "https://" + FRONTEND_DEV_HOST;
+export const BACKEND_ADDRESS: string = BACKEND_DEV_ADDRESS;
+export const FRONTEND_ADDRESS: string = FRONTEND_DEV_ADDRESS;
 export const SESSION_SECRET: string = process.env.SESSION_SECRET;
 export const AVATAR_DIR: string = process.env.AVATAR_DIR;
 export const DEFAULT_AVATAR: string = process.env.DEFAULT_AVATAR;
@@ -35,3 +37,4 @@ export const EMBED_MAXLENGTH: number = Number(process.env.EMBED_MAXLENGTH || 104
 export const EMBED_ALGORITHM: string = process.env.EMBED_ALGORITHM || "sha256";
 export const FUZZY_THRESHOLD: number = Number(process.env.FUZZY_THRESHOLD) ?? 0.1;
 export const EMBED_LIMIT: number = Number(process.env.EMBED_LIMIT || 5);
+export const RAMBLER_SECRET: string = process.env.RAMBLER_SECRET;

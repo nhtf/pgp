@@ -159,8 +159,6 @@
 		width: 90vw;
 		overflow-x: auto;
 		overflow-y: hidden;
-		/*scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-bkg);
-	scrollbar-width: thin;*/
 		/*padding: 0.2em;*/
 	}
 
@@ -205,8 +203,6 @@
 		margin-left: 1em;
 		min-width: 20vw;
 		scrollbar-color: var(--scrollbar-thumb) transparent;
-		/* max-width: 60vw; */
-		/* max-height: 50em; */
 		border: none;
 		padding: 1.5em;
 		display: flex;
@@ -230,10 +226,13 @@
 		width: 3em;
 		height: 3em;
 		margin: 0.5em;
+		-webkit-filter: var(--invert);
+		filter: var(--invert);
 	}
 
 	.item:hover {
-		filter: brightness(50%);
+		-webkit-filter: var(--invert) opacity(50%);
+		filter: var(--invert) opacity(50%);
 	}
 
 	.text-container {

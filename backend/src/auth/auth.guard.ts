@@ -23,10 +23,11 @@ function GenericAuthGuard(get_request: (context: ExecutionContext) => Request) {
 				return false;
 			if (request.headers.authorization) {
 				//auth header is already checked in middleware, so no validation is done here
-				if (await argon2.verify(
-					user.api_secret,
-					Buffer.from(plainToClass(AuthDTO,
-						JSON.parse(Buffer.from(request.headers.authorization, "base64").toString())).secret, "base64")))
+				const secret = Buffer.from(plainToClass(AuthDTO,
+						JSON.parse(Buffer.from(request.headers.authorization, "base64").toString())).secret, "base64");
+				if (!secret || !user.api_secret)
+					return false;
+				if (await argon2.verify(user.api_secret, secret))
 					return true;
 				return false;
 			}

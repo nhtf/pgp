@@ -1,6 +1,5 @@
 import type { PageLoad } from "./$types";
-import { type Stat, User } from "$lib/entities";
-import { updateStore } from "$lib/stores";
+import type { Stat, User } from "$lib/entities";
 import { dedup } from "$lib/util";
 import { get } from "$lib/Web";
 
@@ -16,7 +15,5 @@ export const load: PageLoad = (async ({ fetch }) => {
 	  .map(({ id }) => get(`/user/id/${id}`) as Promise<User>)
 	);
 
-	updateStore(User, users);
-
-	return { stats: leaderBoard };
+	return { users, stats: leaderBoard };
 }) satisfies PageLoad;

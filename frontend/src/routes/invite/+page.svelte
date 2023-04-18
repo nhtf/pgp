@@ -37,8 +37,8 @@
 	<Tabs
 		style="underline"
 		divider
-		defaultClass="flex flex-wrap space-x-2 bg-c rounded"
-		contentClass="tab-content-background"
+		defaultClass="tab"
+		contentClass="tab-content"
 	>
 		<TabItem
 			class="bg-c rounded"

@@ -306,7 +306,7 @@ export function GenericUserController(
 			user.friends = await this.user_repo.findBy({ friends: { id: user.id } });
 
 			if (!user.friends.some((user) => user.id === friend.id)) {
-				throw new NotFoundException();
+				throw new NotFoundException("User not found");
 			}
 
 			await this.user_service.permute(user, friend, async (first: User, second: User) => {
@@ -388,7 +388,7 @@ export function GenericUserController(
 			};
 
 			if (user.id !== request.from.id && user.id !== request.to.id)
-				throw new NotFoundException();
+				throw new NotFoundException("Request not found");
 
 			await this.request_repo.remove(request);
 		}

@@ -7,7 +7,7 @@
 	import { Access, Role } from "$lib/enums";
     import { byId } from "$lib/sorting";
 	import { page } from "$app/stores";
-	import Invite from "./Invite.svelte";
+	import InviteBox from "./InviteBox.svelte";
     import Swal from "sweetalert2";
 
 	export let room: Room;
@@ -53,7 +53,7 @@
 	async function join(room: Room) {
 		await unwrap(post(`${room.route}/members`, { password }));
 
-		if (room.type === "GameRoom" && !state?.teamsLocked) {
+		if (room.type === "GameRoom" && state && !state.teamsLocked) {
 			changeTeam(room);
 		}
 	
@@ -91,7 +91,7 @@
 
 </script>
 
-<div class="room" style={`filter: brightness(${room.joined ? "100" : "80"}%)`}>
+<div class="room" style={`opacity: ${room.joined ? "100" : "50"}%`}>
 	{#if room.type === "ChatRoom"}
 		<img class="avatar" src={owner?.avatar} alt="avatar"/>
 	{:else if room.icon}
@@ -104,7 +104,7 @@
 	<div class="grow"/>
 	{#if room.joined}
 		{#if room.self && room.self.role >= Role.ADMIN}
-			<Invite {room}/>
+			<InviteBox {room}/>
 		{/if}
 		{#if owner?.id === user.id}
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>

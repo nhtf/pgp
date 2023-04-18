@@ -1,13 +1,14 @@
 <script lang="ts" src="sweetalert2.min.js">
     import { goto, invalidate } from '$app/navigation';
     import { BACKEND } from '$lib/constants';
-	import Swal from 'sweetalert2';
 	import { post } from "$lib/Web";
+	import Swal from 'sweetalert2';
+
 	let code: string = "";
 
 	async function verify_code() {
 		try {
-			const response = await post(`/otp/verify`, { otp: code });
+			await post(`/otp/verify`, { otp: code });
 			await invalidate(`${BACKEND}/user/me`);
 			await goto(`/profile`);
 		} catch (error) {

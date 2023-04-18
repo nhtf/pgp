@@ -1,9 +1,9 @@
 import type { UpdatePacket } from "$lib/types";
 import { Subject, Action } from "$lib/enums";
-import { BACKEND_ADDRESS } from "$lib/constants";
+import { BACKEND_WS } from "$lib/constants";
 import { io } from "socket.io-client";
 
-const WS = `ws://${BACKEND_ADDRESS}/update`;
+const WS = `${BACKEND_WS}/update`;
 
 type UpdateFunction = (update: UpdatePacket) => Promise<void> | void;
 

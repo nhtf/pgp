@@ -1,5 +1,5 @@
 <script lang="ts">
-	import type { Stat, User } from "$lib/entities";
+	import { User, type Stat } from "$lib/entities";
 	import type { PageData } from "./$types";
 	import {
 		TableBody,
@@ -11,6 +11,7 @@
 		Tabs,
 		TabItem,
 	} from "flowbite-svelte";
+    import { updateStore, userStore } from "$lib/stores";
     import { Gamemode, gamemodes } from "$lib/enums";
 	import UserDropdown from "$lib/components/UserDropdown.svelte";
 
@@ -21,6 +22,8 @@
 
 	$: stats = data.stats.filter(({ username }) => username.toLowerCase().includes(searchTerm.toLowerCase()));
 
+	updateStore(User, data.users);
+
 	function partialUser(user: Partial<User>): User {
 		return user as User;
 	}
@@ -30,6 +33,12 @@
 			&& stat.gamemode === gamemode
 			&& teams === stat.team_count;
 	}
+
+	function getRank(username: string, gamemode: Gamemode) {
+		const gamemodeStats = data.stats.filter((stat) => stat.gamemode === gamemode);
+		return gamemodeStats.findIndex((stat) => stat.username === username);
+	}
+
 
 </script>
 
@@ -56,23 +65,25 @@
 						<TableHeadCell class="table-cell">draws</TableHeadCell>
 					</TableHead>
 					<TableBody>
-						{#each stats.filter(statFilter.bind({}, searchTerm, gamemode, team)) as item, index}
-							<TableBodyRow
-								color="custom"
-								class="leaderboard-row rank{index + 1}"
-							>
-								<TableBodyCell tdClass="table-cell">{index + 1}</TableBodyCell>
-								<TableBodyCell tdClass="table-cell">
-									<UserDropdown
-										user={partialUser({ id: item.id })}
-										extend={true}
-										placement={"left"}
-									/>
-								</TableBodyCell>
-								<TableBodyCell tdClass="table-cell">{item.wins}</TableBodyCell>
-								<TableBodyCell tdClass="table-cell">{item.losses}</TableBodyCell>
-								<TableBodyCell tdClass="table-cell">{item.draws}</TableBodyCell>
-							</TableBodyRow>
+						{#each stats.filter(statFilter.bind({}, searchTerm, gamemode, team)) as item}
+							{#if $userStore.has(item.id)}
+								<TableBodyRow
+									color="custom"
+									class="leaderboard-row rank{getRank(item.username, gamemode)}"
+								>
+									<TableBodyCell tdClass="table-cell">{getRank(item.username, gamemode) + 1}</TableBodyCell>
+									<TableBodyCell tdClass="table-cell">
+										<UserDropdown
+											user={partialUser({ id: item.id })}
+											extend={true}
+											placement={"left"}
+										/>
+									</TableBodyCell>
+									<TableBodyCell tdClass="table-cell">{item.wins}</TableBodyCell>
+									<TableBodyCell tdClass="table-cell">{item.losses}</TableBodyCell>
+									<TableBodyCell tdClass="table-cell">{item.draws}</TableBodyCell>
+								</TableBodyRow>
+							{/if}
 						{/each}
 					</TableBody>
 				</TableSearch>

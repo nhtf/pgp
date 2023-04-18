@@ -96,7 +96,8 @@ export class GameGateway extends ProtectedGateway("game") {
 		if (state) {
 			const active = await this.userRepo.countBy({ activeRoom: { id: client.room } });
 	
-			if (active === 0 && state.finished) {
+			if (active === 0 && state.finished && !state.terminated) {
+				await this.gameStateRepo.save({ id: state.id, terminated: true });
 				await this.gameFinished(client.room, state);
 			}
 		}

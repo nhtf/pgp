@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { DMRoom, Message } from "$lib/entities";
+	import { User, DMRoom, type Message } from "$lib/entities";
 	import type { UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
 	import { Action, Subject } from "$lib/enums";
-	import { blockStore, roomStore, userStore } from "$lib/stores";
+	import { blockStore, roomStore, updateStore, userStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { onDestroy, onMount } from "svelte";
 	import { unwrap } from "$lib/Alert";
@@ -22,12 +22,16 @@
 	let relativeScroll = messages.length;
 	let index: number;
 
-	$: room = $roomStore.get(data.room.id) as DMRoom;
-	$: other = room.other ? $userStore.get(room.other?.id) : undefined;
+	$: room = $roomStore.get(data.room.id) as DMRoom | undefined;
+	$: other = room?.other ? $userStore.get(room.other?.id) : undefined;
+	$: blocked = other ? $blockStore.has(other.id) : false;
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
 	$: min = clamp(relativeScroll - load, 0, messages.length);
+
+	updateStore(User, data.other);
+	updateStore(DMRoom, data.room);
 
 	onMount(() => {
 		index = updateManager.set(Subject.MESSAGE, updateMessages);
@@ -38,15 +42,13 @@
 	});
 
 	addEventListener("wheel", (event: WheelEvent) => {
-		const delta = clamp(event.deltaY, -1, 1);
-	
-		relativeScroll += delta;
+		relativeScroll += clamp(event.deltaY, -1, 1);;
 	});
 
 	async function updateMessages(update: UpdatePacket) {
 		switch (update.action) {
 			case Action.INSERT:
-				if (update.value.roomId === room.id){
+				if (update.value.roomId === room?.id){
 					messages = [...messages, update.value];
 				}
 				break;
@@ -62,7 +64,7 @@
 	
 	async function sendMessage(content: string) {
 		if (content.length) {
-			await unwrap(post(`${room.route}/messages`, { content }));
+			await unwrap(post(`${room?.route}/messages`, { content }));
 		}
 	}
 
@@ -92,7 +94,9 @@
 			<div class="grow"/>
 			<UserDropdown user={other} extend={true}/>
 			<div class="grow"/>
-			<button class="button border-red" on:click={block}>Block</button>		
+			{#if !blocked}
+				<button class="button border-red" on:click={block}>Block</button>		
+			{/if}
 		</div>
 		<div class="room-page">
 			<div class="room-container">

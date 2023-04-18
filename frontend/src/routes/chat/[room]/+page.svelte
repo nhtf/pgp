@@ -40,16 +40,15 @@
 	$: my_messages = messages.filter(mine);
 	$: history;
 
-	onMount(() => {
-		const data = $page.data;
-	
-		updateStore(User, data.users);
-		updateStore(ChatRoom, data.room);
+	updateStore(User, data.users);
+	updateStore(ChatRoom, data.room);
+	updateStore(ChatRoomMember, data.members);
 
-		if (data.banned) {
-			updateStore(User, data.banned);
-		}
-	
+	if (data.banned) {
+		updateStore(User, data.banned);
+	}
+
+	onMount(() => {
 		index = updateManager.set(Subject.MESSAGE, updateMessages);
 	
 		div.addEventListener("wheel", (event: WheelEvent) => {

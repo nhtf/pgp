@@ -54,6 +54,7 @@ async function spectate({ user }: Args) {
 
 	try {
 		await post(`/game/${id}/members`);
+		await patch(`/game/${id}/team/me`, { team: null });
 	} catch (error) {}
 
 	await goto(`/game/${id}`);

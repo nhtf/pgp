@@ -1,5 +1,5 @@
 import type { GameRoom } from "$lib/entities" 
-import { BACKEND_ADDRESS } from "$lib/constants";
+import { BACKEND_WS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
 import { Counter, randomHex } from "./Util";
 import { Father, Bible } from "./SignFromGod";
@@ -333,7 +333,7 @@ export class Net {
 	public async start(options: Options) {
 		this.snapshots.push([this.save(), this.father.publishBible()]);
 
-		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
+		this.socket = io(options.address ?? `${BACKEND_WS}/game`, { withCredentials: true });
 
 		this.socket!.on("connect", () => {
 			this.socket!.emit("join", { id: options.room.id });
