@@ -1,6 +1,6 @@
 import type { PageLoad } from "./$types"
 import { updateStore } from "$lib/stores"
-import { GameRoom, GameRoomMember, User } from "$lib/entities";
+import { GameRoom, GameRoomMember, User, Game } from "$lib/entities";
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
 
@@ -15,6 +15,7 @@ export const load: PageLoad = async ({ fetch, params }) => {
 
 	updateStore(User, users);
 	updateStore(GameRoom, room);
+	updateStore(Game, room.state!);
 	updateStore(GameRoomMember, members);
 
 	return { room };

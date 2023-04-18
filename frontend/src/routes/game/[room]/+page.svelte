@@ -30,11 +30,13 @@
 
 </script>
 
-{#if gamemode !== Gamemode.VR}
-	<RoomHeader {room} />
-	{#if team}
-		<div class="room justify-center" style="color: {getTeamColor(team)}">{team.name}</div>
+<div class="page">
+	{#if gamemode !== Gamemode.VR}
+		<RoomHeader {room} />
+		{#if team}
+			<div class="room justify-center" style="color: {getTeamColor(team)}">{team.name}</div>
+		{/if}
 	{/if}
-{/if}
 
-<svelte:component this={components[gamemode]} {room} />
+	<svelte:component this={components[gamemode]} {room} />
+</div>

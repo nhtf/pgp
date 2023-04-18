@@ -13,7 +13,7 @@
 	import { onDestroy, onMount } from "svelte";
 	import { userStore } from "$lib/stores";
 	import { goto } from "$app/navigation";
-	import { Gamemode, Subject } from "$lib/enums";
+	import { Subject, gamemodes } from "$lib/enums";
 	import { icon_path } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { put } from "$lib/Web";
@@ -21,7 +21,7 @@
 	import Swal from "sweetalert2";
 	import * as validator from "validator";
 	import "@sweetalert2/theme-dark/dark.scss";
-	import Achievement from "./Achievement.svelte";
+	import AchievementBox from "./AchievementBox.svelte";
 
 	const edit_icon = `${icon_path}/pen.png`;
 
@@ -55,27 +55,29 @@
 	$: profile = $userStore.get($page.data.profile.id)!;
 	$: level = new Level($page.data.level);
 	$: stats = $page.data.stats;
+	$: modes = gamemodes.map((mode) => {
+		return {
+			...mode,
+			...(stats.find(({ gamemode, team_count }) => {
+				return gamemode === mode.gamemode && team_count === mode.team
+			}) ?? { wins: 0, losses: 0, draws: 0 })
+		}
+	});
+
 
 	onMount(() => {
-		index = updateManager.set(
-			Subject.USER,
-			async (update: UpdatePacket) => {
-				if (
-					update.id === profile.id &&
-					update.value.username &&
-					update.value.username !== $page.params.username
-				) {
-					await goto(
-						`/profile/${encodeURIComponent(update.value.username)}`
-					);
-				}
-			}
-		);
+		index = updateManager.set(Subject.USER, onUsernameChange);
 	});
 
 	onDestroy(() => {
 		updateManager.remove(index);
 	});
+
+	async function onUsernameChange(update: UpdatePacket) {
+		if (update.id === profile.id &&	update.value.username && update.value.username !== $page.params.username) {
+			await goto(`/profile/${encodeURIComponent(update.value.username)}`);
+		}
+	}
 
 	async function changeUsername() {
 		await Swal.fire({
@@ -144,8 +146,8 @@
 		<div class="block-cell">
 			<div class="block-hor"><h3>Achievements</h3></div>
 			<div class="block-hor">
-				{#each $page.data.user.achievements as achievement}
-					<Achievement {achievement} />
+				{#each profile.achievements as achievement}
+					<AchievementBox {achievement} />
 				{/each}
 			</div>
 		</div>
@@ -154,19 +156,19 @@
 		<Table>
 			<TableHead>
 				<TableHeadCell>gamemode</TableHeadCell>
-				<TableHeadCell>teams</TableHeadCell>
+				<!-- <TableHeadCell>teams</TableHeadCell> -->
 				<TableHeadCell>wins</TableHeadCell>
 				<TableHeadCell>losses</TableHeadCell>
 				<TableHeadCell>draws</TableHeadCell>
 			</TableHead>
 			<TableBody>
-				{#each stats as stat}
+				{#each modes as mode}
 					<TableBodyRow>
-						<TableBodyCell>{Gamemode[stat.gamemode]}</TableBodyCell>
-						<TableBodyCell>{stat.team_count}</TableBodyCell>
-						<TableBodyCell>{stat.wins}</TableBodyCell>
-						<TableBodyCell>{stat.losses}</TableBodyCell>
-						<TableBodyCell>{stat.draws}</TableBodyCell>
+						<TableBodyCell>{mode.title}</TableBodyCell>
+						<!-- <TableBodyCell>{stat.team_count}</TableBodyCell> -->
+						<TableBodyCell>{mode.wins}</TableBodyCell>
+						<TableBodyCell>{mode.losses}</TableBodyCell>
+						<TableBodyCell>{mode.draws}</TableBodyCell>
 					</TableBodyRow>
 				{/each}
 			</TableBody>

@@ -280,6 +280,7 @@ export class Game extends Net {
 				break;
 			} else if (collision[0].name.startsWith("goal")) {
 				this.pray("score-sound", 30, () => (scoreSound.cloneNode(true) as HTMLAudioElement).play());
+				this.forceSynchronize = true;
 				let goal: number = +collision[0].name.charAt(4);
 				let act = goal;
 				if (this.level.players > 2) {

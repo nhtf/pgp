@@ -17,10 +17,23 @@
 		return invite.from.id === user.id;
 	}
 
+	function getPrettyName(invite_type: string) {
+		switch (invite_type) {
+			case "ChatRoomInvite":
+				return "Chat room";
+			case "GameRoomInvite":
+				return "Game room";
+			case "FriendRequest":
+				return "Friend";
+			default:
+				return "Unknown";
+		}
+	}
+
 </script>
 
-<!-- TODO: save as leaderboard -->
-<div class="flex flex-col m-4 gap-2">
+<!-- TODO: same as leaderboard -->
+<div class="page">
 	<Tabs
 		style="underline"
 		divider
@@ -36,7 +49,7 @@
 			{#each invites.filter(received.bind({}, user)) as invite (invite.id)}
 				<div class="invite">
 					<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
-					<div>{invite.type} invite from {invite.from.username}</div>
+					<div>{getPrettyName(invite.type)} invite from {invite.from.username}</div>
 					<div class="buttons">
 						<button
 							class="border-green"
@@ -60,7 +73,7 @@
 				{#each invites.filter(sent.bind({}, user)) as invite (invite.id)}
 					<div class="invite">
 						<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
-						<div>{invite.type} invitation to {invite.to.username}</div>
+						<div>{getPrettyName(invite.type)} invitation to {invite.to.username}</div>
 						<button
 							class="border-red"
 							on:click={() => invite.deny}

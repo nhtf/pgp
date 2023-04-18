@@ -1,4 +1,4 @@
-import { ChildEntity, OneToOne, Column } from "typeorm";
+import { ChildEntity, OneToOne } from "typeorm";
 import { Member } from "./Member";
 import { Player } from "./Player";
 

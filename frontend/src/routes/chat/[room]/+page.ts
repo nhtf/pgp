@@ -1,6 +1,5 @@
 import type { PageLoad } from "./$types"
-import { User, ChatRoom, ChatRoomMember, type Message } from "$lib/entities";
-import { updateStore  } from "$lib/stores";
+import type { User, ChatRoom, ChatRoomMember, Message } from "$lib/entities";
 import { Role } from "$lib/enums"
 import { unwrap } from "$lib/Alert";
 import { get } from "$lib/Web";
@@ -13,17 +12,11 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 	const members: ChatRoomMember[] = await unwrap(get(`/chat/${params.room}/members`));
 	const messages: Message[] = await unwrap(get(`/chat/${params.room}/messages`));
 
-	updateStore(User, users);
-	updateStore(ChatRoom, room);
-	updateStore(ChatRoomMember, members);
-
 	let banned: User[] | null = null;
 
 	if (room.self!.role >= Role.ADMIN) {
 		banned = await unwrap(get(`/chat/${params.room}/bans`)) as User[];
-	
-		updateStore(User, banned);
 	}
 
-    return { room, members, messages, banned };
+    return { room, members, users, messages, banned };
 }) satisfies PageLoad;

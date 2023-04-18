@@ -548,6 +548,13 @@ canvas {
 	color: blue;
 }
 
+.page {
+	display: flex;
+	flex-direction: column;
+	gap: 0.5rem;
+	margin: 0.5rem;
+}
+
 .popover {
 	display: flex !important;
 	width: fit-content !important;

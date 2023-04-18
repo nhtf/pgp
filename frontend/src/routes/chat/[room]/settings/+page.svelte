@@ -1,11 +1,12 @@
 <script lang="ts">
-	import type { Room } from "$lib/entities";
 	import type { PageData } from "./$types";
-	import { memberStore, roomStore } from "$lib/stores";
-	import { patch, remove } from "$lib/Web";
-	import { goto } from "$app/navigation";
+	import { memberStore, roomStore, updateStore } from "$lib/stores";
+	import { User, ChatRoom } from "$lib/entities";
 	import { unwrap } from "$lib/Alert";
+    import { page } from "$app/stores";
 	import { Role } from "$lib/enums";
+	import { patch } from "$lib/Web";
+    import { onMount } from "svelte";
     import UserDropdown from "$lib/components/UserDropdown.svelte";
     import RoomHeader from "$lib/components/RoomHeader.svelte";
 	import RoomInput from "$lib/components/RoomInput.svelte";
@@ -14,33 +15,35 @@
 	export let data: PageData;
 
 	$: room = $roomStore.get(data.room.id)!;
-	$: { !room && goto(`/chat`) }
 	$: self = $memberStore.get(room?.self!.id)!;
 	$: banned = data.banned;
 
-	async function edit(edit: any, room: Room) {
+	onMount(() => {
+		const data = $page.data as PageData;
+	
+		updateStore(User, data.banned);
+		updateStore(ChatRoom, data.room);
+	});
+
+	async function edit(edit: any, room: ChatRoom) {
 		edit.name = edit.name.length ? edit.name : null;
 		edit.password = edit.password.length ? edit.password : null;
 
 		await unwrap(patch(room.route, edit));
 	}
 
-	async function erase(room: Room) {
-		await unwrap(remove(room.route));
-		await goto(`/chat`);
-	}
-
 </script>
 
 {#if room}
-	<RoomHeader {room}/>
+	<div class="m-2">
+		<RoomHeader {room}/>
+	</div>
 	<div class="room-settings">
 		<div class="box">
 			<Invite {room} />
 		</div>
 		{#if self.role >= Role.OWNER}
 			<RoomInput {room} click={edit} />
-			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 		{/if}
 
 		<div class="box">

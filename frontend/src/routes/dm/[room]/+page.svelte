@@ -85,30 +85,32 @@
 
 </script>
 
-{#if room && other}
-	<div class="room">
-		<a class="button border-blue" href={`/dm`}>Back</a>
-		<div class="grow"/>
-		<UserDropdown user={other} extend={true}/>
-		<div class="grow"/>
-		<button class="button border-red" on:click={block}>Block</button>		
-	</div>
-	<div class="room-page">
-		<div class="room-container">
-			<div class="messages" id="messages" use:scrollToBottom={messages}>
-				{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
-					{#if index >= min}
-						<MessageBox on:load|once={scroll} {room} {message} />
-					{/if}
-				{/each}
-			</div>
-			{#if relativeScroll + load < messages.length}
-				<button class="button middle" on:click={scroll}>Go to bottom</button>
-			{/if}
-			<ScratchPad callback={sendMessage}/>
+<div class="page">
+	{#if room && other}
+		<div class="room">
+			<a class="button border-blue" href={`/dm`}>Back</a>
+			<div class="grow"/>
+			<UserDropdown user={other} extend={true}/>
+			<div class="grow"/>
+			<button class="button border-red" on:click={block}>Block</button>		
 		</div>
-	</div>
-{/if}
+		<div class="room-page">
+			<div class="room-container">
+				<div class="messages" id="messages" use:scrollToBottom={messages}>
+					{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
+						{#if index >= min}
+							<MessageBox on:load|once={scroll} {room} {message} />
+						{/if}
+					{/each}
+				</div>
+				{#if relativeScroll + load < messages.length}
+					<button class="button middle" on:click={scroll}>Go to bottom</button>
+				{/if}
+				<ScratchPad callback={sendMessage}/>
+			</div>
+		</div>
+	{/if}
+</div>
 
 <style>
 

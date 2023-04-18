@@ -10,12 +10,14 @@ export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
+export const FORCE_SYNCHRONIZE_INTERVAL = 30;
 export const HISTORY_LIFETIME = 300;
 export const DESYNC_CHECK_INTERVAL = 60;
 export const DESYNC_CHECK_DELTA = 120;
 export const REPLAY_CHECK_INTERVAL = 0;
 export const REPLAY_CHECK_DELTA = 1;
 export const SAVE_ALL_SNAPSHOTS = false;
+export const REFRESH_ON_DESYNC = true;
 
 let doingDesyncCheck = false;
 
@@ -43,6 +45,7 @@ export class Net {
 	public latencyNetwork: Counter;
 	public tickCounter: Counter;
 	public father: Father;
+	public forceSynchronize: boolean;
 	private snapshots: [Snapshot, Bible][];
 	private allSnapshots: Snapshot[];
 	private allEvents: Event[];
@@ -60,6 +63,7 @@ export class Net {
 		this.latencyNetwork = new Counter(5);
 		this.tickCounter = new Counter(5);
 		this.father = new Father();
+		this.forceSynchronize = false;
 		this.snapshots = [];
 		this.allSnapshots = [];
 		this.allEvents = [];
@@ -173,15 +177,19 @@ export class Net {
 				});
 			}
 
-			if (this.time - this.lastSync >= SYNCHRONIZE_INTERVAL) {
+			if (this.time - this.lastSync >= SYNCHRONIZE_INTERVAL || (this.forceSynchronize && this.time - this.lastSync > FORCE_SYNCHRONIZE_INTERVAL)) {
+				// console.log("synchronize", this.time);
+
 				this.broadcast({
 					name: "synchronize",
 					time: this.time,
 					snapshot: this.snapshots[0][0],
+					current: this.getLatest(this.time)![0],
 					events: this.allEvents
 				});
 
 				this.lastSync = this.time;
+				this.forceSynchronize = false;
 			}
 
 			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
@@ -214,7 +222,11 @@ export class Net {
 	
 					if (JSON.stringify(beforeState) != JSON.stringify(afterState)) {
 						// console.log(JSON.stringify(beforeState), JSON.stringify(afterState));
-						debugger;
+						if (REFRESH_ON_DESYNC) {
+							window.location.reload();
+						} else {
+							debugger;
+						}
 					}
 				}
 			}
@@ -229,12 +241,6 @@ export class Net {
 	}
 
 	private forward(target: number) {
-		if (target - this.time > HISTORY_LIFETIME * 2) {
-			// TODO: this doesn't work
-			console.info("attempt to forward past history lifetime, reloading");
-			window.location.reload();
-		}
-
 		while (this.time < target) {
 			this.tick();
 
@@ -379,7 +385,11 @@ export class Net {
 						if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
 							// console.log(JSON.stringify(testState));
 							// console.log(JSON.stringify(message.snapshot));
-							debugger;
+							if (REFRESH_ON_DESYNC) {
+								window.location.reload();
+							} else {
+								debugger;
+							}
 						}
 					}
 					break;

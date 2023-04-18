@@ -149,6 +149,7 @@ export class Ball extends Entity {
 
 	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {
 		const world = (this.world as Pong);
+		const pointIndex = world.state!.pointIndex;
 
 		if (other?.name == "table") {
 			world.pray("table-sound", 30, () => {
@@ -173,6 +174,10 @@ export class Ball extends Entity {
 			});
 
 			this.removed ||= !world.state!.onPaddleHit((other as Paddle).userId);
+		}
+
+		if (world.state!.pointIndex > pointIndex) {
+			world.forceSynchronize = true;
 		}
 	}
 }

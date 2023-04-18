@@ -1,5 +1,4 @@
 import { Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
-import type { User } from "src/entities/User";
 
 @Injectable()
 export class HumanGuard implements CanActivate {

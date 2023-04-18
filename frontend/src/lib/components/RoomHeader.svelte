@@ -40,7 +40,7 @@
 			<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 		{/if}
 		{#if room.type === "ChatRoom" && self && self.role >= Role.ADMIN}
-			<button class="button border-green" on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
+			<button class="button border-green" disabled={$page.url.pathname.includes("settings")} on:click={() => goto(`${$page.url}/settings`)}>Settings</button>
 		{/if}				
 	</div>
 {/if}

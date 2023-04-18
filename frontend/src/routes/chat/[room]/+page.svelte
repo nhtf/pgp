@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { ChatRoom, Message, ChatRoomMember } from "$lib/entities";
+	import { ChatRoom, type Message, ChatRoomMember, User } from "$lib/entities";
 	import type { UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
 	import { Action, CoalitionColors, enumKeys, Role,  Subject } from "$lib/enums";
-	import { blockStore, memberStore, roomStore } from "$lib/stores";
+	import { blockStore, memberStore, roomStore, updateStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { onDestroy, onMount } from "svelte";
 	import { byDate } from "$lib/sorting";
@@ -41,15 +41,24 @@
 	$: history;
 
 	onMount(() => {
+		const data = $page.data;
+	
+		updateStore(User, data.users);
+		updateStore(ChatRoom, data.room);
+
+		if (data.banned) {
+			updateStore(User, data.banned);
+		}
+	
 		index = updateManager.set(Subject.MESSAGE, updateMessages);
+	
+		div.addEventListener("wheel", (event: WheelEvent) => {
+			scroll = clamp(scroll + clamp(event.deltaY, -1, 1), 0, messages.length);
+		});
 	});
 
 	onDestroy(() => {
-		updateManager.remove(index);
-	});
-
-	addEventListener("wheel", (event: WheelEvent) => {
-		scroll = clamp(scroll + clamp(event.deltaY, -1, 1), 0, messages.length);
+		updateManager.remove(index);	
 	});
 
 	function mine(message: Message) {
@@ -103,9 +112,12 @@
 
 <svelte:window on:keydown={onKeydown}/>
 
+<!-- TODO align vertically -->
 {#if room && self}
 	<div class="room-container-container">
-		<RoomHeader {room}/>
+		<div class="m-2">
+			<RoomHeader {room}/>
+		</div>
 		<div class="room-page">
 			<div class="room-container">
 				<div bind:this={div} class="messages" id="messages" use:scrollToBottom={messages}>
@@ -149,7 +161,7 @@
 	.room-container-container {
 		display: flex;
 		flex-direction: column;
-		height: calc(100vh - 72px);
+		height: calc(100vh - 4.5rem);
 	}
 
 	.room-page {
@@ -165,6 +177,8 @@
 		flex-direction: column;
 		flex-grow: 1;
 		gap: 0.2em;
+		width: calc(100% - 210px);
+		max-height: calc(100vh - 11rem);
 	}
 
 	.member-container {

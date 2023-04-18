@@ -1,10 +1,8 @@
-import { Controller, Get, UseGuards, Res, Query, StreamableFile, HttpException, HttpStatus } from "@nestjs/common";
+import { Controller, Get, UseGuards, Res, Query, HttpStatus, NotFoundException } from "@nestjs/common";
 import { HttpService } from "@nestjs/axios";
 import type { Response } from "express";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";
-import { catchError, map, filter } from "rxjs";
-import axios from "axios";
 import { TENOR_KEY, GIPHY_KEY } from "src/vars";
 
 interface MediaObject {
@@ -129,6 +127,14 @@ interface GiphySearchResponse {
 	meta: GiphyMetaObject;
 }
 
+interface SearchResult {
+	title: string;
+	desc: string;
+	src: string;
+	width: number;
+	height: number;
+}
+
 const search_limit = 10;
 
 @Controller("media")
@@ -138,49 +144,73 @@ export class MediaController {
 	constructor(private readonly httpService: HttpService) { }
 
 	@Get("tenor")
-	async tenor(@Query("query") query: string, @Res() response: Response) {
+	async tenor(@Query("query") query: string) {
 		const res = this.httpService.get<{ results: ResponseObject[], next: string }>(`https://tenor.googleapis.com/v2/search?q=${query}&key=${TENOR_KEY}&limit=${search_limit}&media_filter=tinygif`);
-		response.status(HttpStatus.OK).contentType("application/json");
-		res.subscribe(
-			(value) => {
-				response.write(JSON.stringify(value.data.results.map((gif) => {
-					let url = gif.media_formats["tinygif"];
-					return {
-						title: gif.title,
-						desc: gif.content_description,
-						url: gif.itemurl,
-						src: url?.url,
-						width: url?.dims[0],
-						height: url?.dims[1],
-					};
-				})));
-			},
-			(error) => console.error(error),
-			() => response.send(),
-		);
 
-		return {};
+
+		const promise = new Promise((resolve: (results: SearchResult[]) => void, reject) => {
+			const results: SearchResult[] = [];
+
+			res.subscribe(
+				(value) => {
+					const tmp = value.data.results.map((gif) => {
+						let url = gif.media_formats["tinygif"];
+						return {
+							title: gif.title,
+							desc: gif.content_description,
+							url: gif.itemurl,
+							src: url?.url,
+							width: url?.dims[0],
+							height: url?.dims[1],
+						};
+					});
+					results.push(...tmp);
+				},
+				(error) => { reject(error) },
+				() => resolve(results),
+			);
+		});
+
+		try {
+			return await promise;
+		} catch {
+			throw new NotFoundException();
+		}
 	}
 
 	@Get("giphy")
-	async giphy(@Query("query") query: string, @Res() response: Response) {
+	async giphy(@Query("query") query: string) {
 		const res = this.httpService.get<GiphySearchResponse>(`https://api.giphy.com/v1/gifs/search?api_key=${GIPHY_KEY}&q=${query}&limit=${search_limit}`);
-		response.status(HttpStatus.OK).contentType("application/json");
-		res.subscribe(
-			(value) => {
-				response.write(JSON.stringify(value.data.data.map((gif) => {
-					return {
-						title: gif.title,
-						desc: gif.alt_text,
-						url: gif.url,
-						src: gif.images.downsized.url,
-						width: gif.images.downsized.width,
-						height: gif.images.downsized.height,
-					};
-				})));
-			},
-			(error) => console.error(error),
-			() => response.send(),
-		);
+
+		const promise = new Promise((resolve: (results: SearchResult[]) => void, reject) => {
+			const results: SearchResult[] = [];
+
+			res.subscribe(
+				(value) => {
+
+					const tmp = value.data.data.map((gif) => {
+						return {
+							title: gif.title,
+							desc: gif.alt_text,
+							url: gif.url,
+							src: gif.images.downsized.url,
+							width: Number(gif.images.downsized.width),
+							height: Number(gif.images.downsized.height),
+						};
+					});
+
+					results.push(...tmp);
+
+				},
+				(error) => reject(error),
+				() => resolve(results),
+			);
+		});
+
+		try {
+			return await promise;
+		} catch {
+			throw new NotFoundException();
+		}
 	}
 }

@@ -1,5 +1,4 @@
 import type { Message } from "src/entities/Message";
-import type { DMRoom } from "src/entities/DMRoom";
 import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";

@@ -3,9 +3,7 @@ import { ChatRoom, RoomInvite, ChatRoomMember, Entity, FriendRequest, Game, Game
 import { Access, Action, Subject } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
 import { writable, type Writable } from "svelte/store";
-import { fetchGame } from "$lib/util";
 
-updateManager.set(Subject.USER, onActiveRoom);
 updateManager.set(Subject.ROOM, onRoomInsert);
 updateManager.set(Subject.TEAM, onScoreUpdate);
 updateManager.set(Subject.ROOM, onPrivateRemove);
@@ -46,7 +44,11 @@ export function updateStore<T extends Entity>(entityType: (new () => T), entitie
 
 	stored.update((stored) => {
 		(entities as T[]).forEach((entity) => {
-			stored.set(entity.id, create(entity, entityType))
+			if (!stored.has(entity.id)) {
+				stored.set(entity.id, create(entity, entityType))
+			} else {
+				updateDeepPartial(stored.get(entity.id)!, entity);
+			}
 		});
 
 		return stored;
@@ -170,18 +172,13 @@ async function onScoreUpdate(update: UpdatePacket) {
 			const state = old.get(update.value.stateId);
 
 			if (state) {
-				const team = state.teams.find(({ id }) => id === update.id)!;
+				const team = state.teams?.find(({ id }) => id === update.id);
 
-				team.score = update.value.score;
+				if (team)
+					team.score = update.value.score;
 			}
 
 			return old;
 		});
-	}
-}
-
-async function onActiveRoom(update: UpdatePacket) {
-	if (update.value?.activeRoomId) {
-		await fetchGame(update.value.activeRoomId);
 	}
 }

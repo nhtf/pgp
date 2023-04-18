@@ -139,6 +139,7 @@ export class Game extends Net {
 			const event = netEvent as ServeEvent;
 			const paddle = this.getPaddle(event.u);
 
+			// console.log(paddle, this.ball.velocity.magnitude(), this.finished(), paddle?.team, this.current);
 			if (paddle !== null && this.ball.velocity.magnitude() == 0 && !this.finished() && this.teams.filter(t => this.paddles.filter(p => p.team == t && p.userId !== undefined).length == 0).length == 0 && paddle.team == this.teams[this.current]) {
 				this.ball.velocity.x = Math.sign(paddle.position.x - WIDTH / 2);
 				this.current = 1 - this.current;
@@ -147,7 +148,7 @@ export class Game extends Net {
 
 		this.on("ping", netEvent => {
 			const event = netEvent as PingEvent;
-			const paddle = this.getPaddle(event.u);
+			let paddle = this.getPaddle(event.u);
 
 			if (paddle !== null) {
 				paddle.ping = this.time;
@@ -222,12 +223,14 @@ export class Game extends Net {
 			} else if (collision[0].name == "wall-left") {
 				this.teams[1].score += 1;
 				this.pray("score-sound", 30, () => scoreSound.play());
+				this.forceSynchronize = true;
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(0, 0);
 				break;
 			} else if (collision[0].name == "wall-right") {
 				this.teams[0].score += 1;
 				this.pray("score-sound", 30, () => scoreSound.play());
+				this.forceSynchronize = true;
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
 				this.ball.velocity = new Vector(0, 0);
 				break;

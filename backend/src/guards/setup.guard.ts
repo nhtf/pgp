@@ -1,4 +1,4 @@
-import { Injectable, Inject, CanActivate, ExecutionContext, HttpException, HttpStatus } from "@nestjs/common";
+import { Injectable, Inject, CanActivate, ExecutionContext } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { User } from "src/entities/User";
 

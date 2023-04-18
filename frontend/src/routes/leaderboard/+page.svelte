@@ -11,28 +11,12 @@
 		Tabs,
 		TabItem,
 	} from "flowbite-svelte";
-    import { Gamemode } from "$lib/enums";
+    import { Gamemode, gamemodes } from "$lib/enums";
 	import UserDropdown from "$lib/components/UserDropdown.svelte";
 
 	export let data: PageData;
 
-	const PLAYER_NUMBERS: [Gamemode, number[], string][] = [
-		[Gamemode.CLASSIC, [2], "Classic"],
-		[Gamemode.VR, [2], "VR"],
-		[Gamemode.MODERN, [2, 4], "Modern"],
-	];
-
-	let tabs = PLAYER_NUMBERS.map(([gamemode, teams, name], mode_index) => {
-		return teams.map((team, team_index) => {
-			return {
-				title: `${name}${teams.length > 1 ? ` ${team}P` : ""}`,
-				open: mode_index === 0 && team_index === 0,
-				gamemode,
-				team,
-			}
-		});
-	}).flat();
-
+	let tabs = gamemodes.map((mode, index) => { return { ...mode, open: index === 0 } }); 
 	let searchTerm = "";
 
 	$: stats = data.stats.filter(({ username }) => username.toLowerCase().includes(searchTerm.toLowerCase()));
@@ -49,7 +33,7 @@
 
 </script>
 
-<div class="flex flex-col m-4">
+<div class="page gap-0">
 	<Tabs
 		style="underline"
 		divider
@@ -72,12 +56,12 @@
 						<TableHeadCell class="table-cell">draws</TableHeadCell>
 					</TableHead>
 					<TableBody>
-						{#each stats.filter(statFilter.bind({}, searchTerm, gamemode, team)) as item, i}
+						{#each stats.filter(statFilter.bind({}, searchTerm, gamemode, team)) as item, index}
 							<TableBodyRow
 								color="custom"
-								class="leaderboard-row rank{i + 1}"
+								class="leaderboard-row rank{index + 1}"
 							>
-								<TableBodyCell tdClass="table-cell">{i + 1}</TableBodyCell>
+								<TableBodyCell tdClass="table-cell">{index + 1}</TableBodyCell>
 								<TableBodyCell tdClass="table-cell">
 									<UserDropdown
 										user={partialUser({ id: item.id })}

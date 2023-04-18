@@ -1,13 +1,13 @@
 <script lang="ts">
-	import type { Member, Room, User } from "$lib/entities";
+	import { Game, User, type Member, type Room } from "$lib/entities";
 	import { Avatar, Dropdown, DropdownDivider, DropdownItem, Popover, Tooltip } from "flowbite-svelte";
-	import { blockStore, friendStore, gameStore, memberStore, userStore } from "$lib/stores";
+	import { blockStore, friendStore, gameStore, memberStore, updateStore, userStore } from "$lib/stores";
 	import { status_colors } from "$lib/constants";
-	import { fetchGame } from "$lib/util";
 	import { actions } from "$lib/action";
 	import { Status } from "$lib/enums";
 	import { page } from "$app/stores";
 	import { onMount } from "svelte";
+    import { get } from "$lib/Web";
 	import Match from "./Match.svelte";
 
 	export let member: Member | undefined = undefined;
@@ -28,13 +28,33 @@
 	$: friendIds = [...$friendStore.keys()];
 	$: blockedIds = [...$blockStore.keys()];
 
-	$: game = user.activeRoomId ? [...$gameStore.values()].find((game) => game.roomId === user.activeRoomId) : undefined;
+	$: game = user.activeRoomId ? fetchGame(user) : undefined;
 
 	onMount(async () => {
 		if (user.activeRoomId && !game) {
-			await fetchGame(user.activeRoomId);
+			const game: Game = await get(`/game/${user.activeRoomId}/state`);
+			const users = game.teams.map((team) => team.players).flat().map((player) => player.user);
+
+			updateStore(Game, game);
+			updateStore(User, users);
 		}
 	});
+
+	function fetchGame(user: User) {
+		const cached = [...$gameStore.values()].find((game) => game.roomId === user.activeRoomId);
+		
+		if (!game) {
+			(async () => {
+				const game: Game = await get(`/game/${user.activeRoomId}/state`);
+				const users = game.teams.map((team) => team.players).flat().map((player) => player.user);
+
+				updateStore(Game, game);
+				updateStore(User, users);
+			})();
+		}
+
+		return cached;
+	}
 
 	function findMember(user: User, room: Room) {
 		return [...$memberStore.values()].find(isMember.bind({}, user, room));

@@ -1,10 +1,7 @@
-import { Inject, Injectable, CanActivate, ExecutionContext, InternalServerErrorException } from "@nestjs/common";
+import { Inject, Injectable, CanActivate, ExecutionContext } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { User } from "../entities/User";
 import type { Request } from "express";
-import type { SessionObject } from "src/services/session.service";
-import { authenticate } from "./authenticate";
-import { InjectRepository } from "@nestjs/typeorm";
 import { AuthDTO } from "src/util";
 import { plainToClass } from "class-transformer";
 import * as argon2 from "argon2";

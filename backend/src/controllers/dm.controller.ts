@@ -12,7 +12,6 @@ import { UserService } from "src/services/user.service";
 import { instanceToPlain } from "class-transformer"
 import { AchievementService } from "src/services/achievement.service";
 import { RequiredRole } from "src/guards/role.guard";
-import { UpdateGateway } from "src/gateways/update.gateway";
 
 class CreateDMRoomDTO implements CreateRoomDTO {
 	@IsEmpty()

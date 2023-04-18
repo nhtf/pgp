@@ -16,12 +16,12 @@
 	{/if}
 	{#if data.games.length}
 		<div class="match">
-		<div class="room scrollbar match-content">
-			{#each data.games.sort(byId).reverse() as game}
-				<Match {game} user={data.profile}/>
-			{/each}
+			<div class="room scrollbar match-content">
+				{#each data.games.sort(byId).reverse() as game}
+					<Match {game} user={data.profile}/>
+				{/each}
+			</div>
 		</div>
-	</div>
 	{/if}
 </div>
 

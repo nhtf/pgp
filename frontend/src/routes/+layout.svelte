@@ -135,9 +135,9 @@
 	};
 
 	const links = [
-		{ url: "/chat", name: "Chat Rooms" },
 		{ url: "/dm", name: "DMs" },
-		{ url: "/game", name: "Game Rooms" },
+		{ url: "/chat", name: "Chat rooms" },
+		{ url: "/game", name: "Game rooms" },
 		{ url: "/leaderboard", name: "Leaderboard" },
 		{ url: "/invite", name: "Invites" },
 	];

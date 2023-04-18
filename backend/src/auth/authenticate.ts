@@ -1,7 +1,6 @@
 import type { User } from "src/entities/User";
 import type { IncomingMessage } from "http";
 import type { Repository } from "typeorm";
-import { AUTH_SECRET } from "src/vars";
 import isBase64 from "validator/lib/isBase64";
 import isJSON from "validator/lib/isJSON";
 import { validate } from "class-validator";

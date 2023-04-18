@@ -24,7 +24,7 @@
 					<div class="match-team-score">{Math.abs(team.score)}</div>
 					<div class="match-team-name">{team.name}</div>
 					{#each team.players.sort(byId) as player (player.id)}
-						<div class="match-team-player">{$userStore.get(player.userId)?.username}</div>
+						<div class="match-team-player">{$userStore.get(player.userId)?.username ?? ""}</div>
 					{/each}
 				</div>
 			</div>

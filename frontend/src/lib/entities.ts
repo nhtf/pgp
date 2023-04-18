@@ -16,7 +16,7 @@ export class User extends Entity {
 	queueing: boolean;
 	is_dm: boolean;
 
-	achievements?: Achievement[];
+	achievements: Achievement[];
 };
 
 export class Room<T extends Member = Member> extends Entity {

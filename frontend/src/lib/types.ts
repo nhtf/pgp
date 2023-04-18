@@ -7,16 +7,6 @@ export type UpdatePacket = {
 	value?: any,
 }
 
-export type Achievement = {
-	name: string,
-	icon: string,
-	have: boolean,
-	text: string[],
-	level: number,
-	progress: number,
-	level_cost: number[],
-};
-
 export type Objective = {
 	name: string,
 	description: string,
@@ -24,11 +14,9 @@ export type Objective = {
 	threshold: number,
 };
 
-export type NewAchievement = {
-	id: number,
+export type Achievement = {
 	name: string,
 	image: string,
-	max: number,
 	progress: number,
 	objectives: Objective[],
 };

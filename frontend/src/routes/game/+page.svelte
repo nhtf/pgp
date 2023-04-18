@@ -13,7 +13,7 @@
 	}
 </script>
 
-<div class="flex flex-col m-4 gap-2">
+<div class="page">
 	<Queue/>
 	<RoomInput type={"GameRoom"} click={create}/>
 	<RoomOverview type={"GameRoom"} />

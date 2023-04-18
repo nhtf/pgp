@@ -2,7 +2,7 @@ import * as dotenv from "dotenv";
 dotenv.config();
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
-import { HttpException, HttpStatus, ValidationPipe } from "@nestjs/common";
+import { ValidationPipe } from "@nestjs/common";
 import { AppModule } from "./app.module";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import {
@@ -33,6 +33,7 @@ class BetterAdapter extends IoAdapter {
 
 async function bootstrap() {
 	const app = await NestFactory.create<NestExpressApplication>(AppModule);
+
 	app.use(sessionMiddleware);
 	app.enableCors({
 		origin: FRONTEND_ADDRESS,

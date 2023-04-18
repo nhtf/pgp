@@ -54,6 +54,7 @@ export class State {
 	public teams: Team[];
 	public state: string;
 	public current: Team;
+	public pointIndex: number;
 
 	public constructor(teams: Team2[]) {
 		this.players = [];
@@ -61,7 +62,9 @@ export class State {
 		this.teams.push(new Team(this, teams[0].id, teams[0].score));
 		this.teams.push(new Team(this, teams[1].id, teams[1].score));
 		this.state = "serve-ball";
-		this.current = this.teams[0];
+		const total = this.teams.map(team => team.score).reduce((p, c) => p + c);
+		this.current = this.teams[Math.floor(total / 2) % this.teams.length];
+		this.pointIndex = 0;
 	}
 
 	public save(): Snapshot {
@@ -114,6 +117,7 @@ export class State {
 		const total = this.teams.map(team => team.score).reduce((p, c) => p + c);
 		this.state = "serve-ball";
 		this.current = this.teams[Math.floor(total / 2) % this.teams.length];
+		this.pointIndex += 1;
 		// console.log(this.teams.map(team => `${team.score}`).join(" - "));
 	}
 

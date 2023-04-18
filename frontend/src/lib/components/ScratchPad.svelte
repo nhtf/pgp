@@ -1,7 +1,6 @@
 <script lang="ts">
 	import type { Suggestion } from "$lib/types";
 	import { icon_path } from "$lib/constants";
-	import { unwrap } from "$lib/Alert";
 	import { get } from "$lib/Web";
 
 	export let callback: (content: string) => void;
@@ -72,7 +71,7 @@
 	}
 
 	async function getSuggestions(which: "tenor" | "giphy", query: string) {
-		return unwrap(get(`/media/${which}`, { query }));
+		return get(`/media/${which}`, { query });
 	}
 
 	async function onKeyPress(event: KeyboardEvent) {
@@ -200,10 +199,12 @@
 		padding: 0.5em;
 		box-sizing: border-box;
 		line-height: 1.2;
-		overflow: hidden;
+		overflow-y: auto;
+		overflow-x: hidden;
 		background-color: var(--box-color) !important;
 		margin-left: 1em;
 		min-width: 20vw;
+		scrollbar-color: var(--scrollbar-thumb) transparent;
 		/* max-width: 60vw; */
 		/* max-height: 50em; */
 		border: none;

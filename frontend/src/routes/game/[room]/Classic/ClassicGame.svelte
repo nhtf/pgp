@@ -13,6 +13,7 @@
 	onMount(async () => {
 		const shader = new Shader(canvas);
 		classic = new Classic(shader.getCanvas());
+		console.log(classic);
 		shader.addEventListener(classic);
 
 		await classic.start({

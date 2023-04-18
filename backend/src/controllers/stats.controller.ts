@@ -1,4 +1,4 @@
-import { Param, Query, NotFoundException, BadRequestException, Inject, Controller, Get, UseGuards } from "@nestjs/common";
+import { Query, NotFoundException, Inject, Controller, Get, UseGuards, UseInterceptors, ClassSerializerInterceptor } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { SetupGuard } from "src/guards/setup.guard";
 import { HttpAuthGuard } from "src/auth/auth.guard";
@@ -8,7 +8,7 @@ import { registerDecorator, ValidationOptions, ValidationArguments, IsIn, IsStri
 import { PLAYER_NUMBERS } from "src/services/gameroom.service";
 import { UserService } from "src/services/user.service";
 import validator from "validator";
-import { ParseUsernamePipe, ParseIDPipe } from "src/util";
+import { ParseUsernamePipe } from "src/util";
 import { User } from "src/entities/User";
 import { GameRoomService } from "src/services/gameroom.service";
 
@@ -77,6 +77,7 @@ class OptionsDTO {
 
 @Controller("stat(s)?")
 @UseGuards(HttpAuthGuard, SetupGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class StatsController { 
 
 	constructor(
@@ -86,7 +87,6 @@ export class StatsController {
 		private readonly game_service: GameRoomService,
 	) {}
 
-	// TODO: ranked property in return (or different fetch?)
 	@Get()
 	async get(@Query() dto: OptionsDTO) {
 		if (dto.username != undefined && (await this.user_service.get_by_username(dto.username) == undefined)) {

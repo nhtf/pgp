@@ -81,7 +81,7 @@ export class NewGameController extends GenericRoomController(GameRoom, GameRoomM
 	async create_room(@Me() me: User, @Body() dto: CreateGameRoomOptions) {
 		const room = await super.create_room(me, dto);
 
-		this.update(room, { state: { ... instanceToPlain(room.state) } });
+		// this.update(room, { state: { ... instanceToPlain(room.state) } });
 
 		return room;
 	}
