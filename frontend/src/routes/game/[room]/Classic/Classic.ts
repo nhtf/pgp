@@ -4,6 +4,7 @@ import { Vector, intersection, paddleBounce } from "../lib2D/Math2D";
 import type { Line } from "../lib2D/Math2D";
 import { Team } from "../lib2D/Team";
 import type { Events } from "./Shader";
+import { gameFinished } from "../Modern/Modern";
 
 export const WIDTH = 160;
 export const HEIGHT = 90;
@@ -203,9 +204,17 @@ export class Game extends Net {
 	
 		this.ball.render(context);
 		this.paddles.forEach(paddle => paddle.render(context));
+
+		if (this.finished()) {
+			context.fillStyle = "white";
+			context.font = "10px pong"; /* needs to be a multiple of 5 */
+			context.textAlign = "center";
+			context.fillText("Game   Over", WIDTH / 2, HEIGHT / 2 + 5);
+		}
 	}
 
 	public lateTick() {
+
 		let time = 1;
 		while (time > 0) {
 			const collision = this.ball.collision([

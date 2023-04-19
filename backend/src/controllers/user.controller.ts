@@ -124,7 +124,6 @@ export function GenericUserController(
 		}
 
 		@Get(options.cparam)
-		@UseGuards(SetupGuard)
 		async get_user(
 			@Me() me: User,
 			@Param(options.param, options.pipe) user?: User,

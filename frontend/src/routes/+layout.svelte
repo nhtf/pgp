@@ -177,9 +177,7 @@
 			<DropdownHeader>
 				<span class="block text-sm"> {user.username} </span>
 			</DropdownHeader>
-			<DropdownItem href="/profile/{encodeURIComponent(user.username)}"
-				>profile</DropdownItem
-			>
+			<DropdownItem href="/profile/{encodeURIComponent(user.username)}">profile</DropdownItem>
 			{#if twofa_enabled}
 				<DropdownItem on:click={disable_twofa}>disable 2fa</DropdownItem>
 			{:else}

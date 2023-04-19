@@ -28,7 +28,12 @@
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
-	$: min = clamp(relativeScroll - load, 0, messages.length);
+	let scroll = messages.length;
+	let div: HTMLElement;
+	$: min = scroll - load;
+	$: max = scroll + load;
+	let content = "";
+	// $: min = clamp(relativeScroll - load, 0, messages.length);
 
 	updateStore(User, data.other);
 	updateStore(DMRoom, data.room);
@@ -72,7 +77,7 @@
 		return { update: () => node.scroll({ top: node.scrollHeight, behaviour: "smooth"}) };
 	}
 
-	function scroll() {
+	function scrollDown() {
 		const element = document.getElementById("messages")!;
 
 		element.scroll({ top: element.scrollHeight, behavior: "smooth" });
@@ -87,9 +92,9 @@
 
 </script>
 
-<div class="page">
-	{#if room && other}
-		<div class="room">
+{#if room && other}
+	<div class="room-container-container">
+		<div class="m-2 flex-row flex bg-c bordered gap-4 p-2 items-center">
 			<a class="button border-blue" href={`/dm`}>Back</a>
 			<div class="grow"/>
 			<UserDropdown user={other} extend={true}/>
@@ -100,54 +105,61 @@
 		</div>
 		<div class="room-page">
 			<div class="room-container">
-				<div class="messages" id="messages" use:scrollToBottom={messages}>
+				<div bind:this={div} class="messages" id="messages" use:scrollToBottom={messages}>
 					{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
-						{#if index >= min}
-							<MessageBox on:load|once={scroll} {room} {message} />
+						{#if index >= min && index < max}
+							<MessageBox {room} {message} />
 						{/if}
 					{/each}
 				</div>
-				{#if relativeScroll + load < messages.length}
-					<button class="button middle" on:click={scroll}>Go to bottom</button>
+				{#if scroll + load < messages.length}
+					<button class="button middle" on:click={scrollDown}>Go to bottom</button>
 				{/if}
-				<ScratchPad callback={sendMessage}/>
+				<ScratchPad bind:content callback={sendMessage}/>
 			</div>
 		</div>
-	{/if}
-</div>
+	</div>
+{/if}
 
 <style>
 
 	.middle {
 		position: absolute;
-		left: 40vw;
-		bottom: 10vh;
+		bottom: 5em;
+		left: calc(50% - 100px - 0.1em);
+		transform: translate(-50%, 0);
+	}
+
+	.room-container-container {
+		display: flex;
+		flex-direction: column;
+		height: calc(100vh - 4.5rem);
 	}
 
 	.room-page {
 		display: flex;
-		flex-direction: row;
+		flex-grow: 1;
 		margin: 0.25rem;
 		align-items: stretch;
-	
-		/* TODO */
-		height: 80vh;
+		gap: 0.2em;
 	}
 
 	.room-container {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
+		gap: 0.2em;
+		width: calc(100% - 210px);
+		max-height: calc(100vh - 11rem);
 	}
 
 	.messages {
 		display: flex;
 		flex-direction: column;
 		flex-grow: 1;
+		height: 0px;
 		overflow: auto;
-
-		/* TODO */
-		height: 70vh;
+		scrollbar-color: var(--scrollbar-thumb) transparent;
 	}
 
 </style>

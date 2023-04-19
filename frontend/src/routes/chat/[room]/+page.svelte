@@ -111,7 +111,7 @@
 
 <svelte:window on:keydown={onKeydown}/>
 
-<!-- TODO align vertically -->
+
 {#if room && self}
 	<div class="room-container-container">
 		<div class="m-2">

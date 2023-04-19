@@ -6,15 +6,16 @@
 
 	export let data: PageData;
 
-	$: user = $userStore.get(data.user.id)!;
+	const tabs: ["from" | "to", string, "from" | "to"][] = [
+		["to", "Received", "from"],
+		["from", "Sent", "to"],
+	];
+
+	$: user = $userStore.get(data.user!.id)!;
 	$: invites = [...$inviteStore.values()];
 
-	function received(user: User, invite: Invite) {
-		return invite.to.id === user.id;
-	}
-
-	function sent(user: User, invite: Invite) {
-		return invite.from.id === user.id;
+	function filter(key: "from" | "to", user: User, invite: Invite) {
+		return invite[key].id === user.id;
 	}
 
 	function getPrettyName(invite_type: string) {
@@ -33,55 +34,21 @@
 </script>
 
 <!-- TODO: same as leaderboard -->
-<div class="page">
-	<Tabs
-		style="underline"
-		divider
-		defaultClass="tab"
-		contentClass="tab-content"
-	>
-		<TabItem
-			class="bg-c rounded"
-			defaultClass="rounded"
-			title="received"
-			open
-		>
-			{#each invites.filter(received.bind({}, user)) as invite (invite.id)}
-				<div class="invite">
-					<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
-					<div>{getPrettyName(invite.type)} invite from {invite.from.username}</div>
-					<div class="buttons">
-						<button
-							class="border-green"
-							on:click={() => invite.accept}
-							>Accept</button
-						>
-						<button
-							class="border-red"
-							on:click={() => invite.deny}
-							>Deny</button
-						>
-					</div>
-				</div>
-			{/each}
-		</TabItem>
-		<TabItem
-			class="bg-c rounded"
-			defaultClass="rounded"
-			title="sent"
-		>
-				{#each invites.filter(sent.bind({}, user)) as invite (invite.id)}
-					<div class="invite">
-						<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
-						<div>{getPrettyName(invite.type)} invitation to {invite.to.username}</div>
-						<button
-							class="border-red"
-							on:click={() => invite.deny}
-							>Cancel</button
-						>
+<div class="page gap-0">
+	<Tabs style="underline" divider defaultClass="tab" contentClass="tab-content">
+		{#each tabs as [key, title, opp], index}
+			<TabItem {title} open={index === 0}>
+				{#each invites.filter(filter.bind({}, key, user)) as invite (invite.id)}
+					<div class="invite gap-4">
+						<img class="avatar"	src={invite[opp].avatar} alt="avatar"/>
+						<div class="text-2xl">{getPrettyName(invite.type)} invite {opp} {invite[opp].username}</div>
+						<div class="grow"/>
+						<button class="button border-green" on:click={() => invite.accept}>Accept</button>
+						<button class="button border-red" on:click={() => invite.deny}>Deny</button>
 					</div>
 				{/each}
-		</TabItem>
+			</TabItem>
+		{/each}
 	</Tabs>
 </div>
 
@@ -89,14 +56,12 @@
 
 	.invite {
 		background-color: var(--box-color);
-		/* border-radius: 6px; */
 		display: flex;
 		flex-direction: row;
 		align-items: center;
 		padding: 0.875rem;
 		justify-content: space-evenly;
-		/* margin-top: 0.25rem; */
-		font-size: 1.5rem;
+		font-size: 1rem;
 		border-bottom-color: var(--border-color) !important;
 		border-bottom-width: 2px;
 	}
@@ -116,20 +81,15 @@
 		border-bottom-right-radius: 6px;
 	}
 
-	.invite button {
+	/* .invite button {
 		display: inline-block;
 		background: var(--box-color);
 		border: 1px solid var(--border-color);
 		border-radius: 6px;
 		padding: 2px 8px;
 		font-size: 1rem;
-	}
+	} */
 
-	.avatar {
-		width: 40px;
-		height: 40px;
-		border-radius: 100%;
-	}
 
 	@media (max-width: 500px) {
 		.invite {
@@ -143,12 +103,6 @@
 		.avatar {
 			width: 35px;
 			height: 35px;
-		}
-
-		.buttons {
-			flex-direction: column;
-			display: flex;
-			row-gap: 0.25rem;
 		}
 	}
 </style>

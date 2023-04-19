@@ -93,8 +93,12 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			return room.state.teams;
 		}
 
+		async lock_teams_state(id: number) {
+			await this.save_states({ id: id, teamsLocked: true });
+		}
+
 		async lock_teams(room: GameRoom) {
-			await this.save_states({ id: room.state.id, teamsLocked: true });
+			await this.lock_teams_state(room.state.id);
 		}
 
 		async get_history(user: User): Promise<GameState[]> {

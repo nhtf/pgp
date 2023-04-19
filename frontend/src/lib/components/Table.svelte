@@ -12,8 +12,8 @@
 		{ name: "access", fun: (value: any) => value !== undefined ? Access[value] : "" },
 		{ name: "gamemode", fun: (value: any) => value !== undefined ? Gamemode[value] : "" },
 	
-		{ name: "state", fun: (value: any) => value?.id ?? "" },
-		{ name: "achievements", fun: (value: any) => "-" },
+		// { name: "state", fun: (value: any) => value?.id ?? "" },
+		{ name: "achievements", fun: (_: any) => "-" },
 		{ name: "avatar", fun: (value: any) => value ? `<img class="avatar" src=${value} alt="avatar"/>` : ""},
 	];
 

@@ -12,7 +12,6 @@ import { Vector, Quaternion } from "../Math";
 import { randomHex } from "../Util";
 import type { Event as NetEvent } from "../Net";
 import * as THREE from "three";
-import { RectAreaLightHelper } from 'three/examples/jsm/helpers/RectAreaLightHelper';
 
 import type { GameRoomMember } from "$lib/entities";
 
@@ -66,31 +65,66 @@ function createLights(world: Pong) {
 	world.scene.add(areaLightCeiling);
 }
 
-function createScoreboard(world: Pong) {
+async function createScoreboard(world: Pong) {
 	const material = world.addThreeObject(new THREE.MeshBasicMaterial({ color: 0xffff00 }));
 
+	//Scores on Table
 	{
-		const text = new DynamicText(world, material, "0 - 0");
+		const text = new DynamicText(world, "0 - 0");
+		await text.init(material);
 		const matrix = new THREE.Matrix4();
 		matrix.makeRotationY(-Math.PI / 2);
-		text.mesh.applyMatrix4(matrix);
+		text.mesh!.applyMatrix4(matrix);
 		matrix.makeTranslation(-1.38, 0.74, -0.07);
-		text.mesh.applyMatrix4(matrix);
-		text.mesh.updateMatrixWorld();
-		text.mesh.name = "score";
-		text.mesh.userData = text;
+		text.mesh!.applyMatrix4(matrix);
+		text.mesh!.updateMatrixWorld();
+		text.mesh!.name = "score";
+		text.mesh!.userData = text;
 	}
 
 	{
-		const text = new DynamicText(world, material, "0 - 0");
+		const text = new DynamicText(world, "0 - 0");
+		await text.init(material);
 		const matrix = new THREE.Matrix4();
 		matrix.makeRotationY(Math.PI / 2);
-		text.mesh.applyMatrix4(matrix);
+		text.mesh!.applyMatrix4(matrix);
 		matrix.makeTranslation(1.38, 0.74, 0.07);
-		text.mesh.applyMatrix4(matrix);
-		text.mesh.updateMatrixWorld();
-		text.mesh.name = "score";
-		text.mesh.userData = text;
+		text.mesh!.applyMatrix4(matrix);
+		text.mesh!.updateMatrixWorld();
+		text.mesh!.name = "score";
+		text.mesh!.userData = text;
+	}
+
+	//Scores on Banners
+	const mat = world.addThreeObject(new THREE.MeshBasicMaterial({ color: 0xa8a8a8 }));
+	{
+		const text = new DynamicText(world, "0 - 0");
+		await text.init(mat);
+		const matrix = new THREE.Matrix4();
+		matrix.makeRotationY(-Math.PI / 2);
+		text.mesh!.applyMatrix4(matrix);
+		matrix.makeScale(1, 10, 10,);
+		text.mesh!.applyMatrix4(matrix);
+		matrix.makeTranslation(-17.9, 3.5, -0.7);
+		text.mesh!.applyMatrix4(matrix);
+		text.mesh!.updateMatrixWorld();
+		text.mesh!.name = "score";
+		text.mesh!.userData = text;
+	}
+
+	{
+		const text = new DynamicText(world, "0 - 0");
+		await text.init(mat);
+		const matrix = new THREE.Matrix4();
+		matrix.makeRotationY(Math.PI / 2);
+		text.mesh!.applyMatrix4(matrix);
+		matrix.makeScale(1, 10, 10,);
+		text.mesh!.applyMatrix4(matrix);
+		matrix.makeTranslation(17.9, 3.5, 0.7);
+		text.mesh!.applyMatrix4(matrix);
+		text.mesh!.updateMatrixWorld();
+		text.mesh!.name = "score";
+		text.mesh!.userData = text;
 	}
 }
 
@@ -375,6 +409,10 @@ export class Pong extends World {
 				
 				if (handedness === "right") {
 					// console.log(data.axes);
+					if (Math.abs(data.axes[0]) > 0.1)
+						this.cameraGroup.position.add(cross.multiplyScalar(-data.axes[0] / TICKS_PER_SECOND));
+					if (Math.abs(data.axes[1]) > 0.1)
+						this.cameraGroup.position.add(forward.multiplyScalar(data.axes[1] / TICKS_PER_SECOND));
 					if (Math.abs(data.axes[2]) > 0.1)
 						this.cameraGroup.position.add(cross.multiplyScalar(-data.axes[2] / TICKS_PER_SECOND));
 					if (Math.abs(data.axes[3]) > 0.1)
@@ -383,6 +421,9 @@ export class Pong extends World {
 				else if (handedness === "left") {
 					if (Math.abs(data.axes[2]) > 0.1) {
 						this.cameraGroup.rotateY(-data.axes[2] * Math.PI / TICKS_PER_SECOND);
+					}
+					if (Math.abs(data.axes[0]) > 0.1) {
+						this.cameraGroup.rotateY(-data.axes[0] * Math.PI / TICKS_PER_SECOND);
 					}
 				}
 		}
@@ -429,12 +470,25 @@ export class Pong extends World {
 		this.hallModel =  modelArray[1];
 		this.scene.add(this.hallModel);
 
+		const teams = options.room.state!.teams;
+		const teamId = teams.sort((a, b) => a.id - b.id).findIndex((team) => team.id === options.member.player?.teamId);
+		if (teamId == 0) {
+			this.cameraGroup.position.x = -1.5;
+			this.cameraGroup.position.z = 0;
+			this.cameraGroup.rotateY(-Math.PI / 2);
+		}
+		else if (teamId == 1) {
+			this.cameraGroup.position.x = 1.5;
+			this.cameraGroup.position.z = 0;
+			this.cameraGroup.rotateY(Math.PI / 2);
+		}
+
 		this.tableSounds = load[1];
 		this.paddleSounds = load[2];
 		this.paddleSounds.forEach(sound => sound.setVolume(3.0));
 
 		createLights(this);
-		createScoreboard(this);
+		await createScoreboard(this);
 
 		const table = new Table(this, Table.UUID);
 		this.tableSounds.forEach(sound => table.renderObject.add(sound));

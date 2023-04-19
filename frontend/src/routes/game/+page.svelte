@@ -1,6 +1,6 @@
 <script lang="ts">
     import type { PageData } from "./$types";
-    import { GameRoom, User } from "$lib/entities";
+    import { Game, GameRoom, User } from "$lib/entities";
     import { updateStore } from "$lib/stores";
     import { unwrap } from "$lib/Alert";
     import { post } from "$lib/Web";
@@ -11,9 +11,8 @@
 	export let data: PageData;
 
 	updateStore(GameRoom, data.rooms);
-	updateStore(User, data.rooms
-		.filter(({ owner }) => owner !== undefined)
-		.map(({ owner }) => owner!));
+	updateStore(Game, data.rooms.map(({ state }) => state!));
+	updateStore(User, data.rooms.map(({ owner }) => owner!));
 
 	async function create(room: any) {
 		room.name = room.name.length ? room.name : undefined;

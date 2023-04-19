@@ -36,16 +36,16 @@
 			return Math.floor(this.level);
 		}
 
-		get percentage(): number {
-			return (this.level - this.floor) * 100;
+		get fract(): number {
+			return this.level - this.floor
 		}
 
 		get xp(): number {
-			return Math.floor(10 ** this.level);
+			return Math.floor(level.fract * level.xp_needed)
 		}
 
 		get xp_needed(): number {
-			return 10 ** Math.ceil(this.level);
+			return 10 ** Math.floor(this.level);
 		}
 	}
 
@@ -63,7 +63,6 @@
 			}) ?? { wins: 0, losses: 0, draws: 0 })
 		}
 	});
-
 
 	onMount(() => {
 		index = updateManager.set(Subject.USER, onUsernameChange);
@@ -132,7 +131,7 @@
 						<div class="border">
 							<div
 								class="bar"
-								style="height:18px;width:{level.percentage}%"
+								style="height:18px;width:{level.fract * 100}%"
 							/>
 						</div>
 					</div>

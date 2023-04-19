@@ -1,5 +1,0 @@
-PACKET = { SUBJECT } { ACTION } { IDENTIFIER } { VALUE }
-SUBJECT = enum
-ACTION = insert | update | remove
-IDENTIFIER = id
-VALUE = undefined | partial

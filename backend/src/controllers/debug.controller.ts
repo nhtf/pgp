@@ -125,7 +125,7 @@ export class DebugController {
 
 	@Get("usermod")
 	async usermod(@Query() dto: UserDTO) {
-		const user = await this.userRepo.findOneBy({ username: dto.username });
+		const user = await this.userRepo.findOneBy(dto.username ? { username: dto.username } : { id: Number(dto.id) });
 		if (!user)
 			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);
 		user.oauth_id = dto.oauth_id ?? user.oauth_id;
@@ -155,7 +155,7 @@ export class DebugController {
 			throw new HttpException("could not regenerate session", HttpStatus.INTERNAL_SERVER_ERROR);
 		}
 
-		const user = await this.userRepo.findOneBy({ username: dto.username });
+		const user = await this.userRepo.findOneBy(dto.username ? { username: dto.username } : { id: Number(dto.id) });
 	
 		if (!user) {
 			throw new HttpException("user does not exist", HttpStatus.NOT_FOUND);

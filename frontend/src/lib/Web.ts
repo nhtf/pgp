@@ -4,7 +4,7 @@ export async function json(
 	input: RequestInfo | URL,
 	info?: RequestInit | undefined,
 ): Promise<any> {
-	const response = await window.fetch(input, info);
+	const response = await fetch(input, info);
 	const status = response.status;
 	const data = await response.text();
 	const parsed = (data ? JSON.parse(data) : {});

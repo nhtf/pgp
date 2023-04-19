@@ -1,4 +1,12 @@
-
 netcode initialization is horribly broken
 
 fix when out of focus that it should stop updating/ stop game
+
+npm uninstall dotenv in de backend voor inleveren
+
+rambler has no api key
+
+desync in Modern causes yellow screen -> not going to fix
+
+
+put something on the homepage

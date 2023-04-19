@@ -41,12 +41,29 @@
 <canvas bind:this={canvas}></canvas>
 </div>
 
+<div class="game-finished">Game Finished!</div>
+
 <style>
 	canvas {
 		position: fixed!important;
-		inset: 215px 5px 5px 5px!important;
+		inset: 225px 5px 5px 5px!important;
 		border-radius: 6px!important;
-		height: calc(100vh - 225px);
+		height: calc(100vh - 230px);
 		width: calc(100vw - 10px);
+	}
+
+	.game-finished {
+		font-family: 'pong';
+		position: fixed;
+		display: none;
+		border-radius: 0.5rem;
+		padding: 1rem;
+		margin: auto;
+		background-color: transparent;
+		align-self: center;
+		cursor:default;
+		top: calc(50% + 4.25rem);
+		font-size: xx-large;
+		text-shadow: 2px 2px black;
 	}
 </style>

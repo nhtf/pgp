@@ -11,6 +11,7 @@ export class SetupGuard implements CanActivate {
 
 	async canActivate(context: ExecutionContext): Promise<boolean> {
 		const request = context.switchToHttp().getRequest();
+		
 		return request.user && request.user.username;
 	}
 }

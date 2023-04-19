@@ -6,7 +6,7 @@ const UNAUTHORIZED = 401;
 
 export async function unwrap<T>(promise: Promise<T>): Promise<T> {
 	try {
-		return promise;
+		return await promise;
 	} catch (err: any) {
 		if (err.status === UNAUTHORIZED) {
 			await goto("/account_setup");

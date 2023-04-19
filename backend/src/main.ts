@@ -25,7 +25,6 @@ class BetterAdapter extends IoAdapter {
 	createIOServer(port: number, options: any = {}):any {
 		const server = super.createIOServer(port, options);
 		const wrap = middleware => (socket, next) => {
-			console.log(socket);
 			middleware(socket.request, {}, next)
 		};
 		server.use(wrap(sessionMiddleware));

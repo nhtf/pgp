@@ -430,22 +430,6 @@ table {
 	src: url("/Assets/fonts/Pixeled.ttf");
 }
 
-.border-red {
-	border-color: var(--red) !important;
-}
-
-.border-green {
-	border-color: var(--green) !important;
-}
-
-.border-blue {
-	border-color: var(--blue) !important;
-}
-
-.border-yellow {
-	border-color: var(--yellow) !important;
-}
-
 .status0 {
 	background-color: var(--box-color) !important;
 }
@@ -476,6 +460,22 @@ table {
 	width: 3rem;
 	height: 3rem;
 	border-radius: 100%;
+}
+
+.border-red {
+	border: 2px solid var(--red) !important;
+}
+
+.border-green {
+	border: 2px solid var(--green) !important;
+}
+
+.border-blue {
+	border: 2px solid var(--blue) !important;
+}
+
+.border-yellow {
+	border: 2px solid var(--yellow) !important;
 }
 
 .button,
@@ -601,4 +601,6 @@ canvas {
 
 .tab-content {
 	background-color: var(--box-color);
+	border-bottom-left-radius: 0.5rem;
+	border-bottom-right-radius: 0.5rem;
 }

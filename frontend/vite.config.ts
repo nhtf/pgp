@@ -6,6 +6,9 @@ const config: UserConfig = {
 	server: {
 		hmr: false,
 	},
+	build: {
+		target: 'esnext'
+	}
 };
 
 export default config;

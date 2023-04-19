@@ -9,7 +9,6 @@ import type { level } from "./Constants";
 import { Ball } from "./Ball";
 import type {  Options, PingEvent, TeamObject } from "../lib2D/interfaces";
 import { Field } from "./Field";
-import { Score } from "./Score";
 import { Team } from "../lib2D/Team";
 import { FullShader } from "./fullShader";
 import type {Snapshot as NetSnapshot } from "../Net";
@@ -68,13 +67,17 @@ function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 	return closest;
 }
 
+export function gameFinished() {
+	const div = document.getElementsByClassName("game-finished")[0] as HTMLElement;
+	div.style.display = "flex";
+}
+
 export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
 	public field: Field;
 	public players: GAME;
 	public level: level;
-	public score?: Score;
 	public teams: Array<Team>;
 	public shader: FullShader;
 	public finished?: boolean;
@@ -265,6 +268,9 @@ export class Game extends Net {
 	}
 
 	public lateTick() {
+		if (this.finished !== undefined && this.finished) {
+			gameFinished();
+		}
 		let time = 1;
 		const maxSpeed = 30;
 		while (time > 0) {
@@ -339,9 +345,6 @@ export class Game extends Net {
 
 	public async start(options: Options) {
 		this.teams = [];
-		let startScore = 0;
-		if (this.players === GAME.FOURPLAYERS)
-			startScore = 10;
 		const teams = options.room.state!.teams;
 		teams.sort((a, b) => a.id - b.id);
 		for (let i = 0; i < this.level.players; i++) {
@@ -360,7 +363,6 @@ export class Game extends Net {
 			this.shader.rotatePaddle(paddle.angle, index);
 			index +=1;
 		}
-		this.score = new Score(this.teams);
 		super.start(options);
 		music.loop = true;
 		music.muted = false;
@@ -379,7 +381,7 @@ export class Modern {
 	private options?: Options;
 
 	public async init(canvas: HTMLCanvasElement) {
-		const rest = await fetch(levels[this.players]).then(res => res.json()).then(data => {
+		await fetch(levels[this.players]).then(res => res.json()).then(data => {
 			this.field = data;
 			this.shader = new FullShader(canvas, data);
 			this.game = new Game(this.players, this.field!, this.shader);

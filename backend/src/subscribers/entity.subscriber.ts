@@ -135,7 +135,6 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 			.filter((column) => !ignoredColumns.includes(column));
 	}
 
-	// TODO: remove
 	log(event: any, action: Action) {
 		const ignored = "score";
 	

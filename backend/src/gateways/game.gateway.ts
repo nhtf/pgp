@@ -13,6 +13,7 @@ import { Action, Subject } from "src/enums"
 import { AchievementService } from  "src/services/achievement.service";
 import { Gamemode } from "src/enums";
 import { VRPONG_ACHIEVEMENT, CLASSIC_LOSES_ACHIEVEMENT } from "src/achievements";
+import { GameRoomService } from "src/services/gameroom.service";
 
 type BroadcastData = {
 	name: "update" | "synchronize" | "desync-check",
@@ -44,16 +45,19 @@ export class GameGateway extends ProtectedGateway("game") {
 		@Inject("TEAM_REPO")
 		private readonly teamRepo: Repository<Team>,
 		private readonly ach_service: AchievementService,
+		private readonly game_service: GameRoomService,
 	) {
 		super(userRepo);
 	}
 
-	private async gameFinished(roomId: number, state: GameState) {
+	private async gameFinished(state: GameState) {
+		await this.game_service.lock_teams_state(state.id);
+	
 		const users = state.teams.flatMap((team) => {
 			return team.players.map((player) => player.user);
 		});
 
-		let draw = false;
+		let draw = true;
 		let winning_team = state.teams[0];
 
 		for (const team of state.teams) {
@@ -62,15 +66,13 @@ export class GameGateway extends ProtectedGateway("game") {
 				winning_team = team;
 			}
 		}
-		console.log(winning_team);
-		console.log(Gamemode[state.gamemode]);
+	
 		switch (state.gamemode) {
 			case Gamemode.VR:
 				await this.ach_service.inc_progresses(VRPONG_ACHIEVEMENT, 1, users);
 				break;
 			case Gamemode.CLASSIC:
 				const losers = state.teams.filter(({ id }) => id !== winning_team.id).flatMap((team) => team.players.map((player) => player.user));
-				console.log(losers);
 				if (!draw)
 					await this.ach_service.inc_progresses(CLASSIC_LOSES_ACHIEVEMENT, 1, losers);
 				break;
@@ -84,10 +86,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			subject: Subject.USER,
 			action: Action.UPDATE,
 			id: client.user,
-			value: {
-				activeRoomId: null,
-				// status: Status.ACTIVE,
-			}
+			value: { activeRoomId: null	}
 		});
 
 		// NOTE: this has a race condition, we don't care
@@ -98,7 +97,7 @@ export class GameGateway extends ProtectedGateway("game") {
 	
 			if (active === 0 && state.finished && !state.terminated) {
 				await this.gameStateRepo.save({ id: state.id, terminated: true });
-				await this.gameFinished(client.room, state);
+				await this.gameFinished(state);
 			}
 		}
 	}
@@ -112,10 +111,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			subject: Subject.USER,
 			action: Action.UPDATE,
 			id: user.id,
-			value: {
-				activeRoomId: client.room,
-				// status: Status.INGAME
-			}
+			value: { activeRoomId: client.room }
 		});
 
 		await UpdateGateway.instance.send_state_update(user, { id: client.room });

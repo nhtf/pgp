@@ -16,7 +16,6 @@ export class Program {
     public program: WebGLProgram;
     private timeLocation: WebGLUniformLocation;
     private originPos: WebGLUniformLocation;
-    private shockParams: WebGLUniformLocation;
     private uniformSize: WebGLUniformLocation;
     private uniformResolution: WebGLUniformLocation;
     private uniformColor: WebGLUniformLocation;
@@ -34,7 +33,6 @@ export class Program {
         this.uniformResolution = gl.getUniformLocation(this.program, "resolution")!;
         this.uniformTransform = gl.getUniformLocation(this.program, "u_matrix")!;
         this.originPos = gl.getUniformLocation(this.program, "center")!;
-        this.shockParams = gl.getUniformLocation(this.program, "shockParams")!;
         this.uniformColor = gl.getUniformLocation(this.program, "color")!;
         this.uniformGradient = gl.getUniformLocation(this.program, "gradient")!;
         this.uniformGradientPos = gl.getUniformLocation(this.program, "gradientPos")!;

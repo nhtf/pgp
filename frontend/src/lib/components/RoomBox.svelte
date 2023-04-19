@@ -91,7 +91,7 @@
 
 </script>
 
-<div class="room" style={`opacity: ${room.joined ? "100" : "50"}%`}>
+<div class="room opacity-{room.joined ? 100 : 50} {state?.finished ? "border-red" : ""}">
 	{#if room.type === "ChatRoom"}
 		<img class="avatar" src={owner?.avatar} alt="avatar"/>
 	{:else if room.icon}

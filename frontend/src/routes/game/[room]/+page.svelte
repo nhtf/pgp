@@ -28,7 +28,7 @@
 
 	function getTeamColor(team: Team) {
 		const index = room.state?.teams.sort(byId).findIndex((teamRoom) => teamRoom.id === team?.id);
-		const modernColor = index ? scoreColors[1][index].cs : undefined;
+		const modernColor = index !== undefined && index >= 0 ? scoreColors[1][index].cs : undefined;
 	
 		return (gamemode === Gamemode.MODERN && team !== undefined && index !== undefined) ? modernColor : "white";
 	}

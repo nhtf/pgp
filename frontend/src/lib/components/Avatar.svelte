@@ -75,6 +75,8 @@
 		width: 120px;
 		border-radius: 50%;
 		z-index: 1;
+		border-width: 2px;
+		border-color: var(--input-border-color);
 	}
 
 	#edit-icon {
