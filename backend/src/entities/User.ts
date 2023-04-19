@@ -148,7 +148,7 @@ export class User {
 	}
 
 	add_friend(target: User) {
-		if (!this.friends) {
+		if (!this.friends.length) {
 			this.friends = [];
 		}
 
@@ -156,7 +156,7 @@ export class User {
 	}
 
 	remove_friend(target: User) {
-		if (!this.friends) {
+		if (!this.friends.length) {
 			this.friends = [];
 		}
 	

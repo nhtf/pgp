@@ -28,12 +28,6 @@
 			<div class="embed-spinner-circle" />
 		</div>
 	{:then embed}
-		<!-- {#if embed.title}
-			<a class="embed-title" href={embed.url}>{embed.title}</a>
-		{/if}
-		{#if embed.description}
-			<p class="embed-description">{embed.description}</p>
-		{/if} -->
 		{#if ["www.youtube.com", "youtube.com", "youtu.be"].includes(urlInfo.host) && embed.video}
 			<iframe
 				class="embed-iframe"
@@ -52,7 +46,7 @@
 			/>
 		{/if}
 	{:catch error}
-		<p class="embed-error">{error}</p> <!--TODO Just not display the embed on error?-->
+		<p class="embed-error" title={error}>Could not load embed</p>
 	{/await}
 </div>
 

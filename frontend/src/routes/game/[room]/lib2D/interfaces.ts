@@ -1,7 +1,6 @@
 import type { VectorObject } from "./Math2D";
 import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "../Net";
-import type { GameRoomMember, User } from "$lib/entities";
-import type { Team } from "../lib2D/Team";
+import type { GameRoomMember } from "$lib/entities";
 
 export interface BallObject {
 	position: VectorObject;
@@ -21,8 +20,10 @@ export interface PaddleObject {
 export interface Snapshot extends NetSnapshot {
 	ball: BallObject;
 	paddles: PaddleObject[];
+	current: number;
 	state: {
 		teams: TeamObject[];
+		finished: boolean;
 	};
 }
 
@@ -32,9 +33,13 @@ export interface MouseEvent extends NetEvent {
 	y: number;
 }
 
+export interface ServeEvent extends NetEvent {
+	u: number;
+}
+
 export interface PingEvent extends NetEvent {
 	u: number;
-};
+}
 
 export interface Options extends NetOptions {
 	member: GameRoomMember;

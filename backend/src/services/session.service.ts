@@ -41,7 +41,7 @@ export class SessionService {
 			}
 			if (now - session.sess.last_activity >= SESSION_IDLE_TIME) {
 				console.log("purging session " + session.sid);
-				//TODO send message to client to redirect
+				//ODOT send message to client to redirect
 				try {
 					await this.destroy_session(session.sid);
 				} catch (error) {

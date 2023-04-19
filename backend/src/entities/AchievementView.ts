@@ -1,5 +1,4 @@
 import { ViewEntity, ViewColumn } from "typeorm";
-import type { Objective } from "./Objective";
 
 @ViewEntity({
 	expression: `

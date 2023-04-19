@@ -6,8 +6,6 @@
 
 	export let data: PageData;
 
-	let open = [true, false];
-
 	$: user = $userStore.get(data.user.id)!;
 	$: invites = [...$inviteStore.values()];
 
@@ -19,25 +17,39 @@
 		return invite.from.id === user.id;
 	}
 
+	function getPrettyName(invite_type: string) {
+		switch (invite_type) {
+			case "ChatRoomInvite":
+				return "Chat room";
+			case "GameRoomInvite":
+				return "Game room";
+			case "FriendRequest":
+				return "Friend";
+			default:
+				return "Unknown";
+		}
+	}
+
 </script>
 
-<div class="invite_list">
+<!-- TODO: same as leaderboard -->
+<div class="page">
 	<Tabs
 		style="underline"
 		divider
-		defaultClass="flex flex-wrap space-x-2 bg-c rounded"
-		contentClass="tab-content-background"
+		defaultClass="tab"
+		contentClass="tab-content"
 	>
 		<TabItem
-			bind:open={open[0]}
 			class="bg-c rounded"
 			defaultClass="rounded"
 			title="received"
+			open
 		>
 			{#each invites.filter(received.bind({}, user)) as invite (invite.id)}
 				<div class="invite">
 					<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
-					<div>{invite.type} invite from {invite.from.username}</div>
+					<div>{getPrettyName(invite.type)} invite from {invite.from.username}</div>
 					<div class="buttons">
 						<button
 							class="border-green"
@@ -54,7 +66,6 @@
 			{/each}
 		</TabItem>
 		<TabItem
-			bind:open={open[1]}
 			class="bg-c rounded"
 			defaultClass="rounded"
 			title="sent"
@@ -62,7 +73,7 @@
 				{#each invites.filter(sent.bind({}, user)) as invite (invite.id)}
 					<div class="invite">
 						<img class="avatar"	src={invite.from.avatar} alt="avatar"/>
-						<div>{invite.type} invitation to {invite.to.username}</div>
+						<div>{getPrettyName(invite.type)} invitation to {invite.to.username}</div>
 						<button
 							class="border-red"
 							on:click={() => invite.deny}
@@ -75,16 +86,6 @@
 </div>
 
 <style>
-	.invite_list {
-		display: flex;
-		flex-direction: column;
-		justify-content: flex-start;
-		position: relative;
-		margin: 0 auto;
-		width: 80%;
-		top: 0.5rem;
-		height: calc(100vh - 80px);
-	}
 
 	.invite {
 		background-color: var(--box-color);
@@ -131,10 +132,6 @@
 	}
 
 	@media (max-width: 500px) {
-		.invite_list {
-			width: 100%;
-		}
-
 		.invite {
 			font-size: 1rem;
 		}

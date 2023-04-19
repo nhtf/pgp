@@ -1,9 +1,19 @@
 <script lang="ts">
-    import { post } from "$lib/Web";
+    import type { PageData } from "./$types";
+    import { GameRoom, User } from "$lib/entities";
+    import { updateStore } from "$lib/stores";
     import { unwrap } from "$lib/Alert";
-	import RoomInput from "$lib/components/RoomInput.svelte";
+    import { post } from "$lib/Web";
 	import RoomOverview from "$lib/components/RoomOverview.svelte";
+	import RoomInput from "$lib/components/RoomInput.svelte";
     import Queue from "$lib/components/Queue.svelte";
+
+	export let data: PageData;
+
+	updateStore(GameRoom, data.rooms);
+	updateStore(User, data.rooms
+		.filter(({ owner }) => owner !== undefined)
+		.map(({ owner }) => owner!));
 
 	async function create(room: any) {
 		room.name = room.name.length ? room.name : undefined;
@@ -13,7 +23,7 @@
 	}
 </script>
 
-<div class="flex flex-col m-4 gap-2 px-1 py-0.5">
+<div class="page">
 	<Queue/>
 	<RoomInput type={"GameRoom"} click={create}/>
 	<RoomOverview type={"GameRoom"} />

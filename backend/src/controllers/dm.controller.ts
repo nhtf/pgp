@@ -12,7 +12,6 @@ import { UserService } from "src/services/user.service";
 import { instanceToPlain } from "class-transformer"
 import { AchievementService } from "src/services/achievement.service";
 import { RequiredRole } from "src/guards/role.guard";
-import { UpdateGateway } from "src/gateways/update.gateway";
 
 class CreateDMRoomDTO implements CreateRoomDTO {
 	@IsEmpty()
@@ -63,7 +62,11 @@ export class DMRoomController extends NewChatRoomController {
 		const other = await this.user_service.get_by_username(dto.username);
 
 		if (!other) {
-			throw new NotFoundException(`user with username "${dto.username}" not found`)
+			throw new NotFoundException("User not found")
+		}
+
+		if (other.id === user.id) {
+			throw new ForbiddenException("Cannot create dm with oneself");
 		}
 
 		const name = `${Math.min(user.id, other.id)} & ${Math.max(user.id, other.id)}`;

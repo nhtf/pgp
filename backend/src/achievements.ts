@@ -96,33 +96,39 @@ export const achievements: AchievementDef[] = [
 	},
 	{
 		name: CLASSIC_LOSES_ACHIEVEMENT,
-		max: 20,
+		max: 10,
 		image: "/Assets/achievement-icons/pong.svg",
 		objectives: [
 			{
-				name: "placeholder",
+				name: "Beginner's unluck",
 				threshold: 5,
 				color: "#FF00FF",
-				description: "You lost 5 games",
+				description: "You lost 5 classic games",
 			},
 			{
-				name: "placeholder",
+				name: "...",
 				threshold: 10,
 				color: "#FFFFFF",
-				description: "You lost 10 games",
+				description: "You lost 10 classic games",
 			},
 		],
 	},
 	{
 		name: FRIEND_COUNT_ACHIEVEMENT,
-		max: 15,
+		max: 20,
 		image: "/Assets/achievement-icons/popular.svg",
 		objectives: [
 			{
-				name: "placeholder",
+				name: "Popular",
 				threshold: 5,
 				color: "#FF00FF",
 				description: "Made 5 friends",
+			},
+			{
+				name: "People person",
+				threshold: 20,
+				color: "#FFFFFF",
+				description: "Made 20 friends",
 			},
 		],
 	}

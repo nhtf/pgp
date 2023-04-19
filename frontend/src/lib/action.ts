@@ -1,6 +1,6 @@
 import type { Member, ChatRoomMember, Room, User } from "$lib/entities";
 import { Gamemode, Role, Status } from "$lib/enums"
-import { get, post, patch, remove } from "$lib/Web"
+import { post, patch, remove } from "$lib/Web"
 import { goto } from "$app/navigation";
 import { unwrap } from "$lib/Alert"
 import { GameRoom } from "$lib/entities"
@@ -53,12 +53,10 @@ async function spectate({ user }: Args) {
 	const id = user.activeRoomId;
 
 	try {
-		await get(`/game/${id}/self`);
-	} catch (_) {
-		await unwrap(post(`/game/${id}/members`));
-	}
+		await post(`/game/${id}/members`);
+		await patch(`/game/${id}/team/me`, { team: null });
+	} catch (error) {}
 
-	await patch(`/game/${id}/team/me`, { team: null });
 	await goto(`/game/${id}`);
 }
 

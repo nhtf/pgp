@@ -19,11 +19,12 @@
 	import { BACKEND } from "$lib/constants";
 	import { goto, invalidate } from "$app/navigation";
 	import { disable_twofa, enable_twofa } from "$lib/two_factor";
-	import { memberStore, userStore } from "$lib/stores";
+	import { blockStore, memberStore, updateStore, userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
     import { updateManager, updateSocket } from "$lib/updateSocket";
     import { Action, Subject } from "$lib/enums";
+    import { User, Invite, Entity } from "$lib/entities";
 	import Notifications from "$lib/components/Notifications.svelte";
     import Swal from "sweetalert2";
 
@@ -41,6 +42,12 @@
 	$: user = data.user ? $userStore.get(data.user.id) : null;
 	$: twofa_enabled = user?.auth_req === 2;
 	$: route = $page.url.toString().includes("chat") ? "/chat" : "/game";
+
+	if (data.user) {
+		updateStore(User, data.user);
+		updateStore(Invite, data.invites!);
+		updateStore(Entity, data.blocked!.map(({ id }) => { return { id } }), blockStore);
+	}
 
 	onMount(() => {
 		applyTheme();
@@ -83,10 +90,10 @@
 			text: update.value.message,
 			showCancelButton: update.value.can_cancel,
 		}).then(async (result) => {
-			if (result.isConfirmed) {
+			if (!update.value.can_cancel || result.isConfirmed) {
 				await goto(update.value.url)
 			}
-		})
+		});
 	}
 
 	function heartBeat() {
@@ -135,9 +142,9 @@
 	};
 
 	const links = [
-		{ url: "/chat", name: "Chat Rooms" },
 		{ url: "/dm", name: "DMs" },
-		{ url: "/game", name: "Game Rooms" },
+		{ url: "/chat", name: "Chat rooms" },
+		{ url: "/game", name: "Game rooms" },
 		{ url: "/leaderboard", name: "Leaderboard" },
 		{ url: "/invite", name: "Invites" },
 	];

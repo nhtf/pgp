@@ -24,15 +24,6 @@ export interface RedirectPacket {
 	can_cancel: boolean;
 }
 
-export function create_packet(subject: Subject, action: Action, id: number, value?: any): UpdatePacket {
-	return {
-		subject,
-		action,
-		id,
-		value,
-	};
-}
-
 declare module "http" {
 	export interface IncomingMessage {
 		session: SessionObject;

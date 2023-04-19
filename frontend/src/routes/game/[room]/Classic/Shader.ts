@@ -191,6 +191,7 @@ function createTexture(gl: WebGLRenderingContext): WebGLTexture {
 
 export interface Events {
 	mousemove(offsetX: number, offsetY: number): void;
+	mousedown(offsetX: number, offsetY: number): void;
 }
 
 class Line {
@@ -260,16 +261,17 @@ export class Shader {
 		}
 	}
 
-	private scale(): number {
+	private transform(): [number, number, number] {
 		const xScale = this.outerCanvas.width / this.innerCanvas.width;
 		const yScale = this.outerCanvas.height / this.innerCanvas.height;
-		return Math.floor(Math.min(xScale, yScale));
+		const scale = Math.floor(Math.min(xScale, yScale));
+		const xOffset = (this.outerCanvas.width - this.innerCanvas.width * scale) / 2;
+		const yOffset = (this.outerCanvas.height - this.innerCanvas.height * scale) / 2;
+		return [scale, xOffset, yOffset];
 	}
 
 	private bufferPosData(): number[] {
-		const scale = this.scale();
-		const xOffset = (this.outerCanvas.width - this.innerCanvas.width * scale) / 2;
-		const yOffset = (this.outerCanvas.height - this.innerCanvas.height * scale) / 2;
+		const [scale, xOffset, yOffset] = this.transform();
 		const x = xOffset / this.outerCanvas.width * 2 - 1;
 		const y = yOffset / this.outerCanvas.height * 2 - 1;
 		return [-x, -y, x, -y, -x, y, x, y];
@@ -277,14 +279,17 @@ export class Shader {
 
 	public addEventListener(events: Events) {
 		this.outerCanvas.addEventListener("mousemove", ev => {
-			const xScale = Math.floor(this.outerCanvas.width / this.innerCanvas.width);
-			const yScale = Math.floor(this.outerCanvas.height / this.innerCanvas.height);
-			const minScale = Math.min(xScale, yScale);
-			const xOffset = Math.floor((this.outerCanvas.width - this.innerCanvas.width * minScale) / 2);
-			const yOffset = Math.floor((this.outerCanvas.height - this.innerCanvas.height * minScale) / 2);
-			const x = Math.floor((ev.offsetX - xOffset) / minScale);
-			const y = Math.floor((ev.offsetY - yOffset) / minScale);
+			const [scale, xOffset, yOffset] = this.transform();
+			const x = Math.floor((ev.offsetX - xOffset) / scale);
+			const y = Math.floor((ev.offsetY - yOffset) / scale);
 			events.mousemove(x, y);
+		});
+
+		this.outerCanvas.addEventListener("mousedown", ev => {
+			const [scale, xOffset, yOffset] = this.transform();
+			const x = Math.floor((ev.offsetX - xOffset) / scale);
+			const y = Math.floor((ev.offsetY - yOffset) / scale);
+			events.mousedown(x, y);
 		});
 	}
 
@@ -335,7 +340,7 @@ export class Shader {
 		this.gl.useProgram(this.program);
 		this.gl.uniform1i(this.uniformTex, 0);
 		this.gl.uniform2f(this.uniformSize, this.innerCanvas.width, this.innerCanvas.height);
-		this.gl.uniform1f(this.uniformScale, this.scale());
+		this.gl.uniform1f(this.uniformScale, this.transform()[0]);
 		this.gl.uniform2fv(this.uniformLinesPos, this.lines.flatMap(l => [l.x, l.y]));
 		this.gl.uniform4fv(this.uniformLinesCol, this.lines.flatMap(l => [l.r, l.g, l.b, 1.0]));
 		this.gl.drawArrays(this.gl.TRIANGLE_STRIP, 0, 4);

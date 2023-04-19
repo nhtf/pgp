@@ -1,6 +1,7 @@
-import { Program, type uniforms } from "./Program";
-import type { m3 } from "../lib2D/Matrix";
-import type { VectorObject } from "../lib2D/Math2D";
+import { Program } from "./Program";
+import type { Vector } from "../lib2D/Math2D";
+import type { simpleVector } from "./Constants";
+import type {uniforms} from "./Program";
 
 export type triangles = {
     vertices: number[];
@@ -11,10 +12,10 @@ type Options = {
     transform?: number[];
     gradient?: boolean;
     color?: number[][]; //For example paddle has one mesh but multiple colors
-    gradientPos?: VectorObject[];
-    gradientRadius?: VectorObject;
+    gradientPos?: simpleVector[];
+    gradientRadius?: simpleVector;
     ballRadius?: number;
-    size?: VectorObject;
+    size?: simpleVector;
 }
 
 type Mesh = {
@@ -99,7 +100,7 @@ export class Shader {
         this.renderMesh(gl, mesh, this.extendOptions(mesh, options), index);
     }
 
-    public setUniform(gl: WebGL2RenderingContext, time: number, viewPort: viewPort, pos: VectorObject, resolution: VectorObject, options?: Options) {
+    public setUniform(gl: WebGL2RenderingContext, time: number, viewPort: viewPort, pos: Vector, resolution: simpleVector, options?: Options) {
         const uniform: uniforms = {pos: pos, width: viewPort.width, height: viewPort.height, timer: time, resolution: resolution};
         if (options?.size) {
             uniform.height = options.size.y;

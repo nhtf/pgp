@@ -5,7 +5,7 @@ import type { Member } from "src/entities/Member"
 import type { Message } from "src/entities/Message"
 import type { GameState } from "src/entities/GameState"
 import type { AchievementProgress } from "src/entities/AchievementProgress"
-import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, FindOptionsRelations, DeepPartial } from "typeorm"
+import { EventSubscriber, EntitySubscriberInterface, InsertEvent, UpdateEvent, RemoveEvent, FindOptionsRelations } from "typeorm"
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { ReceiverFinder } from "src/ReceiverFinder" 
 import { instanceToPlain } from "class-transformer"
@@ -64,7 +64,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		const entity = event.entity;
 
 		try {
-			this.log(event, action);
+			//this.log(event, action);
 
 			const info = this.subjectEntry(event.metadata.targetName);
 			const value = valueFun(entity);		
@@ -104,7 +104,7 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 		const info = subjects.find(({ names }) => names.includes(entityName));
 
 		if (!info) {
-			throw new Error("Ignored subject");			
+			throw new Error("Ignored subject");
 		}
 
 		return info;

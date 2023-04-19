@@ -1,5 +1,4 @@
 import type { Message } from "src/entities/Message";
-import type { DMRoom } from "src/entities/DMRoom";
 import { UserIDController, UserUsernameController, UserMeController, } from "./controllers/user.controller";
 import { MiddlewareConsumer, Module, NestModule, RequestMethod } from "@nestjs/common";
 import { SessionExpiryMiddleware } from "./middleware/session.expire.middleware";
@@ -41,8 +40,7 @@ import { RoomInviteService } from "src/services/roominvite.service";
 import { NewChatRoomController } from "src/controllers/chat.controller";
 import { ChatRoomService } from "src/services/chatroom.service";
 import { DMRoomController } from "src/controllers/dm.controller";
-import { DMRoomService } from "src/services/dm.service";
-import { LeaderboardController } from "src/controllers/leaderboard.controller";
+import { StatsController } from "src/controllers/stats.controller";
 import * as session from "express-session";
 import * as Pool from "pg-pool";
 
@@ -51,7 +49,7 @@ export const db_pool = new Pool({
 	user: DB_USER,
 	password: DB_PASS,
 	port: DB_PORT,
-	ssl: false, //TODO set to true
+	ssl: false,
 	max: 20,
 	idleTimeoutMillis: 1000,
 	connectionTimoutMillis: 1000,
@@ -97,7 +95,6 @@ export const sessionMiddleware = session({
 	cookie: {
 		maxAge: SESSION_ABSOLUTE_TIMEOUT,
 		sameSite: "strict",
-		//TODO set secure attribute
 	},
 });
 
@@ -115,7 +112,6 @@ export const dataSource = new DataSource({
 	}),
 	subscribers: [EntitySubscriber],
 	synchronize: true, //TODO disable and test before turning in
-	//logging: true,
 	// TODO enable cache? (cache: true)
 });
 
@@ -169,17 +165,6 @@ const services = [
 		inject: ["CHATROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
 	},
 	{
-		provide: "DMROOM_SERVICE",
-		useFactory: (
-			room_repo: Repository<DMRoom>,
-			member_repo: Repository<ChatRoomMember>,
-			message_repo: Repository<Message>,
-		) => {
-			return new DMRoomService(room_repo, member_repo, message_repo);
-		},
-		inject: ["DMROOM_REPO", "CHATROOMMEMBER_REPO", "MESSAGE_REPO"],
-	},
-	{
 		provide: "GAMEROOM_SERVICE",
 		useFactory: (
 			room_repo: Repository<GameRoom>,
@@ -221,7 +206,7 @@ const services = [
 		MatchController,
 		NewChatRoomController,
 		DMRoomController,
-		LeaderboardController,
+		StatsController,
 	],
 	providers: [
 		GameGateway,

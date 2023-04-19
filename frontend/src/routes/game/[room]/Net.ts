@@ -1,7 +1,7 @@
 import type { GameRoom } from "$lib/entities" 
-import { BACKEND_ADDRESS } from "$lib/constants";
+import { BACKEND_WS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
-import { Counter, randomHex, hashCode } from "./Util";
+import { Counter, randomHex } from "./Util";
 import { Father, Bible } from "./SignFromGod";
 import Swal from "sweetalert2";
 
@@ -10,12 +10,14 @@ export const SNAPSHOT_INTERVAL = 6;
 export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
+export const FORCE_SYNCHRONIZE_INTERVAL = 30;
 export const HISTORY_LIFETIME = 300;
 export const DESYNC_CHECK_INTERVAL = 60;
 export const DESYNC_CHECK_DELTA = 120;
 export const REPLAY_CHECK_INTERVAL = 0;
 export const REPLAY_CHECK_DELTA = 1;
 export const SAVE_ALL_SNAPSHOTS = false;
+export const REFRESH_ON_DESYNC = true;
 
 let doingDesyncCheck = false;
 
@@ -43,6 +45,7 @@ export class Net {
 	public latencyNetwork: Counter;
 	public tickCounter: Counter;
 	public father: Father;
+	public forceSynchronize: boolean;
 	private snapshots: [Snapshot, Bible][];
 	private allSnapshots: Snapshot[];
 	private allEvents: Event[];
@@ -60,6 +63,7 @@ export class Net {
 		this.latencyNetwork = new Counter(5);
 		this.tickCounter = new Counter(5);
 		this.father = new Father();
+		this.forceSynchronize = false;
 		this.snapshots = [];
 		this.allSnapshots = [];
 		this.allEvents = [];
@@ -78,7 +82,7 @@ export class Net {
 	protected load(snapshot: Snapshot) {
 		this.time = snapshot.time;
 		this.maxTime = Math.max(this.time, this.maxTime);
-		console.log(`load time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
+		// console.log(`load time=${this.time} hash=${hashCode(JSON.stringify(this.save()))}`);
 	}
 
 	public on(name: string, listener: { (event: Event): void }) {
@@ -124,7 +128,7 @@ export class Net {
 			// console.log(`event time=${this.time} name=${event.name} hash=${hashCode(JSON.stringify(event))}`);
 			
 			if (doingDesyncCheck) {
-				console.log(event);
+				// console.log(event);
 			}
 
 			const listeners = this.listeners.get(event.name);
@@ -151,7 +155,7 @@ export class Net {
 			this.allSnapshots.push(this.save());
 
 			if (this.time % DESYNC_CHECK_INTERVAL == DESYNC_CHECK_INTERVAL - DESYNC_CHECK_DELTA - SNAPSHOT_INTERVAL) {
-				console.log("snapshot", this.save());
+				// console.log("snapshot", this.save());
 			}
 		}
 
@@ -173,23 +177,27 @@ export class Net {
 				});
 			}
 
-			if (this.time - this.lastSync >= SYNCHRONIZE_INTERVAL) {
+			if (this.time - this.lastSync >= SYNCHRONIZE_INTERVAL || (this.forceSynchronize && this.time - this.lastSync > FORCE_SYNCHRONIZE_INTERVAL)) {
+				// console.log("synchronize", this.time);
+
 				this.broadcast({
 					name: "synchronize",
 					time: this.time,
 					snapshot: this.snapshots[0][0],
+					current: this.getLatest(this.time)![0],
 					events: this.allEvents
 				});
 
 				this.lastSync = this.time;
+				this.forceSynchronize = false;
 			}
 
 			if (DESYNC_CHECK_INTERVAL > 0 && this.time % DESYNC_CHECK_INTERVAL == 0 && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
 				const latest = this.getLatest(this.time - DESYNC_CHECK_DELTA);
 
 				if (latest !== null) {
-					console.log(`sending desync check for ${latest[0].time} (real time is ${this.time}, outgoing hash is ${hashCode(JSON.stringify(latest[0]))})`);
-					console.log(latest[0]);
+					// console.log(`sending desync check for ${latest[0].time} (real time is ${this.time}, outgoing hash is ${hashCode(JSON.stringify(latest[0]))})`);
+					// console.log(latest[0]);
 
 					this.broadcast({
 						name: "desync-check",
@@ -210,11 +218,15 @@ export class Net {
 					doingDesyncCheck = false;
 					const afterState = this.save();
 					
-					console.log(`replay check for ${latest[0].time} (real time is ${this.time}, before hash is ${hashCode(JSON.stringify(beforeState))}, after hash is ${hashCode(JSON.stringify(afterState))})`);
+					// console.log(`replay check for ${latest[0].time} (real time is ${this.time}, before hash is ${hashCode(JSON.stringify(beforeState))}, after hash is ${hashCode(JSON.stringify(afterState))})`);
 	
 					if (JSON.stringify(beforeState) != JSON.stringify(afterState)) {
-						console.log(JSON.stringify(beforeState), JSON.stringify(afterState));
-						debugger;
+						// console.log(JSON.stringify(beforeState), JSON.stringify(afterState));
+						if (REFRESH_ON_DESYNC) {
+							window.location.reload();
+						} else {
+							debugger;
+						}
 					}
 				}
 			}
@@ -229,17 +241,11 @@ export class Net {
 	}
 
 	private forward(target: number) {
-		if (target - this.time > HISTORY_LIFETIME * 2) {
-			// TODO: this doesn't work
-			console.info("attempt to forward past history lifetime, reloading");
-			window.location.reload();
-		}
-
 		while (this.time < target) {
 			this.tick();
 
 			if (doingDesyncCheck) {
-				console.log(this.save());
+				// console.log(this.save());
 			}
 		}
 	}
@@ -327,7 +333,7 @@ export class Net {
 	public async start(options: Options) {
 		this.snapshots.push([this.save(), this.father.publishBible()]);
 
-		this.socket = io(options.address ?? `ws://${BACKEND_ADDRESS}/game`, { withCredentials: true });
+		this.socket = io(options.address ?? `${BACKEND_WS}/game`, { withCredentials: true });
 
 		this.socket!.on("connect", () => {
 			this.socket!.emit("join", { id: options.room.id });
@@ -362,12 +368,12 @@ export class Net {
 					let latest = this.getLatest(message.snapshot.time - 1);
 	
 					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
-						console.log(`running desync check of ${message.snapshot.time} (real time is ${this.time}, incoming hash is ${hashCode(JSON.stringify(message.snapshot))})`);
+						// console.log(`running desync check of ${message.snapshot.time} (real time is ${this.time}, incoming hash is ${hashCode(JSON.stringify(message.snapshot))})`);
 
 						doingDesyncCheck = true;
 						this.load(latest[0]);
 						this.father.regress(latest[1]);
-						console.log(this.save());
+						// console.log(this.save());
 						this.forward(message.snapshot.time);
 						doingDesyncCheck = false;
 						const testState = this.save();
@@ -377,9 +383,13 @@ export class Net {
 						this.forward(this.maxTime);
 	
 						if (JSON.stringify(testState) != JSON.stringify(message.snapshot)) {
-							console.log(JSON.stringify(testState));
-							console.log(JSON.stringify(message.snapshot));
-							debugger;
+							// console.log(JSON.stringify(testState));
+							// console.log(JSON.stringify(message.snapshot));
+							if (REFRESH_ON_DESYNC) {
+								window.location.reload();
+							} else {
+								debugger;
+							}
 						}
 					}
 					break;

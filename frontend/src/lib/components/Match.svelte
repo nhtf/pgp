@@ -1,13 +1,11 @@
 <script lang="ts">
     import type { Game, User } from "$lib/entities";
-    import { gameStore, userStore } from "$lib/stores";
     import { byId } from "$lib/sorting";
     import { page } from "$app/stores";
 
 	export let game: Game;
 	export let user: User = $page.data.user;
 
-	$: game = $gameStore.get(game.id)!;
 	$: team = game.teams.find((team) => team.players.some(({ userId }) => userId === user.id))!;
 	$: result = team?.score - Math.max(...game.teams
 		.filter((x) => x.id !== team?.id)
@@ -15,22 +13,24 @@
 
 </script>
 
-<div class="match match-{result < 0 ? "loss" : result == 0 ? "draw" : "win"}">
-	<div class="match-mode">{["Classic", "VR", "Modern"][game.gamemode]}</div>
-	<div class="match-teams">
-		{#each game.teams.sort(byId) as team (team.id)}
-			<div class="match-team-wrapper">
-				<div class="match-team">
-					<div class="match-team-score">{Math.abs(team.score)}</div>
-					<div class="match-team-name">{team.name}</div>
-					{#each team.players.sort(byId) as player (player.id)}
-						<div class="match-team-player">{$userStore.get(player.userId)?.username}</div>
-					{/each}
+{#if game}
+	<div class="match match-{result < 0 ? "loss" : result == 0 ? "draw" : "win"}">
+		<div class="match-mode">{["Classic", "VR", "Modern"][game.gamemode]}</div>
+		<div class="match-teams">
+			{#each game.teams.sort(byId) as team (team.id)}
+				<div class="match-team-wrapper">
+					<div class="match-team">
+						<div class="match-team-score">{Math.abs(team.score)}</div>
+						<div class="match-team-name">{team.name}</div>
+						{#each team.players.sort(byId) as player (player.id)}
+							<div class="match-team-player">{player.user?.username}</div>
+						{/each}
+					</div>
 				</div>
-			</div>
-		{/each}
+			{/each}
+		</div>
 	</div>
-</div>
+{/if}
 
 <style>
 	.match {
@@ -41,6 +41,8 @@
 	.match-teams {
 		display: flex;
 		justify-content: center;
+		flex-direction: row;
+		min-width: 25rem;
 	}
 
 	.match-team {

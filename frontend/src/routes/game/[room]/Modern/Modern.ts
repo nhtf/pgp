@@ -1,7 +1,7 @@
 import { Net } from "../Net";
 import type { Event as NetEvent } from "../Net";
 import { intersection, Vector, paddleBounce, isInConvexHull, serializeNumber, deserializeNumber } from "../lib2D/Math2D";
-import type { VectorObject, Line } from "../lib2D/Math2D";
+import type { Line } from "../lib2D/Math2D";
 import { Paddle } from "./Paddle";
 import { WIDTH, HEIGHT, UPS, border, FIELDWIDTH, FIELDHEIGHT, levels, PADDLE_PING_INTERVAL, PADDLE_PING_TIMEOUT, ballVelociy } from "./Constants";
 import { GAME} from "./Constants";
@@ -15,7 +15,6 @@ import { FullShader } from "./fullShader";
 import type {Snapshot as NetSnapshot } from "../Net";
 import type { BallObject } from "./Ball";
 import type { PaddleObject } from "./Paddle";
-import { activateRipple } from "./fullShader";
 
 const hit = new Audio("/Assets/sounds/laser.wav");
 const scoreSound = new Audio("/Assets/sounds/teleportation.mp3");
@@ -48,10 +47,9 @@ interface Snapshot extends NetSnapshot {
 	paddles: PaddleObject[];
 	state: {
 		teams: TeamObject[];
+		finished: boolean;
 	};
 };
-
-//TODO still desync seems to be ping and userId in paddle that is the issue maybe?
 
 function moveCollision(paddleLines: Line[], paddleVelo: Vector, ball: Ball) {
 
@@ -79,6 +77,7 @@ export class Game extends Net {
 	public score?: Score;
 	public teams: Array<Team>;
 	public shader: FullShader;
+	public finished?: boolean;
 
 	public constructor(players: GAME, level: level, shader: FullShader) {
 		super();
@@ -148,7 +147,7 @@ export class Game extends Net {
 				const oldRot = paddle.rotation;
 				paddle.rotation += deserializeNumber(event.r);
 				if (paddle.isBallInPaddle(this.ball.position)) {
-					console.log("ball in paddle with this rotation - NOT ALLOWED!!");
+					// console.log("ball in paddle with this rotation - NOT ALLOWED!!");
 					paddle.rotation = oldRot;
 				}
 
@@ -179,29 +178,30 @@ export class Game extends Net {
 				}
 				if (event.b === 0 && this.ball.velocity.magnitude() == 0) {
 					let teamActive = 0;
+					let gameOver = false;
 					this.teams.forEach((team, i) => {
 						if (team.active) {
 							teamActive = i;
 						}
-					})
+						if (Math.abs(team.score) >= 10) {
+							gameOver = true;
+						}
+					});
+					if (gameOver) {
+						// console.log("game is over - ball not allowed to launch anymore");
+						return;
+					}
 					this.teams[teamActive].active = true;
-					console.log("player ", paddle.owner, " is trying to launch the ball, ball can be launched by player ", teamActive);
+					// console.log("player ", paddle.owner, " is trying to launch the ball, ball can be launched by player ", teamActive);
 				}
 				if (event.b === 0 && this.teams[paddle.owner].active) {
-					// this.ball.velocity = new Vector(ballVelociy[this.players][paddle.owner].x, ballVelociy[this.players][paddle.owner].y);
+					// console.log("ballLaunch Event!!!");
 					this.teams[paddle.owner].active = false;
-					this.send("ballLaunch", {vx: serializeNumber(ballVelociy[this.players][paddle.owner].x), vy: serializeNumber(ballVelociy[this.players][paddle.owner].y)});
+					this.ball.velocity = new Vector(ballVelociy[this.players][paddle.owner].x, ballVelociy[this.players][paddle.owner].y);
+					this.shader.changeBallOwner([0.871, 0.898, 0.07, 1]);
 				}
 
 			}
-		});
-
-		
-		this.on("ballLaunch", netEvent => {
-			console.log("ballLaunch Event!!!");
-			const event = netEvent as BallEvent;
-			this.ball.velocity = new Vector(deserializeNumber(event.vx), deserializeNumber(event.vy));
-			this.shader.changeBallOwner([0.871, 0.898, 0.07, 1]);
 		});
 
 		this.on("ping", netEvent => {
@@ -226,21 +226,10 @@ export class Game extends Net {
 		this.ball.velocity = this.ball.velocity.add(vel.scale(1 / UPS));
 		this.ball.position = this.ball.position.add(vel.scale(1.001));
 		if (!isInConvexHull(this.ball.position, this.field.getConvexFieldBoxLines(), true)) {
-			console.log("ERROR: ball outside field. Resetting position. ConvexHull Check.");
+			// console.log("ERROR: ball outside field. Resetting position. ConvexHull Check.");
 			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
 			this.ball.velocity = this.ball.velocity.tangent();
 		}
-
-		//Debug
-		// for (let paddle of this.paddles) {
-		// 	const colLines = paddle.getCollisionLines();
-		// 	if (isInConvexHull(this.ball.position, colLines, false)) {
-		// 		if (isInConvexHull(closest[1], colLines, false))
-		// 		{
-		// 			console.log("ERROR: ball in paddle.");
-		// 		}
-		// 	}
-		// }
 		this.shader.moveBall(this.ball.position);
 	}
 
@@ -249,7 +238,7 @@ export class Game extends Net {
 			ball: this.ball.save(),
 			paddles: this.paddles.map(paddle => paddle.save()),
 			state: {teams: this.teams.map(team => team.save()),
-			},
+					finished: this.finished!},
 			...super.save(),
 		};
 	}
@@ -267,6 +256,7 @@ export class Game extends Net {
 			if (team.active)
 				this.shader.changeBallOwner(this.level.goalBorderColors[i]);
 		});
+		this.finished = snapshot.state.finished;
 		super.load(snapshot);
 	}
 
@@ -290,32 +280,26 @@ export class Game extends Net {
 				break;
 			} else if (collision[0].name.startsWith("goal")) {
 				this.pray("score-sound", 30, () => (scoreSound.cloneNode(true) as HTMLAudioElement).play());
+				this.forceSynchronize = true;
 				let goal: number = +collision[0].name.charAt(4);
-				console.log("goal: ", goal);
-				console.log("goal: ", collision[0].name.charAt(5));
+				let act = goal;
 				if (this.level.players > 2) {
 					this.teams[goal].score -= 1;
 					this.teams[goal].active = true;
 				}
 				else {
 					this.teams[goal].score += 1;
-					goal = goal ? 0 : 1;
-					this.teams[goal].active = true;
+					act = goal ? 0 : 1;
+					this.teams[act].active = true;
 				}
-				if (this.teams[goal].score > 10 || this.teams[goal].score < 0) {
-					console.log("game over? -> send update to backend and stop the game here or something");
+				if (Math.abs(this.teams[goal].score) >= 10) {
+					this.teams[act].active = false;
+					this.finished = true;
 				}
 				this.shader.updateScore(this.teams[goal].score, goal);
-				//TODO reimplement the ripples again
-				// setOriginRipple(this.ball.position.x, this.ball.position.y);
-				activateRipple();
 				this.ball.position = new Vector(FIELDWIDTH / 2, FIELDHEIGHT / 2);
 				this.ball.velocity = new Vector(0,0);
-				
-				console.log("player ", goal, " should be launching the ball");
-				this.shader.changeBallOwner(this.level.goalBorderColors[goal]);
-				// this.ball.velocity = new Vector(ballVelociy[this.players][goal].x, ballVelociy[this.players][goal].y);
-				
+				this.shader.changeBallOwner(this.level.goalBorderColors[act]);
 				break;
 			} else {
 				if (collision[0].name.startsWith("paddle")) {
@@ -344,12 +328,12 @@ export class Game extends Net {
 		if (this.ball.position.x < -4 * border || this.ball.position.x > this.field.width + 4 * border ||
 			this.ball.position.y < 0 || this.ball.position.y > this.field.height + 2 * border)
 		{
-			console.log("pos: ", this.ball.position);
-			console.log("ERROR: ball outside field. Resetting position.");
+			// console.log("ERROR: ball outside field. Resetting position.");
 			this.ball.position = new Vector(WIDTH / 2, HEIGHT /2);
 			this.ball.velocity = this.ball.velocity.tangent();
 		}
 		this.shader.moveBall(this.ball.position);
+		this.teams.forEach((team) => {if (team.score >= 10) this.finished = true;});
 		super.lateTick();
 	}
 
@@ -359,6 +343,7 @@ export class Game extends Net {
 		if (this.players === GAME.FOURPLAYERS)
 			startScore = 10;
 		const teams = options.room.state!.teams;
+		teams.sort((a, b) => a.id - b.id);
 		for (let i = 0; i < this.level.players; i++) {
 			this.teams.push(new Team(teams[i].id, teams[i].active, teams[i].score));
 			if (teams[i].active) {
@@ -366,20 +351,12 @@ export class Game extends Net {
 			}
 			this.shader.updateScore(teams[i].score, i);
 		}
-		// if (this.ball.velocity.magnitude() == 0) {
-		// 	let active = 0;
-		// 	teams.forEach((team, i) => {
-		// 		if (team.active)
-		// 			active = i;
-		// 	});
-		// 	this.teams[active].active = true;
-		// 	this.shader.changeBallOwner(this.level.goalBorderColors[active]);
-		// }
+		this.finished = options.room.state!.finished;
 
 		let index = 0;
 		for (let paddle of this.level.paddles) {
 			this.paddles.push(new Paddle(new Vector(paddle.x, paddle.y), paddle.angle, index, this.teams[index], this.level.paddleContour))
-			this.shader.movePaddle({x: paddle.x, y: paddle.y}, index);
+			this.shader.movePaddle(this.paddles[index].position, index);
 			this.shader.rotatePaddle(paddle.angle, index);
 			index +=1;
 		}
@@ -445,7 +422,7 @@ export class Modern {
 			if (this.game) {
 				let paddle = this.game.getPaddle(this.options.member.userId);
 
-				let movement: VectorObject = {x: 0, y: 0};
+				let movement = {x: 0, y: 0};
 				if (paddle?.isInPlayerArea({x: paddle.position.x + moveX, y: paddle.position.y}, this.game.field.getPlayerAreas()[paddle.owner]))
 					movement.x = moveX;
 				if (paddle?.isInPlayerArea({x: paddle.position.x, y: paddle.position.y + moveY}, this.game.field.getPlayerAreas()[paddle.owner]))

@@ -1,8 +1,9 @@
 import { Net } from "../Net";
-import type { BallObject, PaddleObject, PingEvent, MouseEvent, Snapshot, Options } from "../lib2D/interfaces";
+import type { BallObject, PaddleObject, PingEvent, MouseEvent, ServeEvent, Snapshot, Options } from "../lib2D/interfaces";
 import { Vector, intersection, paddleBounce } from "../lib2D/Math2D";
 import type { Line } from "../lib2D/Math2D";
 import { Team } from "../lib2D/Team";
+import type { Events } from "./Shader";
 
 export const WIDTH = 160;
 export const HEIGHT = 90;
@@ -20,7 +21,7 @@ export class Ball {
 
 	public constructor() {
 		this.position = new Vector(WIDTH / 2, HEIGHT / 2);
-		this.velocity = new Vector(-1, 0);
+		this.velocity = new Vector(0, 0);
 	}
 
 	public render(context: CanvasRenderingContext2D) {
@@ -105,6 +106,7 @@ export class Game extends Net {
 	public ball: Ball;
 	public paddles: Array<Paddle>;
 	public teams: Array<Team>;
+	public current: number;
 
 	public constructor() {
 		super();
@@ -112,6 +114,7 @@ export class Game extends Net {
 		this.ball = new Ball();
 		this.paddles = [];
 		this.teams = [];
+		this.current = 0;
 
 		this.on("move", netEvent => {
 			const event = netEvent as MouseEvent;
@@ -132,9 +135,20 @@ export class Game extends Net {
 			}
 		});
 
+		this.on("serve", netEvent => {
+			const event = netEvent as ServeEvent;
+			const paddle = this.getPaddle(event.u);
+
+			// console.log(paddle, this.ball.velocity.magnitude(), this.finished(), paddle?.team, this.current);
+			if (paddle !== null && this.ball.velocity.magnitude() == 0 && !this.finished() && this.teams.filter(t => this.paddles.filter(p => p.team == t && p.userId !== undefined).length == 0).length == 0 && paddle.team == this.teams[this.current]) {
+				this.ball.velocity.x = Math.sign(paddle.position.x - WIDTH / 2);
+				this.current = 1 - this.current;
+			}
+		});
+
 		this.on("ping", netEvent => {
 			const event = netEvent as PingEvent;
-			const paddle = this.getPaddle(event.u);
+			let paddle = this.getPaddle(event.u);
 
 			if (paddle !== null) {
 				paddle.ping = this.time;
@@ -142,12 +156,18 @@ export class Game extends Net {
 		});
 	}
 
+	private finished(): boolean {
+		return Math.max(...this.teams.map(team => team.score)) >= 10;
+	}
+
 	protected save(): Snapshot {
 		return {
 			ball: this.ball.save(),
 			paddles: this.paddles.map(paddle => paddle.save()),
+			current: this.current,
 			state: {
 				teams: this.teams.map(team => team.save()),
+				finished: this.finished(),
 			},
 			...super.save(),
 		};
@@ -157,6 +177,7 @@ export class Game extends Net {
 		this.ball.load(snapshot.ball);
 		this.paddles.forEach((paddle, i) => paddle.load(snapshot.paddles[i]));
 		this.teams.forEach((team, i) => team.load(snapshot.state.teams[i]));
+		this.current = snapshot.current;
 		super.load(snapshot);
 	}
 
@@ -202,14 +223,16 @@ export class Game extends Net {
 			} else if (collision[0].name == "wall-left") {
 				this.teams[1].score += 1;
 				this.pray("score-sound", 30, () => scoreSound.play());
+				this.forceSynchronize = true;
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
-				this.ball.velocity = new Vector(1, 0);
+				this.ball.velocity = new Vector(0, 0);
 				break;
 			} else if (collision[0].name == "wall-right") {
 				this.teams[0].score += 1;
 				this.pray("score-sound", 30, () => scoreSound.play());
+				this.forceSynchronize = true;
 				this.ball.position = new Vector(WIDTH / 2, HEIGHT / 2);
-				this.ball.velocity = new Vector(-1, 0);
+				this.ball.velocity = new Vector(0, 0);
 				break;
 			} else {
 				this.ball.position = collision[1];
@@ -239,10 +262,11 @@ export class Game extends Net {
 
 	public async start(options: Options) {
 		const teams = options.room.state!.teams;
+		teams.sort((a, b) => a.id - b.id);
 
 		this.teams = [
-			new Team(teams[0].id, true,teams[0].score),
-			new Team(teams[1].id, true,teams[1].score),
+			new Team(teams[0].id, true, teams[0].score),
+			new Team(teams[1].id, true, teams[1].score),
 		];
 
 		this.paddles = [
@@ -254,7 +278,7 @@ export class Game extends Net {
 	}
 }
 
-export class Classic {
+export class Classic implements Events {
 	private canvas: HTMLCanvasElement;
 	private context: CanvasRenderingContext2D;
 	private game: Game;
@@ -321,7 +345,16 @@ export class Classic {
 				y,
 			});
 		}
+	}
 
+	public mousedown(offsetX: number, offsetY: number) {
+		if (!this.options) {
+			return;
+		}
+
+		this.game.send("serve", {
+			u: this.options.member.userId,
+		});
 	}
 
 	public async start(options: Options) {
@@ -332,7 +365,7 @@ export class Classic {
 				u: options.member.userId,
 			});
 
-			console.log(this.game.bandwidthUpload.averageOverTime());
+			// console.log(this.game.bandwidthUpload.averageOverTime());
 		}, 1000 / UPS * PADDLE_PING_INTERVAL);
 
 		await this.game.start(options);

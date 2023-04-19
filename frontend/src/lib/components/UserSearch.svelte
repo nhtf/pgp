@@ -1,8 +1,8 @@
 <script lang="ts">
 	import type { User } from "$lib/entities";
 	import { Dropdown, DropdownHeader, DropdownItem, Search } from "flowbite-svelte";
-	import { get } from "$lib/Web";
     import { createEventDispatcher } from "svelte";
+	import { get } from "$lib/Web";
 	
 	export let filter: (user: User) => boolean = () => true;
 	export let value = "";
@@ -21,10 +21,9 @@
 	function onDropdownClick(user: User) {
 		value = user.username;
 		document.getElementById("search")?.focus();
-		//[...document.getElementsByClassName("search-input")]?[0].focus();
 	}
 
-	function onKeyDown(event: KeyboardEvent) {
+	async function onKeyDown(event: KeyboardEvent) {
 		if (users.length !== 0 && (event.key === "ArrowUp" || event.key === "ArrowDown")) {
 			const current = document.activeElement as HTMLElement;
 			const items = [...document.getElementsByClassName("search-item")] as HTMLElement[];
@@ -43,6 +42,10 @@
 			items[idx].focus();
 			//console.log("should do something");
 		}
+	}
+
+	async function onKeyPress(event: KeyboardEvent) {
+		dispatch("keypress", event);
 	}
 
 	async function onInput() {
@@ -65,10 +68,11 @@
 		size="lg"
 		id="search"
 		class="input search-input"
-		placeholder="username"
+		placeholder="Username"
 		bind:value
 		on:input={onInput}
 		on:keydown={onKeyDown}
+		on:keypress={onKeyPress}
 	/>
 	{#if value}
 		<Dropdown bind:open>

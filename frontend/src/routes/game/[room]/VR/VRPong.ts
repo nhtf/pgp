@@ -42,30 +42,32 @@ function createLights(world: Pong) {
 	light.castShadow = true;
 	light.shadow.mapSize.width = 2048;
 	light.shadow.mapSize.height = 2048;
-	world.scene.add(light);
-	const areaLight = new THREE.RectAreaLight("white", 10, 62, 1);
-	areaLight.position.y = 10.75;
+	const intensity = 5;
+	const width = 62;
+	const height = 1;
+	const lightY = 10.75;
+	const areaLight = new THREE.RectAreaLight("white", intensity, width, height);
+	areaLight.position.y = lightY;
 	areaLight.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
-	const areaLightL = new THREE.RectAreaLight("white", 10, 62, 1);
-	areaLightL.position.set(-10, 10.75, 0);
+	const areaLightL = new THREE.RectAreaLight("white", intensity, width, height);
+	areaLightL.position.set(-10, lightY, 0);
 	areaLightL.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
-	const areaLightR = new THREE.RectAreaLight("white", 10, 62, 1);
-	areaLightR.position.set(10, 10.75, 0);
+	const areaLightR = new THREE.RectAreaLight("white", intensity, width, height);
+	areaLightR.position.set(10, lightY, 0);
 	areaLightR.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
-	const areaLightCeiling = new THREE.RectAreaLight("white", 1, 62, 36);
+	const areaLightCeiling = new THREE.RectAreaLight("white", 0.1, width, 36);
 	areaLightCeiling.rotation.setFromVector3(new THREE.Vector3(Math.PI / 2, Math.PI, Math.PI / 2));
 	areaLightCeiling.position.y = 12.1;
-	const helper = new RectAreaLightHelper(areaLightCeiling, "red");
+	world.scene.add(light);
 	world.scene.add(areaLight);
 	world.scene.add(areaLightL);
 	world.scene.add(areaLightR);
 	world.scene.add(ambient);
 	world.scene.add(areaLightCeiling);
-	world.scene.add(helper);
 }
 
 function createScoreboard(world: Pong) {
-	const material = world.addThreeObject(new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+	const material = world.addThreeObject(new THREE.MeshBasicMaterial({ color: 0xffff00 }));
 
 	{
 		const text = new DynamicText(world, material, "0 - 0");
@@ -147,8 +149,9 @@ export class Ball extends Entity {
 		super.destroy();
 	}
 
-	public onCollision(other: Entity | null, p0: Vector, p1: Vector) {
+	public onCollision(other: Entity | null, _p0: Vector, p1: Vector) {
 		const world = (this.world as Pong);
+		const pointIndex = world.state!.pointIndex;
 
 		if (other?.name == "table") {
 			world.pray("table-sound", 30, () => {
@@ -173,6 +176,10 @@ export class Ball extends Entity {
 			});
 
 			this.removed ||= !world.state!.onPaddleHit((other as Paddle).userId);
+		}
+
+		if (world.state!.pointIndex > pointIndex) {
+			world.forceSynchronize = true;
 		}
 	}
 }
@@ -203,7 +210,7 @@ export class Paddle extends Entity {
 
 	public earlyTick() {
 		if (this.lastUpdate < this.world.time - Paddle.LIFETIME) {
-			console.log("Removing paddle", this.uuid, this.lastUpdate, this.world.time, Paddle.LIFETIME);
+			// console.log("Removing paddle", this.uuid, this.lastUpdate, this.world.time, Paddle.LIFETIME);
 			this.removed = true;
 		}
 
@@ -278,7 +285,7 @@ export class Pong extends World {
 			if (ball === null && paddle !== null && paddle instanceof Paddle) {
 				const team = this.state!.players.find(player => player.user == paddle.userId)!.team;
 
-				console.log(this.state!.current?.id, team?.id);
+				// console.log(this.state!.current?.id, team?.id);
 
 				if (this.state!.current == team) {
 					this.create({
@@ -304,7 +311,7 @@ export class Pong extends World {
 	}
 
 	private controllerConnected(event: any, index: number) {
-		console.log("connected: ", event);
+		// console.log("connected: ", event);
 		if (!event.data.gamepad) {
 			if (index === 0) {
 				this.leftController = event.target;
@@ -339,7 +346,7 @@ export class Pong extends World {
 			}, {
 				uuid: this.paddleUUID,
 				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),
-				// tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
+				tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
 			});
 		}
 

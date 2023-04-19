@@ -289,13 +289,9 @@ export class DebugController {
 		return this.roomRepo.save({ id: Number(id), banned_users: [] });
 	}
 
-	@Get("history")
+	@Get("games")
 	async gameStates() {
-		return await this.gamestateRepo.find({
-			relations: {
-				teams: true,
-			}
-		});
+		return this.gamestateRepo.find();
 	}
 
 	@Get("ach(s)?")

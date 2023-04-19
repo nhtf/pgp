@@ -1,9 +1,11 @@
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from "typeorm";
-import { Objective } from "./Objective";
 import { AchievementProgress } from "./AchievementProgress";
+import { Objective } from "./Objective";
+import { Exclude } from "class-transformer"
 
 @Entity()
 export class Achievement {
+	@Exclude()
 	@PrimaryGeneratedColumn()
 	id: number;
 

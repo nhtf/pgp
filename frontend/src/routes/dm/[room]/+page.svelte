@@ -1,9 +1,9 @@
 <script lang="ts">
-	import type { DMRoom, Message, User } from "$lib/entities";
+	import { User, DMRoom, type Message } from "$lib/entities";
 	import type { UpdatePacket } from "$lib/types";
 	import type { PageData } from "./$types";
 	import { Action, Subject } from "$lib/enums";
-	import { blockStore, roomStore, userStore } from "$lib/stores";
+	import { blockStore, roomStore, updateStore, userStore } from "$lib/stores";
 	import { updateManager } from "$lib/updateSocket";
 	import { onDestroy, onMount } from "svelte";
 	import { unwrap } from "$lib/Alert";
@@ -22,12 +22,16 @@
 	let relativeScroll = messages.length;
 	let index: number;
 
-	$: room = $roomStore.get(data.room.id) as DMRoom;
-	$: other = $userStore.get(room.other!.id)!;
+	$: room = $roomStore.get(data.room.id) as DMRoom | undefined;
+	$: other = room?.other ? $userStore.get(room.other?.id) : undefined;
+	$: blocked = other ? $blockStore.has(other.id) : false;
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
 	$: min = clamp(relativeScroll - load, 0, messages.length);
+
+	updateStore(User, data.other);
+	updateStore(DMRoom, data.room);
 
 	onMount(() => {
 		index = updateManager.set(Subject.MESSAGE, updateMessages);
@@ -38,15 +42,13 @@
 	});
 
 	addEventListener("wheel", (event: WheelEvent) => {
-		const delta = clamp(event.deltaY, -1, 1);
-	
-		relativeScroll += delta;
+		relativeScroll += clamp(event.deltaY, -1, 1);;
 	});
 
 	async function updateMessages(update: UpdatePacket) {
 		switch (update.action) {
 			case Action.INSERT:
-				if (update.value.roomId === room.id){
+				if (update.value.roomId === room?.id){
 					messages = [...messages, update.value];
 				}
 				break;
@@ -62,7 +64,7 @@
 	
 	async function sendMessage(content: string) {
 		if (content.length) {
-			await unwrap(post(`${room.route}/messages`, { content }));
+			await unwrap(post(`${room?.route}/messages`, { content }));
 		}
 	}
 
@@ -78,34 +80,40 @@
 		setTimeout(() => relativeScroll = messages.length - load, 1000);
 	}
 
-	async function block(user: User) {
-		await unwrap(post(`/user/me/blocked`, { id: user.id }));
+	async function block() {
+		await unwrap(post(`/user/me/blocked`, { id: other?.id }));
 		await goto(`/dm`);
 	}
 
 </script>
 
-<div class="room">
-	<a class="button border-blue" href={`/dm`}>Back</a>
-	<div class="grow"/>
-	<UserDropdown user={other} extend={true}/>
-	<div class="grow"/>
-	<button class="button border-red" on:click={() => block(other)}>Block</button>		
-</div>
-<div class="room-page">
-	<div class="room-container">
-		<div class="messages" id="messages" use:scrollToBottom={messages}>
-			{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
-				{#if index >= min}
-					<MessageBox on:load|once={scroll} {room} {message} />
-				{/if}
-			{/each}
+<div class="page">
+	{#if room && other}
+		<div class="room">
+			<a class="button border-blue" href={`/dm`}>Back</a>
+			<div class="grow"/>
+			<UserDropdown user={other} extend={true}/>
+			<div class="grow"/>
+			{#if !blocked}
+				<button class="button border-red" on:click={block}>Block</button>		
+			{/if}
 		</div>
-		{#if relativeScroll + load < messages.length}
-			<button class="button middle" on:click={scroll}>Go to bottom</button>
-		{/if}
-		<ScratchPad callback={sendMessage}/>
-	</div>
+		<div class="room-page">
+			<div class="room-container">
+				<div class="messages" id="messages" use:scrollToBottom={messages}>
+					{#each messages.filter(({ userId }) => !$blockStore.has(userId)) as message, index (message.id)}
+						{#if index >= min}
+							<MessageBox on:load|once={scroll} {room} {message} />
+						{/if}
+					{/each}
+				</div>
+				{#if relativeScroll + load < messages.length}
+					<button class="button middle" on:click={scroll}>Go to bottom</button>
+				{/if}
+				<ScratchPad callback={sendMessage}/>
+			</div>
+		</div>
+	{/if}
 </div>
 
 <style>

@@ -3,9 +3,7 @@ import { ChatRoom, RoomInvite, ChatRoomMember, Entity, FriendRequest, Game, Game
 import { Access, Action, Subject } from "$lib/enums";
 import { updateManager } from "$lib/updateSocket";
 import { writable, type Writable } from "svelte/store";
-import { fetchGame } from "$lib/util";
 
-updateManager.set(Subject.USER, onActiveRoom);
 updateManager.set(Subject.ROOM, onRoomInsert);
 updateManager.set(Subject.TEAM, onScoreUpdate);
 updateManager.set(Subject.ROOM, onPrivateRemove);
@@ -42,11 +40,15 @@ export function updateStore<T extends Entity>(entityType: (new () => T), entitie
 		entities = [entities];
 	}
 
-	const stored = customStore ?? store(entityType)!;
+	const stored = customStore ?? store(entityType);
 
 	stored.update((stored) => {
 		(entities as T[]).forEach((entity) => {
-			stored.set(entity.id, create(entity, entityType))
+			if (!stored.has(entity.id)) {
+				stored.set(entity.id, create(entity, entityType))
+			} else {
+				updateDeepPartial(stored.get(entity.id)!, entity);
+			}
 		});
 
 		return stored;
@@ -85,6 +87,7 @@ function updateDeepPartial(entity: ObjectLiteral, update: ObjectLiteral) {
 		if (typeof update[key] === "object"
 			&& update[key] !== null
 			&& !Array.isArray(update[key])
+			&& entity[key] !== null
 			&& entity[key] !== undefined
 		) {
 			updateDeepPartial(entity[key], update[key]);
@@ -151,7 +154,7 @@ async function onFriendInsert(update: UpdatePacket) {
 // Add state, owner and other from new room
 async function onRoomInsert(update: UpdatePacket) {
 	if (update.value?.state) {
-		updateStore(User, update.value.state);
+		updateStore(Game, update.value.state);
 	}
 
 	if (update.value?.owner) {
@@ -170,18 +173,13 @@ async function onScoreUpdate(update: UpdatePacket) {
 			const state = old.get(update.value.stateId);
 
 			if (state) {
-				const team = state.teams.find(({ id }) => id === update.id)!;
+				const team = state.teams?.find(({ id }) => id === update.id);
 
-				team.score = update.value.score;
+				if (team)
+					team.score = update.value.score;
 			}
 
 			return old;
 		});
-	}
-}
-
-async function onActiveRoom(update: UpdatePacket) {
-	if (update.value?.activeRoomId) {
-		await fetchGame(update.value.activeRoomId);
 	}
 }

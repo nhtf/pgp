@@ -23,6 +23,13 @@
 		await unwrap(post(`${room.route}/invite`, { username }));
 
 		Swal.fire({ icon: "success", timer: 1000 });
+		value = "";
+	}
+
+	async function onKeyPress(event: { detail: KeyboardEvent }) {
+		if (event.detail.key === "Enter" && value != undefined && value.length >= 3) {
+			await invite(room, value);
+		}
 	}
 
 	async function fetchMembers() {
@@ -32,6 +39,6 @@
 </script>
 
 <div class="flex flex-row gap-4">
-	<UserSearch bind:value filter={isInvitable} on:input|once={fetchMembers}/>
-	<button class="button border-green" on:click={() => invite(room, value)}>Invite</button>
+	<UserSearch bind:value filter={isInvitable} on:input|once={fetchMembers} on:keypress={onKeyPress}/>
+	<button class="button border-green" on:click={() => invite(room, value)} disabled={!value || value.length < 3}>Invite</button>
 </div>

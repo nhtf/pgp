@@ -32,8 +32,11 @@
 		);
 	}
 
-	function onKeyPress(event: any) {
-		console.log("here");
+	async function onKeyPress(event: { detail: KeyboardEvent }) {
+		if (event.detail.key === "Enter" && value != undefined && value.length >= 3) {
+			await befriend(value);
+			value = "";
+		}
 	}
 
 </script>
@@ -44,7 +47,7 @@
 			<UserSearch on:keypress={onKeyPress} bind:value filter={isBefriendable}/>
 			<button
 				class="button border-green"
-				disabled={!value}
+				disabled={!value || value.length < 3}
 				on:click={() => befriend(value)}>Add</button
 			>
 		</div>

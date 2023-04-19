@@ -16,7 +16,7 @@ export class User extends Entity {
 	queueing: boolean;
 	is_dm: boolean;
 
-	achievements?: Achievement[];
+	achievements: Achievement[];
 };
 
 export class Room<T extends Member = Member> extends Entity {
@@ -67,6 +67,8 @@ export class Game extends Entity {
 	gamemode: Gamemode;
 	teamsLocked: boolean;
 	roomId: number | null;
+	finished: boolean;
+	ranked: boolean;
 
 	teams: Team[];
 }
@@ -167,6 +169,7 @@ export class Message extends Entity {
 };
 
 export class Stat extends Entity {
+	username: string;
 	gamemode: Gamemode;
 	team_count: number;
 

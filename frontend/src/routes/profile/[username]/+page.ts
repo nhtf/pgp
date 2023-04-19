@@ -1,19 +1,22 @@
+import type { User, Stat, Game } from "$lib/entities"
 import type { PageLoad } from "./$types"
-import { updateStore, friendStore } from "$lib/stores"
-import { Entity, User, Game, Stat } from "$lib/entities"
 import { unwrap } from '$lib/Alert';
 import { get } from '$lib/Web';
 
-export const load: PageLoad = (async ({ fetch, params }) => {
+export const load: PageLoad = (async ({ fetch, params, parent }) => {
 	window.fetch = fetch;
 
+	const { user } = await parent();
 	const profile: User = await unwrap(get(`/user/${encodeURIComponent(params.username)}`, { achievements: true }));
-	const friends: User[] = await unwrap(get(`/user/me/friends`));
-	const stats: Stat[] = await unwrap(get(`/leaderboard`, { username: profile.username }));
-	const level: number = await unwrap(get(`/leaderboard/levels/${encodeURIComponent(profile.username)}`));
+	const { level }: { level: number } = await unwrap(get(`/stat/levels`, { username: profile.username }));
+	const games: Game[] = await unwrap(get(`/stat/history`, { username: profile.username }));
+	const stats: Stat[] = await unwrap(get(`/stat`, { username: profile.username }));
 
-	updateStore(User, [profile, ...friends]);
-	updateStore(Entity, friends, friendStore);
+	let friends: User[] | null = null;
 
-	return { profile, stats, level };
+	if (profile.id === user?.id) {
+		friends = await unwrap(get(`/user/me/friends`)) as User[];
+	}
+
+	return { profile, level, games, stats, friends };
 }) satisfies PageLoad;

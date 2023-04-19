@@ -306,7 +306,7 @@ export function GenericUserController(
 			user.friends = await this.user_repo.findBy({ friends: { id: user.id } });
 
 			if (!user.friends.some((user) => user.id === friend.id)) {
-				throw new NotFoundException();
+				throw new NotFoundException("User not found");
 			}
 
 			await this.user_service.permute(user, friend, async (first: User, second: User) => {
@@ -350,6 +350,8 @@ export function GenericUserController(
 			if (user.id !== me.id) {
 				throw new ForbiddenException();
 			};
+		
+			user.friends = await this.user_repo.findBy({ friends: { id: user.id } });
 
 			if (user.id === target.id) {
 				throw new UnprocessableEntityException("Cannot befriend yourself");
@@ -386,7 +388,7 @@ export function GenericUserController(
 			};
 
 			if (user.id !== request.from.id && user.id !== request.to.id)
-				throw new NotFoundException();
+				throw new NotFoundException("Request not found");
 
 			await this.request_repo.remove(request);
 		}
@@ -433,7 +435,13 @@ export function GenericUserController(
 
 		@Delete(`${options.cparam}/blocked`)
 		@HttpCode(HttpStatus.NO_CONTENT)
-		async unblock(@Me() me: User, @Body("id", ParseIDPipe(User)) target: User) {
+		async unblock(@Me() me: User, @Body("id", ParseIDPipe(User)) target: User, @Res() response: Response) {
+			response.redirect(`blocked/${target.id}`);
+		}
+
+		@Delete(`${options.cparam}/blocked/:target`)
+		@HttpCode(HttpStatus.NO_CONTENT)
+		async unblock_new(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
 			me = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
 
 			if (!me.blocked.some(({ id }) => id === target.id)) {

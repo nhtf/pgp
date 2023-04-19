@@ -1,6 +1,6 @@
 import { ChildEntity } from "typeorm";
 import { Member } from "./Member";
-import { Exclude, Expose } from "class-transformer";
+import { Exclude } from "class-transformer";
 import { OneToMany, CreateDateColumn } from "typeorm"
 import { Message } from "./Message"
 

@@ -7,7 +7,6 @@ import {
 } from "./Constants";
 import type { Line } from "../lib2D/Math2D";
 import type { Team } from "../lib2D/Team";
-import type { VectorObject } from "../lib2D/Math2D";
 import { serialize, deserialize } from "../Math";
 
 export interface PaddleObject {
@@ -92,13 +91,13 @@ export class Paddle {
 		return this.collisionLines;
 	}
 
-	public isInPlayerArea(pos: VectorObject, area: Line[]) {
+	public isInPlayerArea(pos: { x: number, y: number }, area: Line[]) {
 		const crot = Math.cos(this.rotation);
         const srot = -Math.sin(this.rotation);
         const w = this.width;
         const h = this.height / 2;
 
-		let points: VectorObject[] = []
+		let points: { x: number, y: number }[] = []
 		points.push({ x: (crot * -w + srot * -h) + pos.x, y:  (-srot * -w + crot * -h) + pos.y});
 		points.push({ x: (crot * w + srot * -h) + pos.x, y:  (-srot * w + crot * -h) + pos.y});
 		points.push({ x: (crot * -w + srot * h) + pos.x, y:  (-srot * -w + crot * h) + pos.y});
@@ -117,7 +116,7 @@ export class Paddle {
         const w = this.width;
         const h = this.height / 2;
 
-		let points: VectorObject[] = []
+		let points: { x: number, y: number }[] = []
 		points.push({ x: (crot * -w + srot * -h) + this.position.x, y:  (-srot * -w + crot * -h) + this.position.y});
 		points.push({ x: (crot * w + srot * -h) + this.position.x, y:  (-srot * w + crot * -h) + this.position.y});
 		points.push({ x: (crot * -w + srot * h) + this.position.x, y:  (-srot * -w + crot * h) + this.position.y});
@@ -130,7 +129,7 @@ export class Paddle {
 		return true;
 	}
 
-	public isBallInPaddle(ballPos: VectorObject) {
+	public isBallInPaddle(ballPos: { x: number, y: number }) {
 		return isInConvexHull(ballPos, this.getCollisionLines(), true);
 	}
 }

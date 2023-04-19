@@ -1,5 +1,5 @@
-import type { VectorObject } from "../lib2D/Math2D";
-import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, scorePositions } from "./Constants";
+import { Vector } from "../lib2D/Math2D";
+import { WIDTH, HEIGHT, FIELDWIDTH, FIELDHEIGHT, type simpleVector } from "./Constants";
 import { m3 } from "../lib2D/Matrix";
 import { Shader} from "./Shader";
 import type { viewPort } from "./Shader";
@@ -11,17 +11,6 @@ export interface Events {
 	mousemove(moveX: number, moveY: number): void;
     mouseWheel(deltaY: number): void;
 	mouseClick(button: number):void;
-}
-
-let active = false;
-export function activateRipple() {
-	console.log("activating ripple");
-	active = true;
-}
-let position: VectorObject = {x: 0, y: 0};
-export function setOriginRipple(x: number, y: number) {
-	position.x = (x + 40) / WIDTH;
-	position.y = 1 - ((y + 22.5) / HEIGHT);
 }
 
 enum DebugVertices  {
@@ -45,11 +34,10 @@ export class FullShader {
 	private gl: WebGL2RenderingContext;
 	private canvas: HTMLCanvasElement;
 	private paddleShader: Shader;
-	private timer: number;
 	private lastTime: number;
-	private ballPos: VectorObject;
-	private paddlePos: VectorObject[] = [];
-	private paddlePosCanvas: VectorObject[] = [];
+	private ballPos: Vector;
+	private paddlePos: Vector[] = [];
+	private paddlePosCanvas: Vector[] = [];
 	private paddleRot: number[] = [];
 	private level;
 	private field: Shader;
@@ -75,13 +63,12 @@ export class FullShader {
 		this.minScale = this.scale();
 		this.ballOwner = [0.745, 0.635, 0.1098, 1];
 		
-		this.timer = 0;
 		this.lastTime = 0;
-		this.ballPos = {x: 0, y: 0};
+		this.ballPos = new Vector(0, 0);
 
 		for (let i = 0; i < level.players; i++) {
-			this.paddlePos.push(level.paddleStartPos[i]);
-			this.paddlePosCanvas.push({x: 0, y: 0});
+			this.paddlePos.push(new Vector(level.paddleStartPos[i].x, level.paddleStartPos[i].y));
+			this.paddlePosCanvas.push(new Vector(0, 0));
 			this.scores.push(0);
 		}
 		this.paddleShader.addMesh(this.gl, level.paddleBorder, "paddleBorder", {color: level.paddleBorderColors});
@@ -162,7 +149,13 @@ export class FullShader {
 		});
 
         this.canvas.addEventListener("wheel", ev => {
-            const rotation = ev.deltaY / 16 * 2 * 0.01745329;
+			let rotation = 0;
+			if (Number.isInteger(ev.deltaY)) {
+				rotation = ev.deltaY / 16 * 2 * 0.01745329;
+			}
+			else {
+				rotation = Math.sqrt(ev.deltaY) * 0.01745329;
+			}
 				events.mouseWheel(rotation);
 			});
 	}
@@ -171,10 +164,11 @@ export class FullShader {
 		return this.canvas;
 	}
 
-	public movePaddle(pos: VectorObject, paddleIndex: number) {
+	public movePaddle(pos: Vector, paddleIndex: number) {
 		const otherPos = {x: (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.minScale, y: (HEIGHT - pos.y - (HEIGHT - FIELDHEIGHT) / 2) * this.minScale};
 		const morePos = {x: (otherPos.x) / (WIDTH * this.minScale / 2) - 1, y: (otherPos.y) / (HEIGHT * this.minScale / 2) - 1};
-		this.paddlePos[paddleIndex] = morePos;
+		this.paddlePos[paddleIndex].x = morePos.x;
+		this.paddlePos[paddleIndex].y = morePos.y;
 		this.paddlePosCanvas[paddleIndex] = pos;
 	}
 
@@ -182,7 +176,7 @@ export class FullShader {
 		this.paddleRot[paddleIndex] = angle;
 	}
 
-	public moveBall(pos: VectorObject) {
+	public moveBall(pos: Vector) {
 		const xOffset = Math.floor((this.canvas.width - WIDTH * this.minScale) / 2);
 		const yOffset = Math.floor((this.canvas.height - HEIGHT * this.minScale) / 2);
 		this.ballPos.x = (pos.x + (WIDTH - FIELDWIDTH) / 2) * this.minScale + xOffset;
@@ -208,7 +202,7 @@ export class FullShader {
 		}
 	}
 
-	private renderPaddles(time: number, viewport: viewPort, res: VectorObject) {
+	private renderPaddles(time: number, viewport: viewPort, res: simpleVector) {
 		this.paddleShader.setUniform(this.gl, time, viewport, this.ballPos, res);
 		for (let i = 0; i < this.level.players; i++) {
 			const mat = new m3();
@@ -220,7 +214,7 @@ export class FullShader {
 		}
 	}
 
-	private renderPlayerFields(time: number, viewport: viewPort, res: VectorObject, ballRadius: number) {
+	private renderPlayerFields(time: number, viewport: viewPort, res: simpleVector, ballRadius: number) {
 		this.field.setUniform(this.gl, time, viewport, this.ballPos, res, {gradientRadius: {x: this.level.fieldGradientRadius.x * this.minScale, y: this.level.fieldGradientRadius.y * this.minScale}, ballRadius: ballRadius});
 		for (let i = 0; i < this.level.players; i++) {
 			this.field.renderNamed(this.gl, "fieldGradient", {transform: this.level.playerFieldMatrices[i]}, i);
@@ -230,12 +224,12 @@ export class FullShader {
 		this.renderMiddleLine();
 	}
 
-	private renderBackGround(time: number, viewport: viewPort, res: VectorObject) {
+	private renderBackGround(time: number, viewport: viewPort, res: simpleVector) {
 		this.grid.setUniform(this.gl, time, viewport, this.ballPos, res);
 		this.grid.renderNamed(this.gl, "grid");
 	}
 
-	private renderForeGround(time: number, viewport: viewPort, res: VectorObject) {
+	private renderForeGround(time: number, viewport: viewPort, res: simpleVector) {
 		this.renderPlayerFields(time, viewport, res, 15 * this.minScale);
 
 		this.renderPaddles(time, viewport, res);
@@ -264,6 +258,10 @@ export class FullShader {
 					minMatrix.translation(this.level.scorePositions[i].x - WIDTH / 2 - 10, (this.level.scorePositions[i].y) - HEIGHT / 2 + 20);
 				else
 					minMatrix.translation(this.level.scorePositions[i].x - WIDTH / 2 - 15, (this.level.scorePositions[i].y) - HEIGHT / 2 + 20);
+				if (this.scores[i] <= -10)
+					minMatrix.translation(-10, 0);
+				if (this.scores[i] <= -100)
+					minMatrix.translation(-10, 0);
 				minMatrix.scaling(2 / WIDTH, 2 / HEIGHT);
 				this.field.renderTriangles(this.gl, font[1], minMatrix.matrix, this.level.scoreColors[i]);
 				this.field.renderPoints(this.gl, fontEdges[1], minMatrix.matrix, [1,1,1,1]);
@@ -293,7 +291,7 @@ export class FullShader {
 		}
 	}
 
-	private debugRenderer(viewport: viewPort, res: VectorObject) {
+	private debugRenderer(viewport: viewPort, res: Vector) {
 
 		//Renders the collision for the field and goal lines
 		this.field.renderPoints(this.gl, this.debugVertices[DebugVertices.CONVEXHULL], this.level.normalMatrix, [0, 0,1,1]);
@@ -315,7 +313,6 @@ export class FullShader {
 		}
 	}
 
-	//TODO lerp/slerp the paddle (and ball?) for smoother motion
 	public render(time: number) {
 		let refresh = false;
 
@@ -343,14 +340,6 @@ export class FullShader {
 		this.renderForeGround(time, viewport, res)
 		// this.debugRenderer(viewport, res);
 		
-		if (active) {
-			console.log("active");
-			this.timer += time - this.lastTime;
-			if (this.timer > 500) {
-				this.timer = 0;
-				active = false;
-			}
-		}
 		const fps = 1/ (time -this.lastTime) * 1000;
 		// console.log("fps: ", fps);
 		this.lastTime = time;

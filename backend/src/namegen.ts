@@ -22,6 +22,7 @@ export const genAdverb = () => choice([
 	() => `surprisingly`,
 	() => `secretly`,
 	() => `increasingly`,
+	() => `famously`,
 ])();
 
 export const genCreature = (plural: boolean = false) => choice([

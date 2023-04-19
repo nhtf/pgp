@@ -7,7 +7,6 @@ uniform highp vec4 color;
 // #define borderThickness .06125
 // #define radius 0.125
 
-//TODO make the trailing effect
 void main()
 {
     highp float radius = size.x / 2.;

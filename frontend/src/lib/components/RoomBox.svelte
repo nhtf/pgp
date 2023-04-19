@@ -1,13 +1,13 @@
 <script lang="ts">
 	import type { Room } from "$lib/entities";
 	import { gameStore, roomStore, userStore } from "$lib/stores";
-	import { post, remove, patch, get, put } from "$lib/Web";
+	import { post, remove, patch, put } from "$lib/Web";
 	import { icon_path } from "$lib/constants";
 	import { unwrap } from "$lib/Alert";
-	import { Access } from "$lib/enums";
+	import { Access, Role } from "$lib/enums";
     import { byId } from "$lib/sorting";
 	import { page } from "$app/stores";
-	import Invite from "./Invite.svelte";
+	import InviteBox from "./InviteBox.svelte";
     import Swal from "sweetalert2";
 
 	export let room: Room;
@@ -53,7 +53,7 @@
 	async function join(room: Room) {
 		await unwrap(post(`${room.route}/members`, { password }));
 
-		if (room.type === "GameRoom" && !state?.teamsLocked) {
+		if (room.type === "GameRoom" && state && !state.teamsLocked) {
 			changeTeam(room);
 		}
 	
@@ -91,7 +91,7 @@
 
 </script>
 
-<div class="room" style={`filter: brightness(${room.joined ? "100" : "80"}%)`}>
+<div class="room" style={`opacity: ${room.joined ? "100" : "50"}%`}>
 	{#if room.type === "ChatRoom"}
 		<img class="avatar" src={owner?.avatar} alt="avatar"/>
 	{:else if room.icon}
@@ -103,16 +103,13 @@
 	{/if}
 	<div class="grow"/>
 	{#if room.joined}
+		{#if room.self && room.self.role >= Role.ADMIN}
+			<InviteBox {room}/>
+		{/if}
 		{#if owner?.id === user.id}
-			<Invite {room}/>
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 			{#if room.type === "GameRoom" && state && !state.teamsLocked}
 				<button class="button border-yellow" on:click={() => lock(room)}>Lock teams</button>
-			{/if}
-
-			<!-- TODO: remove -->
-			{#if room.type === "GameRoom" && state?.teamsLocked}
-				<button class="button border-yellow" on:click={() => get(`/debug/unlock`, { id: room.id })}>Unlock</button>
 			{/if}
 
 		{:else}

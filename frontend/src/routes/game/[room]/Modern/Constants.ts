@@ -1,5 +1,4 @@
 import type { Line } from "../lib2D/Math2D";
-import type { VectorObject } from "../lib2D/Math2D";
 import type { triangles } from "./Shader";
 
 export const WIDTH = 440;
@@ -76,9 +75,14 @@ type rot = {
     z: number;
 }
 
+export type simpleVector = {
+    x: number;
+    y: number;
+}
+
 export type level = {
     players: number;
-    scorePositions: VectorObject[];
+    scorePositions: simpleVector[];
     scoreColors: number[][];
     paddles: paddle[];
     collisions: Line[];
@@ -86,7 +90,7 @@ export type level = {
     playerAreas: Line[][];
     width: number;
     height:number;
-    paddleStartPos: VectorObject[];
+    paddleStartPos: simpleVector[];
     paddleBorderColors: number[][];
     paddleGradientColors: number[][];
     paddleBorder: triangles;
@@ -94,11 +98,11 @@ export type level = {
 
     fieldBorderColor: number[];
     fieldGradientColors: number[][];
-    fieldGradientPos: VectorObject[];
+    fieldGradientPos: simpleVector[];
     fieldGradientRot: rot[];
     fieldBorder: triangles;
     fieldGradient: triangles;
-    fieldGradientRadius: VectorObject;
+    fieldGradientRadius: simpleVector;
 
 
     goalBorder: triangles;
@@ -140,7 +144,7 @@ export const scoreColors = [
     [
         {cf: "rgba(213, 172, 28, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
         {cf: "rgba(65, 190, 220, 0.7)", cs: "rgba(65, 190, 220, 0.9)"},
-        {cf: "rgba(175, 25, 25, 0.7)", cs: "rgba(213, 172, 28, 0.9)"},
+        {cf: "rgba(175, 25, 25, 0.7)", cs: "rgba(175, 25, 25, 0.9)"},
         {cf: "rgba(28, 220, 25, 0.7)", cs: "rgba(28, 220, 25, 0.9)"}
     ]
 ];

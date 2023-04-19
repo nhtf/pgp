@@ -1,37 +1,83 @@
 <script lang="ts">
 	import type { UpdatePacket } from "$lib/types";
-    import { updateManager } from "$lib/updateSocket";
-    import { onDestroy, onMount } from "svelte";
-    import { userStore } from "$lib/stores";
+	import type { Stat } from "$lib/entities";
+	import {
+		Table,
+		TableBody,
+		TableBodyCell,
+		TableBodyRow,
+		TableHead,
+		TableHeadCell,
+	} from "flowbite-svelte";
+	import { updateManager } from "$lib/updateSocket";
+	import { onDestroy, onMount } from "svelte";
+	import { userStore } from "$lib/stores";
 	import { goto } from "$app/navigation";
-    import { Subject } from "$lib/enums";
-    import { byId } from "$lib/sorting";
+	import { Subject, gamemodes } from "$lib/enums";
+	import { icon_path } from "$lib/constants";
 	import { page } from "$app/stores";
 	import { put } from "$lib/Web";
-	import Achievements from "./Achievements.svelte";
 	import Avatar from "./Avatar.svelte";
-    import Match from "./Match.svelte";
 	import Swal from "sweetalert2";
 	import * as validator from "validator";
 	import "@sweetalert2/theme-dark/dark.scss";
+	import AchievementBox from "./AchievementBox.svelte";
 
-	const edit_icon = "/Assets/icons/pen.png";
+	const edit_icon = `${icon_path}/pen.png`;
 
+	class Level {
+		constructor(level: number) {
+			this.level = level;
+		}
+
+		level: number;
+
+		get floor(): number {
+			return Math.floor(this.level);
+		}
+
+		get percentage(): number {
+			return (this.level - this.floor) * 100;
+		}
+
+		get xp(): number {
+			return Math.floor(10 ** this.level);
+		}
+
+		get xp_needed(): number {
+			return 10 ** Math.ceil(this.level);
+		}
+	}
+
+	let stats: Stat[];
 	let index: number;
 
 	$: profile = $userStore.get($page.data.profile.id)!;
+	$: level = new Level($page.data.level);
+	$: stats = $page.data.stats;
+	$: modes = gamemodes.map((mode) => {
+		return {
+			...mode,
+			...(stats.find(({ gamemode, team_count }) => {
+				return gamemode === mode.gamemode && team_count === mode.team
+			}) ?? { wins: 0, losses: 0, draws: 0 })
+		}
+	});
+
 
 	onMount(() => {
-		index = updateManager.set(Subject.USER, async (update: UpdatePacket) => {
-			if (update.id === profile.id && update.value.username && update.value.username !== $page.params.username) {
-				await goto(`/profile/${encodeURIComponent(update.value.username)}`);
-			}
-		});
+		index = updateManager.set(Subject.USER, onUsernameChange);
 	});
 
 	onDestroy(() => {
 		updateManager.remove(index);
 	});
+
+	async function onUsernameChange(update: UpdatePacket) {
+		if (update.id === profile.id &&	update.value.username && update.value.username !== $page.params.username) {
+			await goto(`/profile/${encodeURIComponent(update.value.username)}`);
+		}
+	}
 
 	async function changeUsername() {
 		await Swal.fire({
@@ -51,9 +97,11 @@
 				return null;
 			},
 			preConfirm: async (username) => {
-				return await put("/user/me/username", { username }).catch(error => {
-					Swal.showValidationMessage(error.message);
-				});
+				return await put("/user/me/username", { username }).catch(
+					(error) => {
+						Swal.showValidationMessage(error.message);
+					}
+				);
 			},
 		});
 	}
@@ -65,45 +113,71 @@
 			<div class="block-hor">
 				<h1>{profile.username}</h1>
 				{#if $page.data.user?.id === profile.id}
-					<img src={edit_icon} alt="edit icon" id="edit-icon"
-					on:click={changeUsername}
-					on:keypress={changeUsername}
+					<img
+						src={edit_icon}
+						alt="edit icon"
+						id="edit-icon"
+						on:click={changeUsername}
+						on:keypress={changeUsername}
 					/>
 				{/if}
 			</div>
 			<div class="block-hor" id="level-hor">
 				<div class="block-cell" id="level-block">
-					<div class="block-hor" id="level-text">{Math.floor($page.data.level)}</div>
 					<div class="block-hor" id="level-text">Level</div>
+					<div class="block-hor" id="level-text">{level.floor}</div>
 				</div>
 				<div class="block-cell" id="level-block-bar">
 					<div class="block-hor" id="level-bar">
 						<div class="border">
-							<div class="bar" style="height:18px;width:20%" />
+							<div
+								class="bar"
+								style="height:18px;width:{level.percentage}%"
+							/>
 						</div>
 					</div>
-					<div class="block-hor" id="level-exp">123/12345 exp</div>
+					<div>{level.xp} / {level.xp_needed} xp</div>
 				</div>
 			</div>
 		</div>
-		<Avatar user={profile}/>
+		<Avatar user={profile} />
 	</div>
 	<div class="block-hor">
 		<div class="block-cell">
-			<Achievements/>
+			<div class="block-hor"><h3>Achievements</h3></div>
+			<div class="block-hor">
+				{#each profile.achievements as achievement}
+					<AchievementBox {achievement} />
+				{/each}
+			</div>
 		</div>
 	</div>
-	<div class="block-hor">
-		{#each $page.data.stats as stat}
-			<div>{stat.id}</div>
-		{/each}
+	<div class="flex gap-1">
+		<Table>
+			<TableHead>
+				<TableHeadCell>gamemode</TableHeadCell>
+				<!-- <TableHeadCell>teams</TableHeadCell> -->
+				<TableHeadCell>wins</TableHeadCell>
+				<TableHeadCell>losses</TableHeadCell>
+				<TableHeadCell>draws</TableHeadCell>
+			</TableHead>
+			<TableBody>
+				{#each modes as mode}
+					<TableBodyRow>
+						<TableBodyCell>{mode.title}</TableBodyCell>
+						<!-- <TableBodyCell>{stat.team_count}</TableBodyCell> -->
+						<TableBodyCell>{mode.wins}</TableBodyCell>
+						<TableBodyCell>{mode.losses}</TableBodyCell>
+						<TableBodyCell>{mode.draws}</TableBodyCell>
+					</TableBodyRow>
+				{/each}
+			</TableBody>
+		</Table>
 	</div>
 </div>
 
 <style>
-
-
-#edit-icon {
+	#edit-icon {
 		max-width: 50px;
 		max-height: 50px;
 		position: relative;
@@ -150,13 +224,6 @@
 		height: 60px;
 	}
 
-	#level-exp {
-		font-size: 12px;
-		padding-top: 0;
-		padding-bottom: 0;
-		justify-content: flex-end;
-	}
-
 	#level-text {
 		padding: 0;
 	}
@@ -201,5 +268,4 @@
 		flex-grow: 1;
 		text-align: center;
 	}
-
 </style>

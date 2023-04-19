@@ -1,5 +1,5 @@
 import { Ammo } from "./Ammo";
-import { Vector, Quaternion, serialize, deserialize } from "../Math";
+import { Vector, Quaternion } from "../Math";
 import type { VectorObject, QuaternionObject } from "../Math";
 import type { World } from "./World";
 import type * as THREE from "three";

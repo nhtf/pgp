@@ -4,13 +4,11 @@ import { Injectable, Inject } from "@nestjs/common";
 import { Repository } from "typeorm";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
-import { EMBED_MAXLENGTH, EMBED_ALGORITHM, BOUNCER_KEY, BOUNCER_MAX_REDIRECTS, BOUNCER_ADDRESS } from "src/vars";
+import { EMBED_MAXLENGTH, EMBED_ALGORITHM, BOUNCER_KEY, BOUNCER_MAX_REDIRECTS } from "src/vars";
 import { createHmac } from "node:crypto";
 import { Embed } from "src/entities/Embed";
-import { HttpService } from "@nestjs/axios";
 import axios from "axios";
 import type { User } from "src/entities/User";
-import * as argon2 from "argon2";
 
 export interface CreateChatRoomOptions extends CreateRoomOptions {
 	name?: string;

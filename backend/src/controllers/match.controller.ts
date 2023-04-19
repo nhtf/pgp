@@ -1,21 +1,16 @@
-import { Controller, Inject, Put, Delete, UseGuards, ParseEnumPipe, Body, HttpCode, HttpStatus } from "@nestjs/common";
-import { IRoomService } from "src/services/room.service";
-import { GameRoom } from "src/entities/GameRoom";
-import { GameRoomMember } from "src/entities/GameRoomMember";
+import { ForbiddenException, Controller, Inject, Put, Delete, UseGuards, Body, HttpCode, HttpStatus, ClassSerializerInterceptor, UseInterceptors } from "@nestjs/common";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";
 import { HumanGuard } from "src/guards/bot.guard";
 import { Me } from "src/util";
-import { UpdateGateway, RedirectPacket, create_packet } from "src/gateways/update.gateway";
+import { UpdateGateway } from "src/gateways/update.gateway";
 import { Gamemode, Subject, Action } from "src/enums";
-import { Repository, In, DataSource } from "typeorm";
-import { FRONTEND_ADDRESS } from "src/vars";
-import { IsArray, ArrayNotEmpty, ArrayContains, ArrayUnique, IsEnum, ValidationOptions, ValidationArguments, registerDecorator, IsNumber, ValidateNested } from "class-validator";
+import { Repository, DataSource } from "typeorm";
+import { IsArray, ArrayNotEmpty, ArrayUnique, IsEnum, ValidationOptions, ValidationArguments, registerDecorator, IsNumber, ValidateNested } from "class-validator";
 import type { User } from "src/entities/User";
 import { PLAYER_NUMBERS, GameRoomService } from "src/services/gameroom.service";
 import { Type } from "class-transformer";
 import { UserService } from "src/services/user.service";
-import type { Team } from "src/entities/Team"
 import { GameQueue } from "src/entities/GameQueue";
 
 export function IsGamemodePlayerCount(gamemode_property: string, validationOptions?: ValidationOptions) {
@@ -81,6 +76,7 @@ function zip<T, U>(a: Array<T>, b: Array<U>): Array<[T, U]> {
 
 @Controller("match")
 @UseGuards(HttpAuthGuard, SetupGuard, HumanGuard)
+@UseInterceptors(ClassSerializerInterceptor)
 export class MatchController {
 
 	constructor(
@@ -101,14 +97,17 @@ export class MatchController {
 			.from("queue")
 			.where(`"userId" IN (:...ids)`, { ids: ids });
 		await query.execute();
+		for (const user of users)
+			await this.user_service.dequeue(user);
 	}
 
 	async make_new_match(gamemode: Gamemode, player_count: number, users: User[]) {
 		await this.dequeue_users(...users);
 		const room = await this.game_service.create({
-			is_private: true,
+			is_private: false,
 			gamemode,
-			players: player_count
+			players: player_count,
+			ranked: true,
 		});
 
 		await this.game_service.lock_teams(room);
@@ -152,6 +151,9 @@ export class MatchController {
 		@Me() user: User,
 		@Body() dto: GamemodesDTO,
 	) {
+		if (await this.game_service.is_in_ranked(user)) {
+			throw new ForbiddenException("Already in a ranked game");
+		}
 		const to_save = [];
 		for (const gamemode of dto.gamemodes) {
 			for (const player_count of gamemode.player_counts) {
@@ -168,6 +170,9 @@ export class MatchController {
 				}
 			}
 		}
+		if (!user.queueing) {
+			await this.user_service.enqueue(user);
+		}
 		await this.queue_repo.save(to_save);
 	}
 
@@ -177,5 +182,6 @@ export class MatchController {
 		@Me() user: User,
 	) {
 		await this.dequeue_users(user);
+		await this.user_service.dequeue(user);
 	}
 }

@@ -1,7 +1,7 @@
 <script lang="ts">
-	import type { NewAchievement, Objective } from "$lib/types";
+	import type { Achievement, Objective } from "$lib/types";
 
-	export let achievement: NewAchievement;
+	export let achievement: Achievement;
 	const radius = 30;
 	const cirmum = radius * 2 * Math.PI;
 	let current_obj: Objective = achievement.objectives[0];
