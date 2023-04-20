@@ -112,10 +112,16 @@ export const achievements: AchievementDef[] = [
 				description: "You lost 10 classic games",
 			},
 			{
+				name: "Mission failed successfully",
+				threshold: 100,
+				color: "#FFFFFF",
+				description: "You lost 100 classic games",
+			},
+			{
 				name: "Professional loser",
 				threshold: 3000,
 				color: "#FFFFFF",
-				description: "You lost 10 classic games",
+				description: "You lost 3000 classic games",
 			},
 		],
 	},
@@ -140,7 +146,7 @@ export const achievements: AchievementDef[] = [
 				name: "I know you",
 				threshold: 2000,
 				color: "#FFFFFF",
-				description: "Made 20 friends",
+				description: "Made 2000 friends",
 			},
 		],
 	}

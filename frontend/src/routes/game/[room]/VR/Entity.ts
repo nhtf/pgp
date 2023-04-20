@@ -30,6 +30,7 @@ export abstract class Entity {
 	public world: World;
 	public removed: boolean;
 	public interpolation: number;
+	private ammoTransform: Ammo.btTransform;
 
 	public constructor(world: World, uuid: string, renderObject: THREE.Object3D, physicsObject: Ammo.btRigidBody) {
 		this.world = world;
@@ -41,23 +42,20 @@ export abstract class Entity {
 		this.lastUpdate = 0;
 		this.removed = false;
 		this.interpolation = 1;
+		this.ammoTransform = new Ammo.btTransform();
 	}
 
 	public get position(): Vector {
 		const motionState = this.physicsObject.getMotionState();
-		const worldTransform = new Ammo.btTransform();
-		motionState.getWorldTransform(worldTransform);
-		const origin = Vector.fromAmmo(worldTransform.getOrigin());
-		Ammo.destroy(worldTransform);
+		motionState.getWorldTransform(this.ammoTransform);
+		const origin = Vector.fromAmmo(this.ammoTransform.getOrigin());
 		return origin;
 	}
 
 	public get rotation(): Quaternion {
 		const motionState = this.physicsObject.getMotionState();
-		const worldTransform = new Ammo.btTransform();
-		motionState.getWorldTransform(worldTransform);
-		const rotation = Quaternion.fromAmmo(worldTransform.getRotation());
-		Ammo.destroy(worldTransform);
+		motionState.getWorldTransform(this.ammoTransform);
+		const rotation = Quaternion.fromAmmo(this.ammoTransform.getRotation());
 		return rotation;
 	}
 
@@ -71,26 +69,27 @@ export abstract class Entity {
 
 	public set position(vector: Vector) {
 		const motionState = this.physicsObject.getMotionState();
-		const worldTransform = new Ammo.btTransform();
-		motionState.getWorldTransform(worldTransform);
+		motionState.getWorldTransform(this.ammoTransform);
 		const origin = new Ammo.btVector3(vector.x, vector.y, vector.z);
-		worldTransform.setOrigin(origin);
-		motionState.setWorldTransform(worldTransform);
+		this.ammoTransform.setOrigin(origin);
+		motionState.setWorldTransform(this.ammoTransform);
 		this.physicsObject.setMotionState(motionState);
 		Ammo.destroy(origin);
-		Ammo.destroy(worldTransform);
 	}
 
 	public set rotation(quaternion: Quaternion) {
+		const x = Math.round(quaternion.x * 65536) / 65536;
+		const y = Math.round(quaternion.y * 65536) / 65536;
+		const z = Math.round(quaternion.z * 65536) / 65536;
+		const w = Math.round(quaternion.w * 65536) / 65536;
+
 		const motionState = this.physicsObject.getMotionState();
-		const worldTransform = new Ammo.btTransform();
-		motionState.getWorldTransform(worldTransform);
-		const rotation = new Ammo.btQuaternion(quaternion.x, quaternion.y, quaternion.z, quaternion.w);
-		worldTransform.setRotation(rotation);
-		motionState.setWorldTransform(worldTransform);
+		motionState.getWorldTransform(this.ammoTransform);
+		const rotation = new Ammo.btQuaternion(x, y, z, w);
+		this.ammoTransform.setRotation(rotation);
+		motionState.setWorldTransform(this.ammoTransform);
 		this.physicsObject.setMotionState(motionState);
 		Ammo.destroy(rotation);
-		Ammo.destroy(worldTransform);
 	}
 
 	public set linearVelocity(vector: Vector) {

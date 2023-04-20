@@ -1,7 +1,7 @@
 import type { GameRoom } from "$lib/entities" 
 import { BACKEND_WS } from "$lib/constants";
 import { Socket, io } from "socket.io-client";
-import { Counter, randomHex } from "./Util";
+import { Counter, randomHex, hashCode } from "./Util";
 import { Father, Bible } from "./SignFromGod";
 import Swal from "sweetalert2";
 
@@ -15,7 +15,7 @@ export const HISTORY_LIFETIME = 300;
 export const DESYNC_CHECK_INTERVAL = 60;
 export const DESYNC_CHECK_DELTA = 120;
 export const REPLAY_CHECK_INTERVAL = 0;
-export const REPLAY_CHECK_DELTA = 1;
+export const REPLAY_CHECK_DELTA = 6;
 export const SAVE_ALL_SNAPSHOTS = false;
 export const REFRESH_ON_DESYNC = true;
 
@@ -311,7 +311,7 @@ export class Net {
 			let latest = this.getLatest(this.minTime);
 
 			if (latest === null) {
-				console.error("possible desync in applyMerge");
+				// console.error("possible desync in applyMerge");
 			}
 
 			if (latest === null && this.snapshots.length > 0) {
@@ -367,7 +367,7 @@ export class Net {
 				case "desync-check":
 					let latest = this.getLatest(message.snapshot.time - 1);
 	
-					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL) {
+					if (latest !== null && this.time > DESYNC_CHECK_DELTA + SYNCHRONIZE_INTERVAL * 2) {
 						// console.log(`running desync check of ${message.snapshot.time} (real time is ${this.time}, incoming hash is ${hashCode(JSON.stringify(message.snapshot))})`);
 
 						doingDesyncCheck = true;

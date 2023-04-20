@@ -28,8 +28,9 @@ const FRAGMENT_SOURCE = `
 #define MASK_SIZE 1.0
 #define CURVE_X 4.0
 #define CURVE_Y 4.0
-#define LINES_MAX 256
+#define LINES_MAX 64
 #define PI 3.141592653589
+#define BG_ALPHA 1.0
 
 uniform sampler2D tex;
 uniform highp vec2 size;
@@ -41,7 +42,7 @@ varying highp vec2 coord;
 
 highp vec4 pix(highp vec2 c) {
 	if (c.x < 0.0 || c.y < 0.0 || c.x > 1.0 || c.y > 1.0) {
-		return vec4(0.0, 0.0, 0.0, 0.0);
+		return vec4(0.0, 0.0, 0.0, BG_ALPHA);
 	}
 
 	highp vec4 col = texture2D(tex, c);
@@ -271,7 +272,7 @@ export class Shader {
 	}
 
 	private bufferPosData(): number[] {
-		const [scale, xOffset, yOffset] = this.transform();
+		const [_scale, xOffset, yOffset] = this.transform();
 		const x = xOffset / this.outerCanvas.width * 2 - 1;
 		const y = yOffset / this.outerCanvas.height * 2 - 1;
 		return [-x, -y, x, -y, -x, y, x, y];

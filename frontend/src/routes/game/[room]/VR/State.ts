@@ -15,6 +15,7 @@ export interface Snapshot {
 	teams: TeamObject[],
 	state: string;
 	current: number;
+	finished: boolean;
 }
 
 export class Player {
@@ -90,6 +91,7 @@ export class State {
 			teams,
 			state: this.state,
 			current: this.teams.indexOf(this.current),
+			finished: this.finished(),
 		};
 	}
 
@@ -139,6 +141,8 @@ export class State {
 
 	public onTableHit(teamIndex: number | null): boolean {
 		const team = teamIndex === null ? null : this.teams[teamIndex];
+		
+		// console.log(this.current);
 
 		if (this.state == "serve-table" && team === null) {
 			this.state = "serve-net";
@@ -170,5 +174,9 @@ export class State {
 		}
 
 		return false;
+	}
+
+	public finished(): boolean {
+		return Math.max(...this.teams.map(t => t.score)) >= 10;
 	}
 }

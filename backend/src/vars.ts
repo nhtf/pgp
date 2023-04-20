@@ -6,13 +6,14 @@ export const FRONTEND_DEV_HOST: string = process.env.FRONTEND_DEV_HOST;
 export const BACKEND_DEV_HOST: string = process.env.BACKEND_DEV_HOST;
 
 export const HOST: string = process.env.HOST;
+export const DB_HOST: string= process.env.POSTGRES_HOST;
 export const DB_PORT: number = Number(process.env.POSTGRES_PORT);
 export const DB_USER: string = process.env.POSTGRES_USERNAME;
 export const DB_PASS: string = process.env.POSTGRES_PASSWORD;
 export const DB_DATABASE: string = process.env.POSTGRES_DB;
 
-export const BACKEND_PORT: number = Number(PROD ? process.env.BACKEND_PROD_PORT : process.env.BACKEND_DEV_PORT);
-export const FRONTEND_PORT: number = Number(PROD ? process.env.FRONTEND_PROD_PORT : process.env.FRONTEND_DEV_PORT);
+export const BACKEND_PORT: number = Number(process.env.BACKEND_PORT);
+export const FRONTEND_PORT: number = Number(process.env.FRONTEND_PORT);
 
 export const SCHEME: string = SSL ? "https" : "http";
 

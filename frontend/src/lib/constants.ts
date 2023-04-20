@@ -2,22 +2,14 @@ const env = import.meta.env;
 
 console.log(env);
 
-const FRONTEND_DEV_ADDRESS = "localhost:5173";
-const BACKEND_DEV_ADDRESS = "localhost:3000";
-const BOUNCER_DEV_ADDRESS = "localhost:8080";
+const ssl = env["VITE_SSL"] == "true";
 
-const FRONTEND_PROD_ADDRESS = "pgp.hyxo.nl";
-const BACKEND_PROD_ADDRESS = "api.pgp.hyxo.nl";
-const BOUNCER_PROD_ADDRESS = "bouncer.pgp.hyxo.nl";
+const PROTOCOL = ssl ? "https" : "http";
+const WS = ssl ? "wss" : "ws";
 
-const prod = env["MODE"] === "production";
-
-const PROTOCOL = prod ? "https" : "http";
-const WS = prod ? "wss" : "ws";
-
-export const FRONTEND_ADDRESS = "localhost:5173";
-export const BACKEND_ADDRESS = "localhost:3000";
-export const BOUNCER_ADDRESS = "localhost:8080";
+export const FRONTEND_ADDRESS = env["VITE_FRONTEND_ADDRESS"];
+export const BACKEND_ADDRESS = env["VITE_BACKEND_ADDRESS"];
+export const BOUNCER_ADDRESS = env["VITE_BOUNCER_ADDRESS"];
 export const FRONTEND = `${PROTOCOL}://${FRONTEND_ADDRESS}`;
 export const BACKEND = `${PROTOCOL}://${BACKEND_ADDRESS}`;
 export const BOUNCER = `${PROTOCOL}://${BOUNCER_ADDRESS}`;

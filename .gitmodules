@@ -1,0 +1,3 @@
+[submodule "rambler"]
+	path = rambler
+	url = https://github.com/nhtf/rambler.git

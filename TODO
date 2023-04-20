@@ -1,12 +1,11 @@
-netcode initialization is horribly broken
+netcode initialization is horribly broken -> ODOT
 
-fix when out of focus that it should stop updating/ stop game
+fix when out of focus that it should stop updating/ stop game -> ODOT
 
 npm uninstall dotenv in de backend voor inleveren
 
-rambler has no api key
-
-desync in Modern causes yellow screen -> not going to fix
-
+desync in Modern causes yellow screen -> ODOT
 
 put something on the homepage
+
+S N

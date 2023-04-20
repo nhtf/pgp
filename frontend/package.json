@@ -13,6 +13,7 @@
   "devDependencies": {
     "@popperjs/core": "^2.11.6",
     "@sveltejs/adapter-auto": "2.0.0",
+    "@sveltejs/adapter-static": "^2.0.2",
     "@sveltejs/kit": "^1.5.6",
     "@types/three": "^0.150.0",
     "@types/validator": "^13.7.10",
@@ -24,6 +25,7 @@
     "eslint-plugin-svelte3": "^4.0.0",
     "flowbite": "^1.6.3",
     "flowbite-svelte": "^0.34.1",
+    "i": "^0.3.7",
     "postcss": "^8.4.14",
     "postcss-load-config": "^4.0.1",
     "prettier": "2.8.7",

@@ -33,7 +33,6 @@
 
 </script>
 
-<!-- TODO: same as leaderboard -->
 <div class="page gap-0">
 	<Tabs style="underline" divider defaultClass="tab" contentClass="tab-content">
 		{#each tabs as [key, title, opp], index}

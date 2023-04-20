@@ -97,6 +97,7 @@
 			<DropdownDivider/>
 			{#each actions as { condition, fun }}
 				{#if !condition || condition({ user, member, friendIds, blockedIds, my_role, banned }) }
+				<!-- //TODO fix getting the name from the function!!!!! -->
 					<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
 				{/if}
 			{/each}

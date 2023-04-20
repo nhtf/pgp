@@ -1,33 +1,61 @@
 version: '3.9'
 services:
   database:
-    image: 'postgres:latest'
+    image: 'postgres:15.2'
     restart: always
-    env_file: .env
+    env_file: .postgres.env
     volumes:
       - ./database:/docker-entrypoint-initdb.d
-    ports:
-      - "${POSTGRES_PORT}:${POSTGRES_PORT}"
+  backend:
+    image: "node:19.9"
+    depends_on:
+      - database
+    restart: always
+    env_file:
+      - hosts.env
+      - .postgres.env
+      - .backend.env
+      - .bouncer.env
+    user: "node"
+    working_dir: /home/node/app
+    environment:
+      - NODE_ENV=production
+    volumes:
+      - ./backend:/home/node/app
     expose:
-      - "${POSTGRES_PORT}"
-        #  backend:
-        #    image: backend/
-        #    env_file: .env
-        #    ports:
-        #      - "${BACKEND_PORT}:${BACKEND_PORT}"
-        #    expose:
-        #      - "${BACKEND_PORT}"
+      - "3000"
+    ports:
+      - "3000:3000"
+    command: "npm run start:prod"
+  frontend:
+    image: "frontend"
+    build:
+      context: frontend
+      args:
+        SSL: $SSL
+        FRONTEND_ADDRESS: $FRONTEND_ADDRESS
+        BACKEND_ADDRESS: $BACKEND_ADDRESS
+        BOUNCER_ADDRESS: $BOUNCER_ADDRESS
+    env_file:
+      - hosts.env
+    depends_on:
+      - backend
+    restart: always
+    ports:
+      - "5173:80"
   proxy:
     image: 'hyxogen/bouncer:latest'
     restart: always
-    env_file: .env
-    ports:
-      - "${BOUNCER_PORT}:${BOUNCER_PORT}"
+    env_file: .bouncer.env
     expose:
-      - "${BOUNCER_PORT}"
-  rambler:
-    image: 'rambler'
-    build: 'rambler'
-    env_file: .env
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
+      - "8080"
+    ports:
+      - "8080:8080"
+        #  rambler:
+        #    image: 'rambler'
+        #    build: 'rambler'
+        #    env_file: .rambler.env
+        #    restart: always
+        #    depends_on:
+        #      - backend
+

@@ -227,7 +227,7 @@ export class World extends Net {
 	public lateTick() {
 		for (let entity of this.entities) {
 			this.world.removeRigidBody(entity.physicsObject);
-			entity.physicsObject.forceActivationState(1);
+			entity.physicsObject.setActivationState(1);
 			entity.physicsObject.activate(true);
 			entity.motionStateFromObject(entity.motionStateIntoObject());
 		}

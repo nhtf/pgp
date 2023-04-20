@@ -101,11 +101,11 @@ async function createScoreboard(world: Pong) {
 		const text = new DynamicText(world, "0 - 0");
 		await text.init(mat);
 		const matrix = new THREE.Matrix4();
-		matrix.makeRotationY(-Math.PI / 2);
+		matrix.makeRotationY(Math.PI / 2);
 		text.mesh!.applyMatrix4(matrix);
 		matrix.makeScale(1, 10, 10,);
 		text.mesh!.applyMatrix4(matrix);
-		matrix.makeTranslation(-17.9, 3.5, -0.7);
+		matrix.makeTranslation(-17.9, 3.5, 0.7);
 		text.mesh!.applyMatrix4(matrix);
 		text.mesh!.updateMatrixWorld();
 		text.mesh!.name = "score";
@@ -116,11 +116,11 @@ async function createScoreboard(world: Pong) {
 		const text = new DynamicText(world, "0 - 0");
 		await text.init(mat);
 		const matrix = new THREE.Matrix4();
-		matrix.makeRotationY(Math.PI / 2);
+		matrix.makeRotationY(-Math.PI / 2);
 		text.mesh!.applyMatrix4(matrix);
 		matrix.makeScale(1, 10, 10,);
 		text.mesh!.applyMatrix4(matrix);
-		matrix.makeTranslation(17.9, 3.5, 0.7);
+		matrix.makeTranslation(17.9, 3.5, -0.7);
 		text.mesh!.applyMatrix4(matrix);
 		text.mesh!.updateMatrixWorld();
 		text.mesh!.name = "score";
@@ -148,7 +148,7 @@ export class Ball extends Entity {
 	public static readonly UUID = "ball";
 	public static readonly RADIUS = 0.02;
 	public static readonly MASS = 0.0027;
-	public static readonly RESTITUTION = 0.8;
+	public static readonly RESTITUTION = 0.85;
 
 	public name = "ball";
 	public dynamic = true;
@@ -193,10 +193,10 @@ export class Ball extends Entity {
 				world.tableSounds![index].play();
 			});
 
-			if (p1.y > 0.785) {
+			if (p1.y > 0.918) {
 				this.removed ||= !world.state!.onTableHit(null);
 			} else {
-				this.removed ||= !world.state!.onTableHit(p1.x > 0 ? 1 : 0);
+				this.removed ||= !world.state!.onTableHit(p1.x < 0 ? 1 : 0);
 			}
 		} else if (other?.name == "paddle") {
 			world.pray("paddle-sound", 30, () => {
@@ -321,7 +321,7 @@ export class Pong extends World {
 
 				// console.log(this.state!.current?.id, team?.id);
 
-				if (this.state!.current == team) {
+				if (this.state!.current == team && !this.state!.finished()) {
 					this.create({
 						name: "ball",
 						uuid: Ball.UUID,
@@ -373,15 +373,30 @@ export class Pong extends World {
 
 	public earlyTick() {
 		if (this.time >= this.maxTime && this.member!.player != null) {
-			this.sendCreateOrUpdate({
-				name: "paddle",
-				userId: this.member!.userId,
-				teamID: this.member!.player?.teamId,
-			}, {
-				uuid: this.paddleUUID,
-				tp: Vector.fromThree(this.mainController.getWorldPosition(this.mainController.position)).intoObject(),
-				tr: Quaternion.fromThree(this.mainController.getWorldQuaternion(this.mainController.quaternion)).intoObject(),
-			});
+			const position = this.mainController.getWorldPosition(this.mainController.position);
+			const quaternion = this.mainController.getWorldQuaternion(this.mainController.quaternion);
+			
+			let hasNaNs = false;
+
+			if (position.x != position.x || position.y != position.y || position.z != position.z) {
+				hasNaNs = true;
+			}
+
+			if (quaternion.x != quaternion.x || quaternion.y != quaternion.y || quaternion.z != quaternion.z || quaternion.w != quaternion.w) {
+				hasNaNs = true;
+			}
+
+			if (!hasNaNs) {
+				this.sendCreateOrUpdate({
+					name: "paddle",
+					userId: this.member!.userId,
+					teamID: this.member!.player?.teamId,
+				}, {
+					uuid: this.paddleUUID,
+					tp: Vector.fromThree(position).intoObject(),
+					tr: Quaternion.fromThree(quaternion).intoObject(),
+				});
+			}
 		}
 
 		super.earlyTick();

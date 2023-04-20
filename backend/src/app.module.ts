@@ -11,7 +11,7 @@ import { AuthController } from "./auth/auth.controller";
 import { TotpController } from "./auth/totp.controller";
 import { DebugController } from "./controllers/debug.controller";
 import { DataSource } from "typeorm";
-import { HOST, DB_PORT, DB_USER, DB_PASS } from "./vars";
+import { HOST, DB_PORT, DB_USER, DB_PASS, DB_HOST } from "./vars";
 import { HttpAuthGuard } from "./auth/auth.guard";
 import { UserMiddleware } from "src/middleware/user.middleware";
 import { RoomMiddleware } from "./middleware/room.middleware";
@@ -48,6 +48,7 @@ export const db_pool = new Pool({
 	database: DB_DATABASE,
 	user: DB_USER,
 	password: DB_PASS,
+	host: DB_HOST,
 	port: DB_PORT,
 	ssl: false,
 	max: 20,
@@ -100,7 +101,7 @@ export const sessionMiddleware = session({
 
 export const dataSource = new DataSource({
 	type: "postgres",
-	host: HOST,
+	host: DB_HOST,
 	port: DB_PORT,
 	username: DB_USER,
 	password: DB_PASS,
@@ -111,7 +112,7 @@ export const dataSource = new DataSource({
 		return Object.values(entity)[0] as Function;
 	}),
 	subscribers: [EntitySubscriber],
-	synchronize: true, //TODO disable and test before turning in
+	synchronize: false, //TODO disable and test before turning in
 	// TODO enable cache? (cache: true)
 });
 
@@ -196,7 +197,7 @@ const services = [
 		AppController,
 		AuthController,
 		BotController,
-		DebugController,
+		// DebugController,
 		TotpController,
 		MediaController,
 		NewGameController,

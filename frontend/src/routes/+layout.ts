@@ -4,6 +4,7 @@ import { redirect } from '@sveltejs/kit';
 import { get } from "$lib/Web";
 
 export const ssr = false;
+//export const prerender = true;
 
 export const load: LayoutLoad = (async ({ fetch, url }) => {
 	window.fetch = fetch;

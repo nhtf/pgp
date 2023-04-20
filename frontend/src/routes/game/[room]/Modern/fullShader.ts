@@ -34,7 +34,6 @@ export class FullShader {
 	private gl: WebGL2RenderingContext;
 	private canvas: HTMLCanvasElement;
 	private paddleShader: Shader;
-	private lastTime: number;
 	private ballPos: Vector;
 	private paddlePos: Vector[] = [];
 	private paddlePosCanvas: Vector[] = [];
@@ -63,7 +62,6 @@ export class FullShader {
 		this.minScale = this.scale();
 		this.ballOwner = [0.745, 0.635, 0.1098, 1];
 		
-		this.lastTime = 0;
 		this.ballPos = new Vector(0, 0);
 
 		for (let i = 0; i < level.players; i++) {
@@ -339,9 +337,5 @@ export class FullShader {
 		this.renderBackGround(time, viewport, res);
 		this.renderForeGround(time, viewport, res)
 		// this.debugRenderer(viewport, res);
-		
-		// const fps = 1/ (time -this.lastTime) * 1000;
-		// console.log("fps: ", fps);
-		this.lastTime = time;
 	}
 }
