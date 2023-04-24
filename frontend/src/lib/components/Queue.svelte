@@ -26,7 +26,6 @@
 	}).filter(({ player_counts }) => player_counts.length);
 
 	async function queue() {
-		console.log(gamemodes);
 		await unwrap(put(`/match/me`, { gamemodes }));
 	}
 

@@ -6,7 +6,7 @@ import { Father, Bible } from "./SignFromGod";
 import Swal from "sweetalert2";
 
 export const PING_INTERVAL = 20;
-export const SNAPSHOT_INTERVAL = 6;
+export const SNAPSHOT_INTERVAL = 3;
 export const UPDATE_INTERVAL = 3;
 export const MERGE_INTERVAL = 3;
 export const SYNCHRONIZE_INTERVAL = 120;
@@ -333,9 +333,9 @@ export class Net {
 	public async start(options: Options) {
 		this.snapshots.push([this.save(), this.father.publishBible()]);
 
-		this.socket = io(options.address ?? `${BACKEND_WS}/game`, { withCredentials: true });
+		this.socket = io(options.address ?? `${BACKEND_WS}/game`, { withCredentials: true }) as Socket;
 
-		this.socket!.on("connect", () => {
+		this.socket.on("connect", () => {
 			this.socket!.emit("join", { id: options.room.id });
 		});
 

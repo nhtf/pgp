@@ -40,6 +40,8 @@
 		<RoomHeader {room} />
 		{#if team}
 			<div class="room justify-center" style="color: {getTeamColor(team)}">{team.name}</div>
+		{:else}
+			<div class="room justify-center">Spectator</div>
 		{/if}
 	{/if}
 

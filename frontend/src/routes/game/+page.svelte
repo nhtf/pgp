@@ -24,6 +24,6 @@
 
 <div class="page">
 	<Queue/>
-	<RoomInput type={"GameRoom"} click={create}/>
+	<RoomInput type={"GameRoom"} click={create} buttonText={"create"}/>
 	<RoomOverview type={"GameRoom"} />
 </div>

@@ -2,10 +2,13 @@ netcode initialization is horribly broken -> ODOT
 
 fix when out of focus that it should stop updating/ stop game -> ODOT
 
-npm uninstall dotenv in de backend voor inleveren
-
 desync in Modern causes yellow screen -> ODOT
 
-put something on the homepage
+logout should actually properly log you out?
 
-S N
+rambler is not a bot
+
+fix the changethis in the envs?
+
+VR controller wrong angle
+VR lag spikes

@@ -12,6 +12,7 @@ import { Vector, Quaternion } from "../Math";
 import { randomHex } from "../Util";
 import type { Event as NetEvent } from "../Net";
 import * as THREE from "three";
+import { byId } from "$lib/sorting"
 
 import type { GameRoomMember } from "$lib/entities";
 
@@ -161,6 +162,7 @@ export class Ball extends Entity {
 		const mesh = new THREE.Mesh(geometry, material);
 		const shape = new Ammo.btSphereShape(Ball.RADIUS);
 		const physicsObject = createPhysicsObject(shape, Ball.MASS);
+		
 
 		physicsObject.setRestitution(Ball.RESTITUTION);
 		super(world, uuid, mesh, physicsObject);
@@ -196,7 +198,7 @@ export class Ball extends Entity {
 			if (p1.y > 0.918) {
 				this.removed ||= !world.state!.onTableHit(null);
 			} else {
-				this.removed ||= !world.state!.onTableHit(p1.x < 0 ? 1 : 0);
+				this.removed ||= !world.state!.onTableHit(p1.x > 0 ? 1 : 0);
 			}
 		} else if (other?.name == "paddle") {
 			world.pray("paddle-sound", 30, () => {
@@ -284,6 +286,7 @@ export class Pong extends World {
 	public tableSounds?: THREE.PositionalAudio[];
 	public paddleSounds?: THREE.PositionalAudio[];
 	private mainControllerIndex: number = 0;
+	private rotatePaddle: boolean = false;
 
 	public constructor() {
 		super();
@@ -375,6 +378,12 @@ export class Pong extends World {
 		if (this.time >= this.maxTime && this.member!.player != null) {
 			const position = this.mainController.getWorldPosition(this.mainController.position);
 			const quaternion = this.mainController.getWorldQuaternion(this.mainController.quaternion);
+
+			if (this.rotatePaddle) {
+				const quaternionMut = new THREE.Quaternion().identity();
+				quaternionMut.setFromEuler(new THREE.Euler(Math.PI / 6, 0, 0));
+				quaternion.multiply(quaternionMut);
+			}
 			
 			let hasNaNs = false;
 
@@ -382,7 +391,15 @@ export class Pong extends World {
 				hasNaNs = true;
 			}
 
+			if (typeof(position.x) != "number" || typeof(position.y) != "number" || typeof(position.z) != "number") {
+				hasNaNs = true;
+			}
+
 			if (quaternion.x != quaternion.x || quaternion.y != quaternion.y || quaternion.z != quaternion.z || quaternion.w != quaternion.w) {
+				hasNaNs = true;
+			}
+
+			if (typeof(quaternion.x) != "number" || typeof(quaternion.y) != "number" || typeof(quaternion.z) != "number" || typeof(quaternion.w) != "number") {
 				hasNaNs = true;
 			}
 
@@ -406,6 +423,7 @@ export class Pong extends World {
 		const forward = new THREE.Vector3();
 		const cross = new THREE.Vector3();
 		this.cameraGroup.getWorldDirection(forward);
+		this.camera.getWorldDirection(forward); // Maybe this makes it so it works in vr?
 		cross.crossVectors(forward, new THREE.Vector3(0, 1, 0));
 
 		let handedness = "unknown";
@@ -429,9 +447,9 @@ export class Pong extends World {
 					if (Math.abs(data.axes[1]) > 0.1)
 						this.cameraGroup.position.add(forward.multiplyScalar(data.axes[1] / TICKS_PER_SECOND));
 					if (Math.abs(data.axes[2]) > 0.1)
-						this.cameraGroup.position.add(cross.multiplyScalar(-data.axes[2] / TICKS_PER_SECOND));
+						this.cameraGroup.position.add(cross.multiplyScalar(data.axes[2] / TICKS_PER_SECOND));
 					if (Math.abs(data.axes[3]) > 0.1)
-						this.cameraGroup.position.add(forward.multiplyScalar(data.axes[3] / TICKS_PER_SECOND));
+						this.cameraGroup.position.add(forward.multiplyScalar(-data.axes[3] / TICKS_PER_SECOND));
 				}
 				else if (handedness === "left") {
 					if (Math.abs(data.axes[2]) > 0.1) {
@@ -477,6 +495,7 @@ export class Pong extends World {
 		};
 
 		this.member = options.member;
+		options.room.state!.teams.sort(byId);
 		this.state = new State(options.room.state!.teams);
 		const load = await Promise.all([Promise.all([loadModel("/Assets/gltf/paddle/paddle.gltf", paddleTransform), loadModel("/Assets/gltf/PGP_HALL/PGP_HALL.glb")]), Promise.all([...Array(33).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/vloer steen/${i}.wav`))), Promise.all([...Array(88).keys()].map(i => loadAudio(this.audioListener, `/Assets/cut-sounds/racket bounce/${i}.wav`)))]);
 		let modelArray = load[0];
@@ -486,7 +505,7 @@ export class Pong extends World {
 		this.scene.add(this.hallModel);
 
 		const teams = options.room.state!.teams;
-		const teamId = teams.sort((a, b) => a.id - b.id).findIndex((team) => team.id === options.member.player?.teamId);
+		const teamId = teams.findIndex((team) => team.id === options.member.player?.teamId);
 		if (teamId == 0) {
 			this.cameraGroup.position.x = -1.5;
 			this.cameraGroup.position.z = 0;
@@ -520,6 +539,14 @@ export class Pong extends World {
 			this.send("ball", {
 				paddle: this.paddleUUID,
 			});
+		});
+
+		this.leftController.addEventListener("squeeze", () => {
+			this.rotatePaddle = !this.rotatePaddle;
+		});
+
+		this.rightController.addEventListener("squeeze", () => {
+			this.rotatePaddle = !this.rotatePaddle;
 		});
 
 		await super.start(options);

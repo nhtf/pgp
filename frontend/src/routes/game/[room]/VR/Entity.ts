@@ -68,6 +68,7 @@ export abstract class Entity {
 	}
 
 	public set position(vector: Vector) {
+		vector = vector.removeNaNs();
 		const motionState = this.physicsObject.getMotionState();
 		motionState.getWorldTransform(this.ammoTransform);
 		const origin = new Ammo.btVector3(vector.x, vector.y, vector.z);
@@ -78,6 +79,7 @@ export abstract class Entity {
 	}
 
 	public set rotation(quaternion: Quaternion) {
+		quaternion = quaternion.removeNaNs();
 		const x = Math.round(quaternion.x * 65536) / 65536;
 		const y = Math.round(quaternion.y * 65536) / 65536;
 		const z = Math.round(quaternion.z * 65536) / 65536;
@@ -93,12 +95,14 @@ export abstract class Entity {
 	}
 
 	public set linearVelocity(vector: Vector) {
+		vector = vector.removeNaNs();
 		const linearVelocity = new Ammo.btVector3(vector.x, vector.y, vector.z);
 		this.physicsObject.setLinearVelocity(linearVelocity);
 		Ammo.destroy(linearVelocity);
 	}
 
 	public set angularVelocity(vector: Vector) {
+		vector = vector.removeNaNs();
 		const angularVelocity = new Ammo.btVector3(vector.x, vector.y, vector.z);
 		this.physicsObject.setAngularVelocity(angularVelocity);
 		Ammo.destroy(angularVelocity);

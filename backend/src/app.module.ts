@@ -57,6 +57,7 @@ export const db_pool = new Pool({
 	maxUses: 7500,
 });
 
+
 const entityFiles = [
 	"./entities/User",
 	"./entities/FriendRequest",
@@ -112,7 +113,7 @@ export const dataSource = new DataSource({
 		return Object.values(entity)[0] as Function;
 	}),
 	subscribers: [EntitySubscriber],
-	synchronize: false, //TODO disable and test before turning in
+	synchronize: true, //TODO disable and test before turning in
 	// TODO enable cache? (cache: true)
 });
 
@@ -197,7 +198,7 @@ const services = [
 		AppController,
 		AuthController,
 		BotController,
-		// DebugController,
+		DebugController,
 		TotpController,
 		MediaController,
 		NewGameController,
@@ -233,14 +234,9 @@ export class AppModule implements NestModule {
 	// TODO: remove debug exeption
 	configure(consumer: MiddlewareConsumer) {
 		consumer.apply(UserMiddleware, ActivityMiddleware)
-			.exclude(
-				{ path: "oauth(.*)", method: RequestMethod.ALL },
-				{ path: "debug(.*)", method: RequestMethod.ALL })
+			.exclude({ path: "oauth(.*)", method: RequestMethod.ALL })
 			.forRoutes("*");
-		consumer.apply(SessionExpiryMiddleware)
-			.exclude(
-				{ path: "debug(.*)", method: RequestMethod.ALL })
-			.forRoutes("*");
+		consumer.apply(SessionExpiryMiddleware).forRoutes("*");
 		consumer.apply(RateLimitMiddleware).forRoutes("media/*");
 		consumer.apply(RoomMiddleware, MemberMiddleware).forRoutes(NewChatRoomController, NewGameController, DMRoomController);
 	}

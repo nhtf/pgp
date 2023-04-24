@@ -96,7 +96,7 @@ export const achievements: AchievementDef[] = [
 	},
 	{
 		name: CLASSIC_LOSES_ACHIEVEMENT,
-		max: 10,
+		max: 3000,
 		image: "/Assets/achievement-icons/pong.svg",
 		objectives: [
 			{
@@ -127,7 +127,7 @@ export const achievements: AchievementDef[] = [
 	},
 	{
 		name: FRIEND_COUNT_ACHIEVEMENT,
-		max: 20,
+		max: 2000,
 		image: "/Assets/achievement-icons/popular.svg",
 		objectives: [
 			{

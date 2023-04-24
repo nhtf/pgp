@@ -1,8 +1,6 @@
 const env = import.meta.env;
 
-console.log(env);
-
-const ssl = env["VITE_SSL"] == "true";
+const ssl = env["VITE_SSL"] === "true";
 
 const PROTOCOL = ssl ? "https" : "http";
 const WS = ssl ? "wss" : "ws";

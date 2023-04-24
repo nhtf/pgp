@@ -41,7 +41,6 @@
 		
 			await unwrap(patch(`${room.route}/team/auto`));
 
-			console.log(room.nav);
 			Swal.fire({
 				title: "Go to game?",
 				showConfirmButton: true,

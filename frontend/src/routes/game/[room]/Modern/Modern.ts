@@ -154,10 +154,6 @@ export class Game extends Net {
 					paddle.rotation = oldRot;
 				}
 
-				if (paddle.rotation != deserializeNumber(serializeNumber(paddle.rotation))) {
-					console.error("how did we get here");
-				}
-
 				this.shader.rotatePaddle(paddle.rotation, paddle.owner);
 			}
 		});

@@ -28,7 +28,6 @@
 			const current = document.activeElement as HTMLElement;
 			const items = [...document.getElementsByClassName("search-item")] as HTMLElement[];
 			let idx = items.indexOf(current);
-			console.log(idx);
 
 			if (idx < 0) {
 				idx = 0;
@@ -40,7 +39,6 @@
 			}
 			current.blur()
 			items[idx].focus();
-			//console.log("should do something");
 		}
 	}
 

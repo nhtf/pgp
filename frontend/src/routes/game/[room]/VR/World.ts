@@ -1,5 +1,5 @@
 import { Debug } from "./Debug";
-import { Ammo } from "./Ammo";
+import { Ammo, internalTick } from "./Ammo";
 import * as THREE from "three";
 import { Net } from "../Net";
 import type { Snapshot as NetSnapshot, Event as NetEvent, Options as NetOptions } from "../Net";
@@ -8,7 +8,8 @@ import { Vector, Quaternion } from "../Math";
 import { Counter, Map2 } from "../Util";
 
 export const TICKS_PER_SECOND = 60;
-export const STEPS_PER_TICK = 10;
+export const STEPS_PER_TICK = 2;
+export const PHYSICS_STEPS_PER_STEP = 10;
 export const PHYSICS_MULTIPLIER = 1;
 export const COLLISION_DELAY = 10;
 
@@ -76,12 +77,15 @@ export class World extends Net {
 		this.renderer = this.addThreeObject(new THREE.WebGLRenderer({ antialias: true }));
 		const canvasDim = document.getElementsByClassName("game-container")[0].getBoundingClientRect();
 		this.camera = new THREE.PerspectiveCamera(90, canvasDim.width / canvasDim.height, 0.1, 100);
+		this.camera.name = "Camera";
 		this.camera.position.set(0, 1.7, 2);
 		this.audioListener = new THREE.AudioListener();
 		this.cameraGroup = new THREE.Group();
 		this.world = this.addAmmoObject(new Ammo.btDiscreteDynamicsWorld(this.collisionDispatcher, this.broadphaseInterface, this.constraintSolver, this.collisionConfiguration));
 		this.world.setGravity(this.addAmmoObject(new Ammo.btVector3(0, -9.81, 0)));
 		this.world.getSolverInfo().set_m_solverMode(0);
+		this.world.setInternalTickCallback(internalTick.fn);
+
 		this.entities = [];
 		this.removedEntities = [];
 		this.collisions = new Map2();
@@ -239,7 +243,6 @@ export class World extends Net {
 			this.world.addRigidBody(entity.physicsObject);
 		}
 
-
 		for (let i = 0; i < STEPS_PER_TICK; i++) {
 			for (let entity of this.entities) {
 				entity.physicsTick();
@@ -249,27 +252,32 @@ export class World extends Net {
 			const physicsStep = 1 / TICKS_PER_SECOND / STEPS_PER_TICK * PHYSICS_MULTIPLIER;
 			this.broadphaseInterface.resetPool(this.collisionDispatcher);
 			this.constraintSolver.reset();
-			this.world.stepSimulation(physicsStep, 1, physicsStep);
-			const numManifolds = this.collisionDispatcher.getNumManifolds();
 
-			for (let i = 0; i < numManifolds; i++) {
-				const manifold = this.collisionDispatcher.getManifoldByIndexInternal(i);
-				const body0 = manifold.getBody0().getUserIndex();
-				const body1 = manifold.getBody1().getUserIndex();
-				const entity0 = this.entities.find(e => e.physicsObject.getUserIndex() == body0) ?? null;
-				const entity1 = this.entities.find(e => e.physicsObject.getUserIndex() == body1) ?? null;
-				const lastCollision = this.collisions.get(entity0, entity1) ?? -COLLISION_DELAY;
+			internalTick.cb = () => {
+				const numManifolds = this.collisionDispatcher.getNumManifolds();
 
-				if (manifold.getNumContacts() > 0 && subFrame - lastCollision >= COLLISION_DELAY) {
-					const contact = manifold.getContactPoint(0);
-					const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
-					const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
-					entity0?.onCollision(entity1 ?? null, contact0, contact1);
-					entity1?.onCollision(entity0 ?? null, contact1, contact0);
-					this.collisions.set(entity0, entity1, subFrame);
-					this.collisions.set(entity1, entity0, subFrame);
+				for (let i = 0; i < numManifolds; i++) {
+					const manifold = this.collisionDispatcher.getManifoldByIndexInternal(i);
+					const body0 = manifold.getBody0().getUserIndex();
+					const body1 = manifold.getBody1().getUserIndex();
+					const entity0 = this.entities.find(e => e.physicsObject.getUserIndex() == body0) ?? null;
+					const entity1 = this.entities.find(e => e.physicsObject.getUserIndex() == body1) ?? null;
+					const lastCollision = this.collisions.get(entity0, entity1) ?? -COLLISION_DELAY;
+
+					if (manifold.getNumContacts() > 0 && subFrame - lastCollision >= COLLISION_DELAY) {
+						const contact = manifold.getContactPoint(0);
+						const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
+						const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
+						console.log(contact0);
+						entity0?.onCollision(entity1 ?? null, contact0, contact1);
+						entity1?.onCollision(entity0 ?? null, contact1, contact0);
+						this.collisions.set(entity0, entity1, subFrame);
+						this.collisions.set(entity1, entity0, subFrame);
+					}
 				}
-			}
+			};
+
+			this.world.stepSimulation(physicsStep, PHYSICS_STEPS_PER_STEP, physicsStep / PHYSICS_STEPS_PER_STEP);
 		}
 
 		const subFrame = (this.time + 1) * STEPS_PER_TICK;
@@ -398,6 +406,7 @@ export class World extends Net {
 			if (this.debug !== undefined) {
 				this.debug.update();
 			}
+
 			this.renderer.render(this.scene, this.camera);
 		});
 	}

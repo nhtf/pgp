@@ -1,8 +1,4 @@
-<script lang="ts">
-</script>
-
-<video id="video-preview" src="/Assets/preview.mp4" autoplay loop>
-</video>
+<video id="video-preview" src="/Assets/preview.mp4" autoplay loop><track kind="captions"/></video>
 
 <style>
 	#video-preview {

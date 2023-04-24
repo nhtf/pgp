@@ -64,10 +64,6 @@
 		return member.userId === user.id && member.roomId === room.id
 	}
 
-	function capitalize(name: string) {
-		return `${name.slice(0, 1).toUpperCase()}${name.slice(1).toLowerCase()}`
-	}
-
 </script>
 
 <div class="user">
@@ -95,10 +91,9 @@
 		</DropdownItem>
 		{#if user.id !== me.id}
 			<DropdownDivider/>
-			{#each actions as { condition, fun }}
+			{#each actions as { condition, fun, name }}
 				{#if !condition || condition({ user, member, friendIds, blockedIds, my_role, banned }) }
-				<!-- //TODO fix getting the name from the function!!!!! -->
-					<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{capitalize(fun.name)}</DropdownItem>
+					<DropdownItem class="dropdown-item" on:click={() => fun({ user, member, room })}>{name}</DropdownItem>
 				{/if}
 			{/each}
 		{/if}

@@ -41,7 +41,6 @@ export class Room<T extends Member = Member> extends Entity {
 };
 
 export class ChatRoom extends Room<ChatRoomMember> {
-	// messages: Message[];
 };
 
 export class GameRoom extends Room<GameRoomMember> {
@@ -124,6 +123,9 @@ export class Invite extends Entity {
 		return Promise.resolve("Invite deny called");
 	}
 
+	get cancel(): Promise<any> {
+		return this.deny;
+	}
 };
 
 export class RoomInvite extends Invite {

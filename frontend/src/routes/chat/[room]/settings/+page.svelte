@@ -37,7 +37,7 @@
 			<Invite {room} />
 		</div>
 		{#if self.role >= Role.OWNER}
-			<RoomInput {room} click={edit} />
+			<RoomInput {room} click={edit} buttonText={"edit"} />
 		{/if}
 
 		<div class="box">

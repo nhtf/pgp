@@ -18,6 +18,14 @@ export function deserialize(value: string): ArrayBufferLike {
 	return bytes.buffer;
 }
 
+function fixNaN(num: number): number {
+	if (num == num) {
+		return num;
+	} else {
+		return 0;
+	}
+}
+
 export class Vector {
 	x: number;
 	y: number;
@@ -94,6 +102,10 @@ export class Vector {
 		const s = quaternion.w;
 		return u.scale(2 * u.dot(v)).add(v.scale(s * s - u.dot(u))).add(u.cross(v).scale(2 * s));
 	}
+
+	removeNaNs(): Vector {
+		return new Vector(fixNaN(this.x), fixNaN(this.y), fixNaN(this.z));
+	}
 }
 
 export type QuaternionObject = string;
@@ -166,5 +178,9 @@ export class Quaternion {
 
 	inverse(): Quaternion {
 		return new Quaternion(-this.x, -this.y, -this.z, this.w);
+	}
+
+	removeNaNs(): Quaternion {
+		return new Quaternion(fixNaN(this.x), fixNaN(this.y), fixNaN(this.z), fixNaN(this.w));
 	}
 }

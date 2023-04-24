@@ -35,12 +35,12 @@ export class SessionService {
 		const sessions = await this.all();
 		for (const session of sessions) {
 			if (!session.sess?.last_activity) {
-				console.log("destroying old session");
+				// console.log("destroying old session");
 				await this.destroy_session(session.sid);
 				continue;
 			}
 			if (now - session.sess.last_activity >= SESSION_IDLE_TIME) {
-				console.log("purging session " + session.sid);
+				// console.log("purging session " + session.sid);
 				//ODOT send message to client to redirect
 				try {
 					await this.destroy_session(session.sid);

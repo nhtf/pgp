@@ -42,8 +42,12 @@
 						<img class="avatar"	src={invite[opp].avatar} alt="avatar"/>
 						<div class="text-2xl">{getPrettyName(invite.type)} invite {opp} {invite[opp].username}</div>
 						<div class="grow"/>
-						<button class="button border-green" on:click={() => invite.accept}>Accept</button>
-						<button class="button border-red" on:click={() => invite.deny}>Deny</button>
+						{#if key === "to"}
+							<button class="button border-green" on:click={() => invite.accept}>Accept</button>
+							<button class="button border-red" on:click={() => invite.deny}>Deny</button>
+						{:else}
+							<button class="button border-red" on:click={() => invite.cancel}>Cancel</button>
+						{/if}
 					</div>
 				{/each}
 			</TabItem>
@@ -80,28 +84,4 @@
 		border-bottom-right-radius: 6px;
 	}
 
-	/* .invite button {
-		display: inline-block;
-		background: var(--box-color);
-		border: 1px solid var(--border-color);
-		border-radius: 6px;
-		padding: 2px 8px;
-		font-size: 1rem;
-	} */
-
-
-	@media (max-width: 500px) {
-		.invite {
-			font-size: 1rem;
-		}
-
-		.invite button {
-			font-size: 0.875rem;
-		}
-
-		.avatar {
-			width: 35px;
-			height: 35px;
-		}
-	}
 </style>

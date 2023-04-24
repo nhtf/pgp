@@ -55,7 +55,7 @@ export function enumKeys(e: any) {
 	return [...Array(Object.keys(e).length / 2).keys()]
 }
 
-const PLAYER_NUMBERS: [Gamemode, number[], string][] = [
+export const PLAYER_NUMBERS: [Gamemode, number[], string][] = [
 	[Gamemode.CLASSIC, [2], "Classic"],
 	[Gamemode.VR, [2], "VR"],
 	[Gamemode.MODERN, [2, 4], "Modern"],

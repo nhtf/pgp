@@ -1,3 +1,5 @@
+import * as dotenv from 'dotenv';
+dotenv.config();
 import "reflect-metadata";
 import { NestFactory } from "@nestjs/core";
 import { ValidationPipe } from "@nestjs/common";
@@ -5,7 +7,7 @@ import { AppModule } from "./app.module";
 import { NestExpressApplication } from "@nestjs/platform-express";
 import {
 	FRONTEND_ADDRESS,
-	BACKEND_PORT,
+	BACKEND_LISTEN_PORT,
 	RAMBLER_SECRET,
 } from "./vars";
 import { join } from "path";
@@ -90,6 +92,6 @@ async function bootstrap() {
 	await bootstrapAchievements();
 	await bootstrapBots();
 	
-	await app.listen(BACKEND_PORT);
+	await app.listen(BACKEND_LISTEN_PORT);
 }
 bootstrap();

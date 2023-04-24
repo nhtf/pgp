@@ -1,28 +1,25 @@
 <script lang="ts">
 	import type { Room } from "$lib/entities";
-	import { Access, Gamemode } from "$lib/enums";
+	import { Access, Gamemode, PLAYER_NUMBERS } from "$lib/enums";
 	import { Checkbox, Select } from "flowbite-svelte";
+    import { icon_path } from "$lib/constants";
 
 	export let click: Function;
 	export let room: Room | null = null;
 	export let type: "ChatRoom" | "GameRoom" | "DM" | undefined = room?.type;
+	export let buttonText: string;
 
-	const gamemodes = new Map([
-		[Gamemode.CLASSIC, { name: "Classic", players: [2] }],
-		[Gamemode.VR, { name: "VR", players: [2] }],
-		[Gamemode.MODERN, { name: "Modern", players: [2, 4] }],
-	]);
+	const checkmark = `${icon_path}/checkmark.svg`;
 
 	let name = room ? room.name : "";
 	let password = "";
 	let is_private = room ? room.access === Access.PRIVATE : false;
 	let gamemode = Gamemode.CLASSIC;
-	let action = `${click.name.charAt(0).toUpperCase()}${click.name.slice(1)}`;
 
-	$: players = gamemodes.get(gamemode)!.players[0];
+	$: players = PLAYER_NUMBERS.find(([mode]) => mode === gamemode)![1][0];
 
 	function playerOptions(gamemode: Gamemode) {
-		const players = gamemodes.get(gamemode)!.players;
+		const players = PLAYER_NUMBERS.find(([mode]) => mode === gamemode)![1];
 
 		return players.map((n) => {
 			return { value: n, name: n };
@@ -36,7 +33,6 @@
 		password = "";
 	}
 
-	const checkmark = "/Assets/icons/checkmark.svg";
 	
 </script>
 
@@ -59,16 +55,17 @@
 		<Checkbox custom bind:checked={is_private}>
 			<div class="checkbox">
 				{#if is_private}
-				<img class="icon" src={checkmark} alt="checkmark" />
+					<img class="icon" src={checkmark} alt="checkmark" />
 				{/if}
+			</div>
 		</Checkbox>
 		<span class="label">Private</span>
 	</div>
 	{#if type === "GameRoom"}
 		<Select
 			defaultClass="select"
-			items={[...gamemodes].map(([gamemode, info]) => {
-				return { value: gamemode, name: info.name };
+			items={PLAYER_NUMBERS.map(([gamemode, _, name]) => {
+				return { value: gamemode, name };
 			})}
 			placeholder=""
 			bind:value={gamemode}
@@ -86,7 +83,7 @@
 	<div class="grow" />
 	<button
 		class="button border-green"
-		on:click={onClick}>{action}</button
+		on:click={onClick}>{buttonText}</button
 	>
 </div>
 

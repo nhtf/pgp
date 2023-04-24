@@ -1,5 +1,5 @@
 import type { UpdatePacket } from "$lib/types";
-import { Subject, Action } from "$lib/enums";
+import type { Subject } from "$lib/enums";
 import { BACKEND_WS } from "$lib/constants";
 import { io } from "socket.io-client";
 
@@ -35,9 +35,9 @@ class UpdateManager {
 			.filter(({ subject }) => subject === update.subject)
 			.map(({ fun }) => fun);
 
-		const style = `color: ${funs.length ? "black" : "gray"}`;
+		// const style = `color: ${funs.length ? "black" : "gray"}`;
 
-		console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
+		// console.log(`%c${Subject[update.subject]}; ${Action[update.action]}; ID: ${update.id};`, style, update.value);
 
 		// IIFE
 		// socket.on() can't be awaited, but some functions need to run before others

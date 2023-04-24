@@ -23,6 +23,6 @@
 </script>
 
 <div class="page">
-	<RoomInput type={"ChatRoom"} click={create}/>
+	<RoomInput type={"ChatRoom"} click={create} buttonText={"Create"}/>
 	<RoomOverview type={"ChatRoom"} />
 </div>

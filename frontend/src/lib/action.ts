@@ -9,26 +9,27 @@ import Swal from "sweetalert2"
 type Info = { user: User, member?: Member, room?: Room, friendIds: number[], blockedIds: number[], my_role?: Role, banned: boolean };
 type Args = { user: User, member?: Member, room?: Room };
 type Action = {
-	condition?: (context: Info) => boolean;
+	name: string,
 	fun: (args: Args) => void;
+	condition?: (context: Info) => boolean;
 	minRole?: Role;
 };
 
 export const actions: Action[] = [
-	{ fun: befriend, condition: ({ user, friendIds }) => !friendIds.includes(user.id) },
-	{ fun: unfriend, condition: ({ user, friendIds }) => friendIds.includes(user.id) },
-	{ fun: block, condition: ({ user, blockedIds }) => !blockedIds.includes(user.id) },
-	{ fun: unblock, condition: ({ user, blockedIds }) => blockedIds.includes(user.id) },
-	{ fun: invite, condition: ({ user }) => user.status !== Status.INGAME && user.status !== Status.OFFLINE },
-	{ fun: spectate, condition: ({ user }) => user.status === Status.INGAME },
-	{ fun: unban, condition: ({ banned }) => banned },
+	{ name: "Befriend", fun: befriend, condition: ({ user, friendIds }) => !friendIds.includes(user.id) },
+	{ name: "Unfriend", fun: unfriend, condition: ({ user, friendIds }) => friendIds.includes(user.id) },
+	{ name: "Block", fun: block, condition: ({ user, blockedIds }) => !blockedIds.includes(user.id) },
+	{ name: "Unblock", fun: unblock, condition: ({ user, blockedIds }) => blockedIds.includes(user.id) },
+	{ name: "Invite", fun: invite, condition: ({ user }) => user.status !== Status.INGAME && user.status !== Status.OFFLINE },
+	{ name: "Spectate", fun: spectate, condition: ({ user }) => user.status === Status.INGAME },
+	{ name: "Unban", fun: unban, condition: ({ banned }) => banned },
 
-	{ fun: promote, condition: ({ member, my_role }) => member && my_role ? my_role === Role.OWNER : false },
-	{ fun: demote, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && member.role > 0 : false },
-	{ fun: kick, condition: ({ member, my_role }) => member && my_role ? my_role > member.role : false },
-	{ fun: ban, condition: ({ member, my_role }) => member && my_role ? my_role > member.role : false },
-	{ fun: mute, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && !(member as ChatRoomMember).is_muted : false },
-	{ fun: unmute, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && (member as ChatRoomMember).is_muted : false },
+	{ name: "Promote", fun: promote, condition: ({ member, my_role }) => member && my_role ? my_role === Role.OWNER : false },
+	{ name: "Demote", fun: demote, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && member.role > 0 : false },
+	{ name: "Kick", fun: kick, condition: ({ member, my_role }) => member && my_role ? my_role > member.role : false },
+	{ name: "Ban", fun: ban, condition: ({ member, my_role }) => member && my_role ? my_role > member.role : false },
+	{ name: "Mute", fun: mute, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && !(member as ChatRoomMember).is_muted : false },
+	{ name: "Unmute", fun: unmute, condition: ({ member, my_role }) => member && my_role ? my_role > member.role && (member as ChatRoomMember).is_muted : false },
 ];
 
 // User
