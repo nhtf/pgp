@@ -198,7 +198,7 @@ const services = [
 		AppController,
 		AuthController,
 		BotController,
-		DebugController,
+		// DebugController,
 		TotpController,
 		MediaController,
 		NewGameController,
