@@ -43,7 +43,7 @@ export const AVATAR_EXT: string = process.env.AVATAR_EXT || ".gif";
 export const TENOR_KEY: string = process.env.TENOR_KEY;
 export const GIPHY_KEY: string = process.env.GIPHY_KEY;
 
-export const BOUNCER_ADDRESS: string =  `${SCHEME}://${process.env.BOUNCER_LISTEN}`;
+export const BOUNCER_ADDRESS: string =  `${SCHEME}://${process.env.BOUNCER_ADDRESS}`;
 export const BOUNCER_KEY: string = process.env.BOUNCER_KEY;
 export const BOUNCER_MAX_REDIRECTS: number = Number(process.env.BOUNCER_MAX_REDIRECTS || 5);
 

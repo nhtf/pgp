@@ -3,7 +3,7 @@
 	import { Dropdown, DropdownItem, Avatar } from "flowbite-svelte";
 	import { page } from "$app/stores";
 	import { inviteStore, userStore } from "$lib/stores";
-	import { onMount } from "svelte";
+	import { onMount, onDestroy } from "svelte";
     import { goto } from "$app/navigation";
     import { unwrap } from "$lib/Alert";
     import { patch } from "$lib/Web";
@@ -19,6 +19,7 @@
 
 	let notifMap = new Map<Invite, Status>();
 	let oldLength: number;
+	let dropdownOpen: boolean = false;
 
 	$: user = $userStore.get($page.data.user?.id)!;
 	$: notifications = [...$inviteStore.values()].filter((invite) => invite.to.id === user.id);
@@ -90,10 +91,24 @@
 		};
 	}
 
+	function dropdownCloseHandler(ev) {
+		const dropdownElement = document.getElementById("notifications-dropdown")!;
+
+		if (dropdownElement && !dropdownElement.contains(ev.target)) {
+			dropdownOpen = false;
+		}
+	}
+
 	onMount(() => {
 		oldLength = [...notifMap.values()].filter(
 			(status) => status === Status.UNREAD
 		).length;
+
+		document.addEventListener("mousedown", dropdownCloseHandler);
+	});
+
+	onDestroy(() => {
+		document.removeEventListener("mousemove", dropdownCloseHandler);
 	});
 </script>
 
@@ -118,6 +133,8 @@
 	class="w-full max-w-sm rounded bor-c shadow bg-c"
 	frameClass="bor-c shadow divide-y w-full max-w-sm"
 	placement="bottom"
+	bind:open={dropdownOpen}
+	id="notifications-dropdown"
 >
 	<div slot="header" class="text-center py-2 font-bold text-center ">
 		Notifications

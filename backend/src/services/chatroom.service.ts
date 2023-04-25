@@ -9,6 +9,7 @@ import { createHmac } from "node:crypto";
 import { Embed } from "src/entities/Embed";
 import axios from "axios";
 import type { User } from "src/entities/User";
+import { get_bouncer_digest } from  "src/util";
 
 export interface CreateChatRoomOptions extends CreateRoomOptions {
 	name?: string;
@@ -64,7 +65,7 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 
 			const embed = new Embed();
 			embed.url = url.toString();
-			embed.digest = createHmac(EMBED_ALGORITHM, BOUNCER_KEY).update(embed.url).digest("hex");
+			embed.digest = get_bouncer_digest(url);
 			embed.rich = mime.startsWith("text/html");
 
 			return embed;

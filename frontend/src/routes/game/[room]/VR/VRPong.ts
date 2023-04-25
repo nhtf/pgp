@@ -381,7 +381,7 @@ export class Pong extends World {
 
 			if (this.rotatePaddle) {
 				const quaternionMut = new THREE.Quaternion().identity();
-				quaternionMut.setFromEuler(new THREE.Euler(Math.PI / 6, 0, 0));
+				quaternionMut.setFromEuler(new THREE.Euler(-Math.PI / 6, 0, 0));
 				quaternion.multiply(quaternionMut);
 			}
 			

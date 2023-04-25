@@ -209,8 +209,10 @@ export function GenericUserController(
 				throw new UnprocessableEntityException("Corrupted image");
 			}
 			if (user.avatar_base !== DEFAULT_AVATAR) {
-				await rm(user.avatar_path);
-			}
+				try {
+					await rm(user.avatar_path);
+				} catch {}
+			} 
 
 			user.avatar_base = new_base;
 			await this.user_repo.save(user);

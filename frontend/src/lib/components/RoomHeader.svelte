@@ -11,6 +11,7 @@
 
 	$: room = $roomStore.get(room?.id)!;
 	$: self = [...$memberStore.values()].find(({ roomId, userId }) => roomId === room?.id && userId === $page.data.user?.id);
+	$: owner = [...$memberStore.values()].find(({ roomId, role }) => roomId === room?.id && role === Role.OWNER);
 
 	async function leave(room: Room) {
 		await unwrap(remove(`${room.route}/members/${self?.id}`));
@@ -34,7 +35,7 @@
 		<div class="grow"/>
 		<div class="name">{room.name}</div>
 		<div class="grow"/>
-		{#if room.owner?.id === $page.data.user.id}
+		{#if owner?.id === self?.id}
 			<button class="button border-red" on:click={() => erase(room)}>Delete</button>
 		{:else}
 			<button class="button border-red" on:click={() => leave(room)}>Leave</button>

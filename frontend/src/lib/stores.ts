@@ -135,7 +135,7 @@ async function onPrivateRemove(update: UpdatePacket) {
 		roomStore.update((rooms) => {
 			const room = rooms.get(update.id)!;
 
-			if (room.access === Access.PRIVATE) {
+			if (room && room.access === Access.PRIVATE) {
 				rooms.delete(update.id);
 			}
 

@@ -35,7 +35,7 @@
 	class="message"
 	style={`flex-direction: ${flex_direction}; align-self: ${align_self}`}
 >
-	<UserDropdown {user} {member} key={message.id} />
+	<UserDropdown {user} {member} {room} key={message.id} />
 	<div class="flex flex-col gap-1">
 		<div class="flex gap-1">
 			<div

@@ -4,18 +4,13 @@
     import Match from '$lib/components/Match.svelte';
 	import Info from "$lib/components/Info.svelte";
     import { byId } from '$lib/sorting';
-    import { friendStore, updateStore } from '$lib/stores';
-    import { Entity, Game, User } from '$lib/entities';
+    import { updateStore } from '$lib/stores';
+    import { Game, User } from '$lib/entities';
 
 	export let data: PageData;
 
-	updateStore(User, data.profile);
 	updateStore(Game, data.games);
-
-	if (data.profile.id === data.user?.id) {
-		updateStore(User, data.friends!);
-		updateStore(Entity, data.friends!.map(({ id }) => { return { id } }), friendStore);
-	}
+	updateStore(User, data.profile);
 
 </script>
 

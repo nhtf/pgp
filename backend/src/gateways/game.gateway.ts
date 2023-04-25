@@ -52,27 +52,27 @@ export class GameGateway extends ProtectedGateway("game") {
 
 	private async gameFinished(state: GameState) {
 		await this.game_service.lock_teams_state(state.id);
+		console.log("state", state);
 	
 		const users = state.teams.flatMap((team) => {
 			return team.players.map((player) => player.user);
 		});
 
-		let draw = true;
-		let winning_team = state.teams[0];
+		const scores = state.teams.map(team => team.score);
+		const maxScore = Math.max(...scores);
+		
+		const draw = scores.filter(score => score === maxScore).length > 1;
 
-		for (const team of state.teams) {
-			if (team.score > winning_team.score) {
-				draw = false;
-				winning_team = team;
-			}
-		}
-	
+		const winning_team = state.teams.find(team => team.score === maxScore);
+
 		switch (state.gamemode) {
 			case Gamemode.VR:
 				await this.ach_service.inc_progresses(VRPONG_ACHIEVEMENT, 1, users);
 				break;
 			case Gamemode.CLASSIC:
 				const losers = state.teams.filter(({ id }) => id !== winning_team.id).flatMap((team) => team.players.map((player) => player.user));
+				console.log("draw", draw);
+				console.log("losers", losers);
 				if (!draw)
 					await this.ach_service.inc_progresses(CLASSIC_LOSES_ACHIEVEMENT, 1, losers);
 				break;
@@ -91,9 +91,11 @@ export class GameGateway extends ProtectedGateway("game") {
 
 		// NOTE: this has a race condition, we don't care
 		const state = await this.gameStateRepo.findOneBy({ room: { id: client.room } });
+		console.log(state);
 
 		if (state) {
 			const active = await this.userRepo.countBy({ activeRoom: { id: client.room } });
+			console.log(active, state.finished, state.terminated);
 	
 			if (active === 0 && state.finished && !state.terminated) {
 				await this.gameStateRepo.save({ id: state.id, terminated: true });
@@ -124,6 +126,8 @@ export class GameGateway extends ProtectedGateway("game") {
 		if (data.name === "synchronize") {
 			if (data.current.state.finished !== undefined) {
 				const state = await this.gameStateRepo.findOneBy({ room: { id: client.room } });
+
+				console.log("130", state, client.room);
 			
 				if (state.finished !== data.current.state.finished) {
 					await this.gameStateRepo.save({ id: state.id, finished: data.current.state.finished });

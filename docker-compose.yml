@@ -8,6 +8,8 @@ services:
       - ./database:/docker-entrypoint-initdb.d
     expose:
       - "${POSTGRES_PORT}"
+    ports:
+      - "5432:5432"
   backend:
     image: "backend"
     build: "backend"

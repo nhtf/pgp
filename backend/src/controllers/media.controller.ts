@@ -4,6 +4,7 @@ import type { Response } from "express";
 import { HttpAuthGuard } from "src/auth/auth.guard";
 import { SetupGuard } from "src/guards/setup.guard";
 import { TENOR_KEY, GIPHY_KEY } from "src/vars";
+import { get_bouncer_proxy_url } from "src/util";
 
 interface MediaObject {
 	url: string;
@@ -159,7 +160,7 @@ export class MediaController {
 							title: gif.title,
 							desc: gif.content_description,
 							url: gif.itemurl,
-							src: url?.url,
+							src: get_bouncer_proxy_url(new URL(url?.url)),
 							width: url?.dims[0],
 							height: url?.dims[1],
 						};
@@ -193,7 +194,7 @@ export class MediaController {
 							title: gif.title,
 							desc: gif.alt_text,
 							url: gif.url,
-							src: gif.images.downsized.url,
+							src: get_bouncer_proxy_url(new URL(gif.images.downsized.url)),
 							width: Number(gif.images.downsized.width),
 							height: Number(gif.images.downsized.height),
 						};

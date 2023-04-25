@@ -53,6 +53,7 @@
 	let index: number;
 
 	$: profile = $userStore.get($page.data.profile.id)!;
+	$: achievements = $page.data.achievements;
 	$: level = new Level($page.data.level);
 	$: stats = $page.data.stats;
 	$: modes = gamemodes.map((mode) => {
@@ -145,7 +146,7 @@
 		<div class="block-cell">
 			<div class="block-hor"><h3>Achievements</h3></div>
 			<div class="block-hor">
-				{#each profile.achievements as achievement}
+				{#each achievements as achievement}
 					<AchievementBox {achievement} />
 				{/each}
 			</div>

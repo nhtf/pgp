@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { Access, Gamemode, Status } from "$lib/enums";
+    import { Access, Gamemode, Role, Status } from "$lib/enums";
     import { status_colors } from "$lib/constants";
     import { byId } from "$lib/sorting";
 
@@ -9,6 +9,7 @@
 	const keys = Object.keys(entities[0] ?? {});
 	const custom = [
 		{ name: "status", fun: (value: any) => `<div style="background-color: ${status_colors[value]}">${Status[value]}</div>` },
+		{ name: "role", fun: (value: any) => value !== undefined ? Role[value] : "" },
 		{ name: "access", fun: (value: any) => value !== undefined ? Access[value] : "" },
 		{ name: "gamemode", fun: (value: any) => value !== undefined ? Gamemode[value] : "" },
 	

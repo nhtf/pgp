@@ -19,7 +19,7 @@
 	import { BACKEND } from "$lib/constants";
 	import { goto, invalidate } from "$app/navigation";
 	import { disable_twofa, enable_twofa } from "$lib/two_factor";
-	import { blockStore, memberStore, updateStore, userStore } from "$lib/stores";
+	import { blockStore, friendStore, memberStore, updateStore, userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { post } from "$lib/Web";
     import { updateManager, updateSocket } from "$lib/updateSocket";
@@ -45,8 +45,13 @@
 
 	if (data.user) {
 		updateStore(User, data.user);
-		updateStore(Invite, data.invites!);
-		updateStore(Entity, data.blocked!.map(({ id }) => { return { id } }), blockStore);
+	
+		if (data.user.username?.length) {
+			updateStore(User, data.friends!);
+			updateStore(Invite, data.invites!);
+			updateStore(Entity, data.blocked!.map(({ id }) => { return { id } }), blockStore);
+			updateStore(Entity, data.friends!.map(({ id }) => { return { id } }), friendStore);
+		}
 	}
 
 	onMount(() => {

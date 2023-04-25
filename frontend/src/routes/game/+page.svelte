@@ -12,7 +12,10 @@
 
 	updateStore(GameRoom, data.rooms);
 	updateStore(Game, data.rooms.map(({ state }) => state!));
-	updateStore(User, data.rooms.map(({ owner }) => owner!));
+	updateStore(User, data.rooms
+		.filter(({ owner }) => owner !== undefined)
+		.map(({ owner }) => owner!)
+	);
 
 	async function create(room: any) {
 		room.name = room.name.length ? room.name : undefined;

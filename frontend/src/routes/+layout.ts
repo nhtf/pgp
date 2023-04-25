@@ -10,11 +10,13 @@ export const load: LayoutLoad = (async ({ fetch, url }) => {
 	window.fetch = fetch;
 
 	let user: User | null = null;
+	let friends: User[] | null = null;
 	let blocked: User[] | null = null;
 	let invites: Invite[] | null = null;
 
 	try {
 		user = await get(`/user/me`) as User;
+		friends = await get(`/user/me/friends`) as User[];
 		blocked = await get(`/user/me/blocked`) as User[];
 		invites = await get(`/user/me/invites`) as Invite[];
 	} catch (err) { }
@@ -23,5 +25,5 @@ export const load: LayoutLoad = (async ({ fetch, url }) => {
 		throw redirect(302, `/account_setup`);
 	}
 
-	return { user, blocked, invites };
+	return { user, friends, blocked, invites };
 }) satisfies LayoutLoad;

@@ -13,9 +13,10 @@ import {
 import { User } from "./entities/User";
 import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
 import { Status } from "src/enums";
-import { IDLE_TIME, OFFLINE_TIME } from "./vars";
+import { IDLE_TIME, OFFLINE_TIME, EMBED_ALGORITHM, BOUNCER_KEY, SCHEME, BOUNCER_ADDRESS } from "./vars"; //ODOT rename EMBED_ALGORITHM to BOUNCER_HASH_ALGO
 import isNumeric from "validator/lib/isNumeric";
 import { IsString, Matches, IsNumber, IsBase64 } from "class-validator";
+import { createHmac } from "node:crypto";
 
 export class UsernameDTO {
 	@IsString()
@@ -141,4 +142,12 @@ export function ParseUsernamePipe(relations?: any) {
 		}
 	};
 	return ParseUsernamePipe;
+}
+
+export function get_bouncer_digest(url: URL): string {
+	return createHmac(EMBED_ALGORITHM, BOUNCER_KEY).update(url.toString()).digest("hex");
+}
+
+export function get_bouncer_proxy_url(url: URL) {
+	return `${BOUNCER_ADDRESS}/${get_bouncer_digest(url)}/proxy?url=${encodeURIComponent(url.toString())}`;
 }
