@@ -9,11 +9,14 @@ import { Team } from "src/entities/Team";
 import { GameRoomMember } from "src/entities/GameRoomMember";
 import { GenericRoomService, CreateRoomOptions } from "src/services/room.service";
 import { genTeamName } from "src/namegen"
+import { AchievementService } from  "src/services/achievement.service";
+import { VRPONG_ACHIEVEMENT, CLASSIC_LOSES_ACHIEVEMENT } from "src/achievements";
 
 interface CreateGameRoomOptions extends CreateRoomOptions {
 	gamemode: Gamemode;
 	players: number;
 	ranked?: boolean;
+	teams_locked?: boolean;
 }
 
 export const PLAYER_NUMBERS = new Map([
@@ -34,6 +37,7 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			private readonly state_repo: Repository<GameState>,
 			@Inject("PLAYER_REPO")
 			private readonly player_repo: Repository<Player>,
+			private readonly ach_service: AchievementService,
 		) {
 			super(room_repo, member_repo);
 		}
@@ -49,6 +53,7 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			state.gamemode = options.gamemode;
 			state.team_count = options.players;
 			state.ranked = options.ranked ?? false;
+			state.teamsLocked = options.teams_locked ?? false;
 			state.teams = [];
 
 			for (let idx = 0; idx < options.players; ++idx) {
@@ -69,6 +74,51 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			state.room = { id: room.id } as GameRoom;
 		
 			return this.room_repo.save(room);
+		}
+
+		async gameFinished(state: GameState) {
+			await this.lock_teams_state(state.id);
+		
+			if (state.finished) {
+				const users = state.teams.flatMap(({ players }) => players.map(({ user }) => user));
+				const scores = state.teams.map(team => team.score);
+				const maxScore = Math.max(...scores);
+				
+				switch (state.gamemode) {
+					case Gamemode.VR:
+						await this.ach_service.inc_progresses(VRPONG_ACHIEVEMENT, 1, users);
+						break;
+					case Gamemode.CLASSIC:
+						const losers = state.teams
+							.filter(({ score }) => score < maxScore)
+							.flatMap(({ players }) => players.map(({ user }) => user));
+						await this.ach_service.inc_progresses(CLASSIC_LOSES_ACHIEVEMENT, 1, losers);
+						break;
+				}
+			}
+
+			await this.remove({ id: state.roomId } as GameRoom);
+			await this.state_repo.save({
+				id: state.id,
+				finished: true,
+				terminated: true,
+			});
+		}
+
+		async remove_members(room: GameRoom, ...members: { member: GameRoomMember, ban?: boolean }[]) {
+			room = await this.find(room, { banned_users: true });
+
+			const removing = members.map(({ member }) => member);
+			const banning = members.filter(({ ban }) => ban).map(({ member }) => member.user);
+		
+			await this.member_repo.remove(removing);
+			await this.ban(room, ...banning);
+
+			room = await this.find(room);
+
+			if (!room.members.length || (room.state.ranked && members.some(({ member }) => member.player != undefined))) {
+				await this.gameFinished(room.state);
+			}
 		}
 
 		async set_team(member: GameRoomMember, team: Team) {
@@ -155,14 +205,23 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 			const room = await this.state_repo.findOneBy({
 				ranked: true,
 				finished: false,
-				room: {
+				terminated: false,
+				teams: {
+					players: {
+						user: {
+							id: user.id,
+						}
+					}
+				}
+			});
+			/*(
 					members: {
 						user: {
 							id: user.id,
 						},
 					},
 				},
-			});
+			});*/
 			return room != undefined;
 		}
 

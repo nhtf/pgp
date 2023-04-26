@@ -27,7 +27,7 @@ export class GameState {
 	teams: Team[];
 
 	@Column({ default: false })
-	teamsLocked: boolean = false;
+	teamsLocked: boolean;
 
 	@Column({ default: false })
 	finished: boolean = false;

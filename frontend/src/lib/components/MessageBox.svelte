@@ -47,7 +47,7 @@
 			<div class="grow" />
 			{#if user.id === $page.data.user.id || (self && (!member || member.role < self.role))}
 				<button on:click={censor}
-					><img class="w-5 h-5" src={trash} alt="delete" /></button
+					><img class="!w-5 !h-5 icon" src={trash} alt="delete" /></button
 				>
 			{/if}
 		</div>

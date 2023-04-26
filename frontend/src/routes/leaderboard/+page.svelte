@@ -10,6 +10,7 @@
 		TableSearch,
 		Tabs,
 		TabItem,
+        Toggle,
 	} from "flowbite-svelte";
     import { updateStore, userStore } from "$lib/stores";
     import { Gamemode, gamemodes } from "$lib/enums";
@@ -17,10 +18,13 @@
 
 	export let data: PageData;
 
+	let checked: boolean = true;
 	let tabs = gamemodes.map((mode, index) => { return { ...mode, open: index === 0 } }); 
 	let searchTerm = "";
 
-	$: stats = data.stats.filter(({ username }) => username.toLowerCase().includes(searchTerm.toLowerCase()));
+	$: stats = (checked ? data.ranked : data.unranked);
+	$: filteredStats = (checked ? data.ranked : data.unranked)
+		.filter(({ username }) => username.toLowerCase().includes(searchTerm.toLowerCase()));
 
 	updateStore(User, data.users);
 
@@ -35,7 +39,7 @@
 	}
 
 	function getRank(username: string, gamemode: Gamemode) {
-		const gamemodeStats = data.stats.filter((stat) => stat.gamemode === gamemode);
+		const gamemodeStats = stats.filter((stat) => stat.gamemode === gamemode);
 		return gamemodeStats.findIndex((stat) => stat.username === username);
 	}
 
@@ -65,7 +69,7 @@
 						<TableHeadCell class="table-cell">draws</TableHeadCell>
 					</TableHead>
 					<TableBody>
-						{#each stats.filter(statFilter.bind({}, searchTerm, gamemode, team)) as item}
+						{#each filteredStats.filter(statFilter.bind({}, searchTerm, gamemode, team)) as item}
 							{#if $userStore.has(item.id)}
 								<TableBodyRow
 									color="custom"
@@ -89,5 +93,8 @@
 				</TableSearch>
 			</TabItem>
 		{/each}
+		<div class="grow !ml-0"></div>
+		<div class="flex items-center !ml-0">{checked ? "Ranked" : "Unranked"}</div>
+		<Toggle bind:checked/>
 	</Tabs>
 </div>

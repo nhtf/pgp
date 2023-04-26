@@ -21,7 +21,7 @@
 	updateStore(DMRoom, data.rooms);
 
 	function notInDms(user: User) {
-		return !rooms.some((room) => user.id === room.other?.id) && user.username != $page.data.user.username;
+		return !rooms.some((room) => user.id === room.other?.id) && user.id != $page.data.user.id;
 	}
 
 	async function onKeyPress(event: { detail: KeyboardEvent }) {

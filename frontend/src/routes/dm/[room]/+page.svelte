@@ -21,6 +21,9 @@
 	let messages = data.messages.sort(byDate);
 	let relativeScroll = messages.length;
 	let index: number;
+	let scroll = messages.length;
+	let div: HTMLElement;
+	let content = "";
 
 	$: room = $roomStore.get(data.room.id) as DMRoom | undefined;
 	$: other = room?.other ? $userStore.get(room.other?.id) : undefined;
@@ -28,11 +31,9 @@
 
 	$: messages;
 	$: relativeScroll = clamp(relativeScroll, 0, messages.length);
-	let scroll = messages.length;
-	let div: HTMLElement;
-	$: min = scroll - load;
 	$: max = scroll + load;
-	let content = "";
+	$: min = scroll - load;
+
 	// $: min = clamp(relativeScroll - load, 0, messages.length);
 
 	updateStore(User, data.other);

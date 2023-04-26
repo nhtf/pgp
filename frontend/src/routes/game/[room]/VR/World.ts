@@ -268,7 +268,7 @@ export class World extends Net {
 						const contact = manifold.getContactPoint(0);
 						const contact0 = Vector.moveFromAmmo(contact.getPositionWorldOnA());
 						const contact1 = Vector.moveFromAmmo(contact.getPositionWorldOnB());
-						console.log(contact0);
+						// console.log(contact0);
 						entity0?.onCollision(entity1 ?? null, contact0, contact1);
 						entity1?.onCollision(entity0 ?? null, contact1, contact0);
 						this.collisions.set(entity0, entity1, subFrame);

@@ -2,7 +2,7 @@
 	import type { Room } from "$lib/entities";
 	import { gameStore, roomStore, userStore } from "$lib/stores";
 	import { post, remove, patch, put } from "$lib/Web";
-	import { icon_path } from "$lib/constants";
+	import { BACKEND, icon_path } from "$lib/constants";
 	import { unwrap } from "$lib/Alert";
 	import { Access, Role } from "$lib/enums";
     import { byId } from "$lib/sorting";
@@ -13,6 +13,7 @@
 	export let room: Room;
 
 	const crown = `${icon_path}/crown.svg`;
+	const ranked = `${icon_path}/ranked.svg`;
 
 	let password = "";
 
@@ -22,6 +23,8 @@
 
 	$: state = [...$gameStore.values()].find((game) => game.roomId === room.id);
 	$: team = state?.teams.find((team) => team.players?.some(({ userId }) => userId === user.id));
+
+	$: activeUserIds = [...$userStore.entries()].filter(([_, { activeRoomId }]) => activeRoomId === room?.id).map(([id, _]) => id);
 
 	function teamSelector(): Promise<number | null | undefined> {
 		const inputOptions = state!.teams
@@ -101,6 +104,12 @@
 	{#if owner?.id === user.id}
 		<img class="icon-owner" src={crown} alt="crown" title="You are the owner of this room"/>
 	{/if}
+	{#if state && state.ranked}
+		<img class="icon-owner" src={ranked} alt="ranked" title="This is a ranked game"/>
+	{/if}
+	{#each activeUserIds as userId}
+		<img class="avatar" src={`${BACKEND}/user/id/${userId}/avatar`} alt="avatar"/>
+	{/each}
 	<div class="grow"/>
 	{#if room.joined}
 		{#if room.self && room.self.role >= Role.ADMIN}
@@ -111,7 +120,6 @@
 			{#if room.type === "GameRoom" && state && !state.teamsLocked}
 				<button class="button border-yellow" on:click={() => lock(room)}>Lock teams</button>
 			{/if}
-
 		{:else}
 			<button class="button border-red" on:click={() => leave(room)}>Leave</button>
 		{/if}

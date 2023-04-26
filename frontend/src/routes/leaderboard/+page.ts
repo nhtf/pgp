@@ -8,12 +8,13 @@ export const ssr = false;
 export const load: PageLoad = (async ({ fetch }) => {
 	window.fetch = fetch;
 
-	const leaderBoard: Stat[] = await get('/stat', { sort: "DESC" });
+	const ranked: Stat[] = await get('/stat', { sort: "DESC", ranked: true });
+	const unranked: Stat[] = await get('/stat', { sort: "DESC", ranked: false });
 
 	const users = await Promise.all(
-	   dedup(leaderBoard)
+	   dedup([...ranked, ...unranked])
 	  .map(({ id }) => get(`/user/id/${id}`) as Promise<User>)
 	);
 
-	return { users, stats: leaderBoard };
+	return { users, ranked, unranked };
 }) satisfies PageLoad;

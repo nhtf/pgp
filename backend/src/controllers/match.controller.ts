@@ -108,6 +108,7 @@ export class MatchController {
 			gamemode,
 			players: player_count,
 			ranked: true,
+			teams_locked: true,
 		});
 
 		await this.game_service.lock_teams(room);

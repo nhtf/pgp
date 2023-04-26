@@ -1,15 +1,14 @@
 import type { Message } from "src/entities/Message";
-import { GenericRoomService, CreateRoomOptions } from "src/services/room.service";
+import type { User } from "src/entities/User";
+import { GenericRoomService, CreateRoomOptions, AddMemberType } from "src/services/room.service";
 import { Injectable, Inject } from "@nestjs/common";
-import { Repository } from "typeorm";
+import { Repository, IsNull, In } from "typeorm";
 import { ChatRoom } from "src/entities/ChatRoom";
 import { ChatRoomMember } from "src/entities/ChatRoomMember";
-import { EMBED_MAXLENGTH, EMBED_ALGORITHM, BOUNCER_KEY, BOUNCER_MAX_REDIRECTS } from "src/vars";
-import { createHmac } from "node:crypto";
+import { EMBED_MAXLENGTH, BOUNCER_MAX_REDIRECTS } from "src/vars";
 import { Embed } from "src/entities/Embed";
-import axios from "axios";
-import type { User } from "src/entities/User";
 import { get_bouncer_digest } from  "src/util";
+import axios from "axios";
 
 export interface CreateChatRoomOptions extends CreateRoomOptions {
 	name?: string;
@@ -31,6 +30,21 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 		super(room_repo, member_repo);
 	}
 
+	async add_members(room: ChatRoom, ...members: AddMemberType[]): Promise<ChatRoomMember[]> {
+		const userIds = members.map(({ user }) => user.id);
+	
+		const added = await super.add_members(room, ...members);
+		const orphans = await this.message_repo.findBy({ member: IsNull(), user: In(userIds) });
+
+		orphans.forEach((message) => {
+			message.member = added.find(({ user }) => user.id === message.userId)!;
+		});
+
+		await this.message_repo.save(orphans);
+
+		return added;
+	}
+
 	async create(options: CreateChatRoomOptions) {
 		const room = await super.create(options);
 
@@ -48,7 +62,6 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 		room.messages.push(...messages);
 	
 		await this.message_repo.save(messages);
-		// return this.room_repo.save(room);
 	}
 
 	async remove_messages(...messages: Message[]) {
@@ -57,7 +70,10 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 
 	async create_embed(url: URL): Promise<Embed | null> {
 		try {
-			const response = await axios.head(url.toString(), { maxContentLength: EMBED_MAXLENGTH, maxRedirects: BOUNCER_MAX_REDIRECTS });
+			const response = await axios.head(url.toString(), {
+				maxContentLength: EMBED_MAXLENGTH,
+				maxRedirects: BOUNCER_MAX_REDIRECTS
+			});
 
 			const mime = response.headers["content-type"];
 			if (!mime)

@@ -146,7 +146,7 @@
 		<div class="block-cell">
 			<div class="block-hor"><h3>Achievements</h3></div>
 			<div class="block-hor">
-				{#each achievements as achievement}
+				{#each achievements as achievement (achievement.name)}
 					<AchievementBox {achievement} />
 				{/each}
 			</div>
@@ -156,7 +156,6 @@
 		<Table>
 			<TableHead>
 				<TableHeadCell>gamemode</TableHeadCell>
-				<!-- <TableHeadCell>teams</TableHeadCell> -->
 				<TableHeadCell>wins</TableHeadCell>
 				<TableHeadCell>losses</TableHeadCell>
 				<TableHeadCell>draws</TableHeadCell>
@@ -165,7 +164,6 @@
 				{#each modes as mode}
 					<TableBodyRow>
 						<TableBodyCell>{mode.title}</TableBodyCell>
-						<!-- <TableBodyCell>{stat.team_count}</TableBodyCell> -->
 						<TableBodyCell>{mode.wins}</TableBodyCell>
 						<TableBodyCell>{mode.losses}</TableBodyCell>
 						<TableBodyCell>{mode.draws}</TableBodyCell>

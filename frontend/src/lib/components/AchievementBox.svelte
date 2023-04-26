@@ -2,8 +2,10 @@
 	import type { Achievement, Objective } from "$lib/types";
 
 	export let achievement: Achievement;
+
 	const radius = 30;
 	const cirmum = radius * 2 * Math.PI;
+
 	let current_obj: Objective = achievement.objectives[0];
 	let display = false;
 
@@ -11,6 +13,12 @@
 		if (!current_obj || current_obj.threshold <= achievement.progress)
 			current_obj = obj;
 	}
+
+	$: objectives = achievement.objectives;
+	$: current_obj = objectives.filter(({ threshold }) => threshold > achievement.progress).at(0) ?? objectives[objectives.length - 1];
+	$: progress = achievement.progress / (current_obj.threshold ?? 1);
+	$: achieved = achievement.progress >= achievement.objectives[0].threshold;
+	$: color = achieved ? current_obj.color : "gray";
 
 	//https://svelte.dev/repl/0ace7a508bd843b798ae599940a91783?version=3.16.7
 	//https://github.com/sveltejs/svelte/issues/3012#issuecomment-1407898151
@@ -34,9 +42,6 @@
 		}
 	}
 
-	const progress = achievement.progress / (current_obj?.threshold ?? 1);
-	const achieved = achievement.progress >= achievement.objectives[0].threshold;
-	const color = achieved ? current_obj!.color : "gray";
 </script>
 
 <div

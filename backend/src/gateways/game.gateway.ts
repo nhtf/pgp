@@ -10,9 +10,7 @@ import { GameRoomMember } from "src/entities/GameRoomMember";
 import { ProtectedGateway } from "src/gateways/protected.gateway";
 import { UpdateGateway } from "src/gateways/update.gateway"
 import { Action, Subject } from "src/enums"
-import { AchievementService } from  "src/services/achievement.service";
 import { Gamemode } from "src/enums";
-import { VRPONG_ACHIEVEMENT, CLASSIC_LOSES_ACHIEVEMENT } from "src/achievements";
 import { GameRoomService } from "src/services/gameroom.service";
 
 type BroadcastData = {
@@ -44,39 +42,9 @@ export class GameGateway extends ProtectedGateway("game") {
 		private readonly gameStateRepo: Repository<GameState>,
 		@Inject("TEAM_REPO")
 		private readonly teamRepo: Repository<Team>,
-		private readonly ach_service: AchievementService,
 		private readonly game_service: GameRoomService,
 	) {
 		super(userRepo);
-	}
-
-	private async gameFinished(state: GameState) {
-		await this.game_service.lock_teams_state(state.id);
-		console.log("state", state);
-	
-		const users = state.teams.flatMap((team) => {
-			return team.players.map((player) => player.user);
-		});
-
-		const scores = state.teams.map(team => team.score);
-		const maxScore = Math.max(...scores);
-		
-		const draw = scores.filter(score => score === maxScore).length > 1;
-
-		const winning_team = state.teams.find(team => team.score === maxScore);
-
-		switch (state.gamemode) {
-			case Gamemode.VR:
-				await this.ach_service.inc_progresses(VRPONG_ACHIEVEMENT, 1, users);
-				break;
-			case Gamemode.CLASSIC:
-				const losers = state.teams.filter(({ id }) => id !== winning_team.id).flatMap((team) => team.players.map((player) => player.user));
-				console.log("draw", draw);
-				console.log("losers", losers);
-				if (!draw)
-					await this.ach_service.inc_progresses(CLASSIC_LOSES_ACHIEVEMENT, 1, losers);
-				break;
-		}
 	}
 
 	async onDisconnect(client: Socket) {
@@ -91,15 +59,13 @@ export class GameGateway extends ProtectedGateway("game") {
 
 		// NOTE: this has a race condition, we don't care
 		const state = await this.gameStateRepo.findOneBy({ room: { id: client.room } });
-		console.log(state);
-
+	
 		if (state) {
 			const active = await this.userRepo.countBy({ activeRoom: { id: client.room } });
-			console.log(active, state.finished, state.terminated);
 	
 			if (active === 0 && state.finished && !state.terminated) {
 				await this.gameStateRepo.save({ id: state.id, terminated: true });
-				await this.gameFinished(state);
+				await this.game_service.gameFinished(state);
 			}
 		}
 	}
@@ -127,8 +93,6 @@ export class GameGateway extends ProtectedGateway("game") {
 			if (data.current.state.finished !== undefined) {
 				const state = await this.gameStateRepo.findOneBy({ room: { id: client.room } });
 
-				console.log("130", state, client.room);
-			
 				if (state.finished !== data.current.state.finished) {
 					await this.gameStateRepo.save({ id: state.id, finished: data.current.state.finished });
 				}

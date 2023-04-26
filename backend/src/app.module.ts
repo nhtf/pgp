@@ -173,10 +173,11 @@ const services = [
 			member_repo: Repository<GameRoomMember>,
 			state_repo: Repository<GameState>,
 			player_repo: Repository<Player>,
+			ach_service: AchievementService,
 		) => {
-			return new GameRoomService(room_repo, member_repo, state_repo, player_repo);
+			return new GameRoomService(room_repo, member_repo, state_repo, player_repo, ach_service);
 		},
-		inject: ["GAMEROOM_REPO", "GAMEROOMMEMBER_REPO", "GAMESTATE_REPO", "PLAYER_REPO"],
+		inject: ["GAMEROOM_REPO", "GAMEROOMMEMBER_REPO", "GAMESTATE_REPO", "PLAYER_REPO", AchievementService],
 	},
 	// {
 	// 	provide: "USER_SERVICE",
@@ -198,7 +199,7 @@ const services = [
 		AppController,
 		AuthController,
 		BotController,
-		DebugController, //TODO disable !!
+		// DebugController, //TODO disable !!
 		TotpController,
 		MediaController,
 		NewGameController,
