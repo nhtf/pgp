@@ -403,12 +403,12 @@ export function GenericUserController(
 
 		@Get(`${options.cparam}/blocked`)
 		async blocked(@Me() me: User) {
-			const { blocked } = await this.user_repo.findOne({
+			const user = await this.user_repo.findOne({
 				where: { id: me.id },
 				relations: { blocked: true },
 			});
 
-			return blocked;
+			return user?.blocked || [];
 		}
 
 		@Post(`${options.cparam}/blocked`)
@@ -418,20 +418,22 @@ export function GenericUserController(
 				throw new ForbiddenException("Can't block yourself");
 			}
 		
-			me = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
+			const user = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
+			if (user == undefined)
+				throw new NotFoundException("User not found");
 
-			if (me.blocked.some(({ id }) => id === target.id)) {
+			if (user.blocked.some(({ id }) => id === target.id)) {
 				throw new ForbiddenException("Already blocked");
 			}
 
-			await this.user_repo.save({	id: me.id, blocked: [...me.blocked, target] });
+			await this.user_repo.save({	id: user.id, blocked: [...user.blocked, target] });
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
 				action: Action.INSERT,
 				id: target.id,
 				value: { id: target.id },
-			}, me);
+			}, user);
 		}
 
 		@Delete(`${options.cparam}/blocked`)
@@ -443,21 +445,23 @@ export function GenericUserController(
 		@Delete(`${options.cparam}/blocked/:target`)
 		@HttpCode(HttpStatus.NO_CONTENT)
 		async unblock_new(@Me() me: User, @Param("target", ParseIDPipe(User)) target: User) {
-			me = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
+			const user = await this.user_repo.findOne({	where: { id: me.id }, relations: { blocked: true } });
+			if (user == undefined)
+				throw new NotFoundException("User not found");
 
-			if (!me.blocked.some(({ id }) => id === target.id)) {
+			if (!user.blocked.some(({ id }) => id === target.id)) {
 				throw new ForbiddenException("Not blocked");
 			}
 
-			await this.user_repo.save({	id: me.id,
-				blocked: me.blocked.filter((user) => user.id !== target.id),
+			await this.user_repo.save({	id: user.id,
+				blocked: user.blocked.filter((user) => user.id !== target.id),
 			});
 
 			UpdateGateway.instance.send_update({
 				subject: Subject.BLOCK,
 				action: Action.REMOVE,
 				id: target.id,
-			}, me);
+			}, user);
 		}
 	}
 	return UserControllerFactory;

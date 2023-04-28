@@ -2,7 +2,7 @@
 	import type { ChatRoomMember, Message, Room } from "$lib/entities";
 	import { BOUNCER, icon_path } from "$lib/constants";
 	import { page } from "$app/stores";
-	import { CoalitionColors } from "$lib/enums";
+	import { CoalitionColors, Role } from "$lib/enums";
 	import { memberStore, userStore } from "$lib/stores";
 	import { unwrap } from "$lib/Alert";
 	import { remove } from "$lib/Web";
@@ -45,7 +45,7 @@
 				{user.username}
 			</div>
 			<div class="grow" />
-			{#if user.id === $page.data.user.id || (self && (!member || member.role < self.role))}
+			{#if user.id === $page.data.user.id || (self && ((!member && self.role >= Role.ADMIN) || (member && member.role >= self.role)))}
 				<button on:click={censor}
 					><img class="!w-5 !h-5 icon" src={trash} alt="delete" /></button
 				>

@@ -11,7 +11,7 @@ import {
 	SetMetadata,
 } from "@nestjs/common";
 import { User } from "./entities/User";
-import { Repository, FindOptionsWhere, FindOptionsRelations } from "typeorm";
+import { Repository, FindOptionsWhere, FindOptionsRelations, ObjectLiteral } from "typeorm";
 import { Status } from "src/enums";
 import { IDLE_TIME, OFFLINE_TIME, EMBED_ALGORITHM, BOUNCER_KEY, SCHEME, BOUNCER_ADDRESS } from "./vars"; //ODOT rename EMBED_ALGORITHM to BOUNCER_HASH_ALGO
 import isNumeric from "validator/lib/isNumeric";
@@ -71,14 +71,14 @@ export function validate_id(value: any) {
 	return id;
 }
 
-export async function parseId<T>(type: (new () => T), value: any, repo: Repository<T>) {
+export async function parseId<T extends ObjectLiteral>(type: (new () => T), value: any, repo: Repository<T>) {
 	const entity = await repo.findOneBy({ id: validate_id(value) } as unknown as FindOptionsWhere<T>);
 	if (!entity)
 		throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 	return entity;
 }
 
-export function ParseIDPipe<T>(type: (new () => T), relations?: any) {
+export function ParseIDPipe<T extends ObjectLiteral>(type: (new () => T), relations?: any) {
 	@Injectable()
 	class ParseIDPipe implements PipeTransform {
 		constructor(
@@ -99,14 +99,14 @@ export function ParseIDPipe<T>(type: (new () => T), relations?: any) {
 					throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 				return entity;
 			} catch (error) {
-				throw new BadRequestException(error.message);
+				throw new BadRequestException("Invalid id");
 			}
 		}
 	};
 	return ParseIDPipe;
 }
 
-export function ParseOptionalIDPipe<T>(type: (new () => T), relations?: FindOptionsRelations<T>) {
+export function ParseOptionalIDPipe<T extends ObjectLiteral>(type: (new () => T), relations?: FindOptionsRelations<T>) {
 	@Injectable()
 	class ParseOptionalIDPipe extends ParseIDPipe(type, relations) {
 		async transform(value: any, metadata: ArgumentMetadata) {
@@ -125,20 +125,16 @@ export function ParseUsernamePipe(relations?: any) {
 		constructor(@Inject("USER_REPO") readonly userRepo: Repository<User>) {}
 
 		async transform(value: any, metadata: ArgumentMetadata) {
-			try {
-				const entity = await this.userRepo.findOne({
-					where: { username: value },
-					relations,
-				});
-			
-				if (!entity) {
-					throw new HttpException("Not found", HttpStatus.NOT_FOUND);
-				}
-
-				return entity;
-			} catch (error) {
-				throw new BadRequestException(error.message);
+			const entity = await this.userRepo.findOne({
+				where: { username: value },
+				relations,
+			});
+		
+			if (!entity) {
+				throw new HttpException("Not found", HttpStatus.NOT_FOUND);
 			}
+
+			return entity;
 		}
 	};
 	return ParseUsernamePipe;

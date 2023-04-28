@@ -8,7 +8,7 @@ import type { level } from "./Constants";
 const ballSize = 7; //Visual size on the screen
 
 export interface Events {
-	mousemove(moveX: number, moveY: number): void;
+	mouseMove(moveX: number, moveY: number): void;
     mouseWheel(deltaY: number): void;
 	mouseClick(button: number):void;
 }
@@ -139,7 +139,7 @@ export class FullShader {
 			const minScale = Math.min(xScale, yScale);
 			const x = ((ev.movementX) / minScale);
 			const y = ((ev.movementY) / minScale);
-			events.mousemove(x, y);
+			events.mouseMove(x, y);
 		});
 
 		this.canvas.addEventListener("mousedown", ev => {
@@ -264,6 +264,7 @@ export class FullShader {
 				this.field.renderTriangles(this.gl, font[1], minMatrix.matrix, this.level.scoreColors[i]);
 				this.field.renderPoints(this.gl, fontEdges[1], minMatrix.matrix, [1,1,1,1]);
 			}
+			
 
 			
 			this.field.renderTriangles(this.gl, font[nIndex], matrix.matrix, this.level.scoreColors[i]);

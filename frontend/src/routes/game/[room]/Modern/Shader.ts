@@ -19,9 +19,9 @@ type Options = {
 }
 
 type Mesh = {
-    verticeBuffer: WebGLBuffer;
-    indiceBuffer: WebGLBuffer;
-    indiceLength: number;
+    vertexBuffer: WebGLBuffer;
+    indexBuffer: WebGLBuffer;
+    indexLength: number;
     options?: Options;
 }
 
@@ -42,20 +42,20 @@ export class Shader {
     }
 
     public addMesh(gl: WebGL2RenderingContext, triangles: triangles, name: string, options?: Options) {
-        const verticeBuffer: WebGLBuffer = this.createVerticeBuffer(gl, triangles.vertices);
-        const indiceBuffer: WebGLBuffer = this.createIndiceBuffer(gl, triangles.indices);
-        const mesh: Mesh = { verticeBuffer: verticeBuffer, indiceBuffer: indiceBuffer, indiceLength: triangles.indices.length, options: options};
+        const vertexBuffer: WebGLBuffer = this.createVertexBuffer(gl, triangles.vertices);
+        const indexBuffer: WebGLBuffer = this.createIndexBuffer(gl, triangles.indices);
+        const mesh: Mesh = { vertexBuffer: vertexBuffer, indexBuffer: indexBuffer, indexLength: triangles.indices.length, options: options};
         this.mesh.set(name, mesh);
     }
 
-    private createVerticeBuffer(gl: WebGLRenderingContext, data: number[]): WebGLBuffer {
+    private createVertexBuffer(gl: WebGLRenderingContext, data: number[]): WebGLBuffer {
         const buffer = gl.createBuffer()!;
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(data), gl.STATIC_DRAW);
         return buffer;
     }
 
-    private createIndiceBuffer(gl: WebGL2RenderingContext, data: number[]) {
+    private createIndexBuffer(gl: WebGL2RenderingContext, data: number[]) {
         const buffer = gl.createBuffer()!;
         gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, buffer);
         gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(data), gl.STATIC_DRAW);
@@ -88,11 +88,11 @@ export class Shader {
             this.program.setUniform(gl, "gradientRadius", options.gradientRadius);
         if (options?.ballRadius)
             this.program.setUniform(gl, "ballRadius", options.ballRadius);
-        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.verticeBuffer);
+        gl.bindBuffer(gl.ARRAY_BUFFER, mesh.vertexBuffer);
         gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
         gl.enableVertexAttribArray(0);
-        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indiceBuffer);
-        gl.drawElements(gl.TRIANGLES, mesh.indiceLength, gl.UNSIGNED_SHORT, 0);
+        gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, mesh.indexBuffer);
+        gl.drawElements(gl.TRIANGLES, mesh.indexLength, gl.UNSIGNED_SHORT, 0);
     }
 
     public renderNamed(gl: WebGL2RenderingContext, name: string, options?: Options, index: number = 0) {
@@ -120,22 +120,24 @@ export class Shader {
 
     //For debugRendering
     public renderPoints(gl: WebGL2RenderingContext, vertices: number[], transform: number[], color: number[]) {
-        const buffer = this.createVerticeBuffer(gl, vertices);
+        const buffer = this.createVertexBuffer(gl, vertices);
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(0);
         this.program.setUniform(gl, "transform", transform);
         this.program.setUniform(gl, "color", color);
         gl.drawArrays(gl.LINES, 0, vertices.length / 2);
+        gl.deleteBuffer(buffer);
     }
 
     public renderTriangles(gl: WebGL2RenderingContext, vertices: number[], transform: number[], color: number[]) {
-        const buffer = this.createVerticeBuffer(gl, vertices);
+        const buffer = this.createVertexBuffer(gl, vertices);
         gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
 		gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0);
 		gl.enableVertexAttribArray(0);
         this.program.setUniform(gl, "transform", transform);
         this.program.setUniform(gl, "color", color);
         gl.drawArrays(gl.TRIANGLES, 0, vertices.length / 2);
+        gl.deleteBuffer(buffer);
     }
 }

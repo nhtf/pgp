@@ -215,20 +215,22 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 		}
 
 		async areInvited(room: T, ...users: User[]) {
-			room = await this.find(room, { invites: true });
+			const room_extra = await this.find(room, { invites: true });
 		
-			return room.invites.every((invite) => users.some((user) => user.id === invite.to.id));
+			return room_extra?.invites.every((invite) => users.some((user) => user.id === invite.to.id)) ?? [];
 		}
 
 		async get_bans(room: T): Promise<User[]> {
-			room = await this.find(room, { banned_users: true });
-			return room.banned_users;
+			const room_extra = await this.find(room, { banned_users: true });
+			return room_extra?.banned_users ?? [];
 		}
 
 		async areBanned(room: T, ...users: User[]): Promise<boolean> {
-			room = await this.find(room, { banned_users: true });
+			const room_extra = await this.find(room, { banned_users: true });
+			if (room_extra == undefined)
+				return false;
 		
-			return users.every(({ id }) => room.banned_users.some((user) => user.id === id));
+			return users.every(({ id }) => room_extra.banned_users.some((user) => user.id === id));
 		}
 
 		async is_member(room: T, ...users: User[]): Promise<boolean> {
@@ -236,8 +238,9 @@ export function GenericRoomService<T extends Room, U extends Member, S extends C
 		}
 
 		async verify(room: T, password: string): Promise<boolean> {
-			return argon2.verify(room.password, password);
-
+			if (room.password != undefined)
+				return argon2.verify(room.password, password);
+			return true;
 		}
 		
 		async joined_rooms(user: User) {

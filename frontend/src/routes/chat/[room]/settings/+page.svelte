@@ -1,7 +1,7 @@
 <script lang="ts">
 	import type { PageData } from "./$types";
 	import { memberStore, roomStore, updateStore } from "$lib/stores";
-	import { User, ChatRoom } from "$lib/entities";
+	import { User, ChatRoom, ChatRoomMember } from "$lib/entities";
 	import { unwrap } from "$lib/Alert";
 	import { Role } from "$lib/enums";
 	import { patch } from "$lib/Web";
@@ -12,12 +12,16 @@
 
 	export let data: PageData;
 
+	updateStore(User, data.banned);
+	updateStore(ChatRoom, data.room);
+
+	if (data.room.self) {
+		updateStore(ChatRoomMember, data.room.self);
+	}
+
 	$: room = $roomStore.get(data.room.id)!;
 	$: self = $memberStore.get(room?.self!.id)!;
 	$: banned = data.banned;
-
-	updateStore(User, data.banned);
-	updateStore(ChatRoom, data.room);
 
 	async function edit(edit: any, room: ChatRoom) {
 		edit.name = edit.name.length ? edit.name : null;
@@ -36,7 +40,7 @@
 		<div class="box">
 			<Invite {room} />
 		</div>
-		{#if self.role >= Role.OWNER}
+		{#if self && self.role >= Role.OWNER}
 			<RoomInput {room} click={edit} buttonText={"edit"} />
 		{/if}
 

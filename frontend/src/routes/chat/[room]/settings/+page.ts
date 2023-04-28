@@ -11,7 +11,7 @@ export const load: PageLoad = (async ({ fetch, params }) => {
 	const room: ChatRoom = await unwrap(get(`/chat/${params.room}`));
 	const banned: User[] = await unwrap(get(`/chat/${params.room}/bans`));
 
-	if (room.self!.role < Role.ADMIN) {
+	if (room.self && room.self.role < Role.ADMIN) {
 		throw error(401, "Must be admin or owner");
 	}
 

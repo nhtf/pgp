@@ -91,10 +91,10 @@
 		};
 	}
 
-	function dropdownCloseHandler(ev) {
+	function dropdownCloseHandler(ev: MouseEvent) {
 		const dropdownElement = document.getElementById("notifications-dropdown")!;
 
-		if (dropdownElement && !dropdownElement.contains(ev.target)) {
+		if (dropdownElement && ev.target && !dropdownElement.contains(ev.target as Node)) {
 			dropdownOpen = false;
 		}
 	}
@@ -108,7 +108,7 @@
 	});
 
 	onDestroy(() => {
-		document.removeEventListener("mousemove", dropdownCloseHandler);
+		document.removeEventListener("mousedown", dropdownCloseHandler);
 	});
 </script>
 

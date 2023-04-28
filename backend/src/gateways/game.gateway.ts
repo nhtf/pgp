@@ -50,6 +50,11 @@ export class GameGateway extends ProtectedGateway("game") {
 	async onDisconnect(client: Socket) {
 		await this.userRepo.save({ id: client.user, activeRoom: null });
 
+		if (client.user == undefined) {
+			client.emit("exception", { errorMessage: "unauthorized" });
+			return;
+		}
+
 		UpdateGateway.instance.send_update({
 			subject: Subject.USER,
 			action: Action.UPDATE,
@@ -93,7 +98,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			if (data.current.state.finished !== undefined) {
 				const state = await this.gameStateRepo.findOneBy({ room: { id: client.room } });
 
-				if (state.finished !== data.current.state.finished) {
+				if (state != undefined && state.finished !== data.current.state.finished) {
 					await this.gameStateRepo.save({ id: state.id, finished: data.current.state.finished });
 				}
 			}
@@ -101,7 +106,7 @@ export class GameGateway extends ProtectedGateway("game") {
 			data.current.state.teams.forEach(async (team) => {
 				const old = await this.teamRepo.findOneBy({ id: team.id });
 			
-				if (team.score !== old.score) {
+				if (old != undefined && team.score !== old.score) {
 					await this.teamRepo.save({ id: team.id, score: team.score });
 
 					UpdateGateway.instance.send_update({

@@ -13,7 +13,7 @@ import { Action, Subject } from "src/enums"
 
 type SubjectInfo = { subject: Subject, names: string[], fun: (any: any) => User[] | null, relations?: FindOptionsRelations<any> };
 
-function roomReceivers(room: Room): User[] | null {
+function roomReceivers(room: Room | null): User[] | null {
 	return room?.is_private ? room?.users?.length ? room?.users : null : [];
 }
 
@@ -83,14 +83,14 @@ export class EntitySubscriber implements EntitySubscriberInterface {
 	async receivers(entity: any, info: SubjectInfo): Promise<User[]> {
 		let receivers = info.fun(entity);
 
-		if (receivers === null) {
-			throw new Error("No receivers");
-		}
-
 		if (receivers === undefined) {
 			const entityWithRelations = await ReceiverFinder.instance.get(info.subject, entity.id, info.relations);
 
 			receivers = info.fun(entityWithRelations);
+		}
+
+		if (receivers === null) {
+			throw new Error("No receivers");
 		}
 
 		if (!Array.isArray(receivers)) {

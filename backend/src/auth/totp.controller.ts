@@ -73,7 +73,7 @@ export class TotpController {
 		if (!this.session_utils.save_session(session))
 			throw new InternalServerErrorException();
 
-		const otpauth = authenticator.keyuri(user.username, "pgp", secret);
+		const otpauth = authenticator.keyuri(user.username!, "pgp", secret);
 		const promise = new Promise((resolve: (value: string) => void, reject) => {
 			qrcode.toDataURL(otpauth, (error, image_url) => {
 				error ? reject(error) : resolve(image_url);
@@ -169,7 +169,7 @@ export class TotpController {
 			throw new HttpException("Forbidden", HttpStatus.FORBIDDEN);
 		}
 
-		if (user.auth_req !== AuthLevel.TWOFA) {
+		if (user.auth_req !== AuthLevel.TWOFA || user.secret == undefined) {
 			throw new HttpException("2fa not setup", HttpStatus.FORBIDDEN);
 		}
 		

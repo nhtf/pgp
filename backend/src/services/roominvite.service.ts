@@ -20,7 +20,7 @@ function get_object<T extends Entity>(obj: T | number): T {
 	return obj;
 }
 
-function get_id<T extends Entity>(obj: T | number): number {
+function get_id<T extends Entity>(obj: T | number): number | undefined {
 	if (obj == undefined)
 		return undefined;
 	if (typeof obj === "number")

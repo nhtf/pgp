@@ -15,8 +15,8 @@ export class Achievement {
 	@Column()
 	image: string;
 
-	@Column({ nullable: true })
-	max: number | null;
+	@Column()
+	max: number;
 
 	@OneToMany(() => Objective, (objective) => objective.achievement, { eager: true, cascade: true })
 	objectives: Objective[];

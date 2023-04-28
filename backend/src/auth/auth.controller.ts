@@ -37,8 +37,8 @@ class TokenDTO {
 export class AuthController {
 	private readonly client = new AuthorizationCode({
 		client: {
-			id: process.env.CLIENT_ID,
-			secret: process.env.CLIENT_SECRET,
+			id: process.env.CLIENT_ID!,
+			secret: process.env.CLIENT_SECRET!,
 		},
 		auth: {
 			tokenHost: "https://api.intra.42.fr",
@@ -100,7 +100,7 @@ export class AuthController {
 		}
 
 		const result = res.result;
-		if (!result.id || !result.login) {
+		if (!result || !result.id || !result.login) {
 			console.error("did not properly receive id and/or login from intra");
 			return undefined;
 		}

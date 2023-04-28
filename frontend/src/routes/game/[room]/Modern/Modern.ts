@@ -412,7 +412,7 @@ export class Modern {
 		await this.game?.start(options);
 	}
 
-	public mousemove(moveX: number, moveY: number) {
+	public mouseMove(moveX: number, moveY: number) {
 		if (!this.options) {
 			return;
 		}

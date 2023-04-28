@@ -1,5 +1,6 @@
 import type { CreateRoomOptions } from "src/services/room.service";
 import type { User } from "src/entities/User";
+import type { Embed } from "src/entities/Embed";
 import { Get, Inject, Delete, Param, ForbiddenException, Body, Post, HttpCode, HttpStatus } from "@nestjs/common";
 import { IsString, Length, IsOptional, IsBoolean, IsDateString, IsEnum } from "class-validator";
 import { GenericRoomController, GetRoom, GetMember } from "src/controllers/room.controller";
@@ -109,7 +110,7 @@ export class NewChatRoomController extends GenericRoomController(
 			links
 				.slice(0, EMBED_LIMIT)
 				.map((link) => this.chat_service.create_embed(new URL(link.href)))
-		)).filter((embed) => embed !== null);
+		)).filter((embed) => embed !== null) as Embed[];
 
 		const message = new Message();
 
@@ -134,8 +135,12 @@ export class NewChatRoomController extends GenericRoomController(
 	) {
 		const message_owner = await this.room_service.get_member(room, message.user);
 
-		if (message_owner.id !== member.id && message_owner.role >= member.role)
+		if (message_owner == undefined) {
+			if (member.role < Role.ADMIN)
+				throw new ForbiddenException(ERR_PERM);
+		} else if (message_owner.id !== member.id && message_owner.role >= member.role) {
 			throw new ForbiddenException(ERR_PERM);
+		}
 		await this.chat_service.remove_messages(message);
 	}
 }

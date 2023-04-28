@@ -57,7 +57,7 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 	}
 
 	async add_messages(room: ChatRoom, ...messages: Message[]) {
-		room = await this.find(room, { messages: true });
+		room = (await this.find(room, { messages: true }))!;
 
 		room.messages.push(...messages);
 	
@@ -97,7 +97,7 @@ export class ChatRoomService extends GenericRoomService<ChatRoom, ChatRoomMember
 				user: true,
 			},
 			where: {
-				member: null,
+				member: IsNull(),
 				room: {
 					id: room.id,
 				},
