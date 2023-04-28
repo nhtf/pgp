@@ -116,7 +116,7 @@ export class GameRoomService extends GenericRoomService<GameRoom, GameRoomMember
 
 			room = await this.find(room);
 
-			if (!room.members.length || (room.state.ranked && members.some(({ member }) => member.player != undefined))) {
+			if (!room.members.length && !room.state.terminated) {
 				await this.gameFinished(room.state);
 			}
 		}

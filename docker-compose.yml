@@ -58,5 +58,3 @@ services:
     image: 'dutchen18/rambler:latest'
     env_file: .env
     restart: always
-    depends_on:
-      - backend
