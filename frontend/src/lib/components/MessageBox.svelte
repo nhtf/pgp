@@ -45,7 +45,7 @@
 				{user.username}
 			</div>
 			<div class="grow" />
-			{#if user.id === $page.data.user.id || (self && ((!member && self.role >= Role.ADMIN) || (member && member.role >= self.role)))}
+			{#if user.id === $page.data.user.id || (self && ((!member && self.role >= Role.ADMIN) || (member && self.role > member.role)))}
 				<button on:click={censor}
 					><img class="!w-5 !h-5 icon" src={trash} alt="delete" /></button
 				>
